@@ -88,10 +88,77 @@ impl NPM {
     }
 }
 
+struct Yarn {
+    command: PathBuf,
+    yarn: Option<PathBuf>,
+}
+
+impl Yarn {
+    fn new(command: PathBuf) -> Self {
+        Self {
+            command,
+            yarn: require("yarn").ok(),
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    fn root(&self) -> Result<PathBuf> {
+        let args = ["global", "dir"];
+        Command::new(&self.command)
+            .args(args)
+            .check_output()
+            .map(|s| PathBuf::from(s.trim()))
+    }
+
+    fn upgrade(&self, run_type: RunType, use_sudo: bool) -> Result<()> {
+        print_separator("Yarn Package Manager");
+        let args = ["global", "upgrade"];
+        
+        if use_sudo {
+            run_type
+                .execute("sudo")
+                .arg(self.yarn.as_ref().unwrap_or(&self.command))
+                .args(args)
+                .check_run()?;
+        } else {
+            run_type.execute(&self.command).args(args).check_run()?;
+        }
+
+        Ok(())
+    }
+
+    #[cfg(target_os = "linux")]
+    pub fn should_use_sudo(&self) -> Result<bool> {
+        let yarn_root = self.root()?;
+        if !yarn_root.exists() {
+            return Err(SkipStep(format!("NPM root at {} doesn't exist", yarn_root.display(),)).into());
+        }
+
+        let metadata = std::fs::metadata(&yarn_root)?;
+        let uid = Uid::effective();
+
+        Ok(metadata.uid() != uid.as_raw() && metadata.uid() == 0)
+    }
+}
+
 #[cfg(target_os = "linux")]
 fn should_use_sudo(npm: &NPM, ctx: &ExecutionContext) -> Result<bool> {
     if npm.should_use_sudo()? {
         if ctx.config().npm_use_sudo() {
+            Ok(true)
+        } else {
+            Err(SkipStep("NPM root is owned by another user which is not the current user. Set use_sudo = true under the NPM section in your configuration to run NPM as sudo".to_string())
+                .into())
+        }
+    } else {
+        Ok(false)
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn should_use_sudo_yarn(yarn: &Yarn, ctx: &ExecutionContext) -> Result<bool> {
+    if yarn.should_use_sudo()? {
+        if ctx.config().yarn_use_sudo() {
             Ok(true)
         } else {
             Err(SkipStep("NPM root is owned by another user which is not the current user. Set use_sudo = true under the NPM section in your configuration to run NPM as sudo".to_string())
@@ -115,6 +182,22 @@ pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
         npm.upgrade(ctx.run_type(), false)
     }
 }
+
+pub fn run_yarn_upgrade(ctx: &ExecutionContext) -> Result<()> {
+    let yarn = require("yarn").map(Yarn::new)?;
+
+    #[cfg(target_os = "linux")]
+    {
+        yarn.upgrade(ctx.run_type(), should_use_sudo_yarn(&yarn, ctx)?)
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        yarn.upgrade(ctx.run_type(), false)
+    }
+}
+
+
 
 pub fn deno_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let deno = require("deno")?;

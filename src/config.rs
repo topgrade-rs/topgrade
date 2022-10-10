@@ -171,6 +171,13 @@ pub struct Windows {
 #[derive(Deserialize, Default, Debug)]
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
+pub struct Yarn {
+    use_sudo: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct NPM {
     use_sudo: Option<bool>,
 }
@@ -270,6 +277,7 @@ pub struct ConfigFile {
     git: Option<Git>,
     windows: Option<Windows>,
     npm: Option<NPM>,
+    yarn: Option<Yarn>,
     vim: Option<Vim>,
     firmware: Option<Firmware>,
     vagrant: Option<Vagrant>,
@@ -841,6 +849,15 @@ impl Config {
             .and_then(|npm| npm.use_sudo)
             .unwrap_or(false)
     }
+    #[cfg(target_os = "linux")]
+    pub fn yarn_use_sudo(&self) -> bool {
+        self.config_file
+            .yarn
+            .as_ref()
+            .and_then(|yarn| yarn.use_sudo)
+            .unwrap_or(false)
+    }
+    
 
     #[cfg(target_os = "linux")]
     pub fn firmware_upgrade(&self) -> bool {
