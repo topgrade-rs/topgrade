@@ -251,6 +251,24 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
     Ok(())
 }
 
+pub fn run_guix(ctx: &ExecutionContext) -> Result<()> {
+    let guix = require("guix")?;
+
+    let run_type = ctx.run_type();
+
+    let output = Command::new(&guix).arg("pull").check_output();
+    debug!("guix pull output: {:?}", output);
+    let should_upgrade = output.is_ok();
+    debug!("Can Upgrade Guix: {:?}", should_upgrade);
+
+    print_separator("Guix");
+
+    if should_upgrade {
+        return run_type.execute(&guix).args(&["package", "-u"]).check_run();
+    }
+    Err(SkipStep(String::from("Guix Pull Failed, Skipping")).into())    
+}
+
 pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     let nix = require("nix")?;
     let nix_channel = require("nix-channel")?;

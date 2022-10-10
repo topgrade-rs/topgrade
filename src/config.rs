@@ -94,6 +94,7 @@ pub enum Step {
     GithubCliExtensions,
     GitRepos,
     Go,
+    Guix,
     Haxelib,
     GnomeShellExtensions,
     HomeManager,
