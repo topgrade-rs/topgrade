@@ -67,24 +67,23 @@ impl Emacs {
         print_separator("Doom Emacs");
 
         let mut command = ctx.run_type().execute(doom);
-        command.args(&["-y", "upgrade"]);
-
         if ctx.config().yes(Step::Emacs) {
             command.arg("--force");
         }
+
+        command.args(&["upgrade"]);
 
         command.check_run()
     }
 
     pub fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
         let emacs = require("emacs")?;
+        if let Some(doom) = &self.doom {
+            Emacs::update_doom(doom, ctx)?;
+        }
         let init_file = require_option(self.directory.as_ref(), String::from("Emacs directory does not exist"))?
             .join("init.el")
             .require()?;
-
-        if let Some(doom) = &self.doom {
-            return Emacs::update_doom(doom, ctx);
-        }
 
         print_separator("Emacs");
 
