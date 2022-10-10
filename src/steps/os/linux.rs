@@ -348,6 +348,17 @@ fn upgrade_solus(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+pub fn run_pacdef(ctx: &ExecutionContext) -> Result<()> {
+    let pacdef = require("pacdef")?;
+
+    print_separator("pacdef");
+
+    ctx.run_type().execute(&pacdef).arg("sync").check_run()?;
+
+    println!();
+    ctx.run_type().execute(&pacdef).arg("review").check_run()
+}
+
 pub fn run_pacstall(ctx: &ExecutionContext) -> Result<()> {
     let pacstall = require("pacstall")?;
 
