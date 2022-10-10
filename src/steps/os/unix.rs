@@ -409,6 +409,14 @@ pub fn run_sdkman(base_dirs: &BaseDirs, cleanup: bool, run_type: RunType) -> Res
     Ok(())
 }
 
+pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
+    let bun = require("bun")?;
+
+    print_separator("Bun");
+
+    ctx.run_type().execute(&bun).arg("upgrade").check_run()
+}
+
 pub fn reboot() {
     print!("Rebooting...");
     Command::new("sudo").arg("reboot").spawn().unwrap().wait().unwrap();

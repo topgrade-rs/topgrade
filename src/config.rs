@@ -71,6 +71,7 @@ pub enum Step {
     Atom,
     BrewCask,
     BrewFormula,
+    Bun,
     Bin,
     Cargo,
     Chezmoi,
