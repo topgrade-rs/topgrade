@@ -87,7 +87,7 @@
 
 # Causes Topgrade to rename itself during the run to allow package managers
 # to upgrade it. Use this only if you installed Topgrade by using a package
-# manager such as Scoop to Cargo
+# manager such as Scoop or Cargo
 #self_rename = true
 
 [npm]
