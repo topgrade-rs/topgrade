@@ -466,13 +466,17 @@ fn run() -> Result<()> {
     }
 
     let failed = post_command_failed || runner.report().data().iter().any(|(_, result)| result.failed());
-    terminal::notify_desktop(
-        format!(
-            "Topgrade finished {}",
-            if failed { "with errors" } else { "successfully" }
-        ),
-        None,
-    );
+
+    if !config.skip_notify() {
+        terminal::notify_desktop(
+            format!(
+                "Topgrade finished {}",
+                if failed { "with errors" } else { "successfully" }
+            ),
+            None,
+        );
+    }
+
     if failed {
         Err(StepFailed.into())
     } else {

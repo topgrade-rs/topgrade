@@ -272,6 +272,7 @@ pub struct ConfigFile {
     cleanup: Option<bool>,
     notify_each_step: Option<bool>,
     accept_all_windows_updates: Option<bool>,
+    skip_notify: Option<bool>,
     bashit_branch: Option<String>,
     only: Option<Vec<Step>>,
     composer: Option<Composer>,
@@ -427,6 +428,10 @@ pub struct CommandLineArgs {
     /// Prompt for a key before exiting
     #[clap(short = 'k', long = "keep")]
     keep_at_end: bool,
+
+    /// Skip sending a notification at the end of a run
+    #[clap(long = "skip-notify")]
+    skip_notify: bool,
 
     /// Say yes to package manager's prompt
     #[clap(short = 'y', long = "yes", arg_enum, multiple_values = true, min_values = 0)]
@@ -611,6 +616,15 @@ impl Config {
     /// Prompt for a key before exiting
     pub fn keep_at_end(&self) -> bool {
         self.opt.keep_at_end || env::var("TOPGRADE_KEEP_END").is_ok()
+    }
+
+    /// Skip sending a notification at the end of a run
+    pub fn skip_notify(&self) -> bool {
+        if let Some(yes) = self.config_file.skip_notify {
+            return yes;
+        }
+
+        self.opt.skip_notify
     }
 
     /// Whether to set the terminal title

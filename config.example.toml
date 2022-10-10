@@ -37,6 +37,9 @@
 # Cleanup temporary or old files
 #cleanup = true
 
+# Skip sending a notification at the end of a run
+#skip_notify = true
+
 [git]
 #max_concurrency = 5
 # Additional git repositories to pull
