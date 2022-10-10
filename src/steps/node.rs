@@ -20,15 +20,11 @@ use crate::{error::SkipStep, execution_context::ExecutionContext};
 #[allow(clippy::upper_case_acronyms)]
 struct NPM {
     command: PathBuf,
-    pnpm: Option<PathBuf>,
 }
 
 impl NPM {
     fn new(command: PathBuf) -> Self {
-        Self {
-            command,
-            pnpm: require("pnpm").ok(),
-        }
+        Self { command }
     }
 
     #[cfg(target_os = "linux")]
@@ -56,17 +52,13 @@ impl NPM {
     fn upgrade(&self, run_type: RunType, use_sudo: bool) -> Result<()> {
         print_separator("Node Package Manager");
         let version = self.version()?;
-        let args = if version < Version::new(8, 11, 0) || self.pnpm.is_some() {
+        let args = if version < Version::new(8, 11, 0) {
             ["update", "-g"]
         } else {
             ["update", "--location=global"]
         };
         if use_sudo {
-            run_type
-                .execute("sudo")
-                .arg(self.pnpm.as_ref().unwrap_or(&self.command))
-                .args(args)
-                .check_run()?;
+            run_type.execute("sudo").args(args).check_run()?;
         } else {
             run_type.execute(&self.command).args(args).check_run()?;
         }
@@ -170,7 +162,7 @@ fn should_use_sudo_yarn(yarn: &Yarn, ctx: &ExecutionContext) -> Result<bool> {
 }
 
 pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let npm = require("npm").map(NPM::new)?;
+    let npm = require("pnpm").or_else(|_| require("npm")).map(NPM::new)?;
 
     #[cfg(target_os = "linux")]
     {
