@@ -64,6 +64,7 @@
 
 [brew]
 #greedy_cask = true
+#autoremove = true
 
 [linux]
 # Arch Package Manager to use. Allowed values: autodetect, trizen, paru, yay, pikaur, pacman, pamac.

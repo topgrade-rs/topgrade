@@ -210,6 +210,10 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
         variant.execute(run_type).arg("cleanup").check_run()?;
     }
 
+    if ctx.config().brew_autoremove() {
+        variant.execute(run_type).arg("autoremove").check_run()?;
+    }
+
     Ok(())
 }
 

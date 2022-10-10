@@ -202,6 +202,7 @@ pub struct Flatpak {
 #[serde(deny_unknown_fields)]
 pub struct Brew {
     greedy_cask: Option<bool>,
+    autoremove: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy)]
@@ -665,6 +666,15 @@ impl Config {
             .brew
             .as_ref()
             .and_then(|c| c.greedy_cask)
+            .unwrap_or(false)
+    }
+
+    /// Whether Brew should autoremove
+    pub fn brew_autoremove(&self) -> bool {
+        self.config_file
+            .brew
+            .as_ref()
+            .and_then(|c| c.autoremove)
             .unwrap_or(false)
     }
 
