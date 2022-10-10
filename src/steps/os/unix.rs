@@ -296,6 +296,16 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
         }
     }
 
+    #[cfg(target_os = "macos")]
+    {
+        if let Ok(..) = require("darwin-rebuild") {
+            return Err(SkipStep(String::from(
+                "Nix-darwin on macOS must be upgraded via darwin-rebuild switch",
+            ))
+            .into());
+        }
+    }
+
     let run_type = ctx.run_type();
 
     if should_self_upgrade {
