@@ -318,7 +318,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Flutter, "Flutter", || generic::run_flutter_upgrade(run_type))?;
     runner.execute(Step::Go, "Go", || generic::run_go(run_type))?;
     runner.execute(Step::Emacs, "Emacs", || emacs.upgrade(&ctx))?;
-    runner.execute(Step::Opam, "opam", || generic::run_opam_update(run_type))?;
+    runner.execute(Step::Opam, "opam", || generic::run_opam_update(&ctx))?;
     runner.execute(Step::Vcpkg, "vcpkg", || generic::run_vcpkg_update(run_type))?;
     runner.execute(Step::Pipx, "pipx", || generic::run_pipx_update(run_type))?;
     runner.execute(Step::Conda, "conda", || generic::run_conda_update(&ctx))?;

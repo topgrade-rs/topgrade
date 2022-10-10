@@ -220,13 +220,19 @@ pub fn run_rtcl(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(&rupdate).check_run()
 }
 
-pub fn run_opam_update(run_type: RunType) -> Result<()> {
+pub fn run_opam_update(ctx: &ExecutionContext) -> Result<()> {
     let opam = utils::require("opam")?;
 
     print_separator("OCaml Package Manager");
 
-    run_type.execute(&opam).arg("update").check_run()?;
-    run_type.execute(&opam).arg("upgrade").check_run()
+    ctx.run_type().execute(&opam).arg("update").check_run()?;
+    ctx.run_type().execute(&opam).arg("upgrade").check_run()?;
+
+    if ctx.config().cleanup() {
+        ctx.run_type().execute(&opam).arg("clean").check_run()?;
+    }
+
+    Ok(())
 }
 
 pub fn run_vcpkg_update(run_type: RunType) -> Result<()> {
