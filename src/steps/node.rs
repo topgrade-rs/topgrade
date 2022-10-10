@@ -105,7 +105,7 @@ impl Yarn {
     fn upgrade(&self, run_type: RunType, use_sudo: bool) -> Result<()> {
         print_separator("Yarn Package Manager");
         let args = ["global", "upgrade"];
-        
+
         if use_sudo {
             run_type
                 .execute("sudo")
@@ -188,8 +188,6 @@ pub fn run_yarn_upgrade(ctx: &ExecutionContext) -> Result<()> {
         yarn.upgrade(ctx.run_type(), false)
     }
 }
-
-
 
 pub fn deno_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let deno = require("deno")?;

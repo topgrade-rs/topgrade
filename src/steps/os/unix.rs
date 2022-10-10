@@ -270,7 +270,7 @@ pub fn run_guix(ctx: &ExecutionContext) -> Result<()> {
     if should_upgrade {
         return run_type.execute(&guix).args(&["package", "-u"]).check_run();
     }
-    Err(SkipStep(String::from("Guix Pull Failed, Skipping")).into())    
+    Err(SkipStep(String::from("Guix Pull Failed, Skipping")).into())
 }
 
 pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {

@@ -883,7 +883,6 @@ impl Config {
             .and_then(|yarn| yarn.use_sudo)
             .unwrap_or(false)
     }
-    
 
     #[cfg(target_os = "linux")]
     pub fn firmware_upgrade(&self) -> bool {
