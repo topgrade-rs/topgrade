@@ -496,3 +496,14 @@ pub fn run_ghcli_extensions_upgrade(ctx: &ExecutionContext) -> Result<()> {
         .args(&["extension", "upgrade", "--all"])
         .check_run()
 }
+
+pub fn update_julia_packages(ctx: &ExecutionContext) -> Result<()> {
+    let julia = utils::require("julia")?;
+
+    print_separator("Julia Packages");
+
+    ctx.run_type()
+        .execute(&julia)
+        .args(&["-e", "using Pkg; Pkg.update()"])
+        .check_run()
+}

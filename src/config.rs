@@ -62,7 +62,7 @@ macro_rules! get_deprecated {
 
 type Commands = BTreeMap<String, String>;
 
-#[derive(ArgEnum, EnumString, EnumVariantNames, Debug, Clone, PartialEq, Deserialize, EnumIter, Copy)]
+#[derive(ArgEnum, EnumString, EnumVariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
 #[clap(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
@@ -99,6 +99,7 @@ pub enum Step {
     GnomeShellExtensions,
     HomeManager,
     Jetpack,
+    Julia,
     Kakoune,
     Krew,
     Macports,
