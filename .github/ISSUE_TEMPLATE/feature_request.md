@@ -1,7 +1,10 @@
 ---
 name: Feature request
 about: Can you please support...?
-labels: is:new
+title: ''
+labels: ''
+assignees: ''
+
 ---
 
 ## I want to suggest a new step

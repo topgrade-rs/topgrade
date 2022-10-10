@@ -1,7 +1,10 @@
 ---
 name: Bug report
 about: Topgrade is misbehaving
-labels: is:bug
+title: ''
+labels: ''
+assignees: ''
+
 ---
 
 <!-- If you're here to report about a "No asset found" error, please make sure that an hour has been passed since the last release was made. -->
