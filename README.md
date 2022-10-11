@@ -9,7 +9,7 @@
 
 ![Demo](doc/screenshot.gif)
 
-##Fork
+## Fork
 This is a fork of [topgrade by r-darwish](https://github.com/r-darwish/topgrade) to keep it maintained.
 
 
