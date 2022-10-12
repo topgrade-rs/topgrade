@@ -329,6 +329,7 @@ pub fn run_deb_get(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("deb-get");
 
+    ctx.execute_elevated(&deb_get, false)?.arg("update").check_run()?;
     ctx.execute_elevated(&deb_get, false)?.arg("upgrade").check_run()?;
 
     if ctx.config().cleanup() {
