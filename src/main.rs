@@ -367,6 +367,7 @@ fn run() -> Result<()> {
         runner.execute(Step::Snap, "snap", || linux::run_snap(sudo.as_ref(), run_type))?;
         runner.execute(Step::Pacstall, "pacstall", || linux::run_pacstall(&ctx))?;
         runner.execute(Step::Pacdef, "pacdef", || linux::run_pacdef(&ctx))?;
+        runner.execute(Step::Protonup, "protonup", || linux::run_protonup_update(&ctx))?;
     }
 
     if let Some(commands) = config.commands() {
