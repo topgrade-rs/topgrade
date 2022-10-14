@@ -118,6 +118,7 @@ pub enum Step {
     Pkg,
     Pkgin,
     Powershell,
+    Protonup,
     Raco,
     Remotes,
     Restarts,

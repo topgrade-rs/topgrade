@@ -574,6 +574,15 @@ pub fn run_pihole_update(sudo: Option<&PathBuf>, run_type: RunType) -> Result<()
     run_type.execute(sudo).arg(pihole).arg("-up").check_run()
 }
 
+pub fn run_protonup_update(ctx: &ExecutionContext) -> Result<()> {
+    let protonup = require("protonup")?;
+
+    print_separator("protonup");
+
+    ctx.run_type().execute(protonup).check_run()?;
+    Ok(())
+}
+
 pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), String::from("sudo is not installed"))?;
     if ctx.config().yes(Step::ConfigUpdate) {
