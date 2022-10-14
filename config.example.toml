@@ -37,6 +37,9 @@
 # Cleanup temporary or old files
 #cleanup = true
 
+# Skip sending a notification at the end of a run
+#skip_notify = true
+
 [git]
 #max_concurrency = 5
 # Additional git repositories to pull
@@ -64,6 +67,7 @@
 
 [brew]
 #greedy_cask = true
+#autoremove = true
 
 [linux]
 # Arch Package Manager to use. Allowed values: autodetect, trizen, paru, yay, pikaur, pacman, pamac.
@@ -87,7 +91,7 @@
 
 # Causes Topgrade to rename itself during the run to allow package managers
 # to upgrade it. Use this only if you installed Topgrade by using a package
-# manager such as Scoop to Cargo
+# manager such as Scoop or Cargo
 #self_rename = true
 
 [npm]

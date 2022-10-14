@@ -210,6 +210,10 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
         variant.execute(run_type).arg("cleanup").check_run()?;
     }
 
+    if ctx.config().brew_autoremove() {
+        variant.execute(run_type).arg("autoremove").check_run()?;
+    }
+
     Ok(())
 }
 
@@ -251,6 +255,24 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
     Ok(())
 }
 
+pub fn run_guix(ctx: &ExecutionContext) -> Result<()> {
+    let guix = require("guix")?;
+
+    let run_type = ctx.run_type();
+
+    let output = Command::new(&guix).arg("pull").check_output();
+    debug!("guix pull output: {:?}", output);
+    let should_upgrade = output.is_ok();
+    debug!("Can Upgrade Guix: {:?}", should_upgrade);
+
+    print_separator("Guix");
+
+    if should_upgrade {
+        return run_type.execute(&guix).args(&["package", "-u"]).check_run();
+    }
+    Err(SkipStep(String::from("Guix Pull Failed, Skipping")).into())
+}
+
 pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     let nix = require("nix")?;
     let nix_channel = require("nix-channel")?;
@@ -271,6 +293,16 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
 
         if let Ok(Distribution::NixOS) = Distribution::detect() {
             return Err(SkipStep(String::from("Nix on NixOS must be upgraded via nixos-rebuild switch")).into());
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        if let Ok(..) = require("darwin-rebuild") {
+            return Err(SkipStep(String::from(
+                "Nix-darwin on macOS must be upgraded via darwin-rebuild switch",
+            ))
+            .into());
         }
     }
 
@@ -389,6 +421,14 @@ pub fn run_sdkman(base_dirs: &BaseDirs, cleanup: bool, run_type: RunType) -> Res
     }
 
     Ok(())
+}
+
+pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
+    let bun = require("bun")?;
+
+    print_separator("Bun");
+
+    ctx.run_type().execute(&bun).arg("upgrade").check_run()
 }
 
 pub fn reboot() {

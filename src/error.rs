@@ -2,7 +2,7 @@ use std::process::ExitStatus;
 
 use thiserror::Error;
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug, PartialEq, Eq)]
 pub enum TopgradeError {
     #[error("{0}")]
     ProcessFailed(ExitStatus),

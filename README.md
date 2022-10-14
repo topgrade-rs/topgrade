@@ -9,6 +9,10 @@
 
 ![Demo](doc/screenshot.gif)
 
+## Fork
+This is a fork of [topgrade by r-darwish](https://github.com/r-darwish/topgrade) to keep it maintained.
+
+
 Keeping your system up to date usually involves invoking multiple package managers.
 This results in big, non-portable shell one-liners saved in your shell.
 To remedy this, _topgrade_ detects which tools you use and runs the appropriate commands to update them.
