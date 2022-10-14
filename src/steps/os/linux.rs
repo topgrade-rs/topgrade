@@ -575,7 +575,12 @@ pub fn run_pihole_update(sudo: Option<&PathBuf>, run_type: RunType) -> Result<()
 }
 
 pub fn run_protonup_update(ctx: &ExecutionContext) -> Result<()> {
-    todo!();
+    let protonup = require("protonup")?;
+
+    print_separator("protonup");
+
+    ctx.run_type().execute(protonup).check_run()?;
+    Ok(())
 }
 
 pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
