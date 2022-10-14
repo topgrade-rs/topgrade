@@ -44,7 +44,7 @@ impl Distribution {
             Some("alpine") => Distribution::Alpine,
             Some("centos") | Some("rhel") | Some("ol") => Distribution::CentOS,
             Some("clear-linux-os") => Distribution::ClearLinux,
-            Some("fedora") => Distribution::Fedora,
+            Some("fedora") | Some("nobara") => Distribution::Fedora,
             Some("void") => Distribution::Void,
             Some("debian") | Some("pureos") => Distribution::Debian,
             Some("arch") | Some("anarchy") | Some("manjaro-arm") | Some("garuda") | Some("artix") => Distribution::Arch,
@@ -329,6 +329,7 @@ pub fn run_deb_get(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("deb-get");
 
+    ctx.execute_elevated(&deb_get, false)?.arg("update").check_run()?;
     ctx.execute_elevated(&deb_get, false)?.arg("upgrade").check_run()?;
 
     if ctx.config().cleanup() {
