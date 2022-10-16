@@ -1,3 +1,4 @@
+
 on:
   pull_request:
   push:
@@ -10,7 +11,7 @@ jobs:
   test:
     name: Test
     env:
-      PROJECT_NAME_UNDERSCORE: topgrade_rs
+      PROJECT_NAME_UNDERSCORE: topgrade
       CARGO_INCREMENTAL: 0
       RUSTFLAGS: -Zprofile -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off -Zpanic_abort_tests -Cpanic=abort
       RUSTDOCFLAGS: -Cpanic=abort
