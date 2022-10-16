@@ -9,7 +9,7 @@ jobs:
   release:
     name: Release Packaging
     env:
-      PROJECT_NAME_UNDERSCORE: topgrade_rs
+      PROJECT_NAME_UNDERSCORE: topgrade
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
