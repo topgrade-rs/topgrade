@@ -9,7 +9,7 @@ jobs:
   release:
     name: Release Packaging
     env:
-      PROJECT_NAME_UNDERSCORE: rust_ci_github_actions_workflow
+      PROJECT_NAME_UNDERSCORE: topgrade_rs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
