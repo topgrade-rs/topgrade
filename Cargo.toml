@@ -1,12 +1,12 @@
 [package]
-name = "topgrade"
-description = "Upgrade all the things"
+name = "topgrade-rs"
+description = "Upgrade all the things, successor of topgrade"
 categories = ["os"]
 keywords = ["upgrade", "update"]
 license-file = "LICENSE"
-repository = "https://github.com/r-darwish/topgrade"
+repository = "https://github.com/topgrade-rs/topgrade"
 version = "9.1.0"
-authors = ["Roey Darwish Dror <roey.ghost@gmail.com>"]
+authors = ["Roey Darwish Dror <roey.ghost@gmail.com>", "Thomas Schönauer <t.schoenauer@hgs-wt.at>"]
 exclude = ["doc/screenshot.gif"]
 edition = "2018"
 readme = "README.md"
