@@ -1,13 +1,16 @@
 ![Topgrade](doc/topgrade.png)
-
-[![Travis](https://api.travis-ci.org/r-darwish/topgrade.svg?branch=master)](https://travis-ci.org/r-darwish/topgrade)
-[![AppVeyor](https://ci.appveyor.com/api/projects/status/github/r-darwish/topgrade?svg=true)](https://ci.appveyor.com/project/r-darwish/topgrade)
+<!---
 ![GitHub release](https://img.shields.io/github/release/r-darwish/topgrade.svg)
 [![Crates.io](https://img.shields.io/crates/v/topgrade.svg)](https://crates.io/crates/topgrade)
 [![AUR](https://img.shields.io/aur/version/topgrade.svg)](https://aur.archlinux.org/packages/topgrade/)
-![homebrew](https://img.shields.io/homebrew/v/topgrade.svg)
+![homebrew](https://img.shields.io/homebrew/v/topgrade.svg) -->
+--->
 
 ![Demo](doc/screenshot.gif)
+
+## Fork
+This is a fork of [topgrade by r-darwish](https://github.com/r-darwish/topgrade) to keep it maintained.
+
 
 Keeping your system up to date usually involves invoking multiple package managers.
 This results in big, non-portable shell one-liners saved in your shell.
@@ -22,6 +25,9 @@ Other systems users can either use `cargo install` or use the compiled binaries 
 The compiled binaries contain a self-upgrading feature.
 
 Topgrade requires Rust 1.51 or above.
+
+## Documentation[WIP]
+You can visit the documentation at [topgrade-rs.github.io](https://topgrade-rs.github.io/) .
 
 ## Usage
 Just run `topgrade`.

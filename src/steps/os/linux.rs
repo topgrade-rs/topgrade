@@ -26,6 +26,7 @@ pub enum Distribution {
     Fedora,
     Debian,
     Gentoo,
+    OpenMandriva,
     Suse,
     Void,
     Solus,
@@ -44,7 +45,7 @@ impl Distribution {
             Some("alpine") => Distribution::Alpine,
             Some("centos") | Some("rhel") | Some("ol") => Distribution::CentOS,
             Some("clear-linux-os") => Distribution::ClearLinux,
-            Some("fedora") => Distribution::Fedora,
+            Some("fedora") | Some("nobara") => Distribution::Fedora,
             Some("void") => Distribution::Void,
             Some("debian") | Some("pureos") => Distribution::Debian,
             Some("arch") | Some("anarchy") | Some("manjaro-arm") | Some("garuda") | Some("artix") => Distribution::Arch,
@@ -53,6 +54,7 @@ impl Distribution {
             Some("exherbo") => Distribution::Exherbo,
             Some("nixos") => Distribution::NixOS,
             Some("neon") => Distribution::KDENeon,
+            Some("openmandriva") => Distribution::OpenMandriva,
             _ => {
                 if let Some(id_like) = id_like {
                     if id_like.contains(&"debian") || id_like.contains(&"ubuntu") {
@@ -105,6 +107,7 @@ impl Distribution {
             Distribution::NixOS => upgrade_nixos(ctx),
             Distribution::KDENeon => upgrade_neon(ctx),
             Distribution::Bedrock => update_bedrock(ctx),
+            Distribution::OpenMandriva => upgrade_openmandriva(ctx),
         }
     }
 
@@ -211,6 +214,28 @@ fn upgrade_suse(ctx: &ExecutionContext) -> Result<()> {
             .execute(&sudo)
             .args(&["zypper", "dist-upgrade"])
             .check_run()?;
+    } else {
+        print_warning("No sudo detected. Skipping system upgrade");
+    }
+
+    Ok(())
+}
+
+fn upgrade_openmandriva(ctx: &ExecutionContext) -> Result<()> {
+    if let Some(sudo) = &ctx.sudo() {
+        let mut command = ctx.run_type().execute(&sudo);
+
+        command.arg(which("dnf").unwrap().to_path_buf()).arg("upgrade");
+
+        if let Some(args) = ctx.config().dnf_arguments() {
+            command.args(args.split_whitespace());
+        }
+
+        if ctx.config().yes(Step::System) {
+            command.arg("-y");
+        }
+
+        command.check_run()?;
     } else {
         print_warning("No sudo detected. Skipping system upgrade");
     }
@@ -347,6 +372,17 @@ fn upgrade_solus(ctx: &ExecutionContext) -> Result<()> {
     }
 
     Ok(())
+}
+
+pub fn run_pacdef(ctx: &ExecutionContext) -> Result<()> {
+    let pacdef = require("pacdef")?;
+
+    print_separator("pacdef");
+
+    ctx.run_type().execute(&pacdef).arg("sync").check_run()?;
+
+    println!();
+    ctx.run_type().execute(&pacdef).arg("review").check_run()
 }
 
 pub fn run_pacstall(ctx: &ExecutionContext) -> Result<()> {
@@ -492,44 +528,50 @@ pub fn flatpak_update(ctx: &ExecutionContext) -> Result<()> {
     let flatpak = require("flatpak")?;
     let sudo = require_option(ctx.sudo().as_ref(), String::from("sudo is not installed"))?;
     let cleanup = ctx.config().cleanup();
+    let yes = ctx.config().yes(Step::Flatpak);
     let run_type = ctx.run_type();
     print_separator("Flatpak User Packages");
 
-    run_type
-        .execute(&flatpak)
-        .args(&["update", "--user", "-y"])
-        .check_run()?;
+    let mut update_args = vec!["update", "--user"];
+    if yes {
+        update_args.push("-y");
+    }
+    run_type.execute(&flatpak).args(&update_args).check_run()?;
+
     if cleanup {
-        run_type
-            .execute(&flatpak)
-            .args(&["uninstall", "--user", "--unused"])
-            .check_run()?;
+        let mut cleanup_args = vec!["uninstall", "--user", "--unused"];
+        if yes {
+            cleanup_args.push("-y");
+        }
+        run_type.execute(&flatpak).args(&cleanup_args).check_run()?;
     }
 
     print_separator("Flatpak System Packages");
     if ctx.config().flatpak_use_sudo() || std::env::var("SSH_CLIENT").is_ok() {
-        run_type
-            .execute(&sudo)
-            .arg(&flatpak)
-            .args(&["update", "--system", "-y"])
-            .check_run()?;
+        let mut update_args = vec!["update", "--system"];
+        if yes {
+            update_args.push("-y");
+        }
+        run_type.execute(&sudo).arg(&flatpak).args(&update_args).check_run()?;
         if cleanup {
-            run_type
-                .execute(sudo)
-                .arg(flatpak)
-                .args(&["uninstall", "--system", "--unused"])
-                .check_run()?;
+            let mut cleanup_args = vec!["uninstall", "--system", "--unused"];
+            if yes {
+                cleanup_args.push("-y");
+            }
+            run_type.execute(sudo).arg(flatpak).args(&cleanup_args).check_run()?;
         }
     } else {
-        run_type
-            .execute(&flatpak)
-            .args(&["update", "--system", "-y"])
-            .check_run()?;
+        let mut update_args = vec!["update", "--system"];
+        if yes {
+            update_args.push("-y");
+        }
+        run_type.execute(&flatpak).args(&update_args).check_run()?;
         if cleanup {
-            run_type
-                .execute(flatpak)
-                .args(&["uninstall", "--system", "--unused"])
-                .check_run()?;
+            let mut cleanup_args = vec!["uninstall", "--system", "--unused"];
+            if yes {
+                cleanup_args.push("-y");
+            }
+            run_type.execute(flatpak).args(&cleanup_args).check_run()?;
         }
     }
 
@@ -556,6 +598,15 @@ pub fn run_pihole_update(sudo: Option<&PathBuf>, run_type: RunType) -> Result<()
     print_separator("pihole");
 
     run_type.execute(sudo).arg(pihole).arg("-up").check_run()
+}
+
+pub fn run_protonup_update(ctx: &ExecutionContext) -> Result<()> {
+    let protonup = require("protonup")?;
+
+    print_separator("protonup");
+
+    ctx.run_type().execute(protonup).check_run()?;
+    Ok(())
 }
 
 pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {

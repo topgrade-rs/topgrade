@@ -191,9 +191,12 @@ fn run() -> Result<()> {
     {
         runner.execute(Step::Yadm, "yadm", || unix::run_yadm(&ctx))?;
         runner.execute(Step::Nix, "nix", || unix::run_nix(&ctx))?;
+        runner.execute(Step::Guix, "guix", || unix::run_guix(&ctx))?;
+
         runner.execute(Step::HomeManager, "home-manager", || unix::run_home_manager(run_type))?;
         runner.execute(Step::Asdf, "asdf", || unix::run_asdf(run_type))?;
         runner.execute(Step::Pkgin, "pkgin", || unix::run_pkgin(&ctx))?;
+        runner.execute(Step::Bun, "bun", || unix::run_bun(&ctx))?;
     }
 
     #[cfg(target_os = "dragonfly")]
@@ -315,7 +318,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Flutter, "Flutter", || generic::run_flutter_upgrade(run_type))?;
     runner.execute(Step::Go, "Go", || generic::run_go(run_type))?;
     runner.execute(Step::Emacs, "Emacs", || emacs.upgrade(&ctx))?;
-    runner.execute(Step::Opam, "opam", || generic::run_opam_update(run_type))?;
+    runner.execute(Step::Opam, "opam", || generic::run_opam_update(&ctx))?;
     runner.execute(Step::Vcpkg, "vcpkg", || generic::run_vcpkg_update(run_type))?;
     runner.execute(Step::Pipx, "pipx", || generic::run_pipx_update(run_type))?;
     runner.execute(Step::Conda, "conda", || generic::run_conda_update(&ctx))?;
@@ -335,11 +338,13 @@ fn run() -> Result<()> {
     runner.execute(Step::Vim, "voom", || vim::run_voom(&base_dirs, run_type))?;
     runner.execute(Step::Kakoune, "Kakoune", || kakoune::upgrade_kak_plug(&ctx))?;
     runner.execute(Step::Node, "npm", || node::run_npm_upgrade(&ctx))?;
+    runner.execute(Step::Node, "yarn", || node::run_yarn_upgrade(&ctx))?;
     runner.execute(Step::Containers, "Containers", || containers::run_containers(&ctx))?;
     runner.execute(Step::Deno, "deno", || node::deno_upgrade(&ctx))?;
     runner.execute(Step::Composer, "composer", || generic::run_composer_update(&ctx))?;
     runner.execute(Step::Krew, "krew", || generic::run_krew_upgrade(run_type))?;
     runner.execute(Step::Gem, "gem", || generic::run_gem(&base_dirs, run_type))?;
+    runner.execute(Step::Julia, "julia", || generic::update_julia_packages(&ctx))?;
     runner.execute(Step::Haxelib, "haxelib", || generic::run_haxelib_update(&ctx))?;
     runner.execute(Step::Sheldon, "sheldon", || generic::run_sheldon(&ctx))?;
     runner.execute(Step::Rtcl, "rtcl", || generic::run_rtcl(&ctx))?;
@@ -361,6 +366,8 @@ fn run() -> Result<()> {
         runner.execute(Step::Flatpak, "Flatpak", || linux::flatpak_update(&ctx))?;
         runner.execute(Step::Snap, "snap", || linux::run_snap(sudo.as_ref(), run_type))?;
         runner.execute(Step::Pacstall, "pacstall", || linux::run_pacstall(&ctx))?;
+        runner.execute(Step::Pacdef, "pacdef", || linux::run_pacdef(&ctx))?;
+        runner.execute(Step::Protonup, "protonup", || linux::run_protonup_update(&ctx))?;
     }
 
     if let Some(commands) = config.commands() {
@@ -460,13 +467,17 @@ fn run() -> Result<()> {
     }
 
     let failed = post_command_failed || runner.report().data().iter().any(|(_, result)| result.failed());
-    terminal::notify_desktop(
-        format!(
-            "Topgrade finished {}",
-            if failed { "with errors" } else { "successfully" }
-        ),
-        None,
-    );
+
+    if !config.skip_notify() {
+        terminal::notify_desktop(
+            format!(
+                "Topgrade finished {}",
+                if failed { "with errors" } else { "successfully" }
+            ),
+            None,
+        );
+    }
+
     if failed {
         Err(StepFailed.into())
     } else {

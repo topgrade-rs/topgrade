@@ -62,7 +62,7 @@ macro_rules! get_deprecated {
 
 type Commands = BTreeMap<String, String>;
 
-#[derive(ArgEnum, EnumString, EnumVariantNames, Debug, Clone, PartialEq, Deserialize, EnumIter, Copy)]
+#[derive(ArgEnum, EnumString, EnumVariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
 #[clap(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
@@ -71,6 +71,7 @@ pub enum Step {
     Atom,
     BrewCask,
     BrewFormula,
+    Bun,
     Bin,
     Cargo,
     Chezmoi,
@@ -94,10 +95,12 @@ pub enum Step {
     GithubCliExtensions,
     GitRepos,
     Go,
+    Guix,
     Haxelib,
     GnomeShellExtensions,
     HomeManager,
     Jetpack,
+    Julia,
     Kakoune,
     Krew,
     Macports,
@@ -107,6 +110,7 @@ pub enum Step {
     Nix,
     Node,
     Opam,
+    Pacdef,
     Pacstall,
     Pearl,
     Pipx,
@@ -114,6 +118,7 @@ pub enum Step {
     Pkg,
     Pkgin,
     Powershell,
+    Protonup,
     Raco,
     Remotes,
     Restarts,
@@ -169,6 +174,13 @@ pub struct Windows {
 #[derive(Deserialize, Default, Debug)]
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
+pub struct Yarn {
+    use_sudo: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct NPM {
     use_sudo: Option<bool>,
 }
@@ -191,6 +203,7 @@ pub struct Flatpak {
 #[serde(deny_unknown_fields)]
 pub struct Brew {
     greedy_cask: Option<bool>,
+    autoremove: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy)]
@@ -260,6 +273,7 @@ pub struct ConfigFile {
     cleanup: Option<bool>,
     notify_each_step: Option<bool>,
     accept_all_windows_updates: Option<bool>,
+    skip_notify: Option<bool>,
     bashit_branch: Option<String>,
     only: Option<Vec<Step>>,
     composer: Option<Composer>,
@@ -268,6 +282,7 @@ pub struct ConfigFile {
     git: Option<Git>,
     windows: Option<Windows>,
     npm: Option<NPM>,
+    yarn: Option<Yarn>,
     vim: Option<Vim>,
     firmware: Option<Firmware>,
     vagrant: Option<Vagrant>,
@@ -414,6 +429,10 @@ pub struct CommandLineArgs {
     /// Prompt for a key before exiting
     #[clap(short = 'k', long = "keep")]
     keep_at_end: bool,
+
+    /// Skip sending a notification at the end of a run
+    #[clap(long = "skip-notify")]
+    skip_notify: bool,
 
     /// Say yes to package manager's prompt
     #[clap(short = 'y', long = "yes", arg_enum, multiple_values = true, min_values = 0)]
@@ -600,6 +619,15 @@ impl Config {
         self.opt.keep_at_end || env::var("TOPGRADE_KEEP_END").is_ok()
     }
 
+    /// Skip sending a notification at the end of a run
+    pub fn skip_notify(&self) -> bool {
+        if let Some(yes) = self.config_file.skip_notify {
+            return yes;
+        }
+
+        self.opt.skip_notify
+    }
+
     /// Whether to set the terminal title
     pub fn set_title(&self) -> bool {
         self.config_file.set_title.unwrap_or(true)
@@ -653,6 +681,15 @@ impl Config {
             .brew
             .as_ref()
             .and_then(|c| c.greedy_cask)
+            .unwrap_or(false)
+    }
+
+    /// Whether Brew should autoremove
+    pub fn brew_autoremove(&self) -> bool {
+        self.config_file
+            .brew
+            .as_ref()
+            .and_then(|c| c.autoremove)
             .unwrap_or(false)
     }
 
@@ -837,6 +874,14 @@ impl Config {
             .npm
             .as_ref()
             .and_then(|npm| npm.use_sudo)
+            .unwrap_or(false)
+    }
+    #[cfg(target_os = "linux")]
+    pub fn yarn_use_sudo(&self) -> bool {
+        self.config_file
+            .yarn
+            .as_ref()
+            .and_then(|yarn| yarn.use_sudo)
             .unwrap_or(false)
     }
 
