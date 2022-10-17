@@ -12,42 +12,42 @@ edition = "2018"
 readme = "README.md"
 
 [dependencies]
-directories = "4.0.1"
-serde = { version = "1.0.125", features = ["derive"] }
-toml = "0.5.8"
-which_crate = { version = "4.1.0", package = "which" }
-shellexpand = "2.1.0"
+directories = "4.0"
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.5"
+which_crate = { version = "4.1", package = "which" }
+shellexpand = "2.1"
 clap = { version = "3.1", features = ["cargo", "derive"] }
-log = "0.4.14"
-walkdir = "2.3.2"
-console = "0.15.0"
-lazy_static = "1.4.0"
-chrono = "0.4.19"
-pretty_env_logger = "0.4.0"
-glob = "0.3.0"
-strum = { version = "0.24.0", features = ["derive"] }
-thiserror = "1.0.24"
-anyhow = "1.0.40"
-tempfile = "3.2.0"
-cfg-if = "1.0.0"
-tokio = { version = "1.5.0", features = ["process", "rt-multi-thread"] }
-futures = "0.3.14"
-regex = "1.5.3"
+log = "0.4"
+walkdir = "2.3"
+console = "0.15"
+lazy_static = "1.4"
+chrono = "0.4"
+pretty_env_logger = "0.4"
+glob = "0.3"
+strum = { version = "0.24", features = ["derive"] }
+thiserror = "1.0"
+anyhow = "1.0"
+tempfile = "3.2"
+cfg-if = "1.0"
+tokio = { version = "1.5", features = ["process", "rt-multi-thread"] }
+futures = "0.3"
+regex = "1.5"
 sys-info = "0.9"
 semver = "1.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-notify-rust = "4.5.0"
+notify-rust = "4.5"
 
 [target.'cfg(unix)'.dependencies]
-nix = "0.24.1"
-rust-ini = "0.18.0"
-self_update_crate = { version = "0.30.0", default-features = false, optional = true, package = "self_update", features = ["archive-tar", "compression-flate2", "rustls"] }
+nix = "0.24"
+rust-ini = "0.18"
+self_update_crate = { version = "0.30", default-features = false, optional = true, package = "self_update", features = ["archive-tar", "compression-flate2", "rustls"] }
 
 [target.'cfg(windows)'.dependencies]
-self_update_crate = { version = "0.30.0", default-features = false, optional = true, package = "self_update", features = ["archive-zip", "compression-zip-deflate", "rustls"] }
-winapi = "0.3.9"
-parselnk = "0.1.0"
+self_update_crate = { version = "0.30", default-features = false, optional = true, package = "self_update", features = ["archive-zip", "compression-zip-deflate", "rustls"] }
+winapi = "0.3"
+parselnk = "0.1"
 
 [profile.release]
 lto = true
