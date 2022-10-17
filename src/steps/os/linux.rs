@@ -26,6 +26,7 @@ pub enum Distribution {
     Fedora,
     Debian,
     Gentoo,
+    OpenMandriva,
     Suse,
     Void,
     Solus,
@@ -53,6 +54,7 @@ impl Distribution {
             Some("exherbo") => Distribution::Exherbo,
             Some("nixos") => Distribution::NixOS,
             Some("neon") => Distribution::KDENeon,
+            Some("openmandriva") => Distribution::OpenMandriva,
             _ => {
                 if let Some(id_like) = id_like {
                     if id_like.contains(&"debian") || id_like.contains(&"ubuntu") {
@@ -105,6 +107,7 @@ impl Distribution {
             Distribution::NixOS => upgrade_nixos(ctx),
             Distribution::KDENeon => upgrade_neon(ctx),
             Distribution::Bedrock => update_bedrock(ctx),
+            Distribution::OpenMandriva => upgrade_openmandriva(ctx),
         }
     }
 
@@ -211,6 +214,28 @@ fn upgrade_suse(ctx: &ExecutionContext) -> Result<()> {
             .execute(&sudo)
             .args(&["zypper", "dist-upgrade"])
             .check_run()?;
+    } else {
+        print_warning("No sudo detected. Skipping system upgrade");
+    }
+
+    Ok(())
+}
+
+fn upgrade_openmandriva(ctx: &ExecutionContext) -> Result<()> {
+    if let Some(sudo) = &ctx.sudo() {
+        let mut command = ctx.run_type().execute(&sudo);
+
+        command.arg(which("dnf").unwrap().to_path_buf()).arg("upgrade");
+
+        if let Some(args) = ctx.config().dnf_arguments() {
+            command.args(args.split_whitespace());
+        }
+
+        if ctx.config().yes(Step::System) {
+            command.arg("-y");
+        }
+
+        command.check_run()?;
     } else {
         print_warning("No sudo detected. Skipping system upgrade");
     }
