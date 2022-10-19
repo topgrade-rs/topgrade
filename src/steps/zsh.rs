@@ -47,7 +47,7 @@ pub fn run_antigen(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
 
     print_separator("antigen");
 
-    let cmd = format!("source {} && antigen selfupdate && antigen update", zshrc.display());
+    let cmd = format!("source {} && antigen (selfupdate ; antigen update)", zshrc.display());
     run_type.execute(zsh).args(&["-l", "-c", cmd.as_str()]).check_run()
 }
 
