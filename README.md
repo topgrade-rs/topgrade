@@ -43,6 +43,15 @@ The configuration should be placed in the following paths depending by the opera
 * **Windows** - `%APPDATA%/topgrade.toml`
 * **macOS** and **other Unix systems** - `${XDG_CONFIG_HOME:-~/.config}/topgrade.toml`
 
+## Contribution
+### Problems or missing features?
+Open a new Issue describing your problem and if possible with a possible solution.
+### Missing a feature or found an unsupported tool/distro?
+Just let us now what you are missing by opening an issue.
+For tools please open an Issue describing the tool, which platforms it supports and if possible, give us an example of its usage.
+### Want to contribute to the code?
+Just fork the repository and start coding. Please let PRs with bug fixes target the staging branch and PRs with new features target the dev branch.
+
 ## Remote execution
 You can specify a key called `remote_topgrades` in the configuration file.
 This key should contain a list of hostnames that have topgrade installed on them.
