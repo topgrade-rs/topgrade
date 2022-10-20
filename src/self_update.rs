@@ -15,7 +15,7 @@ pub fn self_update() -> Result<()> {
 
     let target = self_update_crate::get_target();
     let result = Update::configure()
-        .repo_owner("r-darwish")
+        .repo_owner("topgrade-rs")
         .repo_name("topgrade")
         .target(target)
         .bin_name(if cfg!(windows) { "topgrade.exe" } else { "topgrade" })
