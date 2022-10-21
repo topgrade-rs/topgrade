@@ -1,4 +1,5 @@
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -9,7 +10,7 @@ jobs:
   release:
     name: Release Packaging
     env:
-      PROJECT_NAME_UNDERSCORE: topgrade
+      PROJECT_NAME_UNDERSCORE: topgrade-rs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
