@@ -13,12 +13,12 @@ build_function() {
 }
 
 package_function() {
-    tar -czvf build/topgrade-${ans}-x86_64-linux-gnu.tar.gz target/x86_64-unknown-linux-gnu/release/topgrade-rs
-    tar -czvf build/topgrade-${ans}-x86_64-linux-musl.tar.gz target/x86_64-unknown-linux-musl/release/topgrade-rs
-    tar -czvf build/topgrade-${ans}-x86_64-freebsd.tar.gz target/x86_64-unknown-freebsd/release/topgrade-rs
-    tar -czvf build/topgrade-${ans}-aarch64-linux-gnu.tar.gz target/aarch64-unknown-linux-gnu/release/topgrade-rs
-    tar -czvf build/topgrade-${ans}-aarch64-linux-musl.tar.gz target/aarch64-unknown-linux-musl/release/topgrade-rs
-    tar -czvf build/topgrade-${ans}-x86_64-windows.tar.gz target/x86_64-pc-windows-gnu/release/topgrade-rs.exe
+    tar -czvf build/topgrade-${ans}-x86_64-linux-gnu.tar.gz target/x86_64-unknown-linux-gnu/release/topgrade
+    tar -czvf build/topgrade-${ans}-x86_64-linux-musl.tar.gz target/x86_64-unknown-linux-musl/release/topgrade
+    tar -czvf build/topgrade-${ans}-x86_64-freebsd.tar.gz target/x86_64-unknown-freebsd/release/topgrade
+    tar -czvf build/topgrade-${ans}-aarch64-linux-gnu.tar.gz target/aarch64-unknown-linux-gnu/release/topgrade
+    tar -czvf build/topgrade-${ans}-aarch64-linux-musl.tar.gz target/aarch64-unknown-linux-musl/release/topgrade
+    tar -czvf build/topgrade-${ans}-x86_64-windows.tar.gz target/x86_64-pc-windows-gnu/release/topgrade.exe
 
 }
 

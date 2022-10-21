@@ -12,6 +12,10 @@ edition = "2018"
 
 readme = "README.md"
 
+[[bin]]
+name = "topgrade"
+path = "src/main.rs"
+
 [dependencies]
 directories = "4.0"
 serde = { version = "1.0", features = ["derive"] }
