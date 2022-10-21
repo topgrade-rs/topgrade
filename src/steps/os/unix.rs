@@ -277,6 +277,7 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     let nix = require("nix")?;
     let nix_channel = require("nix-channel")?;
     let nix_env = require("nix-env")?;
+    let manifest_json_path: &str = "/nix/var/nix/profiles/per-user/manu/profile/manifest.json".into();
 
     let output = Command::new(&nix_env).args(&["--query", "nix"]).check_output();
     debug!("nix-env output: {:?}", output);
@@ -317,7 +318,12 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     }
 
     run_type.execute(&nix_channel).arg("--update").check_run()?;
-    run_type.execute(&nix_env).arg("--upgrade").check_run()
+
+    if std::path::Path::new(&manifest_json_path).exists() {
+        run_type.execute(&nix).arg("profile upgrade '.*'").check_run()
+    } else {
+        run_type.execute(&nix_env).arg("--upgrade").check_run()
+    }
 }
 
 pub fn run_yadm(ctx: &ExecutionContext) -> Result<()> {
