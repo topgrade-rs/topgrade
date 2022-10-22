@@ -414,10 +414,7 @@ fn upgrade_exherbo(ctx: &ExecutionContext) -> Result<()> {
             .check_run()?;
 
         if ctx.config().cleanup() {
-            ctx.run_type()
-                .execute(sudo)
-                .args(["cave", "purge", "-x"])
-                .check_run()?;
+            ctx.run_type().execute(sudo).args(["cave", "purge", "-x"]).check_run()?;
         }
 
         ctx.run_type()
