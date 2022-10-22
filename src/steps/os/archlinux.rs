@@ -247,15 +247,25 @@ impl ArchPackageManager for Aura {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
         let mut aur_update = ctx.run_type().execute(&self.sudo);
 
-        aur_update.arg(&self.executable).arg("-Akux");
-        if ctx.config().yes(Step::System) {
+        if self.sudo.ends_with("/sudo") {
+            aur_update
+                .arg(&self.executable)
+                .arg("-Akux")
+                .args(ctx.config().aura_aur_arguments().split_whitespace());
+            if ctx.config().yes(Step::System) {
+                aur_update.check_run()?;
+            }
+
             aur_update.arg("--noconfirm");
+        } else {
+            println!("Aura requires sudo installed to work with AUR packages")
         }
 
-        aur_update.check_run()?;
-
         let mut pacman_update = ctx.run_type().execute(&self.sudo);
-        pacman_update.arg(&self.executable).arg("-Syu");
+        pacman_update
+            .arg(&self.executable)
+            .arg("-Syu")
+            .args(ctx.config().aura_pacman_arguments().split_whitespace());
         if ctx.config().yes(Step::System) {
             pacman_update.arg("--noconfirm");
         }

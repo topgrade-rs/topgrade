@@ -223,6 +223,8 @@ pub enum ArchPackageManager {
 #[serde(deny_unknown_fields)]
 pub struct Linux {
     yay_arguments: Option<String>,
+    aura_aur_arguments: Option<String>,
+    aura_pacman_arguments: Option<String>,
     arch_package_manager: Option<ArchPackageManager>,
     show_arch_news: Option<bool>,
     trizen_arguments: Option<String>,
@@ -269,6 +271,8 @@ pub struct ConfigFile {
     display_time: Option<bool>,
     assume_yes: Option<bool>,
     yay_arguments: Option<String>,
+    aura_aur_arguments: Option<String>,
+    aura_pacman_arguments: Option<String>,
     no_retry: Option<bool>,
     run_in_tmux: Option<bool>,
     cleanup: Option<bool>,
@@ -768,6 +772,18 @@ impl Config {
         get_deprecated!(self.config_file, yay_arguments, linux, yay_arguments)
             .as_deref()
             .unwrap_or("--devel")
+    }
+
+    /// Extra aura arguments for AUR and pacman
+    pub fn aura_aur_arguments(&self) -> &str {
+        get_deprecated!(self.config_file, aura_aur_arguments, linux, aura_aur_arguments)
+            .as_deref()
+            .unwrap()
+    }
+    pub fn aura_pacman_arguments(&self) -> &str {
+        get_deprecated!(self.config_file, aura_pacman_arguments, linux, aura_pacman_arguments)
+            .as_deref()
+            .unwrap()
     }
 
     /// Extra apt arguments
