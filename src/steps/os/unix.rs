@@ -8,6 +8,7 @@ use crate::utils::{require, PathExt};
 use crate::Step;
 use anyhow::Result;
 use directories::BaseDirs;
+use home;
 use ini::Ini;
 use log::debug;
 use std::fs;
@@ -277,7 +278,7 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     let nix = require("nix")?;
     let nix_channel = require("nix-channel")?;
     let nix_env = require("nix-env")?;
-    let profile_path = match env::home_dir() {
+    let profile_path = match home::home_dir() {
         Some(home) => Path::new(&home).join(".nix-profile"),
         None => Path::new("/nix/var/nix/profiles/per-user/default").into(),
     };
@@ -417,10 +418,7 @@ pub fn run_sdkman(base_dirs: &BaseDirs, cleanup: bool, run_type: RunType) -> Res
     run_type.execute(&bash).args(["-c", cmd_update.as_str()]).check_run()?;
 
     let cmd_upgrade = format!("source {} && sdk upgrade", &sdkman_init_path);
-    run_type
-        .execute(&bash)
-        .args(["-c", cmd_upgrade.as_str()])
-        .check_run()?;
+    run_type.execute(&bash).args(["-c", cmd_upgrade.as_str()]).check_run()?;
 
     if cleanup {
         let cmd_flush_archives = format!("source {} && sdk flush archives", &sdkman_init_path);

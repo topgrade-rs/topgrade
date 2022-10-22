@@ -17,6 +17,7 @@ name = "topgrade"
 path = "src/main.rs"
 
 [dependencies]
+home = "0.5"
 directories = "4.0"
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.5"
