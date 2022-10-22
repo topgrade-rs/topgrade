@@ -277,7 +277,12 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     let nix = require("nix")?;
     let nix_channel = require("nix-channel")?;
     let nix_env = require("nix-env")?;
-    let manifest_json_path: &str = "/nix/var/nix/profiles/per-user/manu/profile/manifest.json".into();
+    let profile_path = match env::home_dir() {
+        Some(home) => Path::new(&home).join(".nix-profile"),
+        None => Path::new("/nix/var/nix/profiles/per-user/default").into(),
+    };
+    debug!("nix profile: {:?}", profile_path);
+    let manifest_json_path = profile_path.join("manifest.json");
 
     let output = Command::new(&nix_env).args(&["--query", "nix"]).check_output();
     debug!("nix-env output: {:?}", output);
@@ -320,7 +325,12 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     run_type.execute(&nix_channel).arg("--update").check_run()?;
 
     if std::path::Path::new(&manifest_json_path).exists() {
-        run_type.execute(&nix).arg("profile upgrade '.*'").check_run()
+        run_type
+            .execute(&nix)
+            .arg("profile")
+            .arg("upgrade")
+            .arg(".*")
+            .check_run()
     } else {
         run_type.execute(&nix_env).arg("--upgrade").check_run()
     }
