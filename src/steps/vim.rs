@@ -45,12 +45,12 @@ fn upgrade(vim: &Path, vimrc: &Path, ctx: &ExecutionContext) -> Result<()> {
     tempfile.write_all(UPGRADE_VIM.replace('\r', "").as_bytes())?;
     debug!("Wrote vim script to {:?}", tempfile.path());
 
-    let mut command = ctx.run_type().execute(&vim);
+    let mut command = ctx.run_type().execute(vim);
 
     command
-        .args(&["-u"])
+        .args(["-u"])
         .arg(vimrc)
-        .args(&["-U", "NONE", "-V1", "-nNesS"])
+        .args(["-U", "NONE", "-V1", "-nNesS"])
         .arg(tempfile.path());
 
     if ctx.config().force_vim_plug_update() {
@@ -88,17 +88,17 @@ pub fn upgrade_ultimate_vimrc(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type()
         .execute(&git)
         .current_dir(&config_dir)
-        .args(&["reset", "--hard"])
+        .args(["reset", "--hard"])
         .check_run()?;
     ctx.run_type()
         .execute(&git)
         .current_dir(&config_dir)
-        .args(&["clean", "-d", "--force"])
+        .args(["clean", "-d", "--force"])
         .check_run()?;
     ctx.run_type()
         .execute(&git)
         .current_dir(&config_dir)
-        .args(&["pull", "--rebase"])
+        .args(["pull", "--rebase"])
         .check_run()?;
     ctx.run_type()
         .execute(python)

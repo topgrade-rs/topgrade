@@ -49,7 +49,7 @@ impl Tmux {
     fn has_session(&self, session_name: &str) -> Result<bool, io::Error> {
         Ok(self
             .build()
-            .args(&["has-session", "-t", session_name])
+            .args(["has-session", "-t", session_name])
             .output()?
             .status
             .success())
@@ -58,7 +58,7 @@ impl Tmux {
     fn new_session(&self, session_name: &str) -> Result<bool, io::Error> {
         Ok(self
             .build()
-            .args(&["new-session", "-d", "-s", session_name, "-n", "dummy"])
+            .args(["new-session", "-d", "-s", session_name, "-n", "dummy"])
             .spawn()?
             .wait()?
             .success())
@@ -66,7 +66,7 @@ impl Tmux {
 
     fn run_in_session(&self, command: &str) -> Result<()> {
         self.build()
-            .args(&["new-window", "-t", "topgrade", command])
+            .args(["new-window", "-t", "topgrade", command])
             .spawn()?
             .wait()?
             .check()?;
@@ -94,12 +94,12 @@ pub fn run_in_tmux(args: &Option<String>) -> ! {
 
     tmux.run_in_session(&command).expect("Error running topgrade in tmux");
     tmux.build()
-        .args(&["kill-window", "-t", "topgrade:dummy"])
+        .args(["kill-window", "-t", "topgrade:dummy"])
         .output()
         .expect("Error killing the dummy tmux window");
 
     if env::var("TMUX").is_err() {
-        let err = tmux.build().args(&["attach", "-t", "topgrade"]).exec();
+        let err = tmux.build().args(["attach", "-t", "topgrade"]).exec();
         panic!("{:?}", err);
     } else {
         println!("Topgrade launched in a new tmux session");
@@ -110,7 +110,7 @@ pub fn run_in_tmux(args: &Option<String>) -> ! {
 pub fn run_command(ctx: &ExecutionContext, command: &str) -> Result<()> {
     Tmux::new(ctx.config().tmux_arguments())
         .build()
-        .args(&["new-window", "-a", "-t", "topgrade:1", command])
+        .args(["new-window", "-a", "-t", "topgrade:1", command])
         .env_remove("TMUX")
         .spawn()?
         .wait()?

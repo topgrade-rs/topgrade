@@ -71,7 +71,7 @@ impl Emacs {
             command.arg("--force");
         }
 
-        command.args(&["upgrade"]);
+        command.args(["upgrade"]);
 
         command.check_run()
     }
@@ -90,7 +90,7 @@ impl Emacs {
         let mut command = ctx.run_type().execute(&emacs);
 
         command
-            .args(&["--batch", "--debug-init", "-l"])
+            .args(["--batch", "--debug-init", "-l"])
             .arg(init_file)
             .arg("--eval");
 

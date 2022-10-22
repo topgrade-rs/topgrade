@@ -26,7 +26,7 @@ impl Powershell {
 
         let profile = path.as_ref().and_then(|path| {
             Command::new(path)
-                .args(&["-NoProfile", "-Command", "Split-Path $profile"])
+                .args(["-NoProfile", "-Command", "Split-Path $profile"])
                 .check_output()
                 .map(|output| PathBuf::from(output.trim()))
                 .and_then(|p| p.require())
@@ -78,8 +78,8 @@ impl Powershell {
 
         println!("Updating modules...");
         ctx.run_type()
-            .execute(&powershell)
-            .args(&["-NoProfile", "-Command", &cmd.join(" ")])
+            .execute(powershell)
+            .args(["-NoProfile", "-Command", &cmd.join(" ")])
             .check_run()
     }
 

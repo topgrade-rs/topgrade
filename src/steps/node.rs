@@ -43,7 +43,7 @@ impl NPM {
 
     fn version(&self) -> Result<Version> {
         let version_str = Command::new(&self.command)
-            .args(&["--version"])
+            .args(["--version"])
             .check_output()
             .map(|s| s.trim().to_owned());
         Version::parse(&version_str?).map_err(|err| err.into())
