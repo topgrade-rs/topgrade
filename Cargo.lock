@@ -1900,7 +1900,7 @@ dependencies = [
 
 [[package]]
 name = "topgrade-rs"
-version = "9.1.0"
+version = "10.0.0"
 dependencies = [
  "anyhow",
  "cfg-if",

@@ -50,7 +50,7 @@ Open a new Issue describing your problem and if possible with a possible solutio
 Just let us now what you are missing by opening an issue.
 For tools please open an Issue describing the tool, which platforms it supports and if possible, give us an example of its usage.
 ### Want to contribute to the code?
-Just fork the repository and start coding. Please let PRs with bug fixes target the staging branch and PRs with new features target the dev branch.
+Just fork the repository and start coding.
 
 ## Remote execution
 You can specify a key called `remote_topgrades` in the configuration file.
