@@ -1,6 +1,7 @@
 name: CD Win/MacOS Native
 
 on:
+  workflow_dispatch:
   release:
     types: [ created ]
 
