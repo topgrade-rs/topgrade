@@ -20,6 +20,15 @@ package_function() {
     tar -czvf build/topgrade-${ans}-aarch64-linux-musl.tar.gz target/aarch64-unknown-linux-musl/release/topgrade-rs
     zip -q build/topgrade-${ans}-x86_64-windows.zip target/x86_64-pc-windows-gnu/release/topgrade-rs.exe
 
+
+}
+
+print_checksums() {
+
+
+    cd build/
+    sha256sum topgrade-${ans}-*
+    cd ../
 }
 
 while true; do
@@ -34,6 +43,7 @@ mkdir build
 case $yn in
 	y ) build_function
         package_function
+        print_checksums
 		break;;
 	n ) echo exiting...;
 		exit;;
