@@ -91,17 +91,17 @@ pub fn run_fisher(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
 
     let version_str = run_type
         .execute(&fish)
-        .args(&["-c", "fisher --version"])
+        .args(["-c", "fisher --version"])
         .check_output()?;
     debug!("Fisher version: {}", version_str);
 
     if version_str.starts_with("fisher version 3.") {
         // v3 - see https://github.com/topgrade-rs/topgrade/pull/37#issuecomment-1283844506
-        run_type.execute(&fish).args(&["-c", "fisher"]).check_run()
+        run_type.execute(&fish).args(["-c", "fisher"]).check_run()
     } else {
         // v4
-        run_type.execute(&fish).args(&["-c", "fisher update"]).check_run()
-  }
+        run_type.execute(&fish).args(["-c", "fisher update"]).check_run()
+    }
 }
 
 pub fn run_bashit(ctx: &ExecutionContext) -> Result<()> {
