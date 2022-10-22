@@ -5,7 +5,10 @@ use crate::Step;
 use anyhow::Result;
 
 pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
-    let pkg = require("pkg")?;
+    //let pkg = require("pkg")?;
+    let pkg = which("nala").or_else(|| which("pkg")).unwrap();
+
+    let command = ctx.run_type().execute(&pkg).arg("upgrade").check_run()?;
 
     print_separator("Termux Packages");
 
