@@ -13,13 +13,22 @@ build_function() {
 }
 
 package_function() {
-    tar -czvf build/topgrade-${ans}-x86_64-linux-gnu.tar.gz target/x86_64-unknown-linux-gnu/release/topgrade
-    tar -czvf build/topgrade-${ans}-x86_64-linux-musl.tar.gz target/x86_64-unknown-linux-musl/release/topgrade
-    tar -czvf build/topgrade-${ans}-x86_64-freebsd.tar.gz target/x86_64-unknown-freebsd/release/topgrade
-    tar -czvf build/topgrade-${ans}-aarch64-linux-gnu.tar.gz target/aarch64-unknown-linux-gnu/release/topgrade
-    tar -czvf build/topgrade-${ans}-aarch64-linux-musl.tar.gz target/aarch64-unknown-linux-musl/release/topgrade
-    tar -czvf build/topgrade-${ans}-x86_64-windows.tar.gz target/x86_64-pc-windows-gnu/release/topgrade.exe
+    tar -czvf build/topgrade-${ans}-x86_64-linux-gnu.tar.gz target/x86_64-unknown-linux-gnu/release/topgrade-rs
+    tar -czvf build/topgrade-${ans}-x86_64-linux-musl.tar.gz target/x86_64-unknown-linux-musl/release/topgrade-rs
+    tar -czvf build/topgrade-${ans}-x86_64-freebsd.tar.gz target/x86_64-unknown-freebsd/release/topgrade-rs
+    tar -czvf build/topgrade-${ans}-aarch64-linux-gnu.tar.gz target/aarch64-unknown-linux-gnu/release/topgrade-rs
+    tar -czvf build/topgrade-${ans}-aarch64-linux-musl.tar.gz target/aarch64-unknown-linux-musl/release/topgrade-rs
+    zip -q build/topgrade-${ans}-x86_64-windows.zip target/x86_64-pc-windows-gnu/release/topgrade-rs.exe
 
+
+}
+
+print_checksums() {
+
+
+    cd build/
+    sha256sum topgrade-${ans}-*
+    cd ../
 }
 
 while true; do
@@ -34,6 +43,7 @@ mkdir build
 case $yn in
 	y ) build_function
         package_function
+        print_checksums
 		break;;
 	n ) echo exiting...;
 		exit;;
