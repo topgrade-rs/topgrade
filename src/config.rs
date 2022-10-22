@@ -216,6 +216,7 @@ pub enum ArchPackageManager {
     Pacman,
     Pikaur,
     Pamac,
+    Aura,
 }
 
 #[derive(Deserialize, Default, Debug)]
