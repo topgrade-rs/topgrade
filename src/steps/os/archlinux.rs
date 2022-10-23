@@ -247,7 +247,7 @@ impl ArchPackageManager for Aura {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
         let mut aur_update = ctx.run_type().execute(&self.sudo);
 
-        if self.sudo.ends_with("/sudo") {
+        if self.sudo.ends_with("sudo") {
             aur_update
                 .arg(&self.executable)
                 .arg("-Akux")

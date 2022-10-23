@@ -769,21 +769,27 @@ impl Config {
 
     /// Extra yay arguments
     pub fn yay_arguments(&self) -> &str {
-        get_deprecated!(self.config_file, yay_arguments, linux, yay_arguments)
-            .as_deref()
-            .unwrap_or("--devel")
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|s| s.yay_arguments.as_deref())
+            .unwrap_or("")
     }
 
     /// Extra aura arguments for AUR and pacman
     pub fn aura_aur_arguments(&self) -> &str {
-        get_deprecated!(self.config_file, aura_aur_arguments, linux, aura_aur_arguments)
-            .as_deref()
-            .unwrap()
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|s| s.aura_aur_arguments.as_deref())
+            .unwrap_or("")
     }
     pub fn aura_pacman_arguments(&self) -> &str {
-        get_deprecated!(self.config_file, aura_pacman_arguments, linux, aura_pacman_arguments)
-            .as_deref()
-            .unwrap()
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|s| s.aura_pacman_arguments.as_deref())
+            .unwrap_or("")
     }
 
     /// Extra apt arguments
