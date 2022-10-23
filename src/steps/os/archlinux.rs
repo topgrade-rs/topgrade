@@ -230,8 +230,8 @@ impl ArchPackageManager for Pamac {
 }
 
 pub struct Aura {
-    sudo: PathBuf,
     executable: PathBuf,
+    sudo: PathBuf,
 }
 
 impl Aura {
@@ -245,9 +245,10 @@ impl Aura {
 
 impl ArchPackageManager for Aura {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
-        let mut aur_update = ctx.run_type().execute(&self.sudo);
+        let sudo = which("sudo").unwrap_or(PathBuf::new());
+        let mut aur_update = ctx.run_type().execute(&sudo);
 
-        if self.sudo.ends_with("sudo") {
+        if sudo.ends_with("sudo") {
             aur_update
                 .arg(&self.executable)
                 .arg("-Au")
