@@ -229,6 +229,53 @@ impl ArchPackageManager for Pamac {
     }
 }
 
+pub struct Aura {
+    executable: PathBuf,
+    sudo: PathBuf,
+}
+
+impl Aura {
+    fn get(ctx: &ExecutionContext) -> Option<Self> {
+        Some(Self {
+            executable: which("aura")?,
+            sudo: ctx.sudo().to_owned()?,
+        })
+    }
+}
+
+impl ArchPackageManager for Aura {
+    fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
+        let sudo = which("sudo").unwrap_or(PathBuf::new());
+        let mut aur_update = ctx.run_type().execute(&sudo);
+
+        if sudo.ends_with("sudo") {
+            aur_update
+                .arg(&self.executable)
+                .arg("-Au")
+                .args(ctx.config().aura_aur_arguments().split_whitespace());
+            if ctx.config().yes(Step::System) {
+                aur_update.arg("--noconfirm");
+            }
+
+            aur_update.check_run()?;
+        } else {
+            println!("Aura requires sudo installed to work with AUR packages")
+        }
+
+        let mut pacman_update = ctx.run_type().execute(&self.sudo);
+        pacman_update
+            .arg(&self.executable)
+            .arg("-Syu")
+            .args(ctx.config().aura_pacman_arguments().split_whitespace());
+        if ctx.config().yes(Step::System) {
+            pacman_update.arg("--noconfirm");
+        }
+        pacman_update.check_run()?;
+
+        Ok(())
+    }
+}
+
 fn box_package_manager<P: 'static + ArchPackageManager>(package_manager: P) -> Box<dyn ArchPackageManager> {
     Box::new(package_manager) as Box<dyn ArchPackageManager>
 }
@@ -243,13 +290,15 @@ pub fn get_arch_package_manager(ctx: &ExecutionContext) -> Option<Box<dyn ArchPa
             .or_else(|| Trizen::get().map(box_package_manager))
             .or_else(|| Pikaur::get().map(box_package_manager))
             .or_else(|| Pamac::get().map(box_package_manager))
-            .or_else(|| Pacman::get(ctx).map(box_package_manager)),
+            .or_else(|| Pacman::get(ctx).map(box_package_manager))
+            .or_else(|| Aura::get(ctx).map(box_package_manager)),
         config::ArchPackageManager::Trizen => Trizen::get().map(box_package_manager),
         config::ArchPackageManager::Paru => YayParu::get("paru", &pacman).map(box_package_manager),
         config::ArchPackageManager::Yay => YayParu::get("yay", &pacman).map(box_package_manager),
         config::ArchPackageManager::Pacman => Pacman::get(ctx).map(box_package_manager),
         config::ArchPackageManager::Pikaur => Pikaur::get().map(box_package_manager),
         config::ArchPackageManager::Pamac => Pamac::get().map(box_package_manager),
+        config::ArchPackageManager::Aura => Aura::get(ctx).map(box_package_manager),
     }
 }
 

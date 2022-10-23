@@ -216,12 +216,15 @@ pub enum ArchPackageManager {
     Pacman,
     Pikaur,
     Pamac,
+    Aura,
 }
 
 #[derive(Deserialize, Default, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct Linux {
     yay_arguments: Option<String>,
+    aura_aur_arguments: Option<String>,
+    aura_pacman_arguments: Option<String>,
     arch_package_manager: Option<ArchPackageManager>,
     show_arch_news: Option<bool>,
     trizen_arguments: Option<String>,
@@ -268,6 +271,8 @@ pub struct ConfigFile {
     display_time: Option<bool>,
     assume_yes: Option<bool>,
     yay_arguments: Option<String>,
+    aura_aur_arguments: Option<String>,
+    aura_pacman_arguments: Option<String>,
     no_retry: Option<bool>,
     run_in_tmux: Option<bool>,
     cleanup: Option<bool>,
@@ -764,9 +769,27 @@ impl Config {
 
     /// Extra yay arguments
     pub fn yay_arguments(&self) -> &str {
-        get_deprecated!(self.config_file, yay_arguments, linux, yay_arguments)
-            .as_deref()
-            .unwrap_or("--devel")
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|s| s.yay_arguments.as_deref())
+            .unwrap_or("")
+    }
+
+    /// Extra aura arguments for AUR and pacman
+    pub fn aura_aur_arguments(&self) -> &str {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|s| s.aura_aur_arguments.as_deref())
+            .unwrap_or("")
+    }
+    pub fn aura_pacman_arguments(&self) -> &str {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|s| s.aura_pacman_arguments.as_deref())
+            .unwrap_or("")
     }
 
     /// Extra apt arguments
