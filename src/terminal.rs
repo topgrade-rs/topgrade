@@ -104,7 +104,7 @@ impl Terminal {
                         command.arg("-t");
                         command.arg(format!("{}", timeout.as_millis()));
                     }
-                    command.args(&["-a", "Topgrade", "Topgrade"]);
+                    command.args(["-a", "Topgrade", "Topgrade"]);
                     command.arg(message.as_ref());
                     command.output().ok();
                 }

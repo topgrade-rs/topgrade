@@ -8,7 +8,7 @@ use std::path::Path;
 use std::{path::PathBuf, process::Command};
 
 fn list_toolboxes(toolbx: &Path) -> Result<Vec<String>> {
-    let output = Command::new(toolbx).args(&["list", "--containers"]).output()?;
+    let output = Command::new(toolbx).args(["list", "--containers"]).output()?;
     let output_str = String::from_utf8(output.stdout)?;
 
     let proc: Vec<String> = output_str

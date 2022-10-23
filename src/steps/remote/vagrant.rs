@@ -113,7 +113,7 @@ impl<'a> TemporaryPowerOn<'a> {
 
         ctx.run_type()
             .execute(vagrant)
-            .args(&[subcommand, &vagrant_box.name])
+            .args([subcommand, &vagrant_box.name])
             .current_dir(vagrant_box.path.clone())
             .check_run()?;
         Ok(TemporaryPowerOn {
@@ -140,7 +140,7 @@ impl<'a> Drop for TemporaryPowerOn<'a> {
         self.ctx
             .run_type()
             .execute(self.vagrant)
-            .args(&[subcommand, &self.vagrant_box.name])
+            .args([subcommand, &self.vagrant_box.name])
             .current_dir(self.vagrant_box.path.clone())
             .check_run()
             .ok();
@@ -198,7 +198,7 @@ pub fn topgrade_vagrant_box(ctx: &ExecutionContext, vagrant_box: &VagrantBox) ->
     ctx.run_type()
         .execute(&vagrant.path)
         .current_dir(&vagrant_box.path)
-        .args(&["ssh", "-c", &command])
+        .args(["ssh", "-c", &command])
         .check_run()
 }
 
@@ -207,7 +207,7 @@ pub fn upgrade_vagrant_boxes(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Vagrant boxes");
 
     let outdated = Command::new(&vagrant)
-        .args(&["box", "outdated", "--global"])
+        .args(["box", "outdated", "--global"])
         .check_output()?;
 
     let re = Regex::new(r"\* '(.*?)' for '(.*?)' is outdated").unwrap();
@@ -218,8 +218,8 @@ pub fn upgrade_vagrant_boxes(ctx: &ExecutionContext) -> Result<()> {
         let _ = ctx
             .run_type()
             .execute(&vagrant)
-            .args(&["box", "update", "--box"])
-            .arg(&ele.get(1).unwrap().as_str())
+            .args(["box", "update", "--box"])
+            .arg(ele.get(1).unwrap().as_str())
             .arg("--provider")
             .arg(ele.get(2).unwrap().as_str())
             .check_run();
@@ -228,7 +228,7 @@ pub fn upgrade_vagrant_boxes(ctx: &ExecutionContext) -> Result<()> {
     if !found {
         println!("No outdated boxes")
     } else {
-        ctx.run_type().execute(&vagrant).args(&["box", "prune"]).check_run()?;
+        ctx.run_type().execute(&vagrant).args(["box", "prune"]).check_run()?;
     }
 
     Ok(())

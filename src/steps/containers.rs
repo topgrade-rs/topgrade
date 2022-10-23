@@ -23,7 +23,7 @@ fn list_containers(crt: &Path) -> Result<Vec<String>> {
         crt.display()
     );
     let output = Command::new(crt)
-        .args(&["image", "ls", "--format", "{{.Repository}}:{{.Tag}}"])
+        .args(["image", "ls", "--format", "{{.Repository}}:{{.Tag}}"])
         .output()?;
     let output_str = String::from_utf8(output.stdout)?;
 
@@ -95,7 +95,7 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
     if ctx.config().cleanup() {
         // Remove dangling images
         debug!("Removing dangling images");
-        if let Err(e) = ctx.run_type().execute(&crt).args(&["image", "prune", "-f"]).check_run() {
+        if let Err(e) = ctx.run_type().execute(&crt).args(["image", "prune", "-f"]).check_run() {
             error!("Removing dangling images failed: {}", e);
             success = false;
         }

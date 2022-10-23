@@ -140,7 +140,7 @@ fn run() -> Result<()> {
     #[cfg(target_os = "linux")]
     let distribution = linux::Distribution::detect();
 
-    #[cfg(target_os = "linux")]
+    #[cfg(target_os = r#"linux"#)]
     {
         match &distribution {
             Ok(distribution) => {
