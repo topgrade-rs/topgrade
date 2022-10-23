@@ -254,10 +254,10 @@ impl ArchPackageManager for Aura {
                 .arg("-Au")
                 .args(ctx.config().aura_aur_arguments().split_whitespace());
             if ctx.config().yes(Step::System) {
-                aur_update.check_run()?;
+                aur_update.arg("--noconfirm");
             }
 
-            aur_update.arg("--noconfirm");
+            aur_update.check_run()?;
         } else {
             println!("Aura requires sudo installed to work with AUR packages")
         }
