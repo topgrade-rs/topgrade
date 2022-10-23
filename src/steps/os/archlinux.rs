@@ -250,7 +250,7 @@ impl ArchPackageManager for Aura {
         if self.sudo.ends_with("sudo") {
             aur_update
                 .arg(&self.executable)
-                .arg("-Akux")
+                .arg("-Au")
                 .args(ctx.config().aura_aur_arguments().split_whitespace());
             if ctx.config().yes(Step::System) {
                 aur_update.check_run()?;
