@@ -2,7 +2,7 @@ on:
   release:
     types: [published, edited]
 
-name: Publish on release
+name: Check SemVer compliance and publish on release
 
 jobs:
   prepare:
