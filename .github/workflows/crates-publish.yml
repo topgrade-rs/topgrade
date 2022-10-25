@@ -1,21 +1,34 @@
 on:
-  push:
-    branches:
-      - main
+  release:
+    types: [published, edited]
 
 name: Publish on release
 
 jobs:
+  prepare:
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2022-08-03
+          override: true
+
+  semver:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: --git https://github.com/rust-lang/rust-semverver
+      - run: eval "current_version=$(grep -e '^version = .*$' Cargo.toml | cut -d ' ' -f 3)"
+      - run: cargo semver | tee semver_out
+      - run: (head -n 1 semver_out | grep "\-> $current_version") || (echo "versioning mismatch" && return 1)
+
   publish:
     steps:
-        - uses: actions/checkout@v2
-        - uses: actions-rs/toolchain@v1
-          with:
-              toolchain: stable
-              override: true
-        - uses: katyo/publish-crates@v1
-          with:
-              dry-run: true
-              check-repo: ${{ github.event_name == 'push' }}
-              registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-              ignore-unpublished-changes: true
+      - uses: katyo/publish-crates@v1
+        with:
+          dry-run: true
+          check-repo: ${{ github.event_name == 'push' }}
+          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          ignore-unpublished-changes: true
