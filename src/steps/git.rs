@@ -231,8 +231,7 @@ impl Git {
         let results = basic_rt.block_on(async { stream_of_futures.collect::<Vec<Result<()>>>().await });
 
         let error = results.into_iter().find(|r| r.is_err());
-        error.unwrap()?;
-        Ok(())
+        error.unwrap_or(Ok(()))
     }
 }
 
