@@ -18,11 +18,6 @@ if exists(":PlugUpgrade")
     endif
 endif
 
-if exists(":PackerUpdate")
-    echo "Packer"
-    PackerSync
-endif
-
 if exists("*dein#update()")
     echo "dein#update()"
     call dein#update()
@@ -43,4 +38,10 @@ if exists(":CocUpdateSync")
     CocUpdateSync
 endif
 
-quitall
+if exists(':PackerSync')
+  echo "Packer"
+  autocmd User PackerComplete quitall
+  PackerSync
+else
+  quitall
+endif
