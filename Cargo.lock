@@ -1908,8 +1908,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "topgrade-rs"
-version = "10.0.0"
+name = "topgrade"
+version = "10.0.1"
 dependencies = [
  "anyhow",
  "cfg-if",
