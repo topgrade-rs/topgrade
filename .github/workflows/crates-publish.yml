@@ -6,6 +6,7 @@ name: Check SemVer compliance and publish on release
 
 jobs:
   prepare:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -25,6 +26,7 @@ jobs:
       - run: (head -n 1 semver_out | grep "\-> $current_version") || (echo "versioning mismatch" && return 1)
 
   publish:
+    runs-on: ubuntu-latest
     steps:
       - uses: katyo/publish-crates@v1
         with:
