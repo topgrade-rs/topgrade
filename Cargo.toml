@@ -1,6 +1,6 @@
 [package]
-name = "topgrade-rs"
-description = "Upgrade all the things, successor of topgrade"
+name = "topgrade"
+description = "Upgrade all the things"
 categories = ["os"]
 keywords = ["upgrade", "update"]
 license-file = "LICENSE"
