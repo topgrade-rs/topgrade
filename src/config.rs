@@ -83,6 +83,7 @@ pub enum Step {
     Containers,
     CustomCommands,
     DebGet,
+    Distrobox,
     Deno,
     Dotnet,
     Emacs,
