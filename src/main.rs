@@ -486,6 +486,9 @@ fn run() -> Result<()> {
 }
 
 fn main() {
+    print_info("Due to r-darwish giving this project access to the original topgrade crate, this crate will no longer receive any updates beyond the 10.0.1 update. To install the supported version, please run the following command: \n");
+    println!("cargo uninstall topgrade-rs");
+    println!("cargo install topgrade");
     match run() {
         Ok(()) => {
             exit(0);
