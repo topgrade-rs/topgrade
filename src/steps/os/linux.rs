@@ -606,6 +606,17 @@ pub fn run_protonup_update(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+pub fn run_distrobox_update(ctx: &ExecutionContext) -> Result<()> {
+    let distrobox = require("distrobox")?;
+
+    print_separator("distrobox");
+
+    ctx.run_type()
+        .execute(distrobox)
+        .args(&["upgrade", "--all"])
+        .check_run()
+}
+
 pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), String::from("sudo is not installed"))?;
     if ctx.config().yes(Step::ConfigUpdate) {
