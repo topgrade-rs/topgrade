@@ -613,7 +613,12 @@ pub fn run_distrobox_update(ctx: &ExecutionContext) -> Result<()> {
             ctx.run_type().execute("distrobox").arg("upgrade"),
             ctx.config().distrobox_containers(),
         ) {
-            (r, Some(c)) => r.args(c),
+            (r, Some(c)) => {
+                if c.is_empty() {
+                    return Err(SkipStep("You need to specify at least one container".to_string()).into());
+                }
+                r.args(c)
+            }
             (r, None) => r.arg("--all"),
         },
         ctx.config().distrobox_root(),
