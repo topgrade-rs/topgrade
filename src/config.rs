@@ -825,7 +825,7 @@ impl Config {
             .unwrap_or(false)
     }
 
-    /// Distrobox use root
+    /// Distrobox containers
     pub fn distrobox_containers(&self) -> Option<&Vec<String>> {
         self.config_file.distrobox.as_ref().and_then(|r| r.containers.as_ref())
     }
