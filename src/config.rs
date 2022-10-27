@@ -174,6 +174,7 @@ pub struct Windows {
 
 #[derive(Deserialize, Default, Debug)]
 #[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct Distrobox {
     use_root: Option<bool>,
     containers: Option<Vec<String>>,
