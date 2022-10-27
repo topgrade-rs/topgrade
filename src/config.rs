@@ -175,6 +175,14 @@ pub struct Windows {
 #[derive(Deserialize, Default, Debug)]
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
+pub struct Distrobox {
+    use_root: Option<bool>,
+    containers: Option<Vec<String>>,
+}
+
+#[derive(Deserialize, Default, Debug)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct Yarn {
     use_sudo: Option<bool>,
 }
@@ -293,6 +301,7 @@ pub struct ConfigFile {
     firmware: Option<Firmware>,
     vagrant: Option<Vagrant>,
     flatpak: Option<Flatpak>,
+    distrobox: Option<Distrobox>,
 }
 
 fn config_directory(base_dirs: &BaseDirs) -> PathBuf {
@@ -615,7 +624,6 @@ impl Config {
     }
 
     /// Extra Tmux arguments
-
     pub fn tmux_arguments(&self) -> &Option<String> {
         &self.config_file.tmux_arguments
     }
@@ -807,6 +815,20 @@ impl Config {
             .linux
             .as_ref()
             .and_then(|linux| linux.dnf_arguments.as_deref())
+    }
+
+    /// Distrobox use root
+    pub fn distrobox_root(&self) -> bool {
+        self.config_file
+            .distrobox
+            .as_ref()
+            .and_then(|r| r.use_root)
+            .unwrap_or(false)
+    }
+
+    /// Distrobox containers
+    pub fn distrobox_containers(&self) -> Option<&Vec<String>> {
+        self.config_file.distrobox.as_ref().and_then(|r| r.containers.as_ref())
     }
 
     /// Concurrency limit for git
