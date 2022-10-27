@@ -607,14 +607,21 @@ pub fn run_protonup_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_distrobox_update(ctx: &ExecutionContext) -> Result<()> {
-    let distrobox = require("distrobox")?;
-
-    print_separator("distrobox");
-
-    ctx.run_type()
-        .execute(distrobox)
-        .args(&["upgrade", "--all"])
-        .check_run()
+    print_separator("Distrobox");
+    match (
+        match (
+            ctx.run_type().execute("distrobox").arg("upgrade"),
+            ctx.config().distrobox_containers(),
+        ) {
+            (r, Some(c)) => r.args(c),
+            (r, None) => r.arg("--all"),
+        },
+        ctx.config().distrobox_root(),
+    ) {
+        (r, true) => r.arg("--root"),
+        (r, false) => r,
+    }
+    .check_run()
 }
 
 pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
