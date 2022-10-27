@@ -6,7 +6,7 @@ use std::process::Command;
 use std::{env, fs};
 
 use anyhow::Result;
-use clap::{ArgEnum, Parser};
+use clap::{Parser, ValueEnum};
 use directories::BaseDirs;
 use log::debug;
 use regex::Regex;
@@ -62,7 +62,7 @@ macro_rules! get_deprecated {
 
 type Commands = BTreeMap<String, String>;
 
-#[derive(ArgEnum, EnumString, EnumVariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
+#[derive(ValueEnum, EnumString, EnumVariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
 #[clap(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
@@ -394,78 +394,78 @@ impl ConfigFile {
 
 // Command line arguments
 #[derive(Parser, Debug)]
-#[clap(name = "Topgrade", version)]
+#[command(name = "Topgrade", version)]
 pub struct CommandLineArgs {
     /// Edit the configuration file
-    #[clap(long = "edit-config")]
+    #[arg(long = "edit-config")]
     edit_config: bool,
 
     /// Show config reference
-    #[clap(long = "config-reference")]
+    #[arg(long = "config-reference")]
     show_config_reference: bool,
 
     /// Run inside tmux
-    #[clap(short = 't', long = "tmux")]
+    #[arg(short = 't', long = "tmux")]
     run_in_tmux: bool,
 
     /// Cleanup temporary or old files
-    #[clap(short = 'c', long = "cleanup")]
+    #[arg(short = 'c', long = "cleanup")]
     cleanup: bool,
 
     /// Print what would be done
-    #[clap(short = 'n', long = "dry-run")]
+    #[arg(short = 'n', long = "dry-run")]
     dry_run: bool,
 
     /// Do not ask to retry failed steps
-    #[clap(long = "no-retry")]
+    #[arg(long = "no-retry")]
     no_retry: bool,
 
     /// Do not perform upgrades for the given steps
-    #[clap(long = "disable", arg_enum, multiple_values = true)]
+    #[arg(long = "disable", value_name = "STEP", value_enum, num_args = 1..)]
     disable: Vec<Step>,
 
     /// Perform only the specified steps (experimental)
-    #[clap(long = "only", arg_enum, multiple_values = true)]
+    #[arg(long = "only", value_name = "STEP", value_enum, num_args = 1..)]
     only: Vec<Step>,
 
     /// Run only specific custom commands
-    #[clap(long = "custom-commands")]
+    #[arg(long = "custom-commands", value_name = "NAME", num_args = 1..)]
     custom_commands: Vec<String>,
 
     /// Set environment variables
-    #[clap(long = "env", multiple_values = true)]
+    #[arg(long = "env", value_name = "NAME=VALUE", num_args = 1..)]
     env: Vec<String>,
 
     /// Output logs
-    #[clap(short = 'v', long = "verbose")]
+    #[arg(short = 'v', long = "verbose")]
     pub verbose: bool,
 
     /// Prompt for a key before exiting
-    #[clap(short = 'k', long = "keep")]
+    #[arg(short = 'k', long = "keep")]
     keep_at_end: bool,
 
     /// Skip sending a notification at the end of a run
-    #[clap(long = "skip-notify")]
+    #[arg(long = "skip-notify")]
     skip_notify: bool,
 
     /// Say yes to package manager's prompt
-    #[clap(short = 'y', long = "yes", arg_enum, multiple_values = true, min_values = 0)]
+    #[arg(short = 'y', long = "yes", value_name = "STEP", value_enum, num_args = 0..)]
     yes: Option<Vec<Step>>,
 
     /// Don't pull the predefined git repos
-    #[clap(long = "disable-predefined-git-repos")]
+    #[arg(long = "disable-predefined-git-repos")]
     disable_predefined_git_repos: bool,
 
     /// Alternative configuration file
-    #[clap(long = "config")]
+    #[arg(long = "config", value_name = "PATH")]
     config: Option<PathBuf>,
 
     /// A regular expression for restricting remote host execution
-    #[clap(long = "remote-host-limit")]
+    #[arg(long = "remote-host-limit", value_name = "REGEX")]
     remote_host_limit: Option<Regex>,
 
     /// Show the reason for skipped steps
-    #[clap(long = "show-skipped")]
+    #[arg(long = "show-skipped")]
     show_skipped: bool,
 }
 

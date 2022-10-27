@@ -1,11 +1,11 @@
 [package]
-name = "topgrade-rs"
-description = "Upgrade all the things, successor of topgrade"
+name = "topgrade"
+description = "Upgrade all the things"
 categories = ["os"]
 keywords = ["upgrade", "update"]
 license-file = "LICENSE"
 repository = "https://github.com/topgrade-rs/topgrade"
-version = "10.0.0"
+version = "10.0.1"
 authors = ["Roey Darwish Dror <roey.ghost@gmail.com>", "Thomas Schönauer <t.schoenauer@hgs-wt.at>"]
 exclude = ["doc/screenshot.gif"]
 edition = "2021"
@@ -23,7 +23,7 @@ serde = { version = "1.0", features = ["derive"] }
 toml = "0.5"
 which_crate = { version = "4.1", package = "which" }
 shellexpand = "2.1"
-clap = { version = "3.1", features = ["cargo", "derive"] }
+clap = { version = "4.0", features = ["cargo", "derive"] }
 log = "0.4"
 walkdir = "2.3"
 console = "0.15"
