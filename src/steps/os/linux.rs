@@ -606,6 +606,29 @@ pub fn run_protonup_update(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+pub fn run_distrobox_update(ctx: &ExecutionContext) -> Result<()> {
+    print_separator("Distrobox");
+    match (
+        match (
+            ctx.run_type().execute("distrobox").arg("upgrade"),
+            ctx.config().distrobox_containers(),
+        ) {
+            (r, Some(c)) => {
+                if c.is_empty() {
+                    return Err(SkipStep("You need to specify at least one container".to_string()).into());
+                }
+                r.args(c)
+            }
+            (r, None) => r.arg("--all"),
+        },
+        ctx.config().distrobox_root(),
+    ) {
+        (r, true) => r.arg("--root"),
+        (r, false) => r,
+    }
+    .check_run()
+}
+
 pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), String::from("sudo is not installed"))?;
     if ctx.config().yes(Step::ConfigUpdate) {
