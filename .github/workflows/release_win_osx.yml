@@ -6,11 +6,11 @@ on:
     types: [ created ]
 
 jobs:
-  build:
+  x86_64_win_macos_linux:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ macos-latest, windows-latest ]
+        platform: [ macos-latest, windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v2
@@ -57,3 +57,127 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: assets/*
+
+  x86_64_freebsd:
+    name: "FreeBSD x86_64"
+      runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v2
+          - uses: actions-rs/toolchain@v1
+            with:
+              toolchain: stable
+              target: x86_64-unknown-freebsd
+              override: true
+          - uses: actions-rs/cargo@v1
+            name: Build
+            with:
+              use-cross: true
+              command: build
+              args: --target x86_64-unknown-freebsd --release --all-features
+          - run: |
+              cargo install default-target
+              mkdir assets
+              FILENAME=topgrade-${{github.event.release.tag_name}}-$(x86_64-unknown-freebsd)
+              mv target/release/topgrade assets
+              cd assets
+              tar --format=ustar -czf $FILENAME.tar.gz topgrade
+              rm topgrade
+              ls .
+            shell: bash
+          - name: Release
+            uses: softprops/action-gh-release@v1
+            with:
+              files: assets/*
+
+  x86_64_linux_musl:
+    name: "Linux Musl x86_64"
+      runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v2
+          - uses: actions-rs/toolchain@v1
+            with:
+              toolchain: stable
+              target: x86_64-unknown-linux-musl
+              override: true
+          - uses: actions-rs/cargo@v1
+            name: Build
+            with:
+              use-cross: true
+              command: build
+              args: --target x86_64-unknown-linux-musl --release --all-features
+          - run: |
+              cargo install default-target
+              mkdir assets
+              FILENAME=topgrade-${{github.event.release.tag_name}}-$(x86_64-unknown-linux-musl)
+              mv target/release/topgrade assets
+              cd assets
+              tar --format=ustar -czf $FILENAME.tar.gz topgrade
+              rm topgrade
+              ls .
+            shell: bash
+          - name: Release
+            uses: softprops/action-gh-release@v1
+            with:
+              files: assets/*
+
+  aarch64_linux_gnu:
+    name: "Linux GNU aarch64"
+      runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v2
+          - uses: actions-rs/toolchain@v1
+            with:
+              toolchain: stable
+              target: aarch64-unknown-linux-gnu
+              override: true
+          - uses: actions-rs/cargo@v1
+            name: Build
+            with:
+              use-cross: true
+              command: build
+              args: --target aarch64-unknown-linux-gnu --release --all-features
+          - run: |
+              cargo install default-target
+              mkdir assets
+              FILENAME=topgrade-${{github.event.release.tag_name}}-$(aarch64-unknown-linux-gnu)
+              mv target/release/topgrade assets
+              cd assets
+              tar --format=ustar -czf $FILENAME.tar.gz topgrade
+              rm topgrade
+              ls .
+            shell: bash
+          - name: Release
+            uses: softprops/action-gh-release@v1
+            with:
+              files: assets/*
+
+  aarch64_linux_musl:
+    name: "Linux Musl aarch64"
+      runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v2
+          - uses: actions-rs/toolchain@v1
+            with:
+              toolchain: stable
+              target: aarch64-unknown-linux-musl
+              override: true
+          - uses: actions-rs/cargo@v1
+            name: Build
+            with:
+              use-cross: true
+              command: build
+              args: --target aarch64-unknown-linux-musl --release --all-features
+          - run: |
+              cargo install default-target
+              mkdir assets
+              FILENAME=topgrade-${{github.event.release.tag_name}}-$(aarch64-unknown-linux-musl)
+              mv target/release/topgrade assets
+              cd assets
+              tar --format=ustar -czf $FILENAME.tar.gz topgrade
+              rm topgrade
+              ls .
+            shell: bash
+          - name: Release
+            uses: softprops/action-gh-release@v1
+            with:
+              files: assets/*
