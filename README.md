@@ -75,3 +75,9 @@ You can specify a key called `remote_topgrades` in the configuration file.
 This key should contain a list of hostnames that have topgrade installed on them.
 Topgrade will use `ssh` to run `topgrade` on remote hosts before acting locally.
 To limit the execution only to specific hosts use the `--remote-host-limit` parameter.
+
+## ToDo
+
+- Add a proper testing framework to the code base.
+- Add unit tests for package managers.
+- Split up code into more maintainable parts, eg. putting every linux package manager in a own submodule of linux.rs.
