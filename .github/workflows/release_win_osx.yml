@@ -6,7 +6,7 @@ on:
     types: [ created ]
 
 jobs:
-  x86_64_win_macos_linux:
+  - x86_64_win_macos_linux:
     strategy:
       fail-fast: false
       matrix:
@@ -58,7 +58,7 @@ jobs:
         with:
           files: assets/*
 
-  x86_64_freebsd:
+  - x86_64_freebsd:
     name: "FreeBSD x86_64"
       runs-on: ubuntu-latest
         steps:
@@ -120,7 +120,7 @@ jobs:
             with:
               files: assets/*
 
-  aarch64_linux_gnu:
+  - aarch64_linux_gnu:
     name: "Linux GNU aarch64"
       runs-on: ubuntu-latest
         steps:
@@ -151,7 +151,7 @@ jobs:
             with:
               files: assets/*
 
-  aarch64_linux_musl:
+  - aarch64_linux_musl:
     name: "Linux Musl aarch64"
       runs-on: ubuntu-latest
         steps:
