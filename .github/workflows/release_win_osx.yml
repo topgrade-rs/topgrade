@@ -58,7 +58,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: assets/*
-
   - x86_64_freebsd:
     name: "FreeBSD x86_64"
       runs-on: ubuntu-latest
@@ -89,7 +88,6 @@ jobs:
             uses: softprops/action-gh-release@v1
             with:
               files: assets/*
-
   x86_64_linux_musl:
     name: "Linux Musl x86_64"
       runs-on: ubuntu-latest
@@ -120,7 +118,6 @@ jobs:
             uses: softprops/action-gh-release@v1
             with:
               files: assets/*
-
   - aarch64_linux_gnu:
     name: "Linux GNU aarch64"
       runs-on: ubuntu-latest
@@ -151,7 +148,6 @@ jobs:
             uses: softprops/action-gh-release@v1
             with:
               files: assets/*
-
   - aarch64_linux_musl:
     name: "Linux Musl aarch64"
       runs-on: ubuntu-latest
