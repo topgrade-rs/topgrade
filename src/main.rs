@@ -231,6 +231,10 @@ fn run() -> Result<()> {
         git_repos.insert_if_repo(base_dirs.home_dir().join(".ideavimrc"));
         git_repos.insert_if_repo(base_dirs.home_dir().join(".intellimacs"));
 
+        if config.should_run(Step::Rcm) {
+            git_repos.insert_if_repo(base_dirs.home_dir().join(".dotfiles"));
+        }
+
         #[cfg(unix)]
         {
             git_repos.insert_if_repo(zsh::zshrc(&base_dirs));
@@ -301,6 +305,7 @@ fn run() -> Result<()> {
         runner.execute(Step::Sdkman, "SDKMAN!", || {
             unix::run_sdkman(&base_dirs, config.cleanup(), run_type)
         })?;
+        runner.execute(Step::Rcm, "rcm", || unix::run_rcm(&ctx))?;
     }
 
     #[cfg(not(any(
