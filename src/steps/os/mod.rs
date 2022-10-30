@@ -6,6 +6,8 @@ mod archlinux;
 pub mod dragonfly;
 #[cfg(target_os = "freebsd")]
 pub mod freebsd;
+#[cfg(target_os = "openbsd")]
+pub mod openbsd;
 #[cfg(target_os = "linux")]
 pub mod linux;
 #[cfg(target_os = "macos")]

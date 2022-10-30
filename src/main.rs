@@ -209,6 +209,11 @@ fn run() -> Result<()> {
         freebsd::upgrade_packages(sudo.as_ref(), run_type)
     })?;
 
+    #[cfg(target_os = "openbsd")]
+    runner.execute(Step::Pkg, "OpenBSD Packages", || {
+        openbsd::upgrade_packages(sudo.as_ref(), run_type)
+    })?;
+
     #[cfg(target_os = "android")]
     runner.execute(Step::Pkg, "Termux Packages", || android::upgrade_packages(&ctx))?;
 
@@ -409,6 +414,11 @@ fn run() -> Result<()> {
     #[cfg(target_os = "freebsd")]
     runner.execute(Step::System, "FreeBSD Upgrade", || {
         freebsd::upgrade_freebsd(sudo.as_ref(), run_type)
+    })?;
+
+    #[cfg(target_os = "openbsd")]
+    runner.execute(Step::System, "OpenBSD Upgrade", || {
+        openbsd::upgrade_openbsd(sudo.as_ref(), run_type)
     })?;
 
     #[cfg(windows)]
