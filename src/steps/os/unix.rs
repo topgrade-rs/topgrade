@@ -464,7 +464,7 @@ pub fn run_rcm(ctx: &ExecutionContext) -> Result<()> {
     let rcup = require("rcup")?;
 
     print_separator("rcm");
-    ctx.run_type().execute(&rcup).arg("-v").check_run()
+    ctx.run_type().execute(rcup).arg("-v").check_run()
 }
 
 pub fn reboot() {
