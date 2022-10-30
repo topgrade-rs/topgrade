@@ -169,7 +169,7 @@ pub fn run_fundle(ctx: &ExecutionContext) -> Result<()> {
     print_separator("fundle");
 
     ctx.run_type()
-        .execute(&fish)
+        .execute(fish)
         .args(["-c", "fundle self-update && fundle update"])
         .check_run()
 }
