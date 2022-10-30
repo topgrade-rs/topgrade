@@ -289,6 +289,13 @@ pub fn run_pip3_update(run_type: RunType) -> Result<()> {
 }
 
 pub fn run_stack_update(run_type: RunType) -> Result<()> {
+    if let Ok(_) = utils::require("ghcup") {
+        // `ghcup` is present and probably(?) being used to install `stack`.
+        // Don't upgrade `stack`, let `ghcup` handle it. Per `ghcup install stack`:
+        // !!! Additionally, you should upgrade stack only through ghcup and not use 'stack upgrade' !!!
+        return Ok(());
+    }
+
     let stack = utils::require("stack")?;
     print_separator("stack");
 
