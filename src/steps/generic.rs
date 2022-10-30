@@ -295,6 +295,13 @@ pub fn run_stack_update(run_type: RunType) -> Result<()> {
     run_type.execute(&stack).arg("upgrade").check_run()
 }
 
+pub fn run_ghcup_update(run_type: RunType) -> Result<()> {
+    let ghcup = utils::require("ghcup")?;
+    print_separator("ghcup");
+
+    run_type.execute(&ghcup).arg("upgrade").check_run()
+}
+
 pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
     cfg_if::cfg_if! {
         if #[cfg(any(target_os = "linux", target_os = "android"))] {
