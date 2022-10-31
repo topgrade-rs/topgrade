@@ -22,17 +22,11 @@ jobs:
           target: ${{ matrix.target }}
           components: rustfmt, clippy
       - uses: actions-rs/cargo@v1.0.1
-        name: Run clippy
-        with:
-          command: clippy
-          use-cross: true
-          args: --all-targets --locked --target ${{matrix.target}} -- -D warnings
-      - uses: actions-rs/cargo@v1.0.1
         name: Run clippy (All features)
         with:
           command: clippy
           use-cross: true
-          args:  --locked --all-features --target ${{matrix.target}} -- -D warnings
+          args:  --locked --all-features --target ${{matrix.target}}
       - uses: actions-rs/cargo@v1.0.1
         name: Run tests
         with:
