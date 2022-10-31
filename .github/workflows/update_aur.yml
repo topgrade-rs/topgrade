@@ -1,0 +1,18 @@
+name: Publish to AUR
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  aur-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish AUR package
+        uses: ATiltedTree/create-aur-release@v1
+        with:
+          package_name: topgrade
+          commit_username: "Thomas Schönauer"
+          commit_email: t.schoenauer@hgs-wt.at
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
