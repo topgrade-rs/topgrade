@@ -122,6 +122,7 @@ pub enum Step {
     Powershell,
     Protonup,
     Raco,
+    Rcm,
     Remotes,
     Restarts,
     Rtcl,
