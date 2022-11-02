@@ -82,7 +82,8 @@ fn run() -> Result<()> {
     if config.run_in_tmux() && env::var("TOPGRADE_INSIDE_TMUX").is_err() {
         #[cfg(unix)]
         {
-            tmux::run_in_tmux(config.tmux_arguments()?);
+            tmux::run_in_tmux(config.tmux_arguments()?)?;
+            return Ok(());
         }
     }
 
