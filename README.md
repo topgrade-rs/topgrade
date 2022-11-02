@@ -69,6 +69,12 @@ For tools please open an Issue describing the tool, which platforms it supports 
 
 Just fork the repository and start coding.
 
+### Contribution Guidelines
+
+- Check if your code passes `cargo fmt` and `cargo clippy`.
+- Check if your code is self explanatory, if not it should be documented by comments.
+- Make a Pull Request to the dev branch for new features or to the bug-fixes branch for bug fixes.
+
 ## Remote execution
 
 You can specify a key called `remote_topgrades` in the configuration file.
