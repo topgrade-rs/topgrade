@@ -16,6 +16,9 @@ readme = "README.md"
 name = "topgrade"
 path = "src/main.rs"
 
+##[lib]
+##name = "topgrade_lib"
+
 [dependencies]
 home = "0.5"
 directories = "4.0"
