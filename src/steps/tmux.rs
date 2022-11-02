@@ -20,7 +20,7 @@ pub fn run_tpm(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
 
     print_separator("tmux plugins");
 
-    run_type.execute(&tpm).arg("all").check_run()
+    run_type.execute(tpm).arg("all").check_run()
 }
 
 struct Tmux {

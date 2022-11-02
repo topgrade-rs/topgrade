@@ -60,12 +60,12 @@ pub fn run_flutter_upgrade(run_type: RunType) -> Result<()> {
     let flutter = utils::require("flutter")?;
 
     print_separator("Flutter");
-    run_type.execute(&flutter).arg("upgrade").check_run()
+    run_type.execute(flutter).arg("upgrade").check_run()
 }
 
 pub fn run_go(run_type: RunType) -> Result<()> {
     let go = utils::require("go")?;
-    let go_output = run_type.execute(&go).args(["env", "GOPATH"]).check_output()?;
+    let go_output = run_type.execute(go).args(["env", "GOPATH"]).check_output()?;
     let gopath = go_output.trim();
 
     let go_global_update = utils::require("go-global-update")
@@ -74,7 +74,7 @@ pub fn run_go(run_type: RunType) -> Result<()> {
 
     print_separator("Go");
 
-    run_type.execute(&go_global_update).check_run()
+    run_type.execute(go_global_update).check_run()
 }
 
 pub fn run_gem(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
@@ -83,7 +83,7 @@ pub fn run_gem(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
 
     print_separator("RubyGems");
 
-    let mut command = run_type.execute(&gem);
+    let mut command = run_type.execute(gem);
     command.arg("update");
 
     if env::var_os("RBENV_SHELL").is_none() {
@@ -123,7 +123,7 @@ pub fn run_sheldon(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Sheldon");
 
-    ctx.run_type().execute(&sheldon).args(["lock", "--update"]).check_run()
+    ctx.run_type().execute(sheldon).args(["lock", "--update"]).check_run()
 }
 
 pub fn run_fossil(run_type: RunType) -> Result<()> {
@@ -131,7 +131,7 @@ pub fn run_fossil(run_type: RunType) -> Result<()> {
 
     print_separator("Fossil");
 
-    run_type.execute(&fossil).args(["all", "sync"]).check_run()
+    run_type.execute(fossil).args(["all", "sync"]).check_run()
 }
 
 pub fn run_micro(run_type: RunType) -> Result<()> {
@@ -139,7 +139,7 @@ pub fn run_micro(run_type: RunType) -> Result<()> {
 
     print_separator("micro");
 
-    let stdout = run_type.execute(&micro).args(["-plugin", "update"]).string_output()?;
+    let stdout = run_type.execute(micro).args(["-plugin", "update"]).string_output()?;
     std::io::stdout().write_all(stdout.as_bytes())?;
 
     if stdout.contains("Nothing to install / update") || stdout.contains("One or more plugins installed") {
@@ -160,7 +160,7 @@ pub fn run_apm(run_type: RunType) -> Result<()> {
 
     print_separator("Atom Package Manager");
 
-    run_type.execute(&apm).args(["upgrade", "--confirm=false"]).check_run()
+    run_type.execute(apm).args(["upgrade", "--confirm=false"]).check_run()
 }
 
 pub fn run_rustup(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
@@ -190,7 +190,7 @@ pub fn run_krew_upgrade(run_type: RunType) -> Result<()> {
 
     print_separator("Krew");
 
-    run_type.execute(&krew).args(["upgrade"]).check_run()
+    run_type.execute(krew).args(["upgrade"]).check_run()
 }
 
 pub fn run_gcloud_components_update(run_type: RunType) -> Result<()> {
@@ -199,7 +199,7 @@ pub fn run_gcloud_components_update(run_type: RunType) -> Result<()> {
     print_separator("gcloud");
 
     run_type
-        .execute(&gcloud)
+        .execute(gcloud)
         .args(["components", "update", "--quiet"])
         .check_run()
 }
@@ -209,7 +209,7 @@ pub fn run_jetpack(run_type: RunType) -> Result<()> {
 
     print_separator("Jetpack");
 
-    run_type.execute(&jetpack).args(["global", "update"]).check_run()
+    run_type.execute(jetpack).args(["global", "update"]).check_run()
 }
 
 pub fn run_rtcl(ctx: &ExecutionContext) -> Result<()> {
@@ -217,7 +217,7 @@ pub fn run_rtcl(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("rtcl");
 
-    ctx.run_type().execute(&rupdate).check_run()
+    ctx.run_type().execute(rupdate).check_run()
 }
 
 pub fn run_opam_update(ctx: &ExecutionContext) -> Result<()> {
@@ -239,14 +239,14 @@ pub fn run_vcpkg_update(run_type: RunType) -> Result<()> {
     let vcpkg = utils::require("vcpkg")?;
     print_separator("vcpkg");
 
-    run_type.execute(&vcpkg).args(["upgrade", "--no-dry-run"]).check_run()
+    run_type.execute(vcpkg).args(["upgrade", "--no-dry-run"]).check_run()
 }
 
 pub fn run_pipx_update(run_type: RunType) -> Result<()> {
     let pipx = utils::require("pipx")?;
     print_separator("pipx");
 
-    run_type.execute(&pipx).arg("upgrade-all").check_run()
+    run_type.execute(pipx).arg("upgrade-all").check_run()
 }
 
 pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
@@ -264,7 +264,7 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Conda");
 
     ctx.run_type()
-        .execute(&conda)
+        .execute(conda)
         .args(["update", "--all", "-y"])
         .check_run()
 }
@@ -289,7 +289,7 @@ pub fn run_pip3_update(run_type: RunType) -> Result<()> {
 }
 
 pub fn run_stack_update(run_type: RunType) -> Result<()> {
-    if let Ok(_) = utils::require("ghcup") {
+    if utils::require("ghcup").is_ok() {
         // `ghcup` is present and probably(?) being used to install `stack`.
         // Don't upgrade `stack`, let `ghcup` handle it. Per `ghcup install stack`:
         // !!! Additionally, you should upgrade stack only through ghcup and not use 'stack upgrade' !!!
@@ -299,14 +299,14 @@ pub fn run_stack_update(run_type: RunType) -> Result<()> {
     let stack = utils::require("stack")?;
     print_separator("stack");
 
-    run_type.execute(&stack).arg("upgrade").check_run()
+    run_type.execute(stack).arg("upgrade").check_run()
 }
 
 pub fn run_ghcup_update(run_type: RunType) -> Result<()> {
     let ghcup = utils::require("ghcup")?;
     print_separator("ghcup");
 
-    run_type.execute(&ghcup).arg("upgrade").check_run()
+    run_type.execute(ghcup).arg("upgrade").check_run()
 }
 
 pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
@@ -323,7 +323,7 @@ pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
     let tlmgr_directory = {
         let mut d = PathBuf::from(
             std::str::from_utf8(
-                &Command::new(&kpsewhich)
+                &Command::new(kpsewhich)
                     .arg("-var-value=SELFAUTOPARENT")
                     .output()?
                     .stdout,
@@ -360,7 +360,7 @@ pub fn run_chezmoi_update(base_dirs: &BaseDirs, run_type: RunType) -> Result<()>
 
     print_separator("chezmoi");
 
-    run_type.execute(&chezmoi).arg("update").check_run()
+    run_type.execute(chezmoi).arg("update").check_run()
 }
 
 pub fn run_myrepos_update(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
@@ -440,7 +440,7 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
 
     if stdout.contains("valet") || stderr.contains("valet") {
         if let Some(valet) = utils::which("valet") {
-            ctx.run_type().execute(&valet).arg("install").check_run()?;
+            ctx.run_type().execute(valet).arg("install").check_run()?;
         }
     }
 
@@ -485,21 +485,21 @@ pub fn run_raco_update(run_type: RunType) -> Result<()> {
 
     print_separator("Racket Package Manager");
 
-    run_type.execute(&raco).args(["pkg", "update", "--all"]).check_run()
+    run_type.execute(raco).args(["pkg", "update", "--all"]).check_run()
 }
 
 pub fn bin_update(ctx: &ExecutionContext) -> Result<()> {
     let bin = utils::require("bin")?;
 
     print_separator("Bin");
-    ctx.run_type().execute(&bin).arg("update").check_run()
+    ctx.run_type().execute(bin).arg("update").check_run()
 }
 
 pub fn spicetify_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let spicetify = utils::require("spicetify")?;
 
     print_separator("Spicetify");
-    ctx.run_type().execute(&spicetify).arg("upgrade").check_run()
+    ctx.run_type().execute(spicetify).arg("upgrade").check_run()
 }
 
 pub fn run_ghcli_extensions_upgrade(ctx: &ExecutionContext) -> Result<()> {
@@ -523,7 +523,7 @@ pub fn update_julia_packages(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Julia Packages");
 
     ctx.run_type()
-        .execute(&julia)
+        .execute(julia)
         .args(["-e", "using Pkg; Pkg.update()"])
         .check_run()
 }
