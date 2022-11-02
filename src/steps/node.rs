@@ -223,7 +223,7 @@ pub fn run_pnpm_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     #[cfg(target_os = "linux")]
     {
-        pnpm.upgrade(ctx.run_type(), should_use_sudo(&npm, ctx)?)
+        pnpm.upgrade(ctx.run_type(), should_use_sudo(&pnpm, ctx)?)
     }
 
     #[cfg(not(target_os = "linux"))]
