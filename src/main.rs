@@ -523,7 +523,10 @@ fn main() {
                     .is_some());
 
             if !skip_print {
-                println!("Error: {}", error);
+                // The `Debug` implementation of `anyhow::Result` prints a multi-line
+                // error message that includes all the 'causes' added with
+                // `.with_context(...)` calls.
+                println!("Error: {:?}", error);
             }
             exit(1);
         }
