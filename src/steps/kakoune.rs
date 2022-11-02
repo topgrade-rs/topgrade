@@ -13,7 +13,7 @@ pub fn upgrade_kak_plug(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Kakoune");
 
-    let mut command = ctx.run_type().execute(&kak);
+    let mut command = ctx.run_type().execute(kak);
     command.args(["-ui", "dummy", "-e", UPGRADE_KAK]);
 
     let output = command.output()?;

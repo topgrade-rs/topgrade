@@ -118,9 +118,9 @@ pub fn upgrade_vim(base_dirs: &BaseDirs, ctx: &ExecutionContext) -> Result<()> {
     upgrade(
         ctx.run_type()
             .execute(&vim)
-            .args(&["-u"])
+            .args(["-u"])
             .arg(vimrc)
-            .args(&["-U", "NONE", "-V1", "-nNesS"])
+            .args(["-U", "NONE", "-V1", "-nNesS"])
             .arg(upgrade_script()?.path()),
         ctx,
     )
@@ -133,10 +133,10 @@ pub fn upgrade_neovim(base_dirs: &BaseDirs, ctx: &ExecutionContext) -> Result<()
     print_separator("Neovim");
     upgrade(
         ctx.run_type()
-            .execute(&nvim)
-            .args(&["-u"])
+            .execute(nvim)
+            .args(["-u"])
             .arg(nvimrc)
-            .args(&["--headless", "-V1", "-nS"])
+            .args(["--headless", "-V1", "-nS"])
             .arg(upgrade_script()?.path()),
         ctx,
     )
