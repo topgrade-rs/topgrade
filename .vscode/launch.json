@@ -12,11 +12,11 @@
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=topgrade",
-                    "--package=topgrade"
+                    "--bin=topgrade-rs",
+                    "--package=topgrade-rs"
                 ],
                 "filter": {
-                    "name": "topgrade",
+                    "name": "topgrade-rs",
                     "kind": "bin"
                 }
             },

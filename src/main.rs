@@ -209,6 +209,11 @@ fn run() -> Result<()> {
         freebsd::upgrade_packages(sudo.as_ref(), run_type)
     })?;
 
+    #[cfg(target_os = "openbsd")]
+    runner.execute(Step::Pkg, "OpenBSD Packages", || {
+        openbsd::upgrade_packages(sudo.as_ref(), run_type)
+    })?;
+
     #[cfg(target_os = "android")]
     runner.execute(Step::Pkg, "Termux Packages", || android::upgrade_packages(&ctx))?;
 
@@ -230,6 +235,10 @@ fn run() -> Result<()> {
 
         git_repos.insert_if_repo(base_dirs.home_dir().join(".ideavimrc"));
         git_repos.insert_if_repo(base_dirs.home_dir().join(".intellimacs"));
+
+        if config.should_run(Step::Rcm) {
+            git_repos.insert_if_repo(base_dirs.home_dir().join(".dotfiles"));
+        }
 
         #[cfg(unix)]
         {
@@ -291,6 +300,7 @@ fn run() -> Result<()> {
         runner.execute(Step::Shell, "bash-it", || unix::run_bashit(&ctx))?;
         runner.execute(Step::Shell, "oh-my-fish", || unix::run_oh_my_fish(&ctx))?;
         runner.execute(Step::Shell, "fish-plug", || unix::run_fish_plug(&ctx))?;
+        runner.execute(Step::Shell, "fundle", || unix::run_fundle(&ctx))?;
         runner.execute(Step::Tmux, "tmux", || tmux::run_tpm(&base_dirs, run_type))?;
         runner.execute(Step::Tldr, "TLDR", || unix::run_tldr(run_type))?;
         runner.execute(Step::Pearl, "pearl", || unix::run_pearl(run_type))?;
@@ -301,6 +311,7 @@ fn run() -> Result<()> {
         runner.execute(Step::Sdkman, "SDKMAN!", || {
             unix::run_sdkman(&base_dirs, config.cleanup(), run_type)
         })?;
+        runner.execute(Step::Rcm, "rcm", || unix::run_rcm(&ctx))?;
     }
 
     #[cfg(not(any(
@@ -323,6 +334,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Pipx, "pipx", || generic::run_pipx_update(run_type))?;
     runner.execute(Step::Conda, "conda", || generic::run_conda_update(&ctx))?;
     runner.execute(Step::Pip3, "pip3", || generic::run_pip3_update(run_type))?;
+    runner.execute(Step::Ghcup, "ghcup", || generic::run_ghcup_update(run_type))?;
     runner.execute(Step::Stack, "stack", || generic::run_stack_update(run_type))?;
     runner.execute(Step::Tlmgr, "tlmgr", || generic::run_tlmgr_update(&ctx))?;
     runner.execute(Step::Myrepos, "myrepos", || {
@@ -402,6 +414,11 @@ fn run() -> Result<()> {
     #[cfg(target_os = "freebsd")]
     runner.execute(Step::System, "FreeBSD Upgrade", || {
         freebsd::upgrade_freebsd(sudo.as_ref(), run_type)
+    })?;
+
+    #[cfg(target_os = "openbsd")]
+    runner.execute(Step::System, "OpenBSD Upgrade", || {
+        openbsd::upgrade_openbsd(sudo.as_ref(), run_type)
     })?;
 
     #[cfg(windows)]

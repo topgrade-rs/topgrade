@@ -33,7 +33,7 @@ pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
     debug!("Toolboxes to inspect: {:?}", toolboxes);
 
     let mut topgrade_path = PathBuf::from("/run/host");
-    // Path of the running topgrade executable
+    // Path of the running Topgrade executable
     // Skip 1 to eliminate the path root, otherwise push overwrites the path
     topgrade_path.push(std::env::current_exe()?.components().skip(1).collect::<PathBuf>());
     let topgrade_path = topgrade_path.to_str().unwrap();

@@ -18,7 +18,7 @@
 
 Keeping your system up to date usually involves invoking multiple package managers.
 This results in big, non-portable shell one-liners saved in your shell.
-To remedy this, **topgrade** detects which tools you use and runs the appropriate commands to update them.
+To remedy this, **Topgrade** detects which tools you use and runs the appropriate commands to update them.
 
 ## Installation
 
@@ -69,9 +69,21 @@ For tools please open an Issue describing the tool, which platforms it supports 
 
 Just fork the repository and start coding.
 
+### Contribution Guidelines
+
+- Check if your code passes `cargo fmt` and `cargo clippy`.
+- Check if your code is self explanatory, if not it should be documented by comments.
+- Make a Pull Request to the dev branch for new features or to the bug-fixes branch for bug fixes.
+
 ## Remote execution
 
 You can specify a key called `remote_topgrades` in the configuration file.
-This key should contain a list of hostnames that have topgrade installed on them.
+This key should contain a list of hostnames that have Topgrade installed on them.
 Topgrade will use `ssh` to run `topgrade` on remote hosts before acting locally.
 To limit the execution only to specific hosts use the `--remote-host-limit` parameter.
+
+## ToDo
+
+- Add a proper testing framework to the code base.
+- Add unit tests for package managers.
+- Split up code into more maintainable parts, eg. putting every linux package manager in a own submodule of linux.rs.

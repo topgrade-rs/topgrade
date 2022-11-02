@@ -157,6 +157,23 @@ pub fn run_fish_plug(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(&fish).args(["-c", "plug update"]).check_run()
 }
 
+/// Upgrades `fundle` and `fundle` plugins.
+///
+/// `fundle` is a package manager for the Fish shell.
+///
+/// See: <https://github.com/danhper/fundle>
+pub fn run_fundle(ctx: &ExecutionContext) -> Result<()> {
+    let fish = require("fish")?;
+    ctx.base_dirs().home_dir().join(".config/fish/fundle").require()?;
+
+    print_separator("fundle");
+
+    ctx.run_type()
+        .execute(fish)
+        .args(["-c", "fundle self-update && fundle update"])
+        .check_run()
+}
+
 #[cfg(not(any(target_os = "android", target_os = "macos")))]
 pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
     let gdbus = require("gdbus")?;
@@ -455,6 +472,16 @@ pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Bun");
 
     ctx.run_type().execute(&bun).arg("upgrade").check_run()
+}
+
+/// Update dotfiles with `rcm(7)`.
+///
+/// See: <https://github.com/thoughtbot/rcm>
+pub fn run_rcm(ctx: &ExecutionContext) -> Result<()> {
+    let rcup = require("rcup")?;
+
+    print_separator("rcm");
+    ctx.run_type().execute(rcup).arg("-v").check_run()
 }
 
 pub fn reboot() {

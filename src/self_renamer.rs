@@ -31,7 +31,7 @@ impl Drop for SelfRenamer {
         }
 
         match fs::rename(&self.temp_path, &self.exe_path) {
-            Ok(_) => debug!("Moved topgrade back from {:?} to {:?}", self.temp_path, self.exe_path),
+            Ok(_) => debug!("Moved Topgrade back from {:?} to {:?}", self.temp_path, self.exe_path),
             Err(e) => error!(
                 "Could not move Topgrade from {} back to {}: {}",
                 self.temp_path.display(),
