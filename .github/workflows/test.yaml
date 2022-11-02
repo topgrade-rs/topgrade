@@ -1,9 +1,11 @@
-
 on:
   pull_request:
   push:
     branches:
       - main
+
+env:
+  CARGO_TERM_COLOR: always
 
 name: Test with Code Coverage
 
