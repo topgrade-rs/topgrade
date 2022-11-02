@@ -79,6 +79,7 @@ impl Powershell {
         println!("Updating modules...");
         ctx.run_type()
             .execute(powershell)
+            // This probably doesn't need `shell_words::join`.
             .args(["-NoProfile", "-Command", &cmd.join(" ")])
             .check_run()
     }

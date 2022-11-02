@@ -83,7 +83,7 @@ pub fn run_in_tmux(args: &Option<String>) -> ! {
             String::from("TOPGRADE_INSIDE_TMUX=1"),
         ];
         command.extend(env::args());
-        command.join(" ")
+        shell_words::join(command)
     };
 
     let tmux = Tmux::new(args);
