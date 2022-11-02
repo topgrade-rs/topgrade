@@ -1,6 +1,10 @@
-name: CD Cross
+name: Publish release files for non-cd-native environments
 
 on:
+  # workflow_run:
+  #   workflows: ["Check SemVer compliance"]
+  #   types:
+  #     - completed
   release:
     types: [ created ]
 

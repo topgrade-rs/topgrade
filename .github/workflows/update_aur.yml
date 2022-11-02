@@ -1,6 +1,10 @@
 name: Publish to AUR
 
 on:
+  # workflow_run:
+  #   workflows: ["Check SemVer compliance"]
+  #   types:
+  #     - completed
   push:
     tags:
       - "v*"
