@@ -23,7 +23,7 @@ serde = { version = "1.0", features = ["derive"] }
 toml = "0.5"
 which_crate = { version = "4.1", package = "which" }
 shellexpand = "2.1"
-clap = { version = "4.0.18", features = ["cargo", "derive"] }
+clap = { version = "4.0.17", features = ["cargo", "derive"] }
 log = "0.4"
 walkdir = "2.3"
 console = "0.15"
