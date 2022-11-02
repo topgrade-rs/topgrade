@@ -29,12 +29,10 @@ struct Tmux {
 }
 
 impl Tmux {
-    fn new(args: &Option<String>) -> Self {
+    fn new(args: Vec<String>) -> Self {
         Self {
             tmux: which("tmux").expect("Could not find tmux"),
-            args: args
-                .as_ref()
-                .map(|args| args.split_whitespace().map(String::from).collect()),
+            args: if args.is_empty() { None } else { Some(args) },
         }
     }
 
@@ -75,7 +73,7 @@ impl Tmux {
     }
 }
 
-pub fn run_in_tmux(args: &Option<String>) -> ! {
+pub fn run_in_tmux(args: Vec<String>) -> ! {
     let command = {
         let mut command = vec![
             String::from("env"),
@@ -86,7 +84,7 @@ pub fn run_in_tmux(args: &Option<String>) -> ! {
         shell_words::join(command)
     };
 
-    let tmux = Tmux::new(args);
+    let tmux = Tmux::new(args.clone());
 
     if !tmux.has_session("topgrade").expect("Error detecting a tmux session") {
         tmux.new_session("topgrade").expect("Error creating a tmux session");
@@ -108,7 +106,7 @@ pub fn run_in_tmux(args: &Option<String>) -> ! {
 }
 
 pub fn run_command(ctx: &ExecutionContext, command: &str) -> Result<()> {
-    Tmux::new(ctx.config().tmux_arguments())
+    Tmux::new(ctx.config().tmux_arguments()?)
         .build()
         .args(["new-window", "-a", "-t", "topgrade:1", command])
         .env_remove("TMUX")
