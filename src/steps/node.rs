@@ -93,6 +93,17 @@ impl Yarn {
         }
     }
 
+    fn has_global_subcmd(&self) -> bool {
+        // Get the version of Yarn. After Yarn 2.x (berry),
+        // “yarn global” has been replaced with “yarn dlx”.
+        //
+        // As “yarn dlx” don't need to “upgrade”, we
+        // ignore the whole task if Yarn is 2.x or above.
+        let version = Command::new(&self.command).args(["--version"]).check_output();
+
+        matches!(version, Ok(ver) if ver.starts_with('1') || ver.starts_with('0'))
+    }
+
     #[cfg(target_os = "linux")]
     fn root(&self) -> Result<PathBuf> {
         let args = ["global", "dir"];
@@ -177,6 +188,11 @@ pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_yarn_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let yarn = require("yarn").map(Yarn::new)?;
+
+    if !yarn.has_global_subcmd() {
+        debug!("Yarn is 2.x or above, skipping global upgrade");
+        return Ok(());
+    }
 
     #[cfg(target_os = "linux")]
     {
