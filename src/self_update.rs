@@ -15,10 +15,10 @@ pub fn self_update() -> Result<()> {
 
     let target = self_update_crate::get_target();
     let result = Update::configure()
-        .repo_owner("r-darwish")
+        .repo_owner("topgrade-rs")
         .repo_name("topgrade")
         .target(target)
-        .bin_name(if cfg!(windows) { "topgrade.exe" } else { "topgrade" })
+        .bin_name(if cfg!(windows) { "topgrade-rs.exe" } else { "topgrade-rs" })
         .show_output(false)
         .show_download_progress(true)
         .current_version(self_update_crate::cargo_crate_version!())
