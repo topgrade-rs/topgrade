@@ -44,6 +44,7 @@ futures = "0.3"
 regex = "1.5"
 sys-info = "0.9"
 semver = "1.0"
+shell-words = "1.1.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 notify-rust = "4.5"

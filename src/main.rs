@@ -79,7 +79,7 @@ fn run() -> Result<()> {
     if config.run_in_tmux() && env::var("TOPGRADE_INSIDE_TMUX").is_err() {
         #[cfg(unix)]
         {
-            tmux::run_in_tmux(config.tmux_arguments());
+            tmux::run_in_tmux(config.tmux_arguments()?);
         }
     }
 
@@ -524,7 +524,10 @@ fn main() {
                     .is_some());
 
             if !skip_print {
-                println!("Error: {}", error);
+                // The `Debug` implementation of `anyhow::Result` prints a multi-line
+                // error message that includes all the 'causes' added with
+                // `.with_context(...)` calls.
+                println!("Error: {:?}", error);
             }
             exit(1);
         }

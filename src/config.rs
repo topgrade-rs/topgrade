@@ -4,7 +4,6 @@ use std::fs::write;
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, fs};
-
 use anyhow::Result;
 use clap::{ArgEnum, Parser};
 use directories::BaseDirs;
@@ -626,8 +625,16 @@ impl Config {
     }
 
     /// Extra Tmux arguments
-    pub fn tmux_arguments(&self) -> &Option<String> {
-        &self.config_file.tmux_arguments
+    pub fn tmux_arguments(&self) -> anyhow::Result<Vec<String>> {
+        let args = &self.config_file.tmux_arguments.as_deref().unwrap_or_default();
+        shell_words::split(args)
+            // The only time the parse failed is in case of a missing close quote.
+            // The error message looks like this:
+            //     Error: Failed to parse `tmux_arguments`: `'foo`
+            //
+            //     Caused by:
+            //         missing closing quote
+            .with_context(|| format!("Failed to parse `tmux_arguments`: `{args}`"))
     }
 
     /// Prompt for a key before exiting
