@@ -15,35 +15,34 @@ readme = "README.md"
 [[bin]]
 name = "topgrade"
 path = "src/main.rs"
-
 ##[lib]
 ##name = "topgrade_lib"
 
 [dependencies]
-home = "0.5"
-directories = "4.0"
-serde = { version = "1.0", features = ["derive"] }
-toml = "0.5"
-which_crate = { version = "4.3", package = "which" }
-shellexpand = "2.1"
-clap = { version = "3.1", features = ["cargo", "derive"] }
-log = "0.4"
-walkdir = "2.3"
-console = "0.15"
-lazy_static = "1.4"
-chrono = "0.4"
-pretty_env_logger = "0.4"
-glob = "0.3"
-strum = { version = "0.24", features = ["derive"] }
-thiserror = "1.0"
 anyhow = "1.0"
-tempfile = "3.3"
 cfg-if = "1.0"
-tokio = { version = "1.21", features = ["process", "rt-multi-thread"] }
+chrono = "0.4"
+clap = { version = "3.1", features = ["cargo", "derive"] }
+console = "0.15"
+directories = "4.0"
 futures = "0.3"
+glob = "0.3"
+home = "0.5"
+lazy_static = "1.4"
+log = "0.4"
+pretty_env_logger = "0.4"
 regex = "1.6"
-sys-info = "0.9"
 semver = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+shellexpand = "2.1"
+strum = { version = "0.24", features = ["derive"] }
+sys-info = "0.9"
+tempfile = "3.3"
+thiserror = "1.0"
+tokio = { version = "1.21", features = ["process", "rt-multi-thread"] }
+toml = "0.5"
+walkdir = "2.3"
+which_crate = { version = "4.3", package = "which" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 notify-rust = "4.5"
