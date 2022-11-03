@@ -65,8 +65,8 @@ pub fn run_scoop(cleanup: bool, run_type: RunType) -> Result<()> {
     Ok(())
 }
 
-fn get_wsl_distributions(wsl: Path) -> Result<Vec<String>> {
-    let output = Command::new(wsl).args(["--list", "-q"]).check_output()?;
+fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
+    let output = Command::new(&wsl).args(["--list", "-q"]).check_output()?;
     Ok(output
         .lines()
         .filter(|s| !s.is_empty())
@@ -94,7 +94,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
 
 pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     let wsl = require("wsl")?;
-    let wsl_distributions = get_wsl_distributions(wsl)?;
+    let wsl_distributions = get_wsl_distributions(&wsl)?;
     let mut ran = false;
 
     debug!("WSL distributions: {:?}", wsl_distributions);
