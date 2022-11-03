@@ -10,8 +10,8 @@ name: Check and Lint
 jobs:
   check:
     name: Check
-      matrix:
-        platform: [ ubuntu-latest, macos-latest, windows-latest ]
+    matrix:
+      platform: [ ubuntu-latest, macos-latest, windows-latest ]
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v2
@@ -26,8 +26,8 @@ jobs:
 
   fmt:
     name: Rustfmt
-      matrix:
-        platform: [ ubuntu-latest, macos-latest, windows-latest ]
+    matrix:
+      platform: [ ubuntu-latest, macos-latest, windows-latest ]
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v2
@@ -44,8 +44,8 @@ jobs:
 
   clippy:
     name: Clippy
-      matrix:
-        platform: [ ubuntu-latest, macos-latest, windows-latest ]
+    matrix:
+      platform: [ ubuntu-latest, macos-latest, windows-latest ]
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v2
