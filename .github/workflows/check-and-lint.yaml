@@ -57,13 +57,13 @@ jobs:
           toolchain: stable
           components: clippy
           override: true
-      - uses: actions-rs/clippy-check@v1
+      - uses: actions-rs/cargo@v1.0.1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          command: clippy
           args: --all-targets --locked -- -D warnings
           name: Clippy Output
-      - uses: actions-rs/clippy-check@v1
+      - uses: actions-rs/cargo@v1.0.1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          command: clippy
           args: --all-targets --locked --all-features -- -D warnings
           name: Clippy (All features) Output
