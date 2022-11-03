@@ -26,7 +26,7 @@ pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
         args.insert(0, "choco");
     }
 
-    let mut command = ctx.run_type().execute(&cmd);
+    let mut command = ctx.run_type().execute(cmd);
 
     command.args(&args);
 
@@ -47,7 +47,7 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep(String::from("Winget is disabled by default")).into());
     }
 
-    ctx.run_type().execute(&winget).args(&["upgrade", "--all"]).check_run()
+    ctx.run_type().execute(&winget).args(["upgrade", "--all"]).check_run()
 }
 
 pub fn run_scoop(cleanup: bool, run_type: RunType) -> Result<()> {
@@ -55,34 +55,34 @@ pub fn run_scoop(cleanup: bool, run_type: RunType) -> Result<()> {
 
     print_separator("Scoop");
 
-    run_type.execute(&scoop).args(&["update"]).check_run()?;
-    run_type.execute(&scoop).args(&["update", "*"]).check_run()?;
+    run_type.execute(&scoop).args(["update"]).check_run()?;
+    run_type.execute(&scoop).args(["update", "*"]).check_run()?;
 
     if cleanup {
-        run_type.execute(&scoop).args(&["cleanup", "*"]).check_run()?;
+        run_type.execute(&scoop).args(["cleanup", "*"]).check_run()?;
     }
 
     Ok(())
 }
 
-fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
-    let output = Command::new(wsl).args(&["--list", "-q"]).check_output()?;
+fn get_wsl_distributions(wsl: Path) -> Result<Vec<String>> {
+    let output = Command::new(wsl).args(["--list", "-q"]).check_output()?;
     Ok(output
         .lines()
         .filter(|s| !s.is_empty())
-        .map(|x| x.replace('\u{0}', "").replace('\r', ""))
+        .map(|x| x.replace(['\u{0}', '\r'], ""))
         .collect())
 }
 
 fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> Result<()> {
-    let topgrade = Command::new(&wsl)
-        .args(&["-d", dist, "bash", "-lc", "which topgrade"])
+    let topgrade = Command::new(wsl)
+        .args(["-d", dist, "bash", "-lc", "which topgrade"])
         .check_output()
         .map_err(|_| SkipStep(String::from("Could not find Topgrade installed in WSL")))?;
 
     let mut command = ctx.run_type().execute(&wsl);
     command
-        .args(&["-d", dist, "bash", "-c"])
+        .args(["-d", dist, "bash", "-c"])
         .arg(format!("TOPGRADE_PREFIX={} exec {}", dist, topgrade));
 
     if ctx.config().yes(Step::Wsl) {
@@ -94,7 +94,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
 
 pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     let wsl = require("wsl")?;
-    let wsl_distributions = get_wsl_distributions(&wsl)?;
+    let wsl_distributions = get_wsl_distributions(wsl)?;
     let mut ran = false;
 
     debug!("WSL distributions: {:?}", wsl_distributions);
@@ -134,7 +134,7 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn reboot() {
-    Command::new("shutdown").args(&["/R", "/T", "0"]).spawn().ok();
+    Command::new("shutdown").args(["/R", "/T", "0"]).spawn().ok();
 }
 
 pub fn insert_startup_scripts(ctx: &ExecutionContext, git_repos: &mut Repositories) -> Result<()> {
