@@ -84,7 +84,7 @@ pub fn run_in_tmux(args: Vec<String>) -> ! {
         shell_words::join(command)
     };
 
-    let tmux = Tmux::new(args.clone());
+    let tmux = Tmux::new(args);
 
     if !tmux.has_session("topgrade").expect("Error detecting a tmux session") {
         tmux.new_session("topgrade").expect("Error creating a tmux session");
