@@ -66,7 +66,7 @@ pub fn run_scoop(cleanup: bool, run_type: RunType) -> Result<()> {
 }
 
 fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
-    let output = Command::new(wsl).args(["--list", "-q"]).check_output()?;
+    let output = Command::new(&wsl).args(["--list", "-q"]).check_output()?;
     Ok(output
         .lines()
         .filter(|s| !s.is_empty())
