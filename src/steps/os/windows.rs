@@ -65,7 +65,7 @@ pub fn run_scoop(cleanup: bool, run_type: RunType) -> Result<()> {
     Ok(())
 }
 
-fn get_wsl_distributions(wsl: Path) -> Result<Vec<String>> {
+fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
     let output = Command::new(wsl).args(["--list", "-q"]).check_output()?;
     Ok(output
         .lines()
@@ -80,7 +80,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
         .check_output()
         .map_err(|_| SkipStep(String::from("Could not find Topgrade installed in WSL")))?;
 
-    let mut command = ctx.run_type().execute(&wsl);
+    let mut command = ctx.run_type().execute(wsl);
     command
         .args(["-d", dist, "bash", "-c"])
         .arg(format!("TOPGRADE_PREFIX={} exec {}", dist, topgrade));
@@ -94,7 +94,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
 
 pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     let wsl = require("wsl")?;
-    let wsl_distributions = get_wsl_distributions(wsl)?;
+    let wsl_distributions = get_wsl_distributions(&wsl)?;
     let mut ran = false;
 
     debug!("WSL distributions: {:?}", wsl_distributions);
