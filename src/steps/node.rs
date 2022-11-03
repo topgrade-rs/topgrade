@@ -1,5 +1,6 @@
 #![allow(unused_imports)]
 
+use std::fmt::Display;
 #[cfg(unix)]
 use std::os::unix::prelude::MetadataExt;
 use std::path::PathBuf;
@@ -17,24 +18,71 @@ use crate::terminal::print_separator;
 use crate::utils::{require, PathExt};
 use crate::{error::SkipStep, execution_context::ExecutionContext};
 
+enum NPMVariant {
+    Npm,
+    Pnpm,
+}
+
+impl NPMVariant {
+    const fn long_name(&self) -> &str {
+        match self {
+            NPMVariant::Npm => "Node Package Manager",
+            NPMVariant::Pnpm => "PNPM",
+        }
+    }
+
+    const fn short_name(&self) -> &str {
+        match self {
+            NPMVariant::Npm => "npm",
+            NPMVariant::Pnpm => "pnpm",
+        }
+    }
+
+    const fn is_npm(&self) -> bool {
+        matches!(self, NPMVariant::Npm)
+    }
+}
+
+impl Display for NPMVariant {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.short_name())
+    }
+}
+
 #[allow(clippy::upper_case_acronyms)]
 struct NPM {
     command: PathBuf,
+    variant: NPMVariant,
 }
 
 impl NPM {
-    fn new(command: PathBuf) -> Self {
-        Self { command }
+    fn new(command: PathBuf, variant: NPMVariant) -> Self {
+        Self { command, variant }
+    }
+
+    /// Is the “NPM” version larger than 8.11.0?
+    fn is_npm_8(&self) -> bool {
+        let v = self.version();
+
+        self.variant.is_npm() && matches!(v, Ok(v) if v >= Version::new(8, 11, 0))
+    }
+
+    /// Get the most suitable “global location” argument
+    /// of this NPM instance.
+    ///
+    /// If the “NPM” version is larger than 8.11.0, we use
+    /// `--location=global`; otherwise, use `-g`.
+    fn global_location_arg(&self) -> &str {
+        if self.is_npm_8() {
+            "--location=global"
+        } else {
+            "-g"
+        }
     }
 
     #[cfg(target_os = "linux")]
     fn root(&self) -> Result<PathBuf> {
-        let version = self.version()?;
-        let args = if version < Version::new(8, 11, 0) {
-            ["root", "-g"]
-        } else {
-            ["root", "--location=global"]
-        };
+        let args = ["root", self.global_location_arg()];
         Command::new(&self.command)
             .args(args)
             .check_output()
@@ -50,13 +98,8 @@ impl NPM {
     }
 
     fn upgrade(&self, run_type: RunType, use_sudo: bool) -> Result<()> {
-        print_separator("Node Package Manager");
-        let version = self.version()?;
-        let args = if version < Version::new(8, 11, 0) {
-            ["update", "-g"]
-        } else {
-            ["update", "--location=global"]
-        };
+        print_separator(self.variant.long_name());
+        let args = ["update", self.global_location_arg()];
         if use_sudo {
             run_type.execute("sudo").args(args).check_run()?;
         } else {
@@ -70,7 +113,7 @@ impl NPM {
     pub fn should_use_sudo(&self) -> Result<bool> {
         let npm_root = self.root()?;
         if !npm_root.exists() {
-            return Err(SkipStep(format!("NPM root at {} doesn't exist", npm_root.display(),)).into());
+            return Err(SkipStep(format!("{} root at {} doesn't exist", self.variant, npm_root.display())).into());
         }
 
         let metadata = std::fs::metadata(&npm_root)?;
@@ -134,7 +177,7 @@ impl Yarn {
     pub fn should_use_sudo(&self) -> Result<bool> {
         let yarn_root = self.root()?;
         if !yarn_root.exists() {
-            return Err(SkipStep(format!("NPM root at {} doesn't exist", yarn_root.display(),)).into());
+            return Err(SkipStep(format!("Yarn root at {} doesn't exist", yarn_root.display(),)).into());
         }
 
         let metadata = std::fs::metadata(&yarn_root)?;
@@ -173,7 +216,7 @@ fn should_use_sudo_yarn(yarn: &Yarn, ctx: &ExecutionContext) -> Result<bool> {
 }
 
 pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let npm = require("pnpm").or_else(|_| require("npm")).map(NPM::new)?;
+    let npm = require("npm").map(|b| NPM::new(b, NPMVariant::Npm))?;
 
     #[cfg(target_os = "linux")]
     {
@@ -183,6 +226,20 @@ pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
     #[cfg(not(target_os = "linux"))]
     {
         npm.upgrade(ctx.run_type(), false)
+    }
+}
+
+pub fn run_pnpm_upgrade(ctx: &ExecutionContext) -> Result<()> {
+    let pnpm = require("pnpm").map(|b| NPM::new(b, NPMVariant::Pnpm))?;
+
+    #[cfg(target_os = "linux")]
+    {
+        pnpm.upgrade(ctx.run_type(), should_use_sudo(&pnpm, ctx)?)
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        pnpm.upgrade(ctx.run_type(), false)
     }
 }
 
