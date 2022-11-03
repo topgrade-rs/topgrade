@@ -1,15 +1,16 @@
 #![allow(dead_code)]
-use std::collections::BTreeMap;
-use std::fs::write;
-use std::path::PathBuf;
-use std::process::Command;
-use std::{env, fs};
+use anyhow::Context;
 use anyhow::Result;
 use clap::{ArgEnum, Parser};
 use directories::BaseDirs;
 use log::debug;
 use regex::Regex;
 use serde::Deserialize;
+use std::collections::BTreeMap;
+use std::fs::write;
+use std::path::PathBuf;
+use std::process::Command;
+use std::{env, fs};
 use strum::{EnumIter, EnumString, EnumVariantNames, IntoEnumIterator};
 use sys_info::hostname;
 use which_crate::which;
