@@ -94,7 +94,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
 
 pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     let wsl = require("wsl")?;
-    let wsl_distributions = get_wsl_distributions(wsl)?;
+    let wsl_distributions = get_wsl_distributions(&wsl)?;
     let mut ran = false;
 
     debug!("WSL distributions: {:?}", wsl_distributions);
