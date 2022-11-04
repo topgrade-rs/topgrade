@@ -21,6 +21,7 @@ impl<'a> Runner<'a> {
         }
     }
 
+    //TODO: requires test
     pub fn execute<F, M>(&mut self, step: Step, key: M, func: F) -> Result<()>
     where
         F: Fn() -> Result<()>,

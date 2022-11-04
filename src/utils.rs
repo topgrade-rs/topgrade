@@ -10,12 +10,8 @@ use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::process::{ExitStatus, Output};
-#[cfg(test)]
-use tests::which_crate_which;
 #[cfg(not(test))]
 use which_crate::which as which_crate_which;
-
-use which_crate;
 
 pub trait Check {
     fn check(self) -> Result<()>;
@@ -158,6 +154,16 @@ pub fn require_option<T>(option: Option<T>, cause: String) -> Result<T> {
 }
 
 #[cfg(test)]
+pub fn which_crate_which<T: AsRef<OsStr>>(binary_name: T) -> Result<PathBuf, which_crate::Error> {
+    let bin_name = binary_name.as_ref().to_str().unwrap();
+    let mut path = PathBuf::new();
+    path.push("/bin/");
+    path.push(bin_name);
+
+    return Ok(path);
+}
+
+#[cfg(test)]
 pub fn create_test_path(binary_name: &str) -> PathBuf {
     let mut path = PathBuf::new();
     path.push("/bin/");
@@ -168,20 +174,12 @@ pub fn create_test_path(binary_name: &str) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn test_require() {
         let ls_path = require("test_require").unwrap();
         assert_eq!(ls_path, create_test_path("test_require"))
-    }
-
-    pub fn which_crate_which<T: AsRef<OsStr>>(binary_name: T) -> Result<PathBuf, which_crate::Error> {
-        let bin_name = binary_name.as_ref().to_str().unwrap();
-        let mut path = PathBuf::new();
-        path.push("/bin/");
-        path.push(bin_name);
-
-        return Ok(path);
     }
 
     #[test]

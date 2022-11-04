@@ -17,6 +17,7 @@ use self::error::StepFailed;
 use self::error::Upgraded;
 use self::steps::{remote::*, *};
 use self::terminal::*;
+use directories::BaseDirs;
 
 mod config;
 mod ctrlc;
@@ -25,10 +26,13 @@ mod execution_context;
 mod executor;
 mod report;
 mod runner;
+
 #[cfg(windows)]
 mod self_renamer;
+
 #[cfg(feature = "self-update")]
 mod self_update;
+
 mod steps;
 mod terminal;
 mod utils;
@@ -36,7 +40,8 @@ mod utils;
 fn run() -> Result<()> {
     ctrlc::set_handler();
 
-    let base_dirs = directories::BaseDirs::new().ok_or_else(|| anyhow!("No base directories"))?;
+    //TODO: needs test
+    let base_dirs = BaseDirs::new().ok_or_else(|| anyhow!("No base directories"))?;
 
     let opt = CommandLineArgs::parse();
 
@@ -89,8 +94,14 @@ fn run() -> Result<()> {
     let sudo = utils::sudo();
     let run_type = executor::RunType::new(config.dry_run());
 
+    //Tests required before:
+    // git: TODO
+    // git_repos: TODO
+    // sudo: Done
+    // run_type: TODO
     let ctx = execution_context::ExecutionContext::new(run_type, &sudo, &git, &config, &base_dirs);
 
+    //TODO: needs test
     let mut runner = runner::Runner::new(&ctx);
 
     #[cfg(feature = "self-update")]
