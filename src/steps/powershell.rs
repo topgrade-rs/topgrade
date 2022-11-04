@@ -46,8 +46,8 @@ impl Powershell {
 
     #[cfg(windows)]
     pub fn has_module(powershell: &Path, command: &str) -> bool {
-        Command::new(&powershell)
-            .args(&[
+        Command::new(powershell)
+            .args([
                 "-NoProfile",
                 "-Command",
                 &format!("Get-Module -ListAvailable {}", command),
@@ -79,6 +79,7 @@ impl Powershell {
         println!("Updating modules...");
         ctx.run_type()
             .execute(powershell)
+            // This probably doesn't need `shell_words::join`.
             .args(["-NoProfile", "-Command", &cmd.join(" ")])
             .check_run()
     }
@@ -99,14 +100,14 @@ impl Powershell {
 
         let mut command = if let Some(sudo) = ctx.sudo() {
             let mut command = ctx.run_type().execute(sudo);
-            command.arg(&powershell);
+            command.arg(powershell);
             command
         } else {
-            ctx.run_type().execute(&powershell)
+            ctx.run_type().execute(powershell)
         };
 
         command
-            .args(&[
+            .args([
                 "-NoProfile",
                 "-Command",
                 &format!(
