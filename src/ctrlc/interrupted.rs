@@ -1,7 +1,10 @@
+use lazy_static::lazy_static;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-/// A global variable telling whether the application has been interrupted.
-static INTERRUPTED: AtomicBool = AtomicBool::new(false);
+lazy_static! {
+    /// A global variable telling whether the application has been interrupted.
+    static ref INTERRUPTED: AtomicBool = AtomicBool::new(false);
+}
 
 /// Tells whether the program has been interrupted
 pub fn interrupted() -> bool {
