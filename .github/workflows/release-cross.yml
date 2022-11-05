@@ -1,6 +1,10 @@
-name: CD Cross
+name: Publish release files for non-cd-native environments
 
 on:
+  # workflow_run:
+  #   workflows: ["Check SemVer compliance"]
+  #   types:
+  #     - completed
   release:
     types: [ created ]
 
@@ -15,7 +19,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.57.0
+          toolchain: stable
           profile: minimal
           default: true
           override: true

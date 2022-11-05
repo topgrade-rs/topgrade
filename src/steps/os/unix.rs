@@ -124,7 +124,7 @@ pub fn run_oh_my_fish(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("oh-my-fish");
 
-    ctx.run_type().execute(&fish).args(["-c", "omf update"]).check_run()
+    ctx.run_type().execute(fish).args(["-c", "omf update"]).check_run()
 }
 
 pub fn run_pkgin(ctx: &ExecutionContext) -> Result<()> {
@@ -154,7 +154,7 @@ pub fn run_fish_plug(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("fish-plug");
 
-    ctx.run_type().execute(&fish).args(["-c", "plug update"]).check_run()
+    ctx.run_type().execute(fish).args(["-c", "plug update"]).check_run()
 }
 
 /// Upgrades `fundle` and `fundle` plugins.
@@ -258,19 +258,19 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
 
     let cask_upgrade_exists = variant
         .execute(RunType::Wet)
-        .args(&["--repository", "buo/cask-upgrade"])
+        .args(["--repository", "buo/cask-upgrade"])
         .check_output()
         .map(|p| Path::new(p.trim()).exists())?;
 
     let mut brew_args = vec![];
 
     if cask_upgrade_exists {
-        brew_args.extend(&["cu", "-y"]);
+        brew_args.extend(["cu", "-y"]);
         if ctx.config().brew_cask_greedy() {
             brew_args.push("-a");
         }
     } else {
-        brew_args.extend(&["upgrade", "--cask"]);
+        brew_args.extend(["upgrade", "--cask"]);
         if ctx.config().brew_cask_greedy() {
             brew_args.push("--greedy");
         }
@@ -352,7 +352,7 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
         }
     }
 
-    run_type.execute(&nix_channel).arg("--update").check_run()?;
+    run_type.execute(nix_channel).arg("--update").check_run()?;
 
     if std::path::Path::new(&manifest_json_path).exists() {
         run_type
@@ -371,7 +371,7 @@ pub fn run_yadm(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("yadm");
 
-    ctx.run_type().execute(&yadm).arg("pull").check_run()
+    ctx.run_type().execute(yadm).arg("pull").check_run()
 }
 
 pub fn run_asdf(run_type: RunType) -> Result<()> {
@@ -392,21 +392,21 @@ pub fn run_home_manager(run_type: RunType) -> Result<()> {
     let home_manager = require("home-manager")?;
 
     print_separator("home-manager");
-    run_type.execute(&home_manager).arg("switch").check_run()
+    run_type.execute(home_manager).arg("switch").check_run()
 }
 
 pub fn run_tldr(run_type: RunType) -> Result<()> {
     let tldr = require("tldr")?;
 
     print_separator("TLDR");
-    run_type.execute(&tldr).arg("--update").check_run()
+    run_type.execute(tldr).arg("--update").check_run()
 }
 
 pub fn run_pearl(run_type: RunType) -> Result<()> {
     let pearl = require("pearl")?;
     print_separator("pearl");
 
-    run_type.execute(&pearl).arg("update").check_run()
+    run_type.execute(pearl).arg("update").check_run()
 }
 
 pub fn run_sdkman(base_dirs: &BaseDirs, cleanup: bool, run_type: RunType) -> Result<()> {
@@ -471,7 +471,7 @@ pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Bun");
 
-    ctx.run_type().execute(&bun).arg("upgrade").check_run()
+    ctx.run_type().execute(bun).arg("upgrade").check_run()
 }
 
 /// Update dotfiles with `rcm(7)`.

@@ -41,7 +41,7 @@ You can visit the documentation at [topgrade-rs.github.io](https://topgrade-rs.g
 ## Usage
 
 Just run `topgrade`.
-See [the wiki](https://github.com/r-darwish/topgrade/wiki/Step-list) for the list of things Topgrade supports.
+See [the documentation](https://topgrade-rs.github.io/) for the list of things Topgrade supports.
 
 ## Customization
 
@@ -84,6 +84,6 @@ To limit the execution only to specific hosts use the `--remote-host-limit` para
 
 ## ToDo
 
-- Add a proper testing framework to the code base.
-- Add unit tests for package managers.
-- Split up code into more maintainable parts, eg. putting every linux package manager in a own submodule of linux.rs.
+- [ ] Add a proper testing framework to the code base.
+- [ ] Add unit tests for package managers.
+- [ ] Split up code into more maintainable parts, eg. putting every linux package manager in a own submodule of linux.rs.
