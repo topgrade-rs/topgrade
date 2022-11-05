@@ -153,6 +153,7 @@ fn is_wsl() -> Result<bool> {
     Ok(output.contains("microsoft"))
 }
 
+// TODO: add tests
 fn upgrade_alpine_linux(ctx: &ExecutionContext) -> Result<()> {
     let apk = require("apk")?;
     let sudo = ctx.sudo().as_ref().unwrap();
