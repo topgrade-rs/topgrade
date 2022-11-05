@@ -1,16 +1,16 @@
 #![allow(dead_code)]
+use anyhow::Context;
+use anyhow::Result;
+use clap::{ArgEnum, Parser};
+use directories::BaseDirs;
+use log::debug;
+use regex::Regex;
+use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fs::write;
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, fs};
-
-use anyhow::Result;
-use clap::{Parser, ValueEnum};
-use directories::BaseDirs;
-use log::debug;
-use regex::Regex;
-use serde::Deserialize;
 use strum::{EnumIter, EnumString, EnumVariantNames, IntoEnumIterator};
 use sys_info::hostname;
 use which_crate::which;
@@ -62,7 +62,7 @@ macro_rules! get_deprecated {
 
 type Commands = BTreeMap<String, String>;
 
-#[derive(ValueEnum, EnumString, EnumVariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
+#[derive(ArgEnum, EnumString, EnumVariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
 #[clap(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
@@ -397,78 +397,78 @@ impl ConfigFile {
 
 // Command line arguments
 #[derive(Parser, Debug)]
-#[command(name = "Topgrade", version)]
+#[clap(name = "Topgrade", version)]
 pub struct CommandLineArgs {
     /// Edit the configuration file
-    #[arg(long = "edit-config")]
+    #[clap(long = "edit-config")]
     edit_config: bool,
 
     /// Show config reference
-    #[arg(long = "config-reference")]
+    #[clap(long = "config-reference")]
     show_config_reference: bool,
 
     /// Run inside tmux
-    #[arg(short = 't', long = "tmux")]
+    #[clap(short = 't', long = "tmux")]
     run_in_tmux: bool,
 
     /// Cleanup temporary or old files
-    #[arg(short = 'c', long = "cleanup")]
+    #[clap(short = 'c', long = "cleanup")]
     cleanup: bool,
 
     /// Print what would be done
-    #[arg(short = 'n', long = "dry-run")]
+    #[clap(short = 'n', long = "dry-run")]
     dry_run: bool,
 
     /// Do not ask to retry failed steps
-    #[arg(long = "no-retry")]
+    #[clap(long = "no-retry")]
     no_retry: bool,
 
     /// Do not perform upgrades for the given steps
-    #[arg(long = "disable", value_name = "STEP", value_enum, num_args = 1..)]
+    #[clap(long = "disable", arg_enum, multiple_values = true)]
     disable: Vec<Step>,
 
     /// Perform only the specified steps (experimental)
-    #[arg(long = "only", value_name = "STEP", value_enum, num_args = 1..)]
+    #[clap(long = "only", arg_enum, multiple_values = true)]
     only: Vec<Step>,
 
     /// Run only specific custom commands
-    #[arg(long = "custom-commands", value_name = "NAME", num_args = 1..)]
+    #[clap(long = "custom-commands")]
     custom_commands: Vec<String>,
 
     /// Set environment variables
-    #[arg(long = "env", value_name = "NAME=VALUE", num_args = 1..)]
+    #[clap(long = "env", multiple_values = true)]
     env: Vec<String>,
 
     /// Output logs
-    #[arg(short = 'v', long = "verbose")]
+    #[clap(short = 'v', long = "verbose")]
     pub verbose: bool,
 
     /// Prompt for a key before exiting
-    #[arg(short = 'k', long = "keep")]
+    #[clap(short = 'k', long = "keep")]
     keep_at_end: bool,
 
     /// Skip sending a notification at the end of a run
-    #[arg(long = "skip-notify")]
+    #[clap(long = "skip-notify")]
     skip_notify: bool,
 
     /// Say yes to package manager's prompt
-    #[arg(short = 'y', long = "yes", value_name = "STEP", value_enum, num_args = 0..)]
+    #[clap(short = 'y', long = "yes", arg_enum, multiple_values = true, min_values = 0)]
     yes: Option<Vec<Step>>,
 
     /// Don't pull the predefined git repos
-    #[arg(long = "disable-predefined-git-repos")]
+    #[clap(long = "disable-predefined-git-repos")]
     disable_predefined_git_repos: bool,
 
     /// Alternative configuration file
-    #[arg(long = "config", value_name = "PATH")]
+    #[clap(long = "config")]
     config: Option<PathBuf>,
 
     /// A regular expression for restricting remote host execution
-    #[arg(long = "remote-host-limit", value_name = "REGEX")]
+    #[clap(long = "remote-host-limit")]
     remote_host_limit: Option<Regex>,
 
     /// Show the reason for skipped steps
-    #[arg(long = "show-skipped")]
+    #[clap(long = "show-skipped")]
     show_skipped: bool,
 }
 
@@ -626,8 +626,16 @@ impl Config {
     }
 
     /// Extra Tmux arguments
-    pub fn tmux_arguments(&self) -> &Option<String> {
-        &self.config_file.tmux_arguments
+    pub fn tmux_arguments(&self) -> anyhow::Result<Vec<String>> {
+        let args = &self.config_file.tmux_arguments.as_deref().unwrap_or_default();
+        shell_words::split(args)
+            // The only time the parse failed is in case of a missing close quote.
+            // The error message looks like this:
+            //     Error: Failed to parse `tmux_arguments`: `'foo`
+            //
+            //     Caused by:
+            //         missing closing quote
+            .with_context(|| format!("Failed to parse `tmux_arguments`: `{args}`"))
     }
 
     /// Prompt for a key before exiting
