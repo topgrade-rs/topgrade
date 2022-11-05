@@ -628,7 +628,8 @@ pub fn run_distrobox_update(ctx: &ExecutionContext) -> Result<()> {
         (r, true) => r.arg("--root"),
         (r, false) => r,
     }
-    .check_run()
+    .check_run()?;
+    Ok(())
 }
 
 pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
