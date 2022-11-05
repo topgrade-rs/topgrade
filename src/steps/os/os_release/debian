@@ -1,8 +1,9 @@
-PRETTY_NAME="Debian GNU/Linux 8 (jessie)"
+PRETTY_NAME="Debian GNU/Linux 11 (bullseye)"
 NAME="Debian GNU/Linux"
-VERSION_ID="8"
-VERSION="8 (jessie)"
+VERSION_ID="11"
+VERSION="11 (bullseye)"
+VERSION_CODENAME=bullseye
 ID=debian
-HOME_URL="http://www.debian.org/"
-SUPPORT_URL="http://www.debian.org/support"
+HOME_URL="https://www.debian.org/"
+SUPPORT_URL="https://www.debian.org/support"
 BUG_REPORT_URL="https://bugs.debian.org/"

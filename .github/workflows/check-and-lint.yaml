@@ -10,7 +10,10 @@ name: Check and Lint
 jobs:
   check:
     name: Check
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [ ubuntu-latest, macos-latest, windows-latest ]
+    runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -24,7 +27,10 @@ jobs:
 
   fmt:
     name: Rustfmt
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [ ubuntu-latest, macos-latest, windows-latest ]
+    runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -40,7 +46,10 @@ jobs:
 
   clippy:
     name: Clippy
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [ ubuntu-latest, macos-latest, windows-latest ]
+    runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -48,8 +57,13 @@ jobs:
           toolchain: stable
           components: clippy
           override: true
-      - uses: actions-rs/clippy-check@v1
+      - uses: actions-rs/cargo@v1.0.1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features
+          command: clippy
+          args: --all-targets --locked -- -D warnings
           name: Clippy Output
+      - uses: actions-rs/cargo@v1.0.1
+        with:
+          command: clippy
+          args: --all-targets --locked --all-features -- -D warnings
+          name: Clippy (All features) Output
