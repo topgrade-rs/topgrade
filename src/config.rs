@@ -424,19 +424,19 @@ pub struct CommandLineArgs {
     no_retry: bool,
 
     /// Do not perform upgrades for the given steps
-    #[clap(long = "disable", arg_enum, multiple_values = true)]
+    #[clap(long = "disable", value_name = "STEP", arg_enum, multiple_values = true)]
     disable: Vec<Step>,
 
     /// Perform only the specified steps (experimental)
-    #[clap(long = "only", arg_enum, multiple_values = true)]
+    #[clap(long = "only", value_name = "STEP", arg_enum, multiple_values = true)]
     only: Vec<Step>,
 
     /// Run only specific custom commands
-    #[clap(long = "custom-commands")]
+    #[clap(long = "custom-commands", value_name = "NAME", multiple_values = true)]
     custom_commands: Vec<String>,
 
     /// Set environment variables
-    #[clap(long = "env", multiple_values = true)]
+    #[clap(long = "env", value_name = "NAME=VALUE", multiple_values = true)]
     env: Vec<String>,
 
     /// Output logs
@@ -452,7 +452,14 @@ pub struct CommandLineArgs {
     skip_notify: bool,
 
     /// Say yes to package manager's prompt
-    #[clap(short = 'y', long = "yes", arg_enum, multiple_values = true, min_values = 0)]
+    #[clap(
+        short = 'y',
+        long = "yes",
+        value_name = "STEP",
+        arg_enum,
+        multiple_values = true,
+        min_values = 0
+    )]
     yes: Option<Vec<Step>>,
 
     /// Don't pull the predefined git repos
@@ -460,11 +467,11 @@ pub struct CommandLineArgs {
     disable_predefined_git_repos: bool,
 
     /// Alternative configuration file
-    #[clap(long = "config")]
+    #[clap(long = "config", value_name = "PATH")]
     config: Option<PathBuf>,
 
     /// A regular expression for restricting remote host execution
-    #[clap(long = "remote-host-limit")]
+    #[clap(long = "remote-host-limit", value_name = "REGEX")]
     remote_host_limit: Option<Regex>,
 
     /// Show the reason for skipped steps
