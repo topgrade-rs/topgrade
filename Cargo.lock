@@ -1946,7 +1946,7 @@ dependencies = [
 
 [[package]]
 name = "topgrade"
-version = "10.1.0"
+version = "10.1.2"
 dependencies = [
  "anyhow",
  "cfg-if",
