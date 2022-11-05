@@ -194,12 +194,11 @@ impl DryCommand {
         print!(
             "Dry running: {} {}",
             self.program.to_string_lossy(),
-            shell_words::join(
-                self.args
-                    .iter()
-                    .map(|a| String::from(a.to_string_lossy()))
-                    .collect::<Vec<String>>()
-            )
+            self.args
+                .iter()
+                .map(|a| String::from(a.to_string_lossy()))
+                .collect::<Vec<String>>()
+                .join(" ")
         );
         match &self.directory {
             Some(dir) => println!(" in {}", dir.to_string_lossy()),

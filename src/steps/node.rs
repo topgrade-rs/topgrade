@@ -1,6 +1,5 @@
 #![allow(unused_imports)]
 
-use std::fmt::Display;
 #[cfg(unix)]
 use std::os::unix::prelude::MetadataExt;
 use std::path::PathBuf;
@@ -18,71 +17,24 @@ use crate::terminal::print_separator;
 use crate::utils::{require, PathExt};
 use crate::{error::SkipStep, execution_context::ExecutionContext};
 
-enum NPMVariant {
-    Npm,
-    Pnpm,
-}
-
-impl NPMVariant {
-    const fn long_name(&self) -> &str {
-        match self {
-            NPMVariant::Npm => "Node Package Manager",
-            NPMVariant::Pnpm => "PNPM",
-        }
-    }
-
-    const fn short_name(&self) -> &str {
-        match self {
-            NPMVariant::Npm => "npm",
-            NPMVariant::Pnpm => "pnpm",
-        }
-    }
-
-    const fn is_npm(&self) -> bool {
-        matches!(self, NPMVariant::Npm)
-    }
-}
-
-impl Display for NPMVariant {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.short_name())
-    }
-}
-
 #[allow(clippy::upper_case_acronyms)]
 struct NPM {
     command: PathBuf,
-    variant: NPMVariant,
 }
 
 impl NPM {
-    fn new(command: PathBuf, variant: NPMVariant) -> Self {
-        Self { command, variant }
-    }
-
-    /// Is the “NPM” version larger than 8.11.0?
-    fn is_npm_8(&self) -> bool {
-        let v = self.version();
-
-        self.variant.is_npm() && matches!(v, Ok(v) if v >= Version::new(8, 11, 0))
-    }
-
-    /// Get the most suitable “global location” argument
-    /// of this NPM instance.
-    ///
-    /// If the “NPM” version is larger than 8.11.0, we use
-    /// `--location=global`; otherwise, use `-g`.
-    fn global_location_arg(&self) -> &str {
-        if self.is_npm_8() {
-            "--location=global"
-        } else {
-            "-g"
-        }
+    fn new(command: PathBuf) -> Self {
+        Self { command }
     }
 
     #[cfg(target_os = "linux")]
     fn root(&self) -> Result<PathBuf> {
-        let args = ["root", self.global_location_arg()];
+        let version = self.version()?;
+        let args = if version < Version::new(8, 11, 0) {
+            ["root", "-g"]
+        } else {
+            ["root", "--location=global"]
+        };
         Command::new(&self.command)
             .args(args)
             .check_output()
@@ -98,8 +50,13 @@ impl NPM {
     }
 
     fn upgrade(&self, run_type: RunType, use_sudo: bool) -> Result<()> {
-        print_separator(self.variant.long_name());
-        let args = ["update", self.global_location_arg()];
+        print_separator("Node Package Manager");
+        let version = self.version()?;
+        let args = if version < Version::new(8, 11, 0) {
+            ["update", "-g"]
+        } else {
+            ["update", "--location=global"]
+        };
         if use_sudo {
             run_type.execute("sudo").args(args).check_run()?;
         } else {
@@ -113,7 +70,7 @@ impl NPM {
     pub fn should_use_sudo(&self) -> Result<bool> {
         let npm_root = self.root()?;
         if !npm_root.exists() {
-            return Err(SkipStep(format!("{} root at {} doesn't exist", self.variant, npm_root.display())).into());
+            return Err(SkipStep(format!("NPM root at {} doesn't exist", npm_root.display(),)).into());
         }
 
         let metadata = std::fs::metadata(&npm_root)?;
@@ -134,17 +91,6 @@ impl Yarn {
             command,
             yarn: require("yarn").ok(),
         }
-    }
-
-    fn has_global_subcmd(&self) -> bool {
-        // Get the version of Yarn. After Yarn 2.x (berry),
-        // “yarn global” has been replaced with “yarn dlx”.
-        //
-        // As “yarn dlx” don't need to “upgrade”, we
-        // ignore the whole task if Yarn is 2.x or above.
-        let version = Command::new(&self.command).args(["--version"]).check_output();
-
-        matches!(version, Ok(ver) if ver.starts_with('1') || ver.starts_with('0'))
     }
 
     #[cfg(target_os = "linux")]
@@ -177,7 +123,7 @@ impl Yarn {
     pub fn should_use_sudo(&self) -> Result<bool> {
         let yarn_root = self.root()?;
         if !yarn_root.exists() {
-            return Err(SkipStep(format!("Yarn root at {} doesn't exist", yarn_root.display(),)).into());
+            return Err(SkipStep(format!("NPM root at {} doesn't exist", yarn_root.display(),)).into());
         }
 
         let metadata = std::fs::metadata(&yarn_root)?;
@@ -216,7 +162,7 @@ fn should_use_sudo_yarn(yarn: &Yarn, ctx: &ExecutionContext) -> Result<bool> {
 }
 
 pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let npm = require("npm").map(|b| NPM::new(b, NPMVariant::Npm))?;
+    let npm = require("pnpm").or_else(|_| require("npm")).map(NPM::new)?;
 
     #[cfg(target_os = "linux")]
     {
@@ -229,27 +175,8 @@ pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
     }
 }
 
-pub fn run_pnpm_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let pnpm = require("pnpm").map(|b| NPM::new(b, NPMVariant::Pnpm))?;
-
-    #[cfg(target_os = "linux")]
-    {
-        pnpm.upgrade(ctx.run_type(), should_use_sudo(&pnpm, ctx)?)
-    }
-
-    #[cfg(not(target_os = "linux"))]
-    {
-        pnpm.upgrade(ctx.run_type(), false)
-    }
-}
-
 pub fn run_yarn_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let yarn = require("yarn").map(Yarn::new)?;
-
-    if !yarn.has_global_subcmd() {
-        debug!("Yarn is 2.x or above, skipping global upgrade");
-        return Ok(());
-    }
 
     #[cfg(target_os = "linux")]
     {

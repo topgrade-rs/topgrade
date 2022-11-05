@@ -29,10 +29,12 @@ struct Tmux {
 }
 
 impl Tmux {
-    fn new(args: Vec<String>) -> Self {
+    fn new(args: &Option<String>) -> Self {
         Self {
             tmux: which("tmux").expect("Could not find tmux"),
-            args: if args.is_empty() { None } else { Some(args) },
+            args: args
+                .as_ref()
+                .map(|args| args.split_whitespace().map(String::from).collect()),
         }
     }
 
@@ -73,7 +75,7 @@ impl Tmux {
     }
 }
 
-pub fn run_in_tmux(args: Vec<String>) -> ! {
+pub fn run_in_tmux(args: &Option<String>) -> ! {
     let command = {
         let mut command = vec![
             String::from("env"),
@@ -81,7 +83,7 @@ pub fn run_in_tmux(args: Vec<String>) -> ! {
             String::from("TOPGRADE_INSIDE_TMUX=1"),
         ];
         command.extend(env::args());
-        shell_words::join(command)
+        command.join(" ")
     };
 
     let tmux = Tmux::new(args);
@@ -106,7 +108,7 @@ pub fn run_in_tmux(args: Vec<String>) -> ! {
 }
 
 pub fn run_command(ctx: &ExecutionContext, command: &str) -> Result<()> {
-    Tmux::new(ctx.config().tmux_arguments()?)
+    Tmux::new(ctx.config().tmux_arguments())
         .build()
         .args(["new-window", "-a", "-t", "topgrade:1", command])
         .env_remove("TMUX")
