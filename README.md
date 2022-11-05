@@ -24,6 +24,7 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 
 - Arch Linux: [AUR](https://aur.archlinux.org/packages/topgrade) package.
 - NixOS: _topgrade_ package in `nixpkgs`.
+- Void Linux: _topgrade_ package
 - macOS: [Homebrew](https://formulae.brew.sh/formula/topgrade) or [MacPorts](https://ports.macports.org/port/topgrade/).
 
 Other systems users can either use `cargo install` or use the compiled binaries from the release page.
