@@ -87,7 +87,7 @@ impl Emacs {
 
         print_separator("Emacs");
 
-        let mut command = ctx.run_type().execute(&emacs);
+        let mut command = ctx.run_type().execute(emacs);
 
         command
             .args(["--batch", "--debug-init", "-l"])

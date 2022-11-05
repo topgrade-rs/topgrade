@@ -1,0 +1,27 @@
+on:
+  release:
+    types: [published, edited]
+
+name: Check SemVer compliance
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2022-08-03
+          override: true
+          components: rustfmt, clippy
+
+  semver:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: --git https://github.com/rust-lang/rust-semverver
+      - run: eval "current_version=$(grep -e '^version = .*$' Cargo.toml | cut -d ' ' -f 3)"
+      - run: cargo semver | tee semver_out
+      - run: (head -n 1 semver_out | grep "\-> $current_version") || (echo "versioning mismatch" && return 1)

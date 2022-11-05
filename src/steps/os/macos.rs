@@ -11,15 +11,15 @@ pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
     require("port")?;
     let sudo = ctx.sudo().as_ref().unwrap();
     print_separator("MacPorts");
-    ctx.run_type().execute(sudo).args(&["port", "selfupdate"]).check_run()?;
+    ctx.run_type().execute(sudo).args(["port", "selfupdate"]).check_run()?;
     ctx.run_type()
         .execute(sudo)
-        .args(&["port", "-u", "upgrade", "outdated"])
+        .args(["port", "-u", "upgrade", "outdated"])
         .check_run()?;
     if ctx.config().cleanup() {
         ctx.run_type()
             .execute(sudo)
-            .args(&["port", "-N", "reclaim"])
+            .args(["port", "-N", "reclaim"])
             .check_run()?;
     }
 
@@ -52,7 +52,7 @@ pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
     }
 
     let mut command = ctx.run_type().execute("softwareupdate");
-    command.args(&["--install", "--all"]);
+    command.args(["--install", "--all"]);
 
     if should_ask {
         command.arg("--no-scan");
@@ -81,12 +81,12 @@ pub fn run_sparkle(ctx: &ExecutionContext) -> Result<()> {
 
     for application in (fs::read_dir("/Applications")?).flatten() {
         let probe = Command::new(&sparkle)
-            .args(&["--probe", "--application"])
+            .args(["--probe", "--application"])
             .arg(application.path())
             .check_output();
         if probe.is_ok() {
             let mut command = ctx.run_type().execute(&sparkle);
-            command.args(&["bundle", "--check-immediately", "--application"]);
+            command.args(["bundle", "--check-immediately", "--application"]);
             command.arg(application.path());
             command.spawn()?.wait()?;
         }
