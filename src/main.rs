@@ -79,7 +79,7 @@ fn run() -> Result<()> {
     if config.run_in_tmux() && env::var("TOPGRADE_INSIDE_TMUX").is_err() {
         #[cfg(unix)]
         {
-            tmux::run_in_tmux(config.tmux_arguments());
+            tmux::run_in_tmux(config.tmux_arguments()?);
         }
     }
 
@@ -351,6 +351,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Kakoune, "Kakoune", || kakoune::upgrade_kak_plug(&ctx))?;
     runner.execute(Step::Node, "npm", || node::run_npm_upgrade(&ctx))?;
     runner.execute(Step::Node, "yarn", || node::run_yarn_upgrade(&ctx))?;
+    runner.execute(Step::Node, "pnpm", || node::run_pnpm_upgrade(&ctx))?;
     runner.execute(Step::Containers, "Containers", || containers::run_containers(&ctx))?;
     runner.execute(Step::Deno, "deno", || node::deno_upgrade(&ctx))?;
     runner.execute(Step::Composer, "composer", || generic::run_composer_update(&ctx))?;
@@ -523,7 +524,10 @@ fn main() {
                     .is_some());
 
             if !skip_print {
-                println!("Error: {}", error);
+                // The `Debug` implementation of `anyhow::Result` prints a multi-line
+                // error message that includes all the 'causes' added with
+                // `.with_context(...)` calls.
+                println!("Error: {:?}", error);
             }
             exit(1);
         }

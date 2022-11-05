@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2022-08-03
+          toolchain: stable
           override: true
 
   publish:

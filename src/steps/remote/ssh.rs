@@ -24,7 +24,7 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
         #[cfg(unix)]
         {
             prepare_async_ssh_command(&mut args);
-            crate::tmux::run_command(ctx, &args.join(" "))?;
+            crate::tmux::run_command(ctx, &shell_words::join(args))?;
             Err(SkipStep(String::from("Remote Topgrade launched in Tmux")).into())
         }
 
