@@ -1,10 +1,11 @@
-name: Publish to AUR
+name: Publish to Homebrew
 
 on:
   # workflow_run:
   #   workflows: ["Check SemVer compliance"]
   #   types:
   #     - completed
+  workflow_dispatch:
   push:
     tags:
       - "v*"
