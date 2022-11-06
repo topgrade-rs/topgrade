@@ -1,0 +1,23 @@
+name: Publish to AUR
+
+on:
+  # workflow_run:
+  #   workflows: ["Check SemVer compliance"]
+  #   types:
+  #     - completed
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  aur-publish:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Bump formulae
+      uses: Homebrew/actions/bump-formulae@master
+      with:
+      # Custom GitHub access token with only the 'public_repo' scope enabled
+      token: ${{secrets.HOMEBREW_ACCESS_TOKEN}}
+      # Bump only these formulae if outdated
+      formulae: |
+        topgrade
