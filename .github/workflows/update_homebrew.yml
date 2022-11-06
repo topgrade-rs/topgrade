@@ -11,7 +11,7 @@ on:
       - "v*"
 
 jobs:
-  aur-publish:
+  homebrew-publish:
     runs-on: ubuntu-latest
     steps:
     - name: Bump formulae
