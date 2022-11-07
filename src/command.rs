@@ -153,20 +153,19 @@ impl CommandExt for Command {
     type Child = Child;
 
     fn output_checked_with(&mut self, succeeded: impl Fn(&Output) -> Result<(), ()>) -> anyhow::Result<Output> {
-        log(self);
-        let (program, args) = get_program_and_args(self);
+        let command = log(self);
 
         // This is where we implement `output_checked`, which is what we prefer to use instead of
         // `output`, so we allow `Command::output` here.
         #[allow(clippy::disallowed_methods)]
         let output = self
             .output()
-            .with_context(|| format!("Failed to execute `{program} {args}`"))?;
+            .with_context(|| format!("Failed to execute `{command}`"))?;
 
         if succeeded(&output).is_ok() {
             Ok(output)
         } else {
-            let mut message = format!("Command failed: `{program} {args}`");
+            let mut message = format!("Command failed: `{command}`");
             let stderr = String::from_utf8_lossy(&output.stderr);
             let stdout = String::from_utf8_lossy(&output.stdout);
 
@@ -179,6 +178,7 @@ impl CommandExt for Command {
                 message.push_str(&format!("\n\nStderr:\n{stderr_trimmed}"));
             }
 
+            let (program, _) = get_program_and_args(self);
             let err = TopgradeError::ProcessFailedWithOutput(program, output.status, stderr.into_owned());
 
             let ret = Err(err).with_context(|| message);
@@ -188,9 +188,8 @@ impl CommandExt for Command {
     }
 
     fn status_checked_with(&mut self, succeeded: impl Fn(ExitStatus) -> Result<(), ()>) -> anyhow::Result<()> {
-        log(self);
-        let (program, args) = get_program_and_args(self);
-        let message = format!("Failed to execute `{program} {args}`");
+        let command = log(self);
+        let message = format!("Failed to execute `{command}`");
 
         // This is where we implement `status_checked`, which is what we prefer to use instead of
         // `status`, so we allow `Command::status` here.
@@ -200,17 +199,17 @@ impl CommandExt for Command {
         if succeeded(status).is_ok() {
             Ok(())
         } else {
-            let err = TopgradeError::ProcessFailed(program.clone(), status);
-            let ret = Err(err).with_context(|| format!("Command failed: `{program} {args}`"));
+            let (program, _) = get_program_and_args(self);
+            let err = TopgradeError::ProcessFailed(program, status);
+            let ret = Err(err).with_context(|| format!("Command failed: `{command}`"));
             log::debug!("Command failed: {ret:?}");
             ret
         }
     }
 
     fn spawn_checked(&mut self) -> anyhow::Result<Self::Child> {
-        log(self);
-        let (program, args) = get_program_and_args(self);
-        let message = format!("Failed to execute `{program} {args}`");
+        let command = log(self);
+        let message = format!("Failed to execute `{command}`");
 
         // This is where we implement `spawn_checked`, which is what we prefer to use instead of
         // `spawn`, so we allow `Command::spawn` here.
@@ -228,8 +227,17 @@ fn get_program_and_args(cmd: &Command) -> (String, String) {
     (program, args)
 }
 
-fn log(cmd: &Command) {
+fn format_program_and_args(cmd: &Command) -> String {
     let (program, args) = get_program_and_args(cmd);
-    let command = format!("{program} {args}");
+    if args.is_empty() {
+        program
+    } else {
+        format!("{program} {args}")
+    }
+}
+
+fn log(cmd: &Command) -> String {
+    let command = format_program_and_args(cmd);
     log::debug!("Executing command `{command}`");
+    command
 }
