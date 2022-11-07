@@ -156,6 +156,8 @@ impl CommandExt for Command {
         log(self);
         let (program, args) = get_program_and_args(self);
 
+        // This is where we implement `output_checked`, which is what we prefer to use instead of
+        // `output`, so we allow `Command::output` here.
         #[allow(clippy::disallowed_methods)]
         let output = self
             .output()
@@ -190,6 +192,8 @@ impl CommandExt for Command {
         let (program, args) = get_program_and_args(self);
         let message = format!("Failed to execute `{program} {args}`");
 
+        // This is where we implement `status_checked`, which is what we prefer to use instead of
+        // `status`, so we allow `Command::status` here.
         #[allow(clippy::disallowed_methods)]
         let status = self.status().with_context(|| message.clone())?;
 
@@ -207,6 +211,9 @@ impl CommandExt for Command {
         log(self);
         let (program, args) = get_program_and_args(self);
         let message = format!("Failed to execute `{program} {args}`");
+
+        // This is where we implement `spawn_checked`, which is what we prefer to use instead of
+        // `spawn`, so we allow `Command::spawn` here.
         #[allow(clippy::disallowed_methods)]
         {
             self.spawn().with_context(|| message.clone())
