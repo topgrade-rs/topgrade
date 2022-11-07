@@ -83,7 +83,10 @@ pub enum Step {
     Containers,
     CustomCommands,
     DebGet,
+
+    #[cfg(feature = "unstable")]
     Distrobox,
+
     Deno,
     Dotnet,
     Emacs,
@@ -177,6 +180,7 @@ pub struct Windows {
 #[derive(Deserialize, Default, Debug)]
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
+#[cfg(feature = "unstable")]
 pub struct Distrobox {
     use_root: Option<bool>,
     containers: Option<Vec<String>>,
@@ -303,6 +307,8 @@ pub struct ConfigFile {
     firmware: Option<Firmware>,
     vagrant: Option<Vagrant>,
     flatpak: Option<Flatpak>,
+
+    #[cfg(feature = "unstable")]
     distrobox: Option<Distrobox>,
 }
 
@@ -835,6 +841,7 @@ impl Config {
     }
 
     /// Distrobox use root
+    #[cfg(feature = "unstable")]
     pub fn distrobox_root(&self) -> bool {
         self.config_file
             .distrobox
@@ -844,6 +851,7 @@ impl Config {
     }
 
     /// Distrobox containers
+    #[cfg(feature = "unstable")]
     pub fn distrobox_containers(&self) -> Option<&Vec<String>> {
         self.config_file.distrobox.as_ref().and_then(|r| r.containers.as_ref())
     }

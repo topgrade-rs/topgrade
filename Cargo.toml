@@ -65,3 +65,4 @@ lto = true
 [features]
 default = []
 self-update = ["self_update_crate"]
+unstable = []

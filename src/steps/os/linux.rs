@@ -606,6 +606,7 @@ pub fn run_protonup_update(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "unstable")]
 pub fn run_distrobox_update(ctx: &ExecutionContext) -> Result<()> {
     let distrobox = require("distrobox")?;
 
