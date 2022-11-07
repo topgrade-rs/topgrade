@@ -1,6 +1,8 @@
 use anyhow::Result;
 
-use crate::{error::SkipStep, execution_context::ExecutionContext, terminal::print_separator, utils};
+use crate::{
+    command::CommandExt, error::SkipStep, execution_context::ExecutionContext, terminal::print_separator, utils,
+};
 
 fn prepare_async_ssh_command(args: &mut Vec<&str>) {
     args.insert(0, "ssh");
@@ -47,6 +49,6 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
         print_separator(format!("Remote ({})", hostname));
         println!("Connecting to {}...", hostname);
 
-        ctx.run_type().execute(ssh).args(&args).check_run()
+        ctx.run_type().execute(ssh).args(&args).status_checked()
     }
 }

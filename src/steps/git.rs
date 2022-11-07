@@ -12,8 +12,9 @@ use log::{debug, error};
 use tokio::process::Command as AsyncCommand;
 use tokio::runtime;
 
+use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
-use crate::executor::{CommandExt, RunType};
+use crate::executor::RunType;
 use crate::terminal::print_separator;
 use crate::utils::{which, PathExt};
 use crate::{error::SkipStep, terminal::print_warning};
@@ -33,7 +34,7 @@ pub struct Repositories<'a> {
     bad_patterns: Vec<String>,
 }
 
-fn check_output(output: Output) -> Result<()> {
+fn output_checked_utf8(output: Output) -> Result<()> {
     if !(output.status.success()) {
         let stderr = String::from_utf8(output.stderr).unwrap();
         Err(anyhow!(stderr))
@@ -66,7 +67,7 @@ async fn pull_repository(repo: String, git: &Path, ctx: &ExecutionContext<'_>) -
         .stdin(Stdio::null())
         .output()
         .await?;
-    let result = check_output(pull_output).and_then(|_| check_output(submodule_output));
+    let result = output_checked_utf8(pull_output).and_then(|_| output_checked_utf8(submodule_output));
 
     if let Err(message) = &result {
         println!("{} pulling {}", style("Failed").red().bold(), &repo);
@@ -88,10 +89,7 @@ async fn pull_repository(repo: String, git: &Path, ctx: &ExecutionContext<'_>) -
                         "--oneline",
                         &format!("{}..{}", before, after),
                     ])
-                    .spawn()
-                    .unwrap()
-                    .wait()
-                    .unwrap();
+                    .status_checked()?;
                 println!();
             }
             _ => {
@@ -108,8 +106,8 @@ fn get_head_revision(git: &Path, repo: &str) -> Option<String> {
         .stdin(Stdio::null())
         .current_dir(repo)
         .args(["rev-parse", "HEAD"])
-        .check_output()
-        .map(|output| output.trim().to_string())
+        .output_checked_utf8()
+        .map(|output| output.stdout.trim().to_string())
         .map_err(|e| {
             error!("Error getting revision for {}: {}", repo, e);
 
@@ -123,8 +121,8 @@ fn has_remotes(git: &Path, repo: &str) -> Option<bool> {
         .stdin(Stdio::null())
         .current_dir(repo)
         .args(["remote", "show"])
-        .check_output()
-        .map(|output| output.lines().count() > 0)
+        .output_checked_utf8()
+        .map(|output| output.stdout.lines().count() > 0)
         .map_err(|e| {
             error!("Error getting remotes for {}: {}", repo, e);
             e
@@ -166,9 +164,9 @@ impl Git {
                         .stdin(Stdio::null())
                         .current_dir(path)
                         .args(["rev-parse", "--show-toplevel"])
-                        .check_output()
+                        .output_checked_utf8()
                         .ok()
-                        .map(|output| output.trim().to_string());
+                        .map(|output| output.stdout.trim().to_string());
                     return output;
                 }
             }

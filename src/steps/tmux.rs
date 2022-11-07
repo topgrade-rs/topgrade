@@ -1,16 +1,20 @@
+use std::env;
+use std::path::PathBuf;
+use std::process::{exit, Command};
+
+use anyhow::Result;
+use directories::BaseDirs;
+
+use crate::command::CommandExt;
 use crate::executor::RunType;
 use crate::terminal::print_separator;
 use crate::{
     execution_context::ExecutionContext,
-    utils::{which, Check, PathExt},
+    utils::{which, PathExt},
 };
-use anyhow::Result;
-use directories::BaseDirs;
-use std::env;
-use std::io;
-use std::os::unix::process::CommandExt;
-use std::path::PathBuf;
-use std::process::{exit, Command};
+
+#[cfg(unix)]
+use std::os::unix::process::CommandExt as _;
 
 pub fn run_tpm(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     let tpm = base_dirs
@@ -20,7 +24,7 @@ pub fn run_tpm(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
 
     print_separator("tmux plugins");
 
-    run_type.execute(tpm).arg("all").check_run()
+    run_type.execute(tpm).arg("all").status_checked()
 }
 
 struct Tmux {
@@ -44,32 +48,28 @@ impl Tmux {
         command
     }
 
-    fn has_session(&self, session_name: &str) -> Result<bool, io::Error> {
+    fn has_session(&self, session_name: &str) -> Result<bool> {
         Ok(self
             .build()
             .args(["has-session", "-t", session_name])
-            .output()?
+            .output_checked_with(|_| Ok(()))?
             .status
             .success())
     }
 
-    fn new_session(&self, session_name: &str) -> Result<bool, io::Error> {
+    fn new_session(&self, session_name: &str) -> Result<bool> {
         Ok(self
             .build()
             .args(["new-session", "-d", "-s", session_name, "-n", "dummy"])
-            .spawn()?
-            .wait()?
+            .output_checked_with(|_| Ok(()))?
+            .status
             .success())
     }
 
     fn run_in_session(&self, command: &str) -> Result<()> {
         self.build()
             .args(["new-window", "-t", "topgrade", command])
-            .spawn()?
-            .wait()?
-            .check()?;
-
-        Ok(())
+            .status_checked()
     }
 }
 
@@ -93,7 +93,7 @@ pub fn run_in_tmux(args: Vec<String>) -> ! {
     tmux.run_in_session(&command).expect("Error running Topgrade in tmux");
     tmux.build()
         .args(["kill-window", "-t", "topgrade:dummy"])
-        .output()
+        .output_checked()
         .expect("Error killing the dummy tmux window");
 
     if env::var("TMUX").is_err() {
@@ -110,7 +110,5 @@ pub fn run_command(ctx: &ExecutionContext, command: &str) -> Result<()> {
         .build()
         .args(["new-window", "-a", "-t", "topgrade:1", command])
         .env_remove("TMUX")
-        .spawn()?
-        .wait()?
-        .check()
+        .status_checked()
 }

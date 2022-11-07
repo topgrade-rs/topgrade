@@ -1,4 +1,4 @@
-use crate::error::{SkipStep, TopgradeError};
+use crate::error::SkipStep;
 use anyhow::Result;
 
 use log::{debug, error};
@@ -6,41 +6,6 @@ use std::env;
 use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use std::process::{ExitStatus, Output};
-
-pub trait Check {
-    fn check(self) -> Result<()>;
-}
-
-impl Check for Output {
-    fn check(self) -> Result<()> {
-        self.status.check()
-    }
-}
-
-pub trait CheckWithCodes {
-    fn check_with_codes(self, codes: &[i32]) -> Result<()>;
-}
-
-// Anything that implements CheckWithCodes also implements check
-// if check_with_codes is given an empty array of codes to check
-impl<T: CheckWithCodes> Check for T {
-    fn check(self) -> Result<()> {
-        self.check_with_codes(&[])
-    }
-}
-
-impl CheckWithCodes for ExitStatus {
-    fn check_with_codes(self, codes: &[i32]) -> Result<()> {
-        // Set the default to be -1 because the option represents a signal termination
-        let code = self.code().unwrap_or(-1);
-        if self.success() || codes.contains(&code) {
-            Ok(())
-        } else {
-            Err(TopgradeError::ProcessFailed(self).into())
-        }
-    }
-}
 
 pub trait PathExt
 where

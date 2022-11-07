@@ -7,6 +7,7 @@ use std::process::Command;
 use std::sync::Mutex;
 use std::time::Duration;
 
+use anyhow::Context;
 use chrono::{Local, Timelike};
 use console::{style, Key, Term};
 use lazy_static::lazy_static;
@@ -16,6 +17,7 @@ use notify_rust::{Notification, Timeout};
 #[cfg(windows)]
 use which_crate::which;
 
+use crate::command::CommandExt;
 use crate::report::StepResult;
 #[cfg(target_os = "linux")]
 use crate::utils::which;
@@ -34,13 +36,8 @@ pub fn shell() -> &'static str {
     which("pwsh").map(|_| "pwsh").unwrap_or("powershell")
 }
 
-pub fn run_shell() {
-    Command::new(shell())
-        .env("IN_TOPGRADE", "1")
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap();
+pub fn run_shell() -> anyhow::Result<()> {
+    Command::new(shell()).env("IN_TOPGRADE", "1").status_checked()
 }
 
 struct Terminal {
@@ -106,7 +103,9 @@ impl Terminal {
                     }
                     command.args(["-a", "Topgrade", "Topgrade"]);
                     command.arg(message.as_ref());
-                    command.output().ok();
+                    if let Err(err) = command.output_checked() {
+                        log::error!("{err:?}");
+                    }
                 }
             }
         }
@@ -214,7 +213,7 @@ impl Terminal {
         }
     }
     #[allow(unused_variables)]
-    fn should_retry(&mut self, interrupted: bool, step_name: &str) -> Result<bool, io::Error> {
+    fn should_retry(&mut self, interrupted: bool, step_name: &str) -> anyhow::Result<bool> {
         if self.width.is_none() {
             return Ok(false);
         }
@@ -239,7 +238,7 @@ impl Terminal {
                 Ok(Key::Char('y')) | Ok(Key::Char('Y')) => break Ok(true),
                 Ok(Key::Char('s')) | Ok(Key::Char('S')) => {
                     println!("\n\nDropping you to shell. Fix what you need and then exit the shell.\n");
-                    run_shell();
+                    run_shell()?;
                     break Ok(true);
                 }
                 Ok(Key::Char('n')) | Ok(Key::Char('N')) | Ok(Key::Enter) => break Ok(false),
@@ -247,7 +246,9 @@ impl Terminal {
                     error!("Error reading from terminal: {}", e);
                     break Ok(false);
                 }
-                Ok(Key::Char('q')) | Ok(Key::Char('Q')) => return Err(io::Error::from(io::ErrorKind::Interrupted)),
+                Ok(Key::Char('q')) | Ok(Key::Char('Q')) => {
+                    return Err(io::Error::from(io::ErrorKind::Interrupted)).context("Quit from user input")
+                }
                 _ => (),
             }
         };
@@ -268,7 +269,7 @@ impl Default for Terminal {
     }
 }
 
-pub fn should_retry(interrupted: bool, step_name: &str) -> Result<bool, io::Error> {
+pub fn should_retry(interrupted: bool, step_name: &str) -> anyhow::Result<bool> {
     TERMINAL.lock().unwrap().should_retry(interrupted, step_name)
 }
 

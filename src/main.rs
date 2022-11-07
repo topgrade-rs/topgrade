@@ -4,6 +4,7 @@ use std::env;
 use std::io;
 use std::process::exit;
 
+use anyhow::Context;
 use anyhow::{anyhow, Result};
 use clap::{crate_version, Parser};
 use console::Key;
@@ -18,6 +19,7 @@ use self::error::Upgraded;
 use self::steps::{remote::*, *};
 use self::terminal::*;
 
+mod command;
 mod config;
 mod ctrlc;
 mod error;
@@ -471,10 +473,10 @@ fn run() -> Result<()> {
         loop {
             match get_key() {
                 Ok(Key::Char('s')) | Ok(Key::Char('S')) => {
-                    run_shell();
+                    run_shell().context("Failed to execute shell")?;
                 }
                 Ok(Key::Char('r')) | Ok(Key::Char('R')) => {
-                    reboot();
+                    reboot().context("Failed to reboot")?;
                 }
                 Ok(Key::Char('q')) | Ok(Key::Char('Q')) => (),
                 _ => {
