@@ -224,22 +224,22 @@ impl Terminal {
 
         self.notify_desktop(format!("{} failed", step_name), None);
 
-        self.term
-            .write_fmt(format_args!(
-                "\n{}",
-                style(format!("{}Retry? (y)es/(N)o/(s)hell/(q)uit", self.prefix))
-                    .yellow()
-                    .bold()
-            ))
-            .ok();
+        let prompt_inner = style(format!("{}Retry? (y)es/(N)o/(s)hell/(q)uit", self.prefix))
+            .yellow()
+            .bold();
+
+        self.term.write_fmt(format_args!("\n{}", prompt_inner)).ok();
 
         let answer = loop {
             match self.term.read_key() {
                 Ok(Key::Char('y')) | Ok(Key::Char('Y')) => break Ok(true),
                 Ok(Key::Char('s')) | Ok(Key::Char('S')) => {
                     println!("\n\nDropping you to shell. Fix what you need and then exit the shell.\n");
-                    run_shell()?;
-                    break Ok(true);
+                    if let Err(err) = run_shell().context("Failed to run shell") {
+                        self.term.write_fmt(format_args!("{err:?}\n{}", prompt_inner)).ok();
+                    } else {
+                        break Ok(true);
+                    }
                 }
                 Ok(Key::Char('n')) | Ok(Key::Char('N')) | Ok(Key::Enter) => break Ok(false),
                 Err(e) => {
