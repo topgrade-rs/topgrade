@@ -24,6 +24,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: check
+          args: --color always
 
   fmt:
     name: Rustfmt
@@ -42,7 +43,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --all -- --check
+          args: --all -- --check --color always
 
   clippy:
     name: Clippy
@@ -60,10 +61,10 @@ jobs:
       - uses: actions-rs/cargo@v1.0.1
         with:
           command: clippy
-          args: --all-targets --locked -- -D warnings
+          args: --color always --all-targets --locked -- -D warnings
           name: Clippy Output
       - uses: actions-rs/cargo@v1.0.1
         with:
           command: clippy
-          args: --all-targets --locked --all-features -- -D warnings
+          args: --color always --all-targets --locked --all-features -- -D warnings
           name: Clippy (All features) Output
