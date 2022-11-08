@@ -1,19 +1,17 @@
-#![allow(unused_imports)]
-
 use std::fmt::Display;
-#[cfg(unix)]
-use std::os::unix::prelude::MetadataExt;
+#[cfg(target_os = "linux")]
+use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 use std::process::Command;
 
 use anyhow::Result;
-use directories::BaseDirs;
 use log::debug;
-#[cfg(unix)]
+#[cfg(target_os = "linux")]
 use nix::unistd::Uid;
 use semver::Version;
 
-use crate::executor::{CommandExt, RunType};
+use crate::command::CommandExt;
+use crate::executor::RunType;
 use crate::terminal::print_separator;
 use crate::utils::{require, PathExt};
 use crate::{error::SkipStep, execution_context::ExecutionContext};
@@ -85,15 +83,15 @@ impl NPM {
         let args = ["root", self.global_location_arg()];
         Command::new(&self.command)
             .args(args)
-            .check_output()
-            .map(|s| PathBuf::from(s.trim()))
+            .output_checked_utf8()
+            .map(|s| PathBuf::from(s.stdout.trim()))
     }
 
     fn version(&self) -> Result<Version> {
         let version_str = Command::new(&self.command)
             .args(["--version"])
-            .check_output()
-            .map(|s| s.trim().to_owned());
+            .output_checked_utf8()
+            .map(|s| s.stdout.trim().to_owned());
         Version::parse(&version_str?).map_err(|err| err.into())
     }
 
@@ -101,9 +99,9 @@ impl NPM {
         print_separator(self.variant.long_name());
         let args = ["update", self.global_location_arg()];
         if use_sudo {
-            run_type.execute("sudo").args(args).check_run()?;
+            run_type.execute("sudo").args(args).status_checked()?;
         } else {
-            run_type.execute(&self.command).args(args).check_run()?;
+            run_type.execute(&self.command).args(args).status_checked()?;
         }
 
         Ok(())
@@ -142,9 +140,9 @@ impl Yarn {
         //
         // As “yarn dlx” don't need to “upgrade”, we
         // ignore the whole task if Yarn is 2.x or above.
-        let version = Command::new(&self.command).args(["--version"]).check_output();
+        let version = Command::new(&self.command).args(["--version"]).output_checked_utf8();
 
-        matches!(version, Ok(ver) if ver.starts_with('1') || ver.starts_with('0'))
+        matches!(version, Ok(ver) if ver.stdout.starts_with('1') || ver.stdout.starts_with('0'))
     }
 
     #[cfg(target_os = "linux")]
@@ -152,8 +150,8 @@ impl Yarn {
         let args = ["global", "dir"];
         Command::new(&self.command)
             .args(args)
-            .check_output()
-            .map(|s| PathBuf::from(s.trim()))
+            .output_checked_utf8()
+            .map(|s| PathBuf::from(s.stdout.trim()))
     }
 
     fn upgrade(&self, run_type: RunType, use_sudo: bool) -> Result<()> {
@@ -165,9 +163,9 @@ impl Yarn {
                 .execute("sudo")
                 .arg(self.yarn.as_ref().unwrap_or(&self.command))
                 .args(args)
-                .check_run()?;
+                .status_checked()?;
         } else {
-            run_type.execute(&self.command).args(args).check_run()?;
+            run_type.execute(&self.command).args(args).status_checked()?;
         }
 
         Ok(())
@@ -272,5 +270,5 @@ pub fn deno_upgrade(ctx: &ExecutionContext) -> Result<()> {
     }
 
     print_separator("Deno");
-    ctx.run_type().execute(&deno).arg("upgrade").check_run()
+    ctx.run_type().execute(&deno).arg("upgrade").status_checked()
 }

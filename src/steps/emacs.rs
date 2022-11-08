@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use anyhow::Result;
 use directories::BaseDirs;
 
+use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::terminal::print_separator;
 use crate::utils::{require, require_option, PathExt};
@@ -73,7 +74,7 @@ impl Emacs {
 
         command.args(["upgrade"]);
 
-        command.check_run()
+        command.status_checked()
     }
 
     pub fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
@@ -105,6 +106,6 @@ impl Emacs {
         #[cfg(not(unix))]
         command.arg(EMACS_UPGRADE);
 
-        command.check_run()
+        command.status_checked()
     }
 }

@@ -1,7 +1,7 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 
+use crate::command::CommandExt;
 use crate::error::{self, TopgradeError};
-use crate::executor::CommandExt;
 use crate::terminal::print_separator;
 use crate::{execution_context::ExecutionContext, utils::require};
 use log::{debug, error, warn};
@@ -24,11 +24,10 @@ fn list_containers(crt: &Path) -> Result<Vec<String>> {
     );
     let output = Command::new(crt)
         .args(["image", "ls", "--format", "{{.Repository}}:{{.Tag}}"])
-        .output()?;
-    let output_str = String::from_utf8(output.stdout)?;
+        .output_checked_with_utf8(|_| Ok(()))?;
 
     let mut retval = vec![];
-    for line in output_str.lines() {
+    for line in output.stdout.lines() {
         if line.starts_with("localhost") {
             // Don't know how to update self-built containers
             debug!("Skipping self-built container '{}'", line);
@@ -60,7 +59,7 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Containers");
     let mut success = true;
-    let containers = list_containers(&crt)?;
+    let containers = list_containers(&crt).context("Failed to list Docker containers")?;
     debug!("Containers to inspect: {:?}", containers);
 
     for container in containers.iter() {
@@ -68,7 +67,7 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
         let args = vec!["pull", &container[..]];
         let mut exec = ctx.run_type().execute(&crt);
 
-        if let Err(e) = exec.args(&args).check_run() {
+        if let Err(e) = exec.args(&args).status_checked() {
             error!("Pulling container '{}' failed: {}", container, e);
 
             // Find out if this is 'skippable'
@@ -77,10 +76,10 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
             // practical consequence that all containers, whether self-built, created by
             // docker-compose or pulled from the docker hub, look exactly the same to us. We can
             // only find out what went wrong by manually parsing the output of the command...
-            if match exec.check_output() {
-                Ok(s) => s.contains(NONEXISTENT_REPO),
+            if match exec.output_checked_utf8() {
+                Ok(s) => s.stdout.contains(NONEXISTENT_REPO) || s.stderr.contains(NONEXISTENT_REPO),
                 Err(e) => match e.downcast_ref::<TopgradeError>() {
-                    Some(TopgradeError::ProcessFailedWithOutput(_, stderr)) => stderr.contains(NONEXISTENT_REPO),
+                    Some(TopgradeError::ProcessFailedWithOutput(_, _, stderr)) => stderr.contains(NONEXISTENT_REPO),
                     _ => false,
                 },
             } {
@@ -95,7 +94,12 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
     if ctx.config().cleanup() {
         // Remove dangling images
         debug!("Removing dangling images");
-        if let Err(e) = ctx.run_type().execute(&crt).args(["image", "prune", "-f"]).check_run() {
+        if let Err(e) = ctx
+            .run_type()
+            .execute(&crt)
+            .args(["image", "prune", "-f"])
+            .status_checked()
+        {
             error!("Removing dangling images failed: {}", e);
             success = false;
         }

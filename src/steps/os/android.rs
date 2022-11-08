@@ -18,11 +18,11 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     if ctx.config().yes(Step::System) {
         command.arg("-y");
     }
-    command.check_run()?;
+    command.status_checked()?;
 
     if !is_nala {
         if ctx.config().cleanup() {
-            ctx.run_type().execute(&pkg).arg("clean").check_run()?;
+            ctx.run_type().execute(&pkg).arg("clean").status_checked()?;
 
             let apt = require("apt")?;
             let mut command = ctx.run_type().execute(&apt);
@@ -30,7 +30,7 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
             if ctx.config().yes(Step::System) {
                 command.arg("-y");
             }
-            command.check_run()?;
+            command.status_checked()?;
         }
     }
 
