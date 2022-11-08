@@ -11,7 +11,7 @@ pub fn upgrade_packages(sudo: Option<&PathBuf>, run_type: RunType) -> Result<()>
     run_type
         .execute(sudo)
         .args(&["/usr/local/sbin/pkg", "upgrade"])
-        .check_run()
+        .status_checked()
 }
 
 pub fn audit_packages(sudo: &Option<PathBuf>) -> Result<()> {
@@ -19,8 +19,7 @@ pub fn audit_packages(sudo: &Option<PathBuf>) -> Result<()> {
         println!();
         Command::new(sudo)
             .args(&["/usr/local/sbin/pkg", "audit", "-Fr"])
-            .spawn()?
-            .wait()?;
+            .status_checked()?;
     }
     Ok(())
 }

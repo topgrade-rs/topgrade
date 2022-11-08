@@ -1,15 +1,18 @@
-use crate::execution_context::ExecutionContext;
-use crate::executor::{CommandExt, RunType};
-use crate::git::Repositories;
-use crate::terminal::print_separator;
-use crate::utils::{require, PathExt};
-use anyhow::Result;
-use directories::BaseDirs;
-use log::debug;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+
+use anyhow::Result;
+use directories::BaseDirs;
+use log::debug;
 use walkdir::WalkDir;
+
+use crate::command::CommandExt;
+use crate::execution_context::ExecutionContext;
+use crate::executor::RunType;
+use crate::git::Repositories;
+use crate::terminal::print_separator;
+use crate::utils::{require, PathExt};
 
 pub fn run_zr(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     let zsh = require("zsh")?;
@@ -19,7 +22,7 @@ pub fn run_zr(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     print_separator("zr");
 
     let cmd = format!("source {} && zr --update", zshrc(base_dirs).display());
-    run_type.execute(zsh).args(["-l", "-c", cmd.as_str()]).check_run()
+    run_type.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
 }
 
 pub fn zshrc(base_dirs: &BaseDirs) -> PathBuf {
@@ -34,7 +37,7 @@ pub fn run_antibody(run_type: RunType) -> Result<()> {
 
     print_separator("antibody");
 
-    run_type.execute(antibody).arg("update").check_run()
+    run_type.execute(antibody).arg("update").status_checked()
 }
 
 pub fn run_antigen(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
@@ -48,7 +51,7 @@ pub fn run_antigen(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     print_separator("antigen");
 
     let cmd = format!("source {} && (antigen selfupdate ; antigen update)", zshrc.display());
-    run_type.execute(zsh).args(["-l", "-c", cmd.as_str()]).check_run()
+    run_type.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
 }
 
 pub fn run_zgenom(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
@@ -62,7 +65,7 @@ pub fn run_zgenom(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     print_separator("zgenom");
 
     let cmd = format!("source {} && zgenom selfupdate && zgenom update", zshrc.display());
-    run_type.execute(zsh).args(["-l", "-c", cmd.as_str()]).check_run()
+    run_type.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
 }
 
 pub fn run_zplug(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
@@ -76,7 +79,10 @@ pub fn run_zplug(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
 
     print_separator("zplug");
 
-    run_type.execute(zsh).args(["-i", "-c", "zplug update"]).check_run()
+    run_type
+        .execute(zsh)
+        .args(["-i", "-c", "zplug update"])
+        .status_checked()
 }
 
 pub fn run_zinit(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
@@ -91,7 +97,7 @@ pub fn run_zinit(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     print_separator("zinit");
 
     let cmd = format!("source {} && zinit self-update && zinit update --all", zshrc.display(),);
-    run_type.execute(zsh).args(["-i", "-c", cmd.as_str()]).check_run()
+    run_type.execute(zsh).args(["-i", "-c", cmd.as_str()]).status_checked()
 }
 
 pub fn run_zi(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
@@ -103,7 +109,7 @@ pub fn run_zi(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     print_separator("zi");
 
     let cmd = format!("source {} && zi self-update && zi update --all", zshrc.display(),);
-    run_type.execute(zsh).args(["-i", "-c", &cmd]).check_run()
+    run_type.execute(zsh).args(["-i", "-c", &cmd]).status_checked()
 }
 
 pub fn run_zim(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
@@ -111,8 +117,10 @@ pub fn run_zim(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     env::var("ZIM_HOME")
         .or_else(|_| {
             Command::new("zsh")
+                // TODO: Should these be quoted?
                 .args(["-c", "[[ -n ${ZIM_HOME} ]] && print -n ${ZIM_HOME}"])
-                .check_output()
+                .output_checked_utf8()
+                .map(|o| o.stdout)
         })
         .map(PathBuf::from)
         .unwrap_or_else(|_| base_dirs.home_dir().join(".zim"))
@@ -123,7 +131,7 @@ pub fn run_zim(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     run_type
         .execute(zsh)
         .args(["-i", "-c", "zimfw upgrade && zimfw update"])
-        .check_run()
+        .status_checked()
 }
 
 pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
@@ -135,8 +143,10 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
     let custom_dir = env::var::<_>("ZSH_CUSTOM")
         .or_else(|_| {
             Command::new("zsh")
+                // TODO: Should these be quoted?
                 .args(["-c", "test $ZSH_CUSTOM && echo -n $ZSH_CUSTOM"])
-                .check_output()
+                .output_checked_utf8()
+                .map(|o| o.stdout)
         })
         .map(PathBuf::from)
         .unwrap_or_else(|e| {
@@ -168,5 +178,5 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
         .execute("zsh")
         .env("ZSH", &oh_my_zsh)
         .arg(&oh_my_zsh.join("tools/upgrade.sh"))
-        .check_run_with_codes(&[80])
+        .status_checked_with_codes(&[80])
 }
