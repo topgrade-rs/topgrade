@@ -8,9 +8,9 @@ use console::style;
 use futures::stream::{iter, FuturesUnordered};
 use futures::StreamExt;
 use glob::{glob_with, MatchOptions};
-use log::{debug, error};
 use tokio::process::Command as AsyncCommand;
 use tokio::runtime;
+use tracing::{debug, error};
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;

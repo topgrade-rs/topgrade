@@ -1,11 +1,11 @@
 use crate::error::SkipStep;
 use color_eyre::eyre::Result;
 
-use log::{debug, error};
 use std::env;
 use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
+use tracing::{debug, error};
 
 pub trait PathExt
 where

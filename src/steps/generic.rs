@@ -9,8 +9,8 @@ use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use directories::BaseDirs;
-use log::debug;
 use tempfile::tempfile_in;
+use tracing::debug;
 
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
