@@ -5,7 +5,9 @@ use std::process::Command;
 use std::{env, path::Path};
 use std::{fs, io::Write};
 
-use anyhow::{Context, Result};
+use color_eyre::eyre::eyre;
+use color_eyre::eyre::Context;
+use color_eyre::eyre::Result;
 use directories::BaseDirs;
 use log::debug;
 use tempfile::tempfile_in;
@@ -154,7 +156,7 @@ pub fn run_micro(run_type: RunType) -> Result<()> {
     if stdout.contains("Nothing to install / update") || stdout.contains("One or more plugins installed") {
         Ok(())
     } else {
-        Err(anyhow::anyhow!("micro output does not indicate success: {}", stdout))
+        Err(eyre!("micro output does not indicate success: {}", stdout))
     }
 }
 

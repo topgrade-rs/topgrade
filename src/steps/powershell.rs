@@ -3,7 +3,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 
-use anyhow::Result;
+use color_eyre::eyre::Result;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;

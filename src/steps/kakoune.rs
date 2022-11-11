@@ -1,6 +1,6 @@
 use crate::terminal::print_separator;
 use crate::utils::require;
-use anyhow::Result;
+use color_eyre::eyre::Result;
 
 use crate::execution_context::ExecutionContext;
 

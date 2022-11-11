@@ -1,4 +1,4 @@
-use anyhow::Result;
+use color_eyre::eyre::Result;
 
 use crate::{
     command::CommandExt, error::SkipStep, execution_context::ExecutionContext, terminal::print_separator, utils,

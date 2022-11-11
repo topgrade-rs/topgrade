@@ -3,7 +3,7 @@ use crate::execution_context::ExecutionContext;
 use crate::executor::RunType;
 use crate::terminal::{print_separator, prompt_yesno};
 use crate::{utils::require, Step};
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use log::debug;
 use std::fs;
 use std::process::Command;

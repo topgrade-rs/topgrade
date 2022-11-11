@@ -3,7 +3,7 @@ use crate::executor::RunType;
 use crate::git::Git;
 use crate::utils::require_option;
 use crate::{config::Config, executor::Executor};
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use directories::BaseDirs;
 use std::path::{Path, PathBuf};
 

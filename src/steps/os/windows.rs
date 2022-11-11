@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 use std::path::Path;
 use std::{ffi::OsStr, process::Command};
 
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use log::debug;
 
 use crate::command::CommandExt;

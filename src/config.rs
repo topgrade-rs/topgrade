@@ -5,9 +5,10 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::{env, fs};
 
-use anyhow::Context;
-use anyhow::Result;
 use clap::{ArgEnum, Parser};
+use color_eyre::eyre;
+use color_eyre::eyre::Context;
+use color_eyre::eyre::Result;
 use directories::BaseDirs;
 use log::debug;
 use regex::Regex;
@@ -635,7 +636,7 @@ impl Config {
     }
 
     /// Extra Tmux arguments
-    pub fn tmux_arguments(&self) -> anyhow::Result<Vec<String>> {
+    pub fn tmux_arguments(&self) -> eyre::Result<Vec<String>> {
         let args = &self.config_file.tmux_arguments.as_deref().unwrap_or_default();
         shell_words::split(args)
             // The only time the parse failed is in case of a missing close quote.

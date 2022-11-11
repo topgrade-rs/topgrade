@@ -1,5 +1,5 @@
 use crate::error::SkipStep;
-use anyhow::Result;
+use color_eyre::eyre::Result;
 
 use log::{debug, error};
 use std::env;
