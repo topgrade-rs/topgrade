@@ -4,7 +4,7 @@ use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 use std::process::Command;
 
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use log::debug;
 #[cfg(target_os = "linux")]
 use nix::unistd::Uid;

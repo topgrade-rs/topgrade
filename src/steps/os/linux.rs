@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use ini::Ini;
 use log::{debug, warn};
 

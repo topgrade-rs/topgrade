@@ -3,7 +3,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 
-use anyhow::{anyhow, Result};
+use color_eyre::eyre::{eyre, Result};
 use console::style;
 use futures::stream::{iter, FuturesUnordered};
 use futures::StreamExt;
@@ -37,7 +37,7 @@ pub struct Repositories<'a> {
 fn output_checked_utf8(output: Output) -> Result<()> {
     if !(output.status.success()) {
         let stderr = String::from_utf8(output.stderr).unwrap();
-        Err(anyhow!(stderr))
+        Err(eyre!(stderr))
     } else {
         Ok(())
     }

@@ -4,9 +4,9 @@ use std::env;
 use std::io;
 use std::process::exit;
 
-use anyhow::Context;
-use anyhow::{anyhow, Result};
 use clap::{crate_version, Parser};
+use color_eyre::eyre::Context;
+use color_eyre::eyre::{eyre, Result};
 use console::Key;
 use log::debug;
 use log::LevelFilter;
@@ -36,9 +36,10 @@ mod terminal;
 mod utils;
 
 fn run() -> Result<()> {
+    color_eyre::install()?;
     ctrlc::set_handler();
 
-    let base_dirs = directories::BaseDirs::new().ok_or_else(|| anyhow!("No base directories"))?;
+    let base_dirs = directories::BaseDirs::new().ok_or_else(|| eyre!("No base directories"))?;
 
     let opt = CommandLineArgs::parse();
 
@@ -526,7 +527,7 @@ fn main() {
                     .is_some());
 
             if !skip_print {
-                // The `Debug` implementation of `anyhow::Result` prints a multi-line
+                // The `Debug` implementation of `eyre::Result` prints a multi-line
                 // error message that includes all the 'causes' added with
                 // `.with_context(...)` calls.
                 println!("Error: {:?}", error);

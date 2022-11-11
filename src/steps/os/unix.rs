@@ -6,7 +6,7 @@ use std::{env, path::Path};
 
 use crate::command::CommandExt;
 use crate::Step;
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use directories::BaseDirs;
 use home;
 use ini::Ini;

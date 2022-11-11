@@ -2,7 +2,7 @@
 use std::env;
 use std::path::{Path, PathBuf};
 
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use directories::BaseDirs;
 
 use crate::command::CommandExt;

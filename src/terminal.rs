@@ -7,8 +7,9 @@ use std::process::Command;
 use std::sync::Mutex;
 use std::time::Duration;
 
-use anyhow::Context;
 use chrono::{Local, Timelike};
+use color_eyre::eyre;
+use color_eyre::eyre::Context;
 use console::{style, Key, Term};
 use lazy_static::lazy_static;
 use log::{debug, error};
@@ -36,7 +37,7 @@ pub fn shell() -> &'static str {
     which("pwsh").map(|_| "pwsh").unwrap_or("powershell")
 }
 
-pub fn run_shell() -> anyhow::Result<()> {
+pub fn run_shell() -> eyre::Result<()> {
     Command::new(shell()).env("IN_TOPGRADE", "1").status_checked()
 }
 
@@ -213,7 +214,7 @@ impl Terminal {
         }
     }
     #[allow(unused_variables)]
-    fn should_retry(&mut self, interrupted: bool, step_name: &str) -> anyhow::Result<bool> {
+    fn should_retry(&mut self, interrupted: bool, step_name: &str) -> eyre::Result<bool> {
         if self.width.is_none() {
             return Ok(false);
         }
@@ -269,7 +270,7 @@ impl Default for Terminal {
     }
 }
 
-pub fn should_retry(interrupted: bool, step_name: &str) -> anyhow::Result<bool> {
+pub fn should_retry(interrupted: bool, step_name: &str) -> eyre::Result<bool> {
     TERMINAL.lock().unwrap().should_retry(interrupted, step_name)
 }
 

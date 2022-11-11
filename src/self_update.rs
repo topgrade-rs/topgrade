@@ -3,7 +3,7 @@ use std::env;
 use std::os::unix::process::CommandExt as _;
 use std::process::Command;
 
-use anyhow::{bail, Result};
+use color_eyre::eyre::{bail, Result};
 use self_update_crate::backends::github::Update;
 use self_update_crate::update::UpdateStatus;
 

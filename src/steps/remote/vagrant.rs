@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{fmt::Display, rc::Rc, str::FromStr};
 
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use log::{debug, error};
 use regex::Regex;
 use strum::EnumString;
