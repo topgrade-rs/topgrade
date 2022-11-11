@@ -164,6 +164,19 @@ impl Terminal {
     }
 
     #[allow(dead_code)]
+    fn print_error<P: AsRef<str>, Q: AsRef<str>>(&mut self, key: Q, message: P) {
+        let key = key.as_ref();
+        let message = message.as_ref();
+        self.term
+            .write_fmt(format_args!(
+                "{} {}",
+                style(format!("{} failed:", key)).red().bold(),
+                message
+            ))
+            .ok();
+    }
+
+    #[allow(dead_code)]
     fn print_warning<P: AsRef<str>>(&mut self, message: P) {
         let message = message.as_ref();
         self.term
@@ -276,6 +289,11 @@ pub fn should_retry(interrupted: bool, step_name: &str) -> eyre::Result<bool> {
 
 pub fn print_separator<P: AsRef<str>>(message: P) {
     TERMINAL.lock().unwrap().print_separator(message)
+}
+
+#[allow(dead_code)]
+pub fn print_error<P: AsRef<str>, Q: AsRef<str>>(key: Q, message: P) {
+    TERMINAL.lock().unwrap().print_error(key, message)
 }
 
 #[allow(dead_code)]
