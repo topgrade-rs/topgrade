@@ -3,7 +3,8 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use anyhow::Result;
+use color_eyre::eyre;
+use color_eyre::eyre::Result;
 use walkdir::WalkDir;
 
 use crate::command::CommandExt;
@@ -301,7 +302,7 @@ pub fn get_arch_package_manager(ctx: &ExecutionContext) -> Option<Box<dyn ArchPa
 
 pub fn upgrade_arch_linux(ctx: &ExecutionContext) -> Result<()> {
     let package_manager =
-        get_arch_package_manager(ctx).ok_or_else(|| anyhow::Error::from(TopgradeError::FailedGettingPackageManager))?;
+        get_arch_package_manager(ctx).ok_or_else(|| eyre::Report::from(TopgradeError::FailedGettingPackageManager))?;
     package_manager.upgrade(ctx)
 }
 

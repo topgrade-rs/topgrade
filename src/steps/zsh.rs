@@ -2,7 +2,7 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use directories::BaseDirs;
 use log::debug;
 use walkdir::WalkDir;

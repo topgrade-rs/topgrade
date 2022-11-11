@@ -1,6 +1,6 @@
 #![cfg(windows)]
 
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use log::{debug, error};
 use std::{env::current_exe, fs, path::PathBuf};
 

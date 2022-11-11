@@ -2,7 +2,7 @@ use crate::execution_context::ExecutionContext;
 use crate::terminal::print_separator;
 use crate::utils::require;
 use crate::Step;
-use anyhow::Result;
+use color_eyre::eyre::Result;
 
 pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     //let pkg = require("pkg")?;

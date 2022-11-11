@@ -1,4 +1,6 @@
-use anyhow::{Context, Result};
+use color_eyre::eyre::eyre;
+use color_eyre::eyre::Context;
+use color_eyre::eyre::Result;
 
 use crate::command::CommandExt;
 use crate::error::{self, TopgradeError};
@@ -108,6 +110,6 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
     if success {
         Ok(())
     } else {
-        Err(anyhow::anyhow!(error::StepFailed))
+        Err(eyre!(error::StepFailed))
     }
 }

@@ -3,7 +3,8 @@ use std::ffi::{OsStr, OsString};
 use std::path::Path;
 use std::process::{Child, Command, ExitStatus, Output};
 
-use anyhow::Result;
+use color_eyre::eyre;
+use color_eyre::eyre::Result;
 use log::debug;
 
 use crate::command::CommandExt;
@@ -240,7 +241,7 @@ impl CommandExt for Executor {
     // TODO: It might be nice to make `output_checked_with` return something that has a
     // variant for wet/dry runs.
 
-    fn output_checked_with(&mut self, succeeded: impl Fn(&Output) -> Result<(), ()>) -> anyhow::Result<Output> {
+    fn output_checked_with(&mut self, succeeded: impl Fn(&Output) -> Result<(), ()>) -> eyre::Result<Output> {
         match self {
             Executor::Wet(c) => c.output_checked_with(succeeded),
             Executor::Dry(c) => {
@@ -250,7 +251,7 @@ impl CommandExt for Executor {
         }
     }
 
-    fn status_checked_with(&mut self, succeeded: impl Fn(ExitStatus) -> Result<(), ()>) -> anyhow::Result<()> {
+    fn status_checked_with(&mut self, succeeded: impl Fn(ExitStatus) -> Result<(), ()>) -> eyre::Result<()> {
         match self {
             Executor::Wet(c) => c.status_checked_with(succeeded),
             Executor::Dry(c) => {
@@ -260,7 +261,7 @@ impl CommandExt for Executor {
         }
     }
 
-    fn spawn_checked(&mut self) -> anyhow::Result<Self::Child> {
+    fn spawn_checked(&mut self) -> eyre::Result<Self::Child> {
         self.spawn()
     }
 }

@@ -4,8 +4,9 @@ use std::fmt::Display;
 use std::process::Child;
 use std::process::{Command, ExitStatus, Output};
 
-use anyhow::anyhow;
-use anyhow::Context;
+use color_eyre::eyre;
+use color_eyre::eyre::eyre;
+use color_eyre::eyre::Context;
 
 use crate::error::TopgradeError;
 
@@ -18,17 +19,17 @@ pub struct Utf8Output {
 }
 
 impl TryFrom<Output> for Utf8Output {
-    type Error = anyhow::Error;
+    type Error = eyre::Error;
 
     fn try_from(Output { status, stdout, stderr }: Output) -> Result<Self, Self::Error> {
         let stdout = String::from_utf8(stdout).map_err(|err| {
-            anyhow!(
+            eyre!(
                 "Stdout contained invalid UTF-8: {}",
                 String::from_utf8_lossy(err.as_bytes())
             )
         })?;
         let stderr = String::from_utf8(stderr).map_err(|err| {
-            anyhow!(
+            eyre!(
                 "Stderr contained invalid UTF-8: {}",
                 String::from_utf8_lossy(err.as_bytes())
             )
@@ -39,17 +40,17 @@ impl TryFrom<Output> for Utf8Output {
 }
 
 impl TryFrom<&Output> for Utf8Output {
-    type Error = anyhow::Error;
+    type Error = eyre::Error;
 
     fn try_from(Output { status, stdout, stderr }: &Output) -> Result<Self, Self::Error> {
         let stdout = String::from_utf8(stdout.to_vec()).map_err(|err| {
-            anyhow!(
+            eyre!(
                 "Stdout contained invalid UTF-8: {}",
                 String::from_utf8_lossy(err.as_bytes())
             )
         })?;
         let stderr = String::from_utf8(stderr.to_vec()).map_err(|err| {
-            anyhow!(
+            eyre!(
                 "Stderr contained invalid UTF-8: {}",
                 String::from_utf8_lossy(err.as_bytes())
             )
@@ -85,7 +86,7 @@ pub trait CommandExt {
     ///
     /// Returns an `Err` if the command failed to execute or returned a non-zero exit code.
     #[track_caller]
-    fn output_checked(&mut self) -> anyhow::Result<Output> {
+    fn output_checked(&mut self) -> eyre::Result<Output> {
         self.output_checked_with(|output: &Output| if output.status.success() { Ok(()) } else { Err(()) })
     }
 
@@ -94,7 +95,7 @@ pub trait CommandExt {
     /// Returns an `Err` if the command failed to execute, returned a non-zero exit code, or if the
     /// output contains invalid UTF-8.
     #[track_caller]
-    fn output_checked_utf8(&mut self) -> anyhow::Result<Utf8Output> {
+    fn output_checked_utf8(&mut self) -> eyre::Result<Utf8Output> {
         let output = self.output_checked()?;
         output.try_into()
     }
@@ -106,7 +107,7 @@ pub trait CommandExt {
     /// (This lets the caller substitute their own notion of "success" instead of assuming
     /// non-zero exit codes indicate success.)
     #[track_caller]
-    fn output_checked_with(&mut self, succeeded: impl Fn(&Output) -> Result<(), ()>) -> anyhow::Result<Output>;
+    fn output_checked_with(&mut self, succeeded: impl Fn(&Output) -> Result<(), ()>) -> eyre::Result<Output>;
 
     /// Like [`output_checked_with`], but also decodes Stdout and Stderr as UTF-8.
     ///
@@ -116,7 +117,7 @@ pub trait CommandExt {
     fn output_checked_with_utf8(
         &mut self,
         succeeded: impl Fn(&Utf8Output) -> Result<(), ()>,
-    ) -> anyhow::Result<Utf8Output> {
+    ) -> eyre::Result<Utf8Output> {
         // This decodes the Stdout and Stderr as UTF-8 twice...
         let output =
             self.output_checked_with(|output| output.try_into().map_err(|_| ()).and_then(|o| succeeded(&o)))?;
@@ -129,7 +130,7 @@ pub trait CommandExt {
     /// Returns `Ok` if the command executes successfully, returns `Err` if the command fails to
     /// execute or returns a non-zero exit code.
     #[track_caller]
-    fn status_checked(&mut self) -> anyhow::Result<()> {
+    fn status_checked(&mut self) -> eyre::Result<()> {
         self.status_checked_with(|status| if status.success() { Ok(()) } else { Err(()) })
     }
 
@@ -141,18 +142,18 @@ pub trait CommandExt {
     /// (This lets the caller substitute their own notion of "success" instead of assuming
     /// non-zero exit codes indicate success.)
     #[track_caller]
-    fn status_checked_with(&mut self, succeeded: impl Fn(ExitStatus) -> Result<(), ()>) -> anyhow::Result<()>;
+    fn status_checked_with(&mut self, succeeded: impl Fn(ExitStatus) -> Result<(), ()>) -> eyre::Result<()>;
 
     /// Like [`Command::spawn`], but gives a nice error message if the command fails to
     /// execute.
     #[track_caller]
-    fn spawn_checked(&mut self) -> anyhow::Result<Self::Child>;
+    fn spawn_checked(&mut self) -> eyre::Result<Self::Child>;
 }
 
 impl CommandExt for Command {
     type Child = Child;
 
-    fn output_checked_with(&mut self, succeeded: impl Fn(&Output) -> Result<(), ()>) -> anyhow::Result<Output> {
+    fn output_checked_with(&mut self, succeeded: impl Fn(&Output) -> Result<(), ()>) -> eyre::Result<Output> {
         let command = log(self);
 
         // This is where we implement `output_checked`, which is what we prefer to use instead of
@@ -187,7 +188,7 @@ impl CommandExt for Command {
         }
     }
 
-    fn status_checked_with(&mut self, succeeded: impl Fn(ExitStatus) -> Result<(), ()>) -> anyhow::Result<()> {
+    fn status_checked_with(&mut self, succeeded: impl Fn(ExitStatus) -> Result<(), ()>) -> eyre::Result<()> {
         let command = log(self);
         let message = format!("Failed to execute `{command}`");
 
@@ -207,7 +208,7 @@ impl CommandExt for Command {
         }
     }
 
-    fn spawn_checked(&mut self) -> anyhow::Result<Self::Child> {
+    fn spawn_checked(&mut self) -> eyre::Result<Self::Child> {
         let command = log(self);
         let message = format!("Failed to execute `{command}`");
 

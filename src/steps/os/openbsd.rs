@@ -1,7 +1,7 @@
 use crate::executor::RunType;
 use crate::terminal::print_separator;
 use crate::utils::require_option;
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use std::path::PathBuf;
 
 pub fn upgrade_openbsd(sudo: Option<&PathBuf>, run_type: RunType) -> Result<()> {

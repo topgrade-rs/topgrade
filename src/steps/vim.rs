@@ -1,6 +1,6 @@
 use crate::command::CommandExt;
 use crate::error::{SkipStep, TopgradeError};
-use anyhow::Result;
+use color_eyre::eyre::Result;
 
 use crate::executor::{Executor, ExecutorOutput, RunType};
 use crate::terminal::print_separator;
