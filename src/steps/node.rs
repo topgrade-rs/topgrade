@@ -22,13 +22,6 @@ enum NPMVariant {
 }
 
 impl NPMVariant {
-    const fn long_name(&self) -> &str {
-        match self {
-            NPMVariant::Npm => "Node Package Manager",
-            NPMVariant::Pnpm => "PNPM",
-        }
-    }
-
     const fn short_name(&self) -> &str {
         match self {
             NPMVariant::Npm => "npm",
@@ -96,7 +89,6 @@ impl NPM {
     }
 
     fn upgrade(&self, run_type: RunType, use_sudo: bool) -> Result<()> {
-        print_separator(self.variant.long_name());
         let args = ["update", self.global_location_arg()];
         if use_sudo {
             run_type.execute("sudo").args(args).status_checked()?;
@@ -155,7 +147,6 @@ impl Yarn {
     }
 
     fn upgrade(&self, run_type: RunType, use_sudo: bool) -> Result<()> {
-        print_separator("Yarn Package Manager");
         let args = ["global", "upgrade"];
 
         if use_sudo {
@@ -216,6 +207,8 @@ fn should_use_sudo_yarn(yarn: &Yarn, ctx: &ExecutionContext) -> Result<bool> {
 pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let npm = require("npm").map(|b| NPM::new(b, NPMVariant::Npm))?;
 
+    print_separator("Node Package Manager");
+
     #[cfg(target_os = "linux")]
     {
         npm.upgrade(ctx.run_type(), should_use_sudo(&npm, ctx)?)
@@ -229,6 +222,8 @@ pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_pnpm_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let pnpm = require("pnpm").map(|b| NPM::new(b, NPMVariant::Pnpm))?;
+
+    print_separator("Node Package Manager");
 
     #[cfg(target_os = "linux")]
     {
@@ -248,6 +243,8 @@ pub fn run_yarn_upgrade(ctx: &ExecutionContext) -> Result<()> {
         debug!("Yarn is 2.x or above, skipping global upgrade");
         return Ok(());
     }
+
+    print_separator("Yarn Package Manager");
 
     #[cfg(target_os = "linux")]
     {
