@@ -18,7 +18,7 @@ use crate::execution_context::ExecutionContext;
 use crate::executor::Executor;
 use crate::executor::RunType;
 use crate::terminal::print_separator;
-#[cfg(not(target_os = "macos"))]
+#[cfg(not(any(target_os = "android", target_os = "macos")))]
 use crate::utils::require_option;
 use crate::utils::{require, PathExt};
 
