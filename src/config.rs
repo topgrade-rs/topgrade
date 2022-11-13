@@ -13,13 +13,12 @@ use directories::BaseDirs;
 use regex::Regex;
 use serde::Deserialize;
 use strum::{EnumIter, EnumString, EnumVariantNames, IntoEnumIterator};
-use sys_info::hostname;
 use tracing::debug;
 use which_crate::which;
 
 use crate::command::CommandExt;
 
-use super::utils::editor;
+use super::utils::{editor, hostname};
 
 pub static EXAMPLE_CONFIG: &str = include_str!("../config.example.toml");
 
