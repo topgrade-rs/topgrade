@@ -14,23 +14,30 @@ use log::debug;
 
 use crate::error::SkipStep;
 use crate::execution_context::ExecutionContext;
-use crate::executor::{Executor, RunType};
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+use crate::executor::Executor;
+use crate::executor::RunType;
 use crate::terminal::print_separator;
 #[cfg(not(target_os = "macos"))]
 use crate::utils::require_option;
 use crate::utils::{require, PathExt};
 
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 const INTEL_BREW: &str = "/usr/local/bin/brew";
+
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 const ARM_BREW: &str = "/opt/homebrew/bin/brew";
 
 #[derive(Copy, Clone, Debug)]
 #[allow(dead_code)]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 pub enum BrewVariant {
     Path,
     MacIntel,
     MacArm,
 }
 
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 impl BrewVariant {
     fn binary_name(self) -> &'static str {
         match self {
@@ -223,6 +230,7 @@ pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()> {
     #[allow(unused_variables)]
     let binary_name = require(variant.binary_name())?;
