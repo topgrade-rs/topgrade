@@ -1,0 +1,4 @@
+# Workaround for: https://github.com/cross-rs/cross/issues/1100
+# TODO: Remove this file altogether once a new version of cross (after v0.2.4) is released.
+[target.x86_64-unknown-freebsd.env]
+passthrough = ["AR_x86_64_unknown_freebsd=x86_64-unknown-freebsd12-ar"]
