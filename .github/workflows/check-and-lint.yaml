@@ -38,6 +38,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - target: x86_64-linux-android
+            target_name: Android
+            use_cross: true
+            os: ubuntu-20.04
+
           - target: x86_64-unknown-linux-gnu
             target_name: Linux
             os: ubuntu-20.04
@@ -64,6 +69,10 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           prefix-key: ${{ matrix.target }}
+
+      - name: Setup cross
+        if: matrix.use_cross == true
+        run: curl -fL --retry 3 https://github.com/cross-rs/cross/releases/download/v${{ env.CROSS_VER }}/cross-x86_64-unknown-linux-musl.tar.gz | tar vxz -C /usr/local/bin
 
       - name: Run cargo check
         run: ${{ matrix.use_cross == true && 'cross' || 'cargo' }} check --locked --target ${{ matrix.target }}
