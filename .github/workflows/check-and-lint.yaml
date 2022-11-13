@@ -56,6 +56,11 @@ jobs:
             target_name: macOS
             os: macos-11
 
+          - target: x86_64-unknown-netbsd
+            target_name: NetBSD
+            use_cross: true
+            os: ubuntu-20.04
+
           - target: x86_64-pc-windows-msvc
             target_name: Windows
             os: windows-2019
