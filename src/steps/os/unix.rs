@@ -87,15 +87,20 @@ impl BrewVariant {
     }
 }
 
-pub fn run_fisher(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_fisher(run_type: RunType) -> Result<()> {
     let fish = require("fish")?;
 
-    if env::var("fisher_path").is_err() {
-        base_dirs
-            .home_dir()
-            .join(".config/fish/functions/fisher.fish")
-            .require()?;
-    }
+    Command::new(&fish)
+        .args(["-c", "type -t fisher"])
+        .output_checked_utf8()
+        .map(|_| ())
+        .map_err(|_| SkipStep("`fisher` is not defined in `fish`".to_owned()))?;
+
+    Command::new(&fish)
+        .args(["-c", "echo \"$__fish_config_dir/fish_plugins\""])
+        .output_checked_utf8()
+        .and_then(|output| Path::new(&output.stdout.trim()).require().map(|_| ()))
+        .map_err(|err| SkipStep(format!("`fish_plugins` path doesn't exist: {err}")))?;
 
     print_separator("Fisher");
 
