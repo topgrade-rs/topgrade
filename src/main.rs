@@ -4,8 +4,9 @@ use std::env;
 use std::io;
 use std::process::exit;
 
-use anyhow::{anyhow, Result};
 use clap::{crate_version, Parser};
+use color_eyre::eyre::Context;
+use color_eyre::eyre::{eyre, Result};
 use console::Key;
 use log::debug;
 use log::LevelFilter;
@@ -18,6 +19,7 @@ use self::error::Upgraded;
 use self::steps::{remote::*, *};
 use self::terminal::*;
 
+mod command;
 mod config;
 mod ctrlc;
 mod error;
@@ -34,9 +36,10 @@ mod terminal;
 mod utils;
 
 fn run() -> Result<()> {
+    color_eyre::install()?;
     ctrlc::set_handler();
 
-    let base_dirs = directories::BaseDirs::new().ok_or_else(|| anyhow!("No base directories"))?;
+    let base_dirs = directories::BaseDirs::new().ok_or_else(|| eyre!("No base directories"))?;
 
     let opt = CommandLineArgs::parse();
 
@@ -79,7 +82,8 @@ fn run() -> Result<()> {
     if config.run_in_tmux() && env::var("TOPGRADE_INSIDE_TMUX").is_err() {
         #[cfg(unix)]
         {
-            tmux::run_in_tmux(config.tmux_arguments()?);
+            tmux::run_in_tmux(config.tmux_arguments()?)?;
+            return Ok(());
         }
     }
 
@@ -296,7 +300,7 @@ fn run() -> Result<()> {
         runner.execute(Step::Shell, "zi", || zsh::run_zi(&base_dirs, run_type))?;
         runner.execute(Step::Shell, "zim", || zsh::run_zim(&base_dirs, run_type))?;
         runner.execute(Step::Shell, "oh-my-zsh", || zsh::run_oh_my_zsh(&ctx))?;
-        runner.execute(Step::Shell, "fisher", || unix::run_fisher(&base_dirs, run_type))?;
+        runner.execute(Step::Shell, "fisher", || unix::run_fisher(run_type))?;
         runner.execute(Step::Shell, "bash-it", || unix::run_bashit(&ctx))?;
         runner.execute(Step::Shell, "oh-my-fish", || unix::run_oh_my_fish(&ctx))?;
         runner.execute(Step::Shell, "fish-plug", || unix::run_fish_plug(&ctx))?;
@@ -471,10 +475,10 @@ fn run() -> Result<()> {
         loop {
             match get_key() {
                 Ok(Key::Char('s')) | Ok(Key::Char('S')) => {
-                    run_shell();
+                    run_shell().context("Failed to execute shell")?;
                 }
                 Ok(Key::Char('r')) | Ok(Key::Char('R')) => {
-                    reboot();
+                    reboot().context("Failed to reboot")?;
                 }
                 Ok(Key::Char('q')) | Ok(Key::Char('Q')) => (),
                 _ => {
@@ -524,7 +528,7 @@ fn main() {
                     .is_some());
 
             if !skip_print {
-                // The `Debug` implementation of `anyhow::Result` prints a multi-line
+                // The `Debug` implementation of `eyre::Result` prints a multi-line
                 // error message that includes all the 'causes' added with
                 // `.with_context(...)` calls.
                 println!("Error: {:?}", error);

@@ -1,19 +1,23 @@
 #![allow(dead_code)]
-use anyhow::Context;
-use anyhow::Result;
-use clap::{ArgEnum, Parser};
-use directories::BaseDirs;
-use log::debug;
-use regex::Regex;
-use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fs::write;
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, fs};
+
+use clap::{ArgEnum, Parser};
+use color_eyre::eyre;
+use color_eyre::eyre::Context;
+use color_eyre::eyre::Result;
+use directories::BaseDirs;
+use log::debug;
+use regex::Regex;
+use serde::Deserialize;
 use strum::{EnumIter, EnumString, EnumVariantNames, IntoEnumIterator};
 use sys_info::hostname;
 use which_crate::which;
+
+use crate::command::CommandExt;
 
 use super::utils::editor;
 
@@ -389,9 +393,8 @@ impl ConfigFile {
         Command::new(command)
             .args(args)
             .arg(config_path)
-            .spawn()
-            .and_then(|mut p| p.wait())?;
-        Ok(())
+            .status_checked()
+            .context("Failed to open configuration file editor")
     }
 }
 
@@ -633,7 +636,7 @@ impl Config {
     }
 
     /// Extra Tmux arguments
-    pub fn tmux_arguments(&self) -> anyhow::Result<Vec<String>> {
+    pub fn tmux_arguments(&self) -> eyre::Result<Vec<String>> {
         let args = &self.config_file.tmux_arguments.as_deref().unwrap_or_default();
         shell_words::split(args)
             // The only time the parse failed is in case of a missing close quote.
