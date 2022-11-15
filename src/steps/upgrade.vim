@@ -38,6 +38,14 @@ if exists(":CocUpdateSync")
     CocUpdateSync
 endif
 
+" TODO: Should this be after `PackerSync`?
+" Not sure how to sequence this after Packer without doing something weird
+" with that `PackerComplete` autocommand.
+if exists(":TSUpdate")
+    echo "TreeSitter Update"
+    TSUpdate
+endif
+
 if exists(':PackerSync')
   echo "Packer"
   autocmd User PackerComplete quitall
