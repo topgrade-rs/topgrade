@@ -1,12 +1,12 @@
 use crate::command::CommandExt;
+use crate::config::Step;
+use crate::execution_context::ExecutionContext;
 use crate::executor::RunType;
 use crate::terminal::print_separator;
 use crate::utils::require_option;
 use color_eyre::eyre::Result;
 use std::path::PathBuf;
 use std::process::Command;
-use crate::config::{Step};
-use crate::execution_context::ExecutionContext;
 
 pub fn upgrade_freebsd(sudo: Option<&PathBuf>, run_type: RunType) -> Result<()> {
     let sudo = require_option(sudo, String::from("No sudo detected"))?;
