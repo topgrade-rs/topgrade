@@ -74,7 +74,8 @@ fn run() -> Result<()> {
     if config.run_in_tmux() && env::var("TOPGRADE_INSIDE_TMUX").is_err() {
         #[cfg(unix)]
         {
-            tmux::run_in_tmux(config.tmux_arguments()?);
+            tmux::run_in_tmux(config.tmux_arguments()?)?;
+            return Ok(());
         }
     }
 
@@ -291,7 +292,7 @@ fn run() -> Result<()> {
         runner.execute(Step::Shell, "zi", || zsh::run_zi(&base_dirs, run_type))?;
         runner.execute(Step::Shell, "zim", || zsh::run_zim(&base_dirs, run_type))?;
         runner.execute(Step::Shell, "oh-my-zsh", || zsh::run_oh_my_zsh(&ctx))?;
-        runner.execute(Step::Shell, "fisher", || unix::run_fisher(&base_dirs, run_type))?;
+        runner.execute(Step::Shell, "fisher", || unix::run_fisher(run_type))?;
         runner.execute(Step::Shell, "bash-it", || unix::run_bashit(&ctx))?;
         runner.execute(Step::Shell, "oh-my-fish", || unix::run_oh_my_fish(&ctx))?;
         runner.execute(Step::Shell, "fish-plug", || unix::run_fish_plug(&ctx))?;
