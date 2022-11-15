@@ -442,7 +442,7 @@ pub struct CommandLineArgs {
     #[clap(long = "env", value_name = "NAME=VALUE", multiple_values = true)]
     env: Vec<String>,
 
-    /// Output debug logs. Alias for `--trace debug`.
+    /// Output debug logs. Alias for `--log-filter debug`.
     #[clap(short = 'v', long = "verbose")]
     pub verbose: bool,
 
@@ -485,7 +485,7 @@ pub struct CommandLineArgs {
     ///
     /// See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/struct.EnvFilter.html
     #[clap(long, default_value = "info")]
-    pub trace: String,
+    pub log_filter: String,
 }
 
 impl CommandLineArgs {
@@ -505,7 +505,7 @@ impl CommandLineArgs {
         if self.verbose {
             "debug".into()
         } else {
-            self.trace.clone()
+            self.log_filter.clone()
         }
     }
 }
