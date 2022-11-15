@@ -5,8 +5,6 @@ use crate::utils::require_option;
 use color_eyre::eyre::Result;
 use std::path::PathBuf;
 use std::process::Command;
-use crate::config::{Step};
-use crate::execution_context::ExecutionContext;
 
 pub fn upgrade_freebsd(sudo: Option<&PathBuf>, run_type: RunType) -> Result<()> {
     let sudo = require_option(sudo, String::from("No sudo detected"))?;
@@ -17,18 +15,13 @@ pub fn upgrade_freebsd(sudo: Option<&PathBuf>, run_type: RunType) -> Result<()> 
         .status_checked()
 }
 
-pub fn upgrade_packages(ctx: &ExecutionContext, sudo: Option<&PathBuf>, run_type: RunType) -> Result<()> {
+pub fn upgrade_packages(sudo: Option<&PathBuf>, run_type: RunType) -> Result<()> {
     let sudo = require_option(sudo, String::from("No sudo detected"))?;
     print_separator("FreeBSD Packages");
-    let mut command = run_type.execute(sudo);
-
-    command.args(&["/usr/sbin/pkg", "upgrade"]);
-
-    if ctx.config().yes(Step::System) {
-        command.arg("-y");
-    }
-
-    command.check_run()
+    run_type
+        .execute(sudo)
+        .args(["/usr/sbin/pkg", "upgrade"])
+        .status_checked()
 }
 
 pub fn audit_packages(sudo: &Option<PathBuf>) -> Result<()> {
