@@ -14,23 +14,30 @@ use log::debug;
 
 use crate::error::SkipStep;
 use crate::execution_context::ExecutionContext;
-use crate::executor::{Executor, RunType};
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+use crate::executor::Executor;
+use crate::executor::RunType;
 use crate::terminal::print_separator;
-#[cfg(not(target_os = "macos"))]
+#[cfg(not(any(target_os = "android", target_os = "macos")))]
 use crate::utils::require_option;
 use crate::utils::{require, PathExt};
 
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 const INTEL_BREW: &str = "/usr/local/bin/brew";
+
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 const ARM_BREW: &str = "/opt/homebrew/bin/brew";
 
 #[derive(Copy, Clone, Debug)]
 #[allow(dead_code)]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 pub enum BrewVariant {
     Path,
     MacIntel,
     MacArm,
 }
 
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 impl BrewVariant {
     fn binary_name(self) -> &'static str {
         match self {
@@ -80,15 +87,20 @@ impl BrewVariant {
     }
 }
 
-pub fn run_fisher(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_fisher(run_type: RunType) -> Result<()> {
     let fish = require("fish")?;
 
-    if env::var("fisher_path").is_err() {
-        base_dirs
-            .home_dir()
-            .join(".config/fish/functions/fisher.fish")
-            .require()?;
-    }
+    Command::new(&fish)
+        .args(["-c", "type -t fisher"])
+        .output_checked_utf8()
+        .map(|_| ())
+        .map_err(|_| SkipStep("`fisher` is not defined in `fish`".to_owned()))?;
+
+    Command::new(&fish)
+        .args(["-c", "echo \"$__fish_config_dir/fish_plugins\""])
+        .output_checked_utf8()
+        .and_then(|output| Path::new(&output.stdout.trim()).require().map(|_| ()))
+        .map_err(|err| SkipStep(format!("`fish_plugins` path doesn't exist: {err}")))?;
 
     print_separator("Fisher");
 
@@ -223,6 +235,7 @@ pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()> {
     #[allow(unused_variables)]
     let binary_name = require(variant.binary_name())?;

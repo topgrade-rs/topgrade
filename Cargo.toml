@@ -3,7 +3,8 @@ name = "topgrade"
 description = "Upgrade all the things"
 categories = ["os"]
 keywords = ["upgrade", "update"]
-license-file = "LICENSE"
+license = "GPL-3.0"
+# license-file = "LICENSE"
 repository = "https://github.com/topgrade-rs/topgrade"
 version = "10.1.2"
 authors = ["Roey Darwish Dror <roey.ghost@gmail.com>", "Thomas Schönauer <t.schoenauer@hgs-wt.at>"]
@@ -48,6 +49,15 @@ color-eyre = "0.6.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 notify-rust = "~4.5"
+
+[package.metadata.generate-rpm]
+assets = [{source = "target/release/topgrade", dest="/usr/bin/topgrade"}]
+
+[package.metadata.generate-rpm.requires]
+git = "*"
+
+[package.metadata.deb]
+depends = "$auto,git"
 
 [target.'cfg(unix)'.dependencies]
 nix = "~0.24"
