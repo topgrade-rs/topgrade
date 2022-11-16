@@ -22,6 +22,8 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 
 ## Installation
 
+[![Packaging status](https://repology.org/badge/vertical-allrepos/topgrade.svg)](https://repology.org/project/topgrade/versions)
+
 - Arch Linux: [AUR](https://aur.archlinux.org/packages/topgrade)
 - NixOS: [Nixpkgs](https://search.nixos.org/packages?show=topgrade)
 - Void Linux: [XBPS](https://voidlinux.org/packages/?arch=x86_64&q=topgrade)
