@@ -40,7 +40,6 @@ cfg-if = "~1.0"
 tokio = { version = "~1.5", features = ["process", "rt-multi-thread"] }
 futures = "~0.3"
 regex = "~1.5"
-sys-info = "~0.9"
 semver = "~1.0"
 shell-words = "~1.1"
 color-eyre = "0.6.2"
@@ -60,6 +59,7 @@ git = "*"
 depends = "$auto,git"
 
 [target.'cfg(unix)'.dependencies]
+libc = "~0.2"
 nix = "~0.24"
 rust-ini = "~0.18"
 self_update_crate = { version = "~0.30", default-features = false, optional = true, package = "self_update", features = ["archive-tar", "compression-flate2", "rustls"] }
