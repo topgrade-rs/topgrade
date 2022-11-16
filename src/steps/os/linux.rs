@@ -3,7 +3,7 @@ use std::process::Command;
 
 use color_eyre::eyre::Result;
 use ini::Ini;
-use log::{debug, warn};
+use tracing::{debug, warn};
 
 use crate::command::CommandExt;
 use crate::error::{SkipStep, TopgradeError};

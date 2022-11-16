@@ -12,9 +12,9 @@ use color_eyre::eyre;
 use color_eyre::eyre::Context;
 use console::{style, Key, Term};
 use lazy_static::lazy_static;
-use log::{debug, error};
 #[cfg(target_os = "macos")]
 use notify_rust::{Notification, Timeout};
+use tracing::{debug, error};
 #[cfg(windows)]
 use which_crate::which;
 
@@ -105,7 +105,7 @@ impl Terminal {
                     command.args(["-a", "Topgrade", "Topgrade"]);
                     command.arg(message.as_ref());
                     if let Err(err) = command.output_checked() {
-                        log::error!("{err:?}");
+                        tracing::error!("{err:?}");
                     }
                 }
             }

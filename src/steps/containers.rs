@@ -1,14 +1,15 @@
+use std::path::Path;
+use std::process::Command;
+
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use tracing::{debug, error, warn};
 
 use crate::command::CommandExt;
 use crate::error::{self, TopgradeError};
 use crate::terminal::print_separator;
 use crate::{execution_context::ExecutionContext, utils::require};
-use log::{debug, error, warn};
-use std::path::Path;
-use std::process::Command;
 
 // A string found in the output of docker for containers that weren't found in
 // the docker registry. We use this to gracefully handle and skip containers

@@ -5,9 +5,9 @@ use crate::report::{Report, StepResult};
 use crate::terminal::print_error;
 use crate::{config::Step, terminal::should_retry};
 use color_eyre::eyre::Result;
-use log::debug;
 use std::borrow::Cow;
 use std::fmt::Debug;
+use tracing::debug;
 
 pub struct Runner<'a> {
     ctx: &'a ExecutionContext<'a>,

@@ -5,7 +5,7 @@ use std::process::{Child, Command, ExitStatus, Output};
 
 use color_eyre::eyre;
 use color_eyre::eyre::Result;
-use log::debug;
+use tracing::debug;
 
 use crate::command::CommandExt;
 use crate::error::DryRun;
