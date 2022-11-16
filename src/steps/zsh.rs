@@ -4,7 +4,7 @@ use std::process::Command;
 
 use color_eyre::eyre::Result;
 use directories::BaseDirs;
-use log::debug;
+use tracing::debug;
 use walkdir::WalkDir;
 
 use crate::command::CommandExt;

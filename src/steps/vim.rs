@@ -9,12 +9,12 @@ use crate::{
     utils::{require, PathExt},
 };
 use directories::BaseDirs;
-use log::debug;
 use std::path::PathBuf;
 use std::{
     io::{self, Write},
     process::Command,
 };
+use tracing::debug;
 
 const UPGRADE_VIM: &str = include_str!("upgrade.vim");
 

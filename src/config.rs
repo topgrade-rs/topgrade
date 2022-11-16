@@ -10,11 +10,11 @@ use color_eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use directories::BaseDirs;
-use log::debug;
 use regex::Regex;
 use serde::Deserialize;
 use strum::{EnumIter, EnumString, EnumVariantNames, IntoEnumIterator};
 use sys_info::hostname;
+use tracing::debug;
 use which_crate::which;
 
 use crate::command::CommandExt;
@@ -352,12 +352,12 @@ impl ConfigFile {
         };
 
         let contents = fs::read_to_string(&config_path).map_err(|e| {
-            log::error!("Unable to read {}", config_path.display());
+            tracing::error!("Unable to read {}", config_path.display());
             e
         })?;
 
         let mut result: Self = toml::from_str(&contents).map_err(|e| {
-            log::error!("Failed to deserialize {}", config_path.display());
+            tracing::error!("Failed to deserialize {}", config_path.display());
             e
         })?;
 
@@ -442,7 +442,7 @@ pub struct CommandLineArgs {
     #[clap(long = "env", value_name = "NAME=VALUE", multiple_values = true)]
     env: Vec<String>,
 
-    /// Output logs
+    /// Output debug logs. Alias for `--log-filter debug`.
     #[clap(short = 'v', long = "verbose")]
     pub verbose: bool,
 
@@ -480,6 +480,12 @@ pub struct CommandLineArgs {
     /// Show the reason for skipped steps
     #[clap(long = "show-skipped")]
     show_skipped: bool,
+
+    /// Tracing filter directives.
+    ///
+    /// See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/struct.EnvFilter.html
+    #[clap(long, default_value = "info")]
+    pub log_filter: String,
 }
 
 impl CommandLineArgs {
@@ -493,6 +499,14 @@ impl CommandLineArgs {
 
     pub fn env_variables(&self) -> &Vec<String> {
         &self.env
+    }
+
+    pub fn tracing_filter_directives(&self) -> String {
+        if self.verbose {
+            "debug".into()
+        } else {
+            self.log_filter.clone()
+        }
     }
 }
 
@@ -517,11 +531,11 @@ impl Config {
             ConfigFile::read(base_dirs, opt.config.clone()).unwrap_or_else(|e| {
                 // Inform the user about errors when loading the configuration,
                 // but fallback to the default config to at least attempt to do something
-                log::error!("failed to load configuration: {}", e);
+                tracing::error!("failed to load configuration: {}", e);
                 ConfigFile::default()
             })
         } else {
-            log::debug!("Configuration directory {} does not exist", config_directory.display());
+            tracing::debug!("Configuration directory {} does not exist", config_directory.display());
             ConfigFile::default()
         };
 

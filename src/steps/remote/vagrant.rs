@@ -3,9 +3,9 @@ use std::process::Command;
 use std::{fmt::Display, rc::Rc, str::FromStr};
 
 use color_eyre::eyre::Result;
-use log::{debug, error};
 use regex::Regex;
 use strum::EnumString;
+use tracing::{debug, error};
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;

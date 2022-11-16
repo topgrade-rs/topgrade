@@ -4,9 +4,9 @@ use crate::command::CommandExt;
 use crate::config::Step;
 use crate::terminal::print_separator;
 use crate::{execution_context::ExecutionContext, utils::require};
-use log::debug;
 use std::path::Path;
 use std::{path::PathBuf, process::Command};
+use tracing::debug;
 
 fn list_toolboxes(toolbx: &Path) -> Result<Vec<String>> {
     let output = Command::new(toolbx)

@@ -3,7 +3,7 @@ use std::path::Path;
 use std::{ffi::OsStr, process::Command};
 
 use color_eyre::eyre::Result;
-use log::debug;
+use tracing::debug;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;

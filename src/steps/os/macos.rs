@@ -4,9 +4,9 @@ use crate::executor::RunType;
 use crate::terminal::{print_separator, prompt_yesno};
 use crate::{utils::require, Step};
 use color_eyre::eyre::Result;
-use log::debug;
 use std::fs;
 use std::process::Command;
+use tracing::debug;
 
 pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
     require("port")?;

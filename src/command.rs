@@ -183,7 +183,7 @@ impl CommandExt for Command {
             let err = TopgradeError::ProcessFailedWithOutput(program, output.status, stderr.into_owned());
 
             let ret = Err(err).with_context(|| message);
-            log::debug!("Command failed: {ret:?}");
+            tracing::debug!("Command failed: {ret:?}");
             ret
         }
     }
@@ -203,7 +203,7 @@ impl CommandExt for Command {
             let (program, _) = get_program_and_args(self);
             let err = TopgradeError::ProcessFailed(program, status);
             let ret = Err(err).with_context(|| format!("Command failed: `{command}`"));
-            log::debug!("Command failed: {ret:?}");
+            tracing::debug!("Command failed: {ret:?}");
             ret
         }
     }
@@ -239,6 +239,6 @@ fn format_program_and_args(cmd: &Command) -> String {
 
 fn log(cmd: &Command) -> String {
     let command = format_program_and_args(cmd);
-    log::debug!("Executing command `{command}`");
+    tracing::debug!("Executing command `{command}`");
     command
 }

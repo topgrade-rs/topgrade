@@ -5,10 +5,10 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use color_eyre::eyre::Result;
-use log::debug;
 #[cfg(target_os = "linux")]
 use nix::unistd::Uid;
 use semver::Version;
+use tracing::debug;
 
 use crate::command::CommandExt;
 use crate::executor::RunType;
