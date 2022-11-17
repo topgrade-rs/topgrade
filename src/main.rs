@@ -202,7 +202,7 @@ fn run() -> Result<()> {
 
     #[cfg(target_os = "freebsd")]
     runner.execute(Step::Pkg, "FreeBSD Packages", || {
-        freebsd::upgrade_packages(sudo.as_ref(), run_type)
+        freebsd::upgrade_packages(&ctx, sudo.as_ref(), run_type)
     })?;
 
     #[cfg(target_os = "openbsd")]
@@ -410,7 +410,7 @@ fn run() -> Result<()> {
 
     #[cfg(target_os = "freebsd")]
     runner.execute(Step::System, "FreeBSD Upgrade", || {
-        freebsd::upgrade_freebsd(&ctx, sudo.as_ref(), run_type)
+        freebsd::upgrade_freebsd(sudo.as_ref(), run_type)
     })?;
 
     #[cfg(target_os = "openbsd")]
