@@ -24,7 +24,7 @@ pub fn upgrade_packages(ctx: &ExecutionContext, sudo: Option<&PathBuf>, run_type
 
     command.args(["/usr/sbin/pkg", "upgrade"]);
     if ctx.config().yes(Step::System) {
-        command.arg("-y")
+        command.arg("-y");
     }
     command.check_run()
 }
