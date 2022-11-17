@@ -27,7 +27,7 @@ pub fn upgrade_packages(ctx: &ExecutionContext, sudo: Option<&PathBuf>, run_type
     if ctx.config().yes(Step::System) {
         command.arg("-y");
     }
-    command.check_run()
+    command.status_checked()
 }
 
 pub fn audit_packages(sudo: &Option<PathBuf>) -> Result<()> {
