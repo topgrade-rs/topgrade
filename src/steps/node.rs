@@ -91,7 +91,7 @@ impl NPM {
     fn upgrade(&self, run_type: RunType, use_sudo: bool) -> Result<()> {
         let args = ["update", self.global_location_arg()];
         if use_sudo {
-            run_type.execute("sudo").args(args).status_checked()?;
+            run_type.execute("sudo").arg(&self.command).args(args).status_checked()?;
         } else {
             run_type.execute(&self.command).args(args).status_checked()?;
         }
