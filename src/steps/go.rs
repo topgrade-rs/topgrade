@@ -29,11 +29,17 @@ pub fn run_go_gup(run_type: RunType) -> Result<()> {
 
 /// Get the path of a Go binary.
 fn require_go_bin(name: &str) -> Result<PathBuf> {
-    let go = utils::require("go")?;
-    let gopath_output = Command::new(go).args(["env", "GOPATH"]).output_checked_utf8()?;
-    let gopath = gopath_output.stdout.trim();
+    utils::require(name).or_else(|_| {
+        let go = utils::require("go")?;
+        // TODO: Does this work? `go help gopath` says that:
+        // > The GOPATH environment variable lists places to look for Go code.
+        // > On Unix, the value is a colon-separated string.
+        // > On Windows, the value is a semicolon-separated string.
+        // > On Plan 9, the value is a list.
+        // Should we also fallback to the env variable?
+        let gopath_output = Command::new(go).args(["env", "GOPATH"]).output_checked_utf8()?;
+        let gopath = gopath_output.stdout.trim();
 
-    utils::require(name)
-        .unwrap_or_else(|_| PathBuf::from(gopath).join("bin").join(name))
-        .require()
+        PathBuf::from(gopath).join("bin").join(name).require()
+    })
 }
