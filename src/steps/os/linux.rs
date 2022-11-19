@@ -155,7 +155,9 @@ fn is_wsl() -> Result<bool> {
 
 // TODO: add tests
 fn upgrade_alpine_linux(ctx: &ExecutionContext) -> Result<()> {
+    // /bin/apk in test
     let apk = require("apk")?;
+    // /bin/sudo in test
     let sudo = ctx.sudo().as_ref().unwrap();
 
     ctx.run_type().execute(sudo).arg(&apk).arg("update").check_run()?;
@@ -654,6 +656,7 @@ pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::execution_context::ExecutionContext;
 
     fn test_template(os_release_file: &str, expected_distribution: Distribution) {
         let os_release = Ini::load_from_str(os_release_file).unwrap();

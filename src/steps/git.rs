@@ -305,3 +305,16 @@ impl<'a> Repositories<'a> {
         debug_assert!(_removed);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::utils::create_test_path;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_git_new() {
+        let path = which("git").unwrap();
+        assert_eq!(path, create_test_path("git"))
+    }
+}

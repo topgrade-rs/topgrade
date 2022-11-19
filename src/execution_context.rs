@@ -31,6 +31,22 @@ impl<'a> ExecutionContext<'a> {
             base_dirs,
         }
     }
+    #[cfg(test)]
+    pub fn new_test_ctx() -> ExecutionContext<'a> {
+        use crate::config::CommandLineArgs;
+        use crate::execution_context;
+        use crate::steps::git;
+        use crate::{executor, utils};
+
+        let run_type = executor::RunType::new(false);
+        let sudo = utils::sudo();
+        let git = git::Git::new();
+        let opt = CommandLineArgs::new();
+        let config = Config::new(opt).unwrap();
+        let base_dirs = BaseDirs::new().unwrap();
+        let ctx = execution_context::ExecutionContext::new(run_type, &sudo, &git, &config, &base_dirs);
+        todo!()
+    }
 
     pub fn execute_elevated(&self, command: &Path, interactive: bool) -> Result<Executor> {
         let sudo = require_option(self.sudo.clone(), "Sudo is required for this operation".into())?;

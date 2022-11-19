@@ -26,6 +26,8 @@ mod execution_context;
 mod executor;
 mod report;
 mod runner;
+#[cfg(test)]
+mod test;
 
 #[cfg(windows)]
 mod self_renamer;
@@ -40,7 +42,6 @@ mod utils;
 fn run() -> Result<()> {
     ctrlc::set_handler();
 
-    //TODO: needs test
     let base_dirs = BaseDirs::new().ok_or_else(|| anyhow!("No base directories"))?;
 
     let opt = CommandLineArgs::parse();
@@ -88,10 +89,14 @@ fn run() -> Result<()> {
         }
     }
 
+    // /bin/git for tests
     let git = git::Git::new();
+
     let mut git_repos = git::Repositories::new(&git);
 
+    // /bin/doas for tests
     let sudo = utils::sudo();
+
     let run_type = executor::RunType::new(config.dry_run());
 
     //Tests required before:
