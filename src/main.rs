@@ -323,7 +323,8 @@ fn run() -> Result<()> {
     runner.execute(Step::Choosenim, "choosenim", || generic::run_choosenim(&ctx))?;
     runner.execute(Step::Cargo, "cargo", || generic::run_cargo_update(&ctx))?;
     runner.execute(Step::Flutter, "Flutter", || generic::run_flutter_upgrade(run_type))?;
-    runner.execute(Step::Go, "Go", || generic::run_go(run_type))?;
+    runner.execute(Step::Go, "go-global-update", || go::run_go_global_update(run_type))?;
+    runner.execute(Step::Go, "gup", || go::run_go_gup(run_type))?;
     runner.execute(Step::Emacs, "Emacs", || emacs.upgrade(&ctx))?;
     runner.execute(Step::Opam, "opam", || generic::run_opam_update(&ctx))?;
     runner.execute(Step::Vcpkg, "vcpkg", || generic::run_vcpkg_update(run_type))?;
