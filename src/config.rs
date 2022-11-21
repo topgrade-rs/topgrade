@@ -130,6 +130,7 @@ pub enum Step {
     Restarts,
     Rtcl,
     Rustup,
+    Juliaup,
     Scoop,
     Sdkman,
     Sheldon,
