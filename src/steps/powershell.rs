@@ -3,10 +3,10 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 
-use anyhow::Result;
+use color_eyre::eyre::Result;
 
+use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
-use crate::executor::CommandExt;
 use crate::terminal::{is_dumb, print_separator};
 use crate::utils::{require_option, which, PathExt};
 use crate::Step;
@@ -27,8 +27,8 @@ impl Powershell {
         let profile = path.as_ref().and_then(|path| {
             Command::new(path)
                 .args(["-NoProfile", "-Command", "Split-Path $profile"])
-                .check_output()
-                .map(|output| PathBuf::from(output.trim()))
+                .output_checked_utf8()
+                .map(|output| PathBuf::from(output.stdout.trim()))
                 .and_then(|p| p.require())
                 .ok()
         });
@@ -52,8 +52,8 @@ impl Powershell {
                 "-Command",
                 &format!("Get-Module -ListAvailable {}", command),
             ])
-            .check_output()
-            .map(|result| !result.is_empty())
+            .output_checked_utf8()
+            .map(|result| !result.stdout.is_empty())
             .unwrap_or(false)
     }
 
@@ -81,7 +81,7 @@ impl Powershell {
             .execute(powershell)
             // This probably doesn't need `shell_words::join`.
             .args(["-NoProfile", "-Command", &cmd.join(" ")])
-            .check_run()
+            .status_checked()
     }
 
     #[cfg(windows)]
@@ -119,6 +119,6 @@ impl Powershell {
                     }
                 ),
             ])
-            .check_run()
+            .status_checked()
     }
 }

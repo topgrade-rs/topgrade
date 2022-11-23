@@ -2,6 +2,7 @@ pub mod containers;
 pub mod emacs;
 pub mod generic;
 pub mod git;
+pub mod go;
 pub mod kakoune;
 pub mod node;
 pub mod os;
