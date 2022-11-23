@@ -1,12 +1,12 @@
 <div align="center">
-  <img alt="Topgrade" src="doc/topgrade.png" width="850px">
+  <h1>
+    <img alt="Topgrade" src="doc/topgrade_transparent.png" width="850px">
+  </h1>
   
-  <!--
-  <a href="https://github.com/topgrade-rs/topgrade/releases"><img alt="GitHub Release" src="https://img.shields.io/github/release/r-darwish/topgrade.svg"></a>
+  <a href="https://github.com/topgrade-rs/topgrade/releases"><img alt="GitHub Release" src="https://img.shields.io/github/release/topgrade-rs/topgrade.svg"></a>
   <a href="https://crates.io/crates/topgrade"><img alt="crates.io" src="https://img.shields.io/crates/v/topgrade.svg"></a>
   <a href="https://aur.archlinux.org/packages/topgrade"><img alt="AUR" src="https://img.shields.io/aur/version/topgrade.svg"></a>
   <a href="https://formulae.brew.sh/formula/topgrade"><img alt="Homebrew" src="https://img.shields.io/homebrew/v/topgrade.svg"></a>
-  -->  
 
   <img alt="Demo" src="doc/screenshot.gif" width="550px">
 </div>
@@ -22,49 +22,55 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 
 ## Installation
 
-- Arch Linux: [AUR](https://aur.archlinux.org/packages/topgrade) package.
-- NixOS: _topgrade_ package in `nixpkgs`.
-- Void Linux: _topgrade_ package
-- macOS: [Homebrew](https://formulae.brew.sh/formula/topgrade) or [MacPorts](https://ports.macports.org/port/topgrade/).
+[![Packaging status](https://repology.org/badge/vertical-allrepos/topgrade.svg)](https://repology.org/project/topgrade/versions)
 
-Other systems users can either use `cargo install` or use the compiled binaries from the release page.
+- Arch Linux: [AUR](https://aur.archlinux.org/packages/topgrade)
+- NixOS: [Nixpkgs](https://search.nixos.org/packages?show=topgrade)
+- Void Linux: [XBPS](https://voidlinux.org/packages/?arch=x86_64&q=topgrade)
+- macOS: [Homebrew](https://formulae.brew.sh/formula/topgrade) or [MacPorts](https://ports.macports.org/port/topgrade/)
+
+Other systems users can either use `cargo install` or the compiled binaries from the release page.
 The compiled binaries contain a self-upgrading feature.
 
 Topgrade requires Rust 1.60 or above.
 
-## Documentation
-
-> **Warning**
-> Work in Progress
-
-You can visit the documentation at [topgrade-rs.github.io](https://topgrade-rs.github.io/) .
-
 ## Usage
 
 Just run `topgrade`.
-See [the documentation](https://topgrade-rs.github.io/) for the list of things Topgrade supports.
+
+Visit the documentation at [topgrade-rs.github.io](https://topgrade-rs.github.io/) for more information.
+
+> **Warning**
+> Work in Progress
 
 ## Customization
 
 See `config.example.toml` for an example configuration file.
 
-### Configuration path
+### Configuration Path
 
-The configuration should be placed in the following paths depending by the operating system:
+The configuration should be placed in the following paths depending on the operating system:
 
 - **Windows** - `%APPDATA%/topgrade.toml`
 - **macOS** and **other Unix systems** - `${XDG_CONFIG_HOME:-~/.config}/topgrade.toml`
+
+## Remote Execution
+
+You can specify a key called `remote_topgrades` in the configuration file.
+This key should contain a list of hostnames that have Topgrade installed on them.
+Topgrade will use `ssh` to run `topgrade` on remote hosts before acting locally.
+To limit the execution only to specific hosts use the `--remote-host-limit` parameter.
 
 ## Contribution
 
 ### Problems or missing features?
 
-Open a new Issue describing your problem and if possible with a possible solution.
+Open a new issue describing your problem and if possible provide a solution.
 
 ### Missing a feature or found an unsupported tool/distro?
 
 Just let us now what you are missing by opening an issue.
-For tools please open an Issue describing the tool, which platforms it supports and if possible, give us an example of its usage.
+For tools, please open an issue describing the tool, which platforms it supports and if possible, give us an example of its usage.
 
 ### Want to contribute to the code?
 
@@ -74,16 +80,9 @@ Just fork the repository and start coding.
 
 - Check if your code passes `cargo fmt` and `cargo clippy`.
 - Check if your code is self explanatory, if not it should be documented by comments.
-- Make a Pull Request to the dev branch for new features or to the bug-fixes branch for bug fixes.
+- Make a pull request to the `dev` branch for new features or to the `bug-fixes` branch for bug fixes.
 
-## Remote execution
-
-You can specify a key called `remote_topgrades` in the configuration file.
-This key should contain a list of hostnames that have Topgrade installed on them.
-Topgrade will use `ssh` to run `topgrade` on remote hosts before acting locally.
-To limit the execution only to specific hosts use the `--remote-host-limit` parameter.
-
-## ToDo
+## Roadmap
 
 - [ ] Add a proper testing framework to the code base.
 - [ ] Add unit tests for package managers.
