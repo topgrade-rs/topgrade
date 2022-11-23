@@ -2,12 +2,11 @@ use std::convert::TryFrom;
 use std::path::Path;
 use std::{ffi::OsStr, process::Command};
 
-use color_eyre::eyre::Result;
-use tracing::debug;
+use anyhow::Result;
+use log::debug;
 
-use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
-use crate::executor::RunType;
+use crate::executor::{CommandExt, RunType};
 use crate::terminal::{print_separator, print_warning};
 use crate::utils::require;
 use crate::{error::SkipStep, steps::git::Repositories};
@@ -35,7 +34,7 @@ pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
         command.arg("--yes");
     }
 
-    command.status_checked()
+    command.check_run()
 }
 
 pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
@@ -48,10 +47,7 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep(String::from("Winget is disabled by default")).into());
     }
 
-    ctx.run_type()
-        .execute(&winget)
-        .args(["upgrade", "--all"])
-        .status_checked()
+    ctx.run_type().execute(&winget).args(["upgrade", "--all"]).check_run()
 }
 
 pub fn run_scoop(cleanup: bool, run_type: RunType) -> Result<()> {
@@ -59,18 +55,18 @@ pub fn run_scoop(cleanup: bool, run_type: RunType) -> Result<()> {
 
     print_separator("Scoop");
 
-    run_type.execute(&scoop).args(["update"]).status_checked()?;
-    run_type.execute(&scoop).args(["update", "*"]).status_checked()?;
+    run_type.execute(&scoop).args(["update"]).check_run()?;
+    run_type.execute(&scoop).args(["update", "*"]).check_run()?;
 
     if cleanup {
-        run_type.execute(&scoop).args(["cleanup", "*"]).status_checked()?;
+        run_type.execute(&scoop).args(["cleanup", "*"]).check_run()?;
     }
 
     Ok(())
 }
 
 fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
-    let output = Command::new(wsl).args(["--list", "-q"]).output_checked_utf8()?.stdout;
+    let output = Command::new(wsl).args(["--list", "-q"]).check_output()?;
     Ok(output
         .lines()
         .filter(|s| !s.is_empty())
@@ -81,7 +77,7 @@ fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
 fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> Result<()> {
     let topgrade = Command::new(wsl)
         .args(["-d", dist, "bash", "-lc", "which topgrade"])
-        .output_checked_utf8()
+        .check_output()
         .map_err(|_| SkipStep(String::from("Could not find Topgrade installed in WSL")))?;
 
     let mut command = ctx.run_type().execute(wsl);
@@ -93,7 +89,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
         command.arg("-y");
     }
 
-    command.status_checked()
+    command.check_run()
 }
 
 pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
@@ -133,17 +129,12 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Windows Update");
     println!("Running Windows Update. Check the control panel for progress.");
-    ctx.run_type()
-        .execute(&usoclient)
-        .arg("ScanInstallWait")
-        .status_checked()?;
-    ctx.run_type().execute(&usoclient).arg("StartInstall").status_checked()
+    ctx.run_type().execute(&usoclient).arg("ScanInstallWait").check_run()?;
+    ctx.run_type().execute(&usoclient).arg("StartInstall").check_run()
 }
 
-pub fn reboot() -> Result<()> {
-    // If this works, it won't return, but if it doesn't work, it may return a useful error
-    // message.
-    Command::new("shutdown").args(["/R", "/T", "0"]).status_checked()
+pub fn reboot() {
+    Command::new("shutdown").args(["/R", "/T", "0"]).spawn().ok();
 }
 
 pub fn insert_startup_scripts(ctx: &ExecutionContext, git_repos: &mut Repositories) -> Result<()> {

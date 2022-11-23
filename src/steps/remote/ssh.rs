@@ -1,8 +1,6 @@
-use color_eyre::eyre::Result;
+use anyhow::Result;
 
-use crate::{
-    command::CommandExt, error::SkipStep, execution_context::ExecutionContext, terminal::print_separator, utils,
-};
+use crate::{error::SkipStep, execution_context::ExecutionContext, terminal::print_separator, utils};
 
 fn prepare_async_ssh_command(args: &mut Vec<&str>) {
     args.insert(0, "ssh");
@@ -26,7 +24,7 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
         #[cfg(unix)]
         {
             prepare_async_ssh_command(&mut args);
-            crate::tmux::run_command(ctx, hostname, &shell_words::join(args))?;
+            crate::tmux::run_command(ctx, &shell_words::join(args))?;
             Err(SkipStep(String::from("Remote Topgrade launched in Tmux")).into())
         }
 
@@ -49,6 +47,6 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
         print_separator(format!("Remote ({})", hostname));
         println!("Connecting to {}...", hostname);
 
-        ctx.run_type().execute(ssh).args(&args).status_checked()
+        ctx.run_type().execute(ssh).args(&args).check_run()
     }
 }

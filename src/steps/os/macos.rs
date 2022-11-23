@@ -1,30 +1,26 @@
-use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
-use crate::executor::RunType;
+use crate::executor::{CommandExt, RunType};
 use crate::terminal::{print_separator, prompt_yesno};
-use crate::{utils::require, Step};
-use color_eyre::eyre::Result;
+use crate::{error::TopgradeError, utils::require, Step};
+use anyhow::Result;
+use log::debug;
 use std::fs;
 use std::process::Command;
-use tracing::debug;
 
 pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
     require("port")?;
     let sudo = ctx.sudo().as_ref().unwrap();
     print_separator("MacPorts");
-    ctx.run_type()
-        .execute(sudo)
-        .args(["port", "selfupdate"])
-        .status_checked()?;
+    ctx.run_type().execute(sudo).args(["port", "selfupdate"]).check_run()?;
     ctx.run_type()
         .execute(sudo)
         .args(["port", "-u", "upgrade", "outdated"])
-        .status_checked()?;
+        .check_run()?;
     if ctx.config().cleanup() {
         ctx.run_type()
             .execute(sudo)
             .args(["port", "-N", "reclaim"])
-            .status_checked()?;
+            .check_run()?;
     }
 
     Ok(())
@@ -34,7 +30,7 @@ pub fn run_mas(run_type: RunType) -> Result<()> {
     let mas = require("mas")?;
     print_separator("macOS App Store");
 
-    run_type.execute(mas).arg("upgrade").status_checked()
+    run_type.execute(mas).arg("upgrade").check_run()
 }
 
 pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
@@ -62,15 +58,20 @@ pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
         command.arg("--no-scan");
     }
 
-    command.status_checked()
+    command.check_run()
 }
 
 fn system_update_available() -> Result<bool> {
-    let output = Command::new("softwareupdate").arg("--list").output_checked_utf8()?;
-
+    let output = Command::new("softwareupdate").arg("--list").output()?;
     debug!("{:?}", output);
 
-    Ok(!output.stderr.contains("No new software available"))
+    let status = output.status;
+    if !status.success() {
+        return Err(TopgradeError::ProcessFailed(status).into());
+    }
+    let string_output = String::from_utf8(output.stderr)?;
+    debug!("{:?}", string_output);
+    Ok(!string_output.contains("No new software available"))
 }
 
 pub fn run_sparkle(ctx: &ExecutionContext) -> Result<()> {
@@ -82,12 +83,12 @@ pub fn run_sparkle(ctx: &ExecutionContext) -> Result<()> {
         let probe = Command::new(&sparkle)
             .args(["--probe", "--application"])
             .arg(application.path())
-            .output_checked_utf8();
+            .check_output();
         if probe.is_ok() {
             let mut command = ctx.run_type().execute(&sparkle);
             command.args(["bundle", "--check-immediately", "--application"]);
             command.arg(application.path());
-            command.status_checked()?;
+            command.spawn()?.wait()?;
         }
     }
     Ok(())

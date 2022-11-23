@@ -1,11 +1,46 @@
-use crate::error::SkipStep;
-use color_eyre::eyre::Result;
+use crate::error::{SkipStep, TopgradeError};
+use anyhow::Result;
 
+use log::{debug, error};
 use std::env;
 use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use tracing::{debug, error};
+use std::process::{ExitStatus, Output};
+
+pub trait Check {
+    fn check(self) -> Result<()>;
+}
+
+impl Check for Output {
+    fn check(self) -> Result<()> {
+        self.status.check()
+    }
+}
+
+pub trait CheckWithCodes {
+    fn check_with_codes(self, codes: &[i32]) -> Result<()>;
+}
+
+// Anything that implements CheckWithCodes also implements check
+// if check_with_codes is given an empty array of codes to check
+impl<T: CheckWithCodes> Check for T {
+    fn check(self) -> Result<()> {
+        self.check_with_codes(&[])
+    }
+}
+
+impl CheckWithCodes for ExitStatus {
+    fn check_with_codes(self, codes: &[i32]) -> Result<()> {
+        // Set the default to be -1 because the option represents a signal termination
+        let code = self.code().unwrap_or(-1);
+        if self.success() || codes.contains(&code) {
+            Ok(())
+        } else {
+            Err(TopgradeError::ProcessFailed(self).into())
+        }
+    }
+}
 
 pub trait PathExt
 where
@@ -106,56 +141,4 @@ pub fn require_option<T>(option: Option<T>, cause: String) -> Result<T> {
     } else {
         Err(SkipStep(cause).into())
     }
-}
-
-/* sys-info-rs
- *
- * Copyright (c) 2015 Siyu Wang
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-#[cfg(target_family = "unix")]
-pub fn hostname() -> Result<String> {
-    use std::ffi;
-    extern crate libc;
-
-    unsafe {
-        let buf_size = libc::sysconf(libc::_SC_HOST_NAME_MAX) as usize;
-        let mut buf = Vec::<u8>::with_capacity(buf_size + 1);
-
-        if libc::gethostname(buf.as_mut_ptr() as *mut libc::c_char, buf_size) < 0 {
-            return Err(SkipStep(format!("Failed to get hostname: {}", std::io::Error::last_os_error())).into());
-        }
-        let hostname_len = libc::strnlen(buf.as_ptr() as *const libc::c_char, buf_size);
-        buf.set_len(hostname_len);
-
-        Ok(ffi::CString::new(buf).unwrap().into_string().unwrap())
-    }
-}
-
-#[cfg(target_family = "windows")]
-pub fn hostname() -> Result<String> {
-    use crate::command::CommandExt;
-    use std::process::Command;
-
-    Command::new("hostname")
-        .output_checked_utf8()
-        .map_err(|err| SkipStep(format!("Failed to get hostname: {}", err)).into())
-        .map(|output| output.stdout.trim().to_owned())
 }

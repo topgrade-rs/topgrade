@@ -2,10 +2,9 @@
 use std::env;
 use std::path::{Path, PathBuf};
 
-use color_eyre::eyre::Result;
+use anyhow::Result;
 use directories::BaseDirs;
 
-use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::terminal::print_separator;
 use crate::utils::{require, require_option, PathExt};
@@ -74,7 +73,7 @@ impl Emacs {
 
         command.args(["upgrade"]);
 
-        command.status_checked()
+        command.check_run()
     }
 
     pub fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
@@ -106,6 +105,6 @@ impl Emacs {
         #[cfg(not(unix))]
         command.arg(EMACS_UPGRADE);
 
-        command.status_checked()
+        command.check_run()
     }
 }

@@ -1,10 +1,8 @@
-use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::terminal::print_separator;
 use crate::utils::require;
-use crate::utils::which;
 use crate::Step;
-use color_eyre::eyre::Result;
+use anyhow::Result;
 
 pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     //let pkg = require("pkg")?;
@@ -12,7 +10,7 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Termux Packages");
 
-    let is_nala = pkg.ends_with("nala");
+    let is_nala = pkg.end_with("nala");
 
     let mut command = ctx.run_type().execute(&pkg);
     command.arg("upgrade");
@@ -20,18 +18,20 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     if ctx.config().yes(Step::System) {
         command.arg("-y");
     }
-    command.status_checked()?;
+    command.check_run()?;
 
-    if !is_nala && ctx.config().cleanup() {
-        ctx.run_type().execute(&pkg).arg("clean").status_checked()?;
+    if !is_nala {
+        if ctx.config().cleanup() {
+            ctx.run_type().execute(&pkg).arg("clean").check_run()?;
 
-        let apt = require("apt")?;
-        let mut command = ctx.run_type().execute(&apt);
-        command.arg("autoremove");
-        if ctx.config().yes(Step::System) {
-            command.arg("-y");
+            let apt = require("apt")?;
+            let mut command = ctx.run_type().execute(&apt);
+            command.arg("autoremove");
+            if ctx.config().yes(Step::System) {
+                command.arg("-y");
+            }
+            command.check_run()?;
         }
-        command.status_checked()?;
     }
 
     Ok(())
