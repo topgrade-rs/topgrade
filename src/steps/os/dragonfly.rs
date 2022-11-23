@@ -8,7 +8,7 @@ use std::process::Command;
 
 pub fn upgrade_packages(sudo: Option<&PathBuf>, run_type: RunType) -> Result<()> {
     let sudo = require_option(sudo, String::from("No sudo detected"))?;
-    print_separator("DrgaonFly BSD Packages");
+    print_separator("DragonFly BSD Packages");
     run_type
         .execute(sudo)
         .args(["/usr/local/sbin/pkg", "upgrade"])
