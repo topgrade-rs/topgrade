@@ -181,10 +181,10 @@ pub fn run_juliaup(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     print_separator("juliaup");
 
     if juliaup.canonicalize()?.is_descendant_of(base_dirs.home_dir()) {
-        run_type.execute(&juliaup).args(["self", "update"]).check_run()?;
+        run_type.execute(&juliaup).args(["self", "update"]).status_checked()?;
     }
 
-    run_type.execute(&juliaup).arg("update").check_run()
+    run_type.execute(&juliaup).arg("update").status_checked()
 }
 
 pub fn run_choosenim(ctx: &ExecutionContext) -> Result<()> {
