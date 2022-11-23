@@ -4,11 +4,11 @@ use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq, Eq)]
 pub enum TopgradeError {
-    #[error("`{0}` failed: {1}")]
-    ProcessFailed(String, ExitStatus),
+    #[error("{0}")]
+    ProcessFailed(ExitStatus),
 
-    #[error("`{0}` failed: {1}")]
-    ProcessFailedWithOutput(String, ExitStatus, String),
+    #[error("{0}: {1}")]
+    ProcessFailedWithOutput(ExitStatus, String),
 
     #[error("Sudo is required for this step")]
     #[allow(dead_code)]

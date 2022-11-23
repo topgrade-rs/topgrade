@@ -32,7 +32,7 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 Other systems users can either use `cargo install` or the compiled binaries from the release page.
 The compiled binaries contain a self-upgrading feature.
 
-Topgrade requires Rust 1.60 or above.
+Topgrade requires Rust 1.51 or above.
 
 ## Usage
 

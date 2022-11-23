@@ -2,13 +2,13 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{fmt::Display, rc::Rc, str::FromStr};
 
-use color_eyre::eyre::Result;
+use anyhow::Result;
+use log::{debug, error};
 use regex::Regex;
 use strum::EnumString;
-use tracing::{debug, error};
 
-use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
+use crate::executor::CommandExt;
 use crate::terminal::print_separator;
 use crate::{error::SkipStep, utils, Step};
 
@@ -61,11 +61,10 @@ impl Vagrant {
         let output = Command::new(&self.path)
             .arg("status")
             .current_dir(directory)
-            .output_checked_utf8()?;
+            .check_output()?;
         debug!("Vagrant output in {}: {}", directory, output);
 
         let boxes = output
-            .stdout
             .split('\n')
             .skip(2)
             .take_while(|line| !(line.is_empty() || line.starts_with('\r')))
@@ -116,7 +115,7 @@ impl<'a> TemporaryPowerOn<'a> {
             .execute(vagrant)
             .args([subcommand, &vagrant_box.name])
             .current_dir(vagrant_box.path.clone())
-            .status_checked()?;
+            .check_run()?;
         Ok(TemporaryPowerOn {
             vagrant,
             vagrant_box,
@@ -143,7 +142,7 @@ impl<'a> Drop for TemporaryPowerOn<'a> {
             .execute(self.vagrant)
             .args([subcommand, &self.vagrant_box.name])
             .current_dir(self.vagrant_box.path.clone())
-            .status_checked()
+            .check_run()
             .ok();
     }
 }
@@ -200,7 +199,7 @@ pub fn topgrade_vagrant_box(ctx: &ExecutionContext, vagrant_box: &VagrantBox) ->
         .execute(&vagrant.path)
         .current_dir(&vagrant_box.path)
         .args(["ssh", "-c", &command])
-        .status_checked()
+        .check_run()
 }
 
 pub fn upgrade_vagrant_boxes(ctx: &ExecutionContext) -> Result<()> {
@@ -209,12 +208,12 @@ pub fn upgrade_vagrant_boxes(ctx: &ExecutionContext) -> Result<()> {
 
     let outdated = Command::new(&vagrant)
         .args(["box", "outdated", "--global"])
-        .output_checked_utf8()?;
+        .check_output()?;
 
     let re = Regex::new(r"\* '(.*?)' for '(.*?)' is outdated").unwrap();
 
     let mut found = false;
-    for ele in re.captures_iter(&outdated.stdout) {
+    for ele in re.captures_iter(&outdated) {
         found = true;
         let _ = ctx
             .run_type()
@@ -223,16 +222,13 @@ pub fn upgrade_vagrant_boxes(ctx: &ExecutionContext) -> Result<()> {
             .arg(ele.get(1).unwrap().as_str())
             .arg("--provider")
             .arg(ele.get(2).unwrap().as_str())
-            .status_checked();
+            .check_run();
     }
 
     if !found {
         println!("No outdated boxes")
     } else {
-        ctx.run_type()
-            .execute(&vagrant)
-            .args(["box", "prune"])
-            .status_checked()?;
+        ctx.run_type().execute(&vagrant).args(["box", "prune"]).check_run()?;
     }
 
     Ok(())

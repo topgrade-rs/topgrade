@@ -3,18 +3,17 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 
-use color_eyre::eyre::{eyre, Result};
+use anyhow::{anyhow, Result};
 use console::style;
 use futures::stream::{iter, FuturesUnordered};
 use futures::StreamExt;
 use glob::{glob_with, MatchOptions};
+use log::{debug, error};
 use tokio::process::Command as AsyncCommand;
 use tokio::runtime;
-use tracing::{debug, error};
 
-use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
-use crate::executor::RunType;
+use crate::executor::{CommandExt, RunType};
 use crate::terminal::print_separator;
 use crate::utils::{which, PathExt};
 use crate::{error::SkipStep, terminal::print_warning};
@@ -34,10 +33,10 @@ pub struct Repositories<'a> {
     bad_patterns: Vec<String>,
 }
 
-fn output_checked_utf8(output: Output) -> Result<()> {
+fn check_output(output: Output) -> Result<()> {
     if !(output.status.success()) {
         let stderr = String::from_utf8(output.stderr).unwrap();
-        Err(eyre!(stderr))
+        Err(anyhow!(stderr))
     } else {
         Ok(())
     }
@@ -67,7 +66,7 @@ async fn pull_repository(repo: String, git: &Path, ctx: &ExecutionContext<'_>) -
         .stdin(Stdio::null())
         .output()
         .await?;
-    let result = output_checked_utf8(pull_output).and_then(|_| output_checked_utf8(submodule_output));
+    let result = check_output(pull_output).and_then(|_| check_output(submodule_output));
 
     if let Err(message) = &result {
         println!("{} pulling {}", style("Failed").red().bold(), &repo);
@@ -89,7 +88,10 @@ async fn pull_repository(repo: String, git: &Path, ctx: &ExecutionContext<'_>) -
                         "--oneline",
                         &format!("{}..{}", before, after),
                     ])
-                    .status_checked()?;
+                    .spawn()
+                    .unwrap()
+                    .wait()
+                    .unwrap();
                 println!();
             }
             _ => {
@@ -106,8 +108,8 @@ fn get_head_revision(git: &Path, repo: &str) -> Option<String> {
         .stdin(Stdio::null())
         .current_dir(repo)
         .args(["rev-parse", "HEAD"])
-        .output_checked_utf8()
-        .map(|output| output.stdout.trim().to_string())
+        .check_output()
+        .map(|output| output.trim().to_string())
         .map_err(|e| {
             error!("Error getting revision for {}: {}", repo, e);
 
@@ -121,8 +123,8 @@ fn has_remotes(git: &Path, repo: &str) -> Option<bool> {
         .stdin(Stdio::null())
         .current_dir(repo)
         .args(["remote", "show"])
-        .output_checked_utf8()
-        .map(|output| output.stdout.lines().count() > 0)
+        .check_output()
+        .map(|output| output.lines().count() > 0)
         .map_err(|e| {
             error!("Error getting remotes for {}: {}", repo, e);
             e
@@ -164,9 +166,9 @@ impl Git {
                         .stdin(Stdio::null())
                         .current_dir(path)
                         .args(["rev-parse", "--show-toplevel"])
-                        .output_checked_utf8()
+                        .check_output()
                         .ok()
-                        .map(|output| output.stdout.trim().to_string());
+                        .map(|output| output.trim().to_string());
                     return output;
                 }
             }

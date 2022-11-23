@@ -3,10 +3,9 @@ use crate::executor::RunType;
 use crate::git::Git;
 use crate::utils::require_option;
 use crate::{config::Config, executor::Executor};
-use color_eyre::eyre::Result;
+use anyhow::Result;
 use directories::BaseDirs;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
 
 pub struct ExecutionContext<'a> {
     run_type: RunType,
@@ -14,10 +13,6 @@ pub struct ExecutionContext<'a> {
     git: &'a Git,
     config: &'a Config,
     base_dirs: &'a BaseDirs,
-    /// Name of a tmux session to execute commands in, if any.
-    /// This is used in `./steps/remote/ssh.rs`, where we want to run `topgrade` in a new
-    /// tmux window for each remote.
-    tmux_session: Mutex<Option<String>>,
 }
 
 impl<'a> ExecutionContext<'a> {
@@ -27,14 +22,13 @@ impl<'a> ExecutionContext<'a> {
         git: &'a Git,
         config: &'a Config,
         base_dirs: &'a BaseDirs,
-    ) -> Self {
-        Self {
+    ) -> ExecutionContext<'a> {
+        ExecutionContext {
             run_type,
             sudo,
             git,
             config,
             base_dirs,
-            tmux_session: Mutex::new(None),
         }
     }
 
@@ -72,13 +66,5 @@ impl<'a> ExecutionContext<'a> {
 
     pub fn base_dirs(&self) -> &BaseDirs {
         self.base_dirs
-    }
-
-    pub fn set_tmux_session(&self, session_name: String) {
-        self.tmux_session.lock().unwrap().replace(session_name);
-    }
-
-    pub fn get_tmux_session(&self) -> Option<String> {
-        self.tmux_session.lock().unwrap().clone()
     }
 }

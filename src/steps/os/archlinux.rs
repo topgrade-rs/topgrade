@@ -3,11 +3,9 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use color_eyre::eyre;
-use color_eyre::eyre::Result;
+use anyhow::Result;
 use walkdir::WalkDir;
 
-use crate::command::CommandExt;
 use crate::error::TopgradeError;
 use crate::execution_context::ExecutionContext;
 use crate::utils::which;
@@ -31,7 +29,11 @@ pub struct YayParu {
 impl ArchPackageManager for YayParu {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
         if ctx.config().show_arch_news() {
-            Command::new(&self.executable).arg("-Pw").status_checked()?;
+            Command::new(&self.executable)
+                .arg("-Pw")
+                .spawn()
+                .and_then(|mut p| p.wait())
+                .ok();
         }
 
         let mut command = ctx.run_type().execute(&self.executable);
@@ -46,7 +48,7 @@ impl ArchPackageManager for YayParu {
         if ctx.config().yes(Step::System) {
             command.arg("--noconfirm");
         }
-        command.status_checked()?;
+        command.check_run()?;
 
         if ctx.config().cleanup() {
             let mut command = ctx.run_type().execute(&self.executable);
@@ -54,7 +56,7 @@ impl ArchPackageManager for YayParu {
             if ctx.config().yes(Step::System) {
                 command.arg("--noconfirm");
             }
-            command.status_checked()?;
+            command.check_run()?;
         }
 
         Ok(())
@@ -86,7 +88,7 @@ impl ArchPackageManager for Trizen {
         if ctx.config().yes(Step::System) {
             command.arg("--noconfirm");
         }
-        command.status_checked()?;
+        command.check_run()?;
 
         if ctx.config().cleanup() {
             let mut command = ctx.run_type().execute(&self.executable);
@@ -94,7 +96,7 @@ impl ArchPackageManager for Trizen {
             if ctx.config().yes(Step::System) {
                 command.arg("--noconfirm");
             }
-            command.status_checked()?;
+            command.check_run()?;
         }
 
         Ok(())
@@ -124,7 +126,7 @@ impl ArchPackageManager for Pacman {
         if ctx.config().yes(Step::System) {
             command.arg("--noconfirm");
         }
-        command.status_checked()?;
+        command.check_run()?;
 
         if ctx.config().cleanup() {
             let mut command = ctx.run_type().execute(&self.sudo);
@@ -132,7 +134,7 @@ impl ArchPackageManager for Pacman {
             if ctx.config().yes(Step::System) {
                 command.arg("--noconfirm");
             }
-            command.status_checked()?;
+            command.check_run()?;
         }
 
         Ok(())
@@ -173,7 +175,7 @@ impl ArchPackageManager for Pikaur {
             command.arg("--noconfirm");
         }
 
-        command.status_checked()?;
+        command.check_run()?;
 
         if ctx.config().cleanup() {
             let mut command = ctx.run_type().execute(&self.executable);
@@ -181,7 +183,7 @@ impl ArchPackageManager for Pikaur {
             if ctx.config().yes(Step::System) {
                 command.arg("--noconfirm");
             }
-            command.status_checked()?;
+            command.check_run()?;
         }
 
         Ok(())
@@ -212,7 +214,7 @@ impl ArchPackageManager for Pamac {
             command.arg("--no-confirm");
         }
 
-        command.status_checked()?;
+        command.check_run()?;
 
         if ctx.config().cleanup() {
             let mut command = ctx.run_type().execute(&self.executable);
@@ -220,7 +222,7 @@ impl ArchPackageManager for Pamac {
             if ctx.config().yes(Step::System) {
                 command.arg("--no-confirm");
             }
-            command.status_checked()?;
+            command.check_run()?;
         }
 
         Ok(())
@@ -255,7 +257,7 @@ impl ArchPackageManager for Aura {
                 aur_update.arg("--noconfirm");
             }
 
-            aur_update.status_checked()?;
+            aur_update.check_run()?;
         } else {
             println!("Aura requires sudo installed to work with AUR packages")
         }
@@ -268,7 +270,7 @@ impl ArchPackageManager for Aura {
         if ctx.config().yes(Step::System) {
             pacman_update.arg("--noconfirm");
         }
-        pacman_update.status_checked()?;
+        pacman_update.check_run()?;
 
         Ok(())
     }
@@ -302,7 +304,7 @@ pub fn get_arch_package_manager(ctx: &ExecutionContext) -> Option<Box<dyn ArchPa
 
 pub fn upgrade_arch_linux(ctx: &ExecutionContext) -> Result<()> {
     let package_manager =
-        get_arch_package_manager(ctx).ok_or_else(|| eyre::Report::from(TopgradeError::FailedGettingPackageManager))?;
+        get_arch_package_manager(ctx).ok_or_else(|| anyhow::Error::from(TopgradeError::FailedGettingPackageManager))?;
     package_manager.upgrade(ctx)
 }
 

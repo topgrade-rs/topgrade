@@ -1,20 +1,19 @@
-use crate::command::CommandExt;
 use crate::error::{SkipStep, TopgradeError};
-use color_eyre::eyre::Result;
+use anyhow::Result;
 
-use crate::executor::{Executor, ExecutorOutput, RunType};
+use crate::executor::{CommandExt, Executor, ExecutorOutput, RunType};
 use crate::terminal::print_separator;
 use crate::{
     execution_context::ExecutionContext,
     utils::{require, PathExt},
 };
 use directories::BaseDirs;
+use log::debug;
 use std::path::PathBuf;
 use std::{
     io::{self, Write},
     process::Command,
 };
-use tracing::debug;
 
 const UPGRADE_VIM: &str = include_str!("upgrade.vim");
 
@@ -64,7 +63,7 @@ fn upgrade(command: &mut Executor, ctx: &ExecutionContext) -> Result<()> {
         }
 
         if !status.success() {
-            return Err(TopgradeError::ProcessFailed(command.get_program(), status).into());
+            return Err(TopgradeError::ProcessFailed(status).into());
         } else {
             println!("Plugins upgraded")
         }
@@ -85,22 +84,22 @@ pub fn upgrade_ultimate_vimrc(ctx: &ExecutionContext) -> Result<()> {
         .execute(&git)
         .current_dir(&config_dir)
         .args(["reset", "--hard"])
-        .status_checked()?;
+        .check_run()?;
     ctx.run_type()
         .execute(&git)
         .current_dir(&config_dir)
         .args(["clean", "-d", "--force"])
-        .status_checked()?;
+        .check_run()?;
     ctx.run_type()
         .execute(&git)
         .current_dir(&config_dir)
         .args(["pull", "--rebase"])
-        .status_checked()?;
+        .check_run()?;
     ctx.run_type()
         .execute(python)
         .current_dir(config_dir)
         .arg(update_plugins)
-        .status_checked()?;
+        .check_run()?;
 
     Ok(())
 }
@@ -108,8 +107,8 @@ pub fn upgrade_ultimate_vimrc(ctx: &ExecutionContext) -> Result<()> {
 pub fn upgrade_vim(base_dirs: &BaseDirs, ctx: &ExecutionContext) -> Result<()> {
     let vim = require("vim")?;
 
-    let output = Command::new(&vim).arg("--version").output_checked_utf8()?;
-    if !output.stdout.starts_with("VIM") {
+    let output = Command::new(&vim).arg("--version").check_output()?;
+    if !output.starts_with("VIM") {
         return Err(SkipStep(String::from("vim binary might be actually nvim")).into());
     }
 
@@ -148,5 +147,5 @@ pub fn run_voom(_base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
 
     print_separator("voom");
 
-    run_type.execute(voom).arg("update").status_checked()
+    run_type.execute(voom).arg("update").check_run()
 }
