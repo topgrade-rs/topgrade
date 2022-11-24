@@ -185,6 +185,7 @@ pub fn run_juliaup(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     }
 
     run_type.execute(&juliaup).arg("update").status_checked()
+
 }
 
 pub fn run_choosenim(ctx: &ExecutionContext) -> Result<()> {
