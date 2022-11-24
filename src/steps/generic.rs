@@ -175,6 +175,19 @@ pub fn run_rustup(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     run_type.execute(&rustup).arg("update").status_checked()
 }
 
+pub fn run_juliaup(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+    let juliaup = utils::require("juliaup")?;
+
+    print_separator("juliaup");
+
+    if juliaup.canonicalize()?.is_descendant_of(base_dirs.home_dir()) {
+        run_type.execute(&juliaup).args(["self", "update"]).status_checked()?;
+    }
+
+    run_type.execute(&juliaup).arg("update").status_checked()
+
+}
+
 pub fn run_choosenim(ctx: &ExecutionContext) -> Result<()> {
     let choosenim = utils::require("choosenim")?;
 

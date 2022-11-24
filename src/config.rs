@@ -106,6 +106,7 @@ pub enum Step {
     HomeManager,
     Jetpack,
     Julia,
+    Juliaup,
     Kakoune,
     Krew,
     Macports,

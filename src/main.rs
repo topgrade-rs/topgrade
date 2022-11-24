@@ -324,6 +324,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Atom, "apm", || generic::run_apm(run_type))?;
     runner.execute(Step::Fossil, "fossil", || generic::run_fossil(run_type))?;
     runner.execute(Step::Rustup, "rustup", || generic::run_rustup(&base_dirs, run_type))?;
+    runner.execute(Step::Juliaup, "juliaup", || generic::run_juliaup(&base_dirs, run_type))?;
     runner.execute(Step::Dotnet, ".NET", || generic::run_dotnet_upgrade(&ctx))?;
     runner.execute(Step::Choosenim, "choosenim", || generic::run_choosenim(&ctx))?;
     runner.execute(Step::Cargo, "cargo", || generic::run_cargo_update(&ctx))?;

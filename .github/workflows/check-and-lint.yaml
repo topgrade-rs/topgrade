@@ -22,7 +22,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: '${{ env.RUST_VER }}'
+          toolchain: '${{ env.RUST_VER }}
           components: rustfmt
 
       - name: Run cargo fmt

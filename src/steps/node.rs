@@ -4,7 +4,6 @@ use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 use std::process::Command;
 
-
 use crate::sudo;
 use crate::utils::require_option;
 use color_eyre::eyre::Result;
