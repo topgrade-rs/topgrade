@@ -30,6 +30,7 @@ mod self_renamer;
 #[cfg(feature = "self-update")]
 mod self_update;
 mod steps;
+mod sudo;
 mod terminal;
 mod utils;
 
@@ -82,7 +83,7 @@ fn run() -> Result<()> {
     let git = git::Git::new();
     let mut git_repos = git::Repositories::new(&git);
 
-    let sudo = utils::sudo();
+    let sudo = sudo::path();
     let run_type = executor::RunType::new(config.dry_run());
 
     let ctx = execution_context::ExecutionContext::new(run_type, &sudo, &git, &config, &base_dirs);
@@ -117,6 +118,10 @@ fn run() -> Result<()> {
         for (name, command) in commands {
             generic::run_custom_command(name, command, &ctx)?;
         }
+    }
+
+    if config.pre_sudo() {
+        sudo::elevate(&ctx, sudo.as_ref())?;
     }
 
     let powershell = powershell::Powershell::new();

@@ -13,6 +13,10 @@
 # Do not ask to retry failed steps (default: false)
 #no_retry = true
 
+# Run `sudo -v` to cache credentials at the start of the run; this avoids a
+# blocking password prompt in the middle of a possibly-unattended run.
+#pre_sudo = false
+
 # Run inside tmux
 #run_in_tmux = true
 
