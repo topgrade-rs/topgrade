@@ -4,6 +4,7 @@ use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 use std::process::Command;
 
+use crate::sudo;
 use crate::utils::require_option;
 use color_eyre::eyre::Result;
 #[cfg(target_os = "linux")]
@@ -14,7 +15,6 @@ use tracing::debug;
 use crate::command::CommandExt;
 use crate::executor::RunType;
 use crate::terminal::print_separator;
-use crate::utils::sudo;
 use crate::utils::{require, PathExt};
 use crate::{error::SkipStep, execution_context::ExecutionContext};
 
@@ -93,7 +93,7 @@ impl NPM {
     fn upgrade(&self, run_type: RunType, use_sudo: bool) -> Result<()> {
         let args = ["update", self.global_location_arg()];
         if use_sudo {
-            let sudo_option = sudo();
+            let sudo_option = sudo::path();
             let sudo = require_option(sudo_option, String::from("sudo is not installed"))?;
             run_type.execute(sudo).arg(&self.command).args(args).status_checked()?;
         } else {
