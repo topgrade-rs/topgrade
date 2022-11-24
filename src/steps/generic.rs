@@ -97,7 +97,7 @@ pub fn run_rubygems(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
         command.arg("--user-install");
     }
 
-    command.check_run()
+    command.status_checked()
 }
 
 pub fn run_haxelib_update(ctx: &ExecutionContext) -> Result<()> {
