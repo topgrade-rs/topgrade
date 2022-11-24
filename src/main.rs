@@ -83,10 +83,10 @@ fn run() -> Result<()> {
     let git = git::Git::new();
     let mut git_repos = git::Repositories::new(&git);
 
-    let sudo = sudo::path();
+    let sudo = sudo::Sudo::detect();
     let run_type = executor::RunType::new(config.dry_run());
 
-    let ctx = execution_context::ExecutionContext::new(run_type, &sudo, &git, &config, &base_dirs);
+    let ctx = execution_context::ExecutionContext::new(run_type, sudo, &git, &config, &base_dirs);
 
     let mut runner = runner::Runner::new(&ctx);
 
@@ -121,7 +121,9 @@ fn run() -> Result<()> {
     }
 
     if config.pre_sudo() {
-        sudo::elevate(&ctx, sudo.as_ref())?;
+        if let Some(sudo) = ctx.sudo() {
+            sudo.elevate(&ctx)?;
+        }
     }
 
     let powershell = powershell::Powershell::new();
