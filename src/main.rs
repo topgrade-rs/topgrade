@@ -357,6 +357,9 @@ fn run() -> Result<()> {
     runner.execute(Step::Composer, "composer", || generic::run_composer_update(&ctx))?;
     runner.execute(Step::Krew, "krew", || generic::run_krew_upgrade(run_type))?;
     runner.execute(Step::Gem, "gem", || generic::run_gem(&base_dirs, run_type))?;
+    runner.execute(Step::RubyGems, "rubygems", || {
+        generic::run_rubygems(&base_dirs, run_type)
+    })?;
     runner.execute(Step::Julia, "julia", || generic::update_julia_packages(&ctx))?;
     runner.execute(Step::Haxelib, "haxelib", || generic::run_haxelib_update(&ctx))?;
     runner.execute(Step::Sheldon, "sheldon", || generic::run_sheldon(&ctx))?;

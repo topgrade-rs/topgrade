@@ -126,6 +126,7 @@ pub enum Step {
     Remotes,
     Restarts,
     Rtcl,
+    RubyGems,
     Rustup,
     Scoop,
     Sdkman,
