@@ -23,8 +23,7 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: '${{ env.RUST_VER }}'
-          targets: ${{ matrix.target }}
-          components: clippy, rustfmt
+          components: rustfmt
 
       - name: Run cargo fmt
         run: |
@@ -72,8 +71,7 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: '${{ env.RUST_VER }}'
-          targets: ${{ matrix.target }}
-          components: clippy, rustfmt
+          components: clippy
 
       - name: Setup Rust Cache
         uses: Swatinem/rust-cache@v2
