@@ -8,14 +8,17 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use chrono::{Local, Timelike};
+use color_eyre::eyre;
+use color_eyre::eyre::Context;
 use console::{style, Key, Term};
 use lazy_static::lazy_static;
-use log::{debug, error};
 #[cfg(target_os = "macos")]
 use notify_rust::{Notification, Timeout};
+use tracing::{debug, error};
 #[cfg(windows)]
 use which_crate::which;
 
+use crate::command::CommandExt;
 use crate::report::StepResult;
 #[cfg(target_os = "linux")]
 use crate::utils::which;
@@ -34,13 +37,8 @@ pub fn shell() -> &'static str {
     which("pwsh").map(|_| "pwsh").unwrap_or("powershell")
 }
 
-pub fn run_shell() {
-    Command::new(shell())
-        .env("IN_TOPGRADE", "1")
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap();
+pub fn run_shell() -> eyre::Result<()> {
+    Command::new(shell()).env("IN_TOPGRADE", "1").status_checked()
 }
 
 struct Terminal {
@@ -106,7 +104,9 @@ impl Terminal {
                     }
                     command.args(["-a", "Topgrade", "Topgrade"]);
                     command.arg(message.as_ref());
-                    command.output().ok();
+                    if let Err(err) = command.output_checked() {
+                        tracing::error!("{err:?}");
+                    }
                 }
             }
         }
@@ -164,6 +164,19 @@ impl Terminal {
     }
 
     #[allow(dead_code)]
+    fn print_error<P: AsRef<str>, Q: AsRef<str>>(&mut self, key: Q, message: P) {
+        let key = key.as_ref();
+        let message = message.as_ref();
+        self.term
+            .write_fmt(format_args!(
+                "{} {}",
+                style(format!("{} failed:", key)).red().bold(),
+                message
+            ))
+            .ok();
+    }
+
+    #[allow(dead_code)]
     fn print_warning<P: AsRef<str>>(&mut self, message: P) {
         let message = message.as_ref();
         self.term
@@ -214,7 +227,7 @@ impl Terminal {
         }
     }
     #[allow(unused_variables)]
-    fn should_retry(&mut self, interrupted: bool, step_name: &str) -> Result<bool, io::Error> {
+    fn should_retry(&mut self, interrupted: bool, step_name: &str) -> eyre::Result<bool> {
         if self.width.is_none() {
             return Ok(false);
         }
@@ -225,29 +238,31 @@ impl Terminal {
 
         self.notify_desktop(format!("{} failed", step_name), None);
 
-        self.term
-            .write_fmt(format_args!(
-                "\n{}",
-                style(format!("{}Retry? (y)es/(N)o/(s)hell/(q)uit", self.prefix))
-                    .yellow()
-                    .bold()
-            ))
-            .ok();
+        let prompt_inner = style(format!("{}Retry? (y)es/(N)o/(s)hell/(q)uit", self.prefix))
+            .yellow()
+            .bold();
+
+        self.term.write_fmt(format_args!("\n{}", prompt_inner)).ok();
 
         let answer = loop {
             match self.term.read_key() {
                 Ok(Key::Char('y')) | Ok(Key::Char('Y')) => break Ok(true),
                 Ok(Key::Char('s')) | Ok(Key::Char('S')) => {
                     println!("\n\nDropping you to shell. Fix what you need and then exit the shell.\n");
-                    run_shell();
-                    break Ok(true);
+                    if let Err(err) = run_shell().context("Failed to run shell") {
+                        self.term.write_fmt(format_args!("{err:?}\n{}", prompt_inner)).ok();
+                    } else {
+                        break Ok(true);
+                    }
                 }
                 Ok(Key::Char('n')) | Ok(Key::Char('N')) | Ok(Key::Enter) => break Ok(false),
                 Err(e) => {
                     error!("Error reading from terminal: {}", e);
                     break Ok(false);
                 }
-                Ok(Key::Char('q')) | Ok(Key::Char('Q')) => return Err(io::Error::from(io::ErrorKind::Interrupted)),
+                Ok(Key::Char('q')) | Ok(Key::Char('Q')) => {
+                    return Err(io::Error::from(io::ErrorKind::Interrupted)).context("Quit from user input")
+                }
                 _ => (),
             }
         };
@@ -268,12 +283,17 @@ impl Default for Terminal {
     }
 }
 
-pub fn should_retry(interrupted: bool, step_name: &str) -> Result<bool, io::Error> {
+pub fn should_retry(interrupted: bool, step_name: &str) -> eyre::Result<bool> {
     TERMINAL.lock().unwrap().should_retry(interrupted, step_name)
 }
 
 pub fn print_separator<P: AsRef<str>>(message: P) {
     TERMINAL.lock().unwrap().print_separator(message)
+}
+
+#[allow(dead_code)]
+pub fn print_error<P: AsRef<str>, Q: AsRef<str>>(key: Q, message: P) {
+    TERMINAL.lock().unwrap().print_error(key, message)
 }
 
 #[allow(dead_code)]

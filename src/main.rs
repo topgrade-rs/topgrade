@@ -4,12 +4,11 @@ use std::env;
 use std::io;
 use std::process::exit;
 
-use anyhow::{anyhow, Result};
 use clap::{crate_version, Parser};
+use color_eyre::eyre::Context;
+use color_eyre::eyre::{eyre, Result};
 use console::Key;
-use log::debug;
-use log::LevelFilter;
-use pretty_env_logger::formatted_timed_builder;
+use tracing::debug;
 
 use self::config::{CommandLineArgs, Config, Step};
 use self::error::StepFailed;
@@ -18,6 +17,7 @@ use self::error::Upgraded;
 use self::steps::{remote::*, *};
 use self::terminal::*;
 
+mod command;
 mod config;
 mod ctrlc;
 mod error;
@@ -34,11 +34,14 @@ mod terminal;
 mod utils;
 
 fn run() -> Result<()> {
+    color_eyre::install()?;
     ctrlc::set_handler();
 
-    let base_dirs = directories::BaseDirs::new().ok_or_else(|| anyhow!("No base directories"))?;
+    let base_dirs = directories::BaseDirs::new().ok_or_else(|| eyre!("No base directories"))?;
 
     let opt = CommandLineArgs::parse();
+
+    install_tracing(&opt.tracing_filter_directives())?;
 
     for env in opt.env_variables() {
         let mut splitted = env.split('=');
@@ -46,14 +49,6 @@ fn run() -> Result<()> {
         let value = splitted.next().unwrap();
         env::set_var(var, value);
     }
-
-    let mut builder = formatted_timed_builder();
-
-    if opt.verbose {
-        builder.filter(Some("topgrade"), LevelFilter::Trace);
-    }
-
-    builder.init();
 
     if opt.edit_config() {
         Config::edit(&base_dirs)?;
@@ -79,7 +74,8 @@ fn run() -> Result<()> {
     if config.run_in_tmux() && env::var("TOPGRADE_INSIDE_TMUX").is_err() {
         #[cfg(unix)]
         {
-            tmux::run_in_tmux(config.tmux_arguments()?);
+            tmux::run_in_tmux(config.tmux_arguments()?)?;
+            return Ok(());
         }
     }
 
@@ -206,7 +202,7 @@ fn run() -> Result<()> {
 
     #[cfg(target_os = "freebsd")]
     runner.execute(Step::Pkg, "FreeBSD Packages", || {
-        freebsd::upgrade_packages(sudo.as_ref(), run_type)
+        freebsd::upgrade_packages(&ctx, sudo.as_ref(), run_type)
     })?;
 
     #[cfg(target_os = "openbsd")]
@@ -296,7 +292,7 @@ fn run() -> Result<()> {
         runner.execute(Step::Shell, "zi", || zsh::run_zi(&base_dirs, run_type))?;
         runner.execute(Step::Shell, "zim", || zsh::run_zim(&base_dirs, run_type))?;
         runner.execute(Step::Shell, "oh-my-zsh", || zsh::run_oh_my_zsh(&ctx))?;
-        runner.execute(Step::Shell, "fisher", || unix::run_fisher(&base_dirs, run_type))?;
+        runner.execute(Step::Shell, "fisher", || unix::run_fisher(run_type))?;
         runner.execute(Step::Shell, "bash-it", || unix::run_bashit(&ctx))?;
         runner.execute(Step::Shell, "oh-my-fish", || unix::run_oh_my_fish(&ctx))?;
         runner.execute(Step::Shell, "fish-plug", || unix::run_fish_plug(&ctx))?;
@@ -327,7 +323,8 @@ fn run() -> Result<()> {
     runner.execute(Step::Choosenim, "choosenim", || generic::run_choosenim(&ctx))?;
     runner.execute(Step::Cargo, "cargo", || generic::run_cargo_update(&ctx))?;
     runner.execute(Step::Flutter, "Flutter", || generic::run_flutter_upgrade(run_type))?;
-    runner.execute(Step::Go, "Go", || generic::run_go(run_type))?;
+    runner.execute(Step::Go, "go-global-update", || go::run_go_global_update(run_type))?;
+    runner.execute(Step::Go, "gup", || go::run_go_gup(run_type))?;
     runner.execute(Step::Emacs, "Emacs", || emacs.upgrade(&ctx))?;
     runner.execute(Step::Opam, "opam", || generic::run_opam_update(&ctx))?;
     runner.execute(Step::Vcpkg, "vcpkg", || generic::run_vcpkg_update(run_type))?;
@@ -474,10 +471,10 @@ fn run() -> Result<()> {
         loop {
             match get_key() {
                 Ok(Key::Char('s')) | Ok(Key::Char('S')) => {
-                    run_shell();
+                    run_shell().context("Failed to execute shell")?;
                 }
                 Ok(Key::Char('r')) | Ok(Key::Char('R')) => {
-                    reboot();
+                    reboot().context("Failed to reboot")?;
                 }
                 Ok(Key::Char('q')) | Ok(Key::Char('Q')) => (),
                 _ => {
@@ -527,7 +524,7 @@ fn main() {
                     .is_some());
 
             if !skip_print {
-                // The `Debug` implementation of `anyhow::Result` prints a multi-line
+                // The `Debug` implementation of `eyre::Result` prints a multi-line
                 // error message that includes all the 'causes' added with
                 // `.with_context(...)` calls.
                 println!("Error: {:?}", error);
@@ -535,4 +532,27 @@ fn main() {
             exit(1);
         }
     }
+}
+
+pub fn install_tracing(filter_directives: &str) -> Result<()> {
+    use tracing_subscriber::fmt;
+    use tracing_subscriber::fmt::format::FmtSpan;
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::util::SubscriberInitExt;
+    use tracing_subscriber::EnvFilter;
+
+    let env_filter = EnvFilter::try_new(filter_directives)
+        .or_else(|_| EnvFilter::try_from_default_env())
+        .or_else(|_| EnvFilter::try_new("info"))?;
+
+    let fmt_layer = fmt::layer()
+        .with_target(false)
+        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
+        .without_time();
+
+    let registry = tracing_subscriber::registry();
+
+    registry.with(env_filter).with(fmt_layer).init();
+
+    Ok(())
 }

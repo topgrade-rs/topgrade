@@ -2,11 +2,12 @@ use crate::ctrlc;
 use crate::error::{DryRun, SkipStep};
 use crate::execution_context::ExecutionContext;
 use crate::report::{Report, StepResult};
+use crate::terminal::print_error;
 use crate::{config::Step, terminal::should_retry};
-use anyhow::Result;
-use log::debug;
+use color_eyre::eyre::Result;
 use std::borrow::Cow;
 use std::fmt::Debug;
+use tracing::debug;
 
 pub struct Runner<'a> {
     ctx: &'a ExecutionContext<'a>,
@@ -55,7 +56,12 @@ impl<'a> Runner<'a> {
 
                     let ignore_failure = self.ctx.config().ignore_failure(step);
                     let should_ask = interrupted || !(self.ctx.config().no_retry() || ignore_failure);
-                    let should_retry = should_ask && should_retry(interrupted, key.as_ref())?;
+                    let should_retry = if should_ask {
+                        print_error(&key, format!("{e:?}"));
+                        should_retry(interrupted, key.as_ref())?
+                    } else {
+                        false
+                    };
 
                     if !should_retry {
                         self.report.push_result(Some((

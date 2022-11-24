@@ -1,20 +1,20 @@
-#![allow(unused_imports)]
-
 use std::fmt::Display;
-#[cfg(unix)]
-use std::os::unix::prelude::MetadataExt;
+#[cfg(target_os = "linux")]
+use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 use std::process::Command;
 
-use anyhow::Result;
-use directories::BaseDirs;
-use log::debug;
-#[cfg(unix)]
+use crate::utils::require_option;
+use color_eyre::eyre::Result;
+#[cfg(target_os = "linux")]
 use nix::unistd::Uid;
 use semver::Version;
+use tracing::debug;
 
-use crate::executor::{CommandExt, RunType};
+use crate::command::CommandExt;
+use crate::executor::RunType;
 use crate::terminal::print_separator;
+use crate::utils::sudo;
 use crate::utils::{require, PathExt};
 use crate::{error::SkipStep, execution_context::ExecutionContext};
 
@@ -24,13 +24,6 @@ enum NPMVariant {
 }
 
 impl NPMVariant {
-    const fn long_name(&self) -> &str {
-        match self {
-            NPMVariant::Npm => "Node Package Manager",
-            NPMVariant::Pnpm => "PNPM",
-        }
-    }
-
     const fn short_name(&self) -> &str {
         match self {
             NPMVariant::Npm => "npm",
@@ -85,25 +78,26 @@ impl NPM {
         let args = ["root", self.global_location_arg()];
         Command::new(&self.command)
             .args(args)
-            .check_output()
-            .map(|s| PathBuf::from(s.trim()))
+            .output_checked_utf8()
+            .map(|s| PathBuf::from(s.stdout.trim()))
     }
 
     fn version(&self) -> Result<Version> {
         let version_str = Command::new(&self.command)
             .args(["--version"])
-            .check_output()
-            .map(|s| s.trim().to_owned());
+            .output_checked_utf8()
+            .map(|s| s.stdout.trim().to_owned());
         Version::parse(&version_str?).map_err(|err| err.into())
     }
 
     fn upgrade(&self, run_type: RunType, use_sudo: bool) -> Result<()> {
-        print_separator(self.variant.long_name());
         let args = ["update", self.global_location_arg()];
         if use_sudo {
-            run_type.execute("sudo").args(args).check_run()?;
+            let sudo_option = sudo();
+            let sudo = require_option(sudo_option, String::from("sudo is not installed"))?;
+            run_type.execute(sudo).arg(&self.command).args(args).status_checked()?;
         } else {
-            run_type.execute(&self.command).args(args).check_run()?;
+            run_type.execute(&self.command).args(args).status_checked()?;
         }
 
         Ok(())
@@ -142,9 +136,9 @@ impl Yarn {
         //
         // As “yarn dlx” don't need to “upgrade”, we
         // ignore the whole task if Yarn is 2.x or above.
-        let version = Command::new(&self.command).args(["--version"]).check_output();
+        let version = Command::new(&self.command).args(["--version"]).output_checked_utf8();
 
-        matches!(version, Ok(ver) if ver.starts_with('1') || ver.starts_with('0'))
+        matches!(version, Ok(ver) if ver.stdout.starts_with('1') || ver.stdout.starts_with('0'))
     }
 
     #[cfg(target_os = "linux")]
@@ -152,12 +146,11 @@ impl Yarn {
         let args = ["global", "dir"];
         Command::new(&self.command)
             .args(args)
-            .check_output()
-            .map(|s| PathBuf::from(s.trim()))
+            .output_checked_utf8()
+            .map(|s| PathBuf::from(s.stdout.trim()))
     }
 
     fn upgrade(&self, run_type: RunType, use_sudo: bool) -> Result<()> {
-        print_separator("Yarn Package Manager");
         let args = ["global", "upgrade"];
 
         if use_sudo {
@@ -165,9 +158,9 @@ impl Yarn {
                 .execute("sudo")
                 .arg(self.yarn.as_ref().unwrap_or(&self.command))
                 .args(args)
-                .check_run()?;
+                .status_checked()?;
         } else {
-            run_type.execute(&self.command).args(args).check_run()?;
+            run_type.execute(&self.command).args(args).status_checked()?;
         }
 
         Ok(())
@@ -218,6 +211,8 @@ fn should_use_sudo_yarn(yarn: &Yarn, ctx: &ExecutionContext) -> Result<bool> {
 pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let npm = require("npm").map(|b| NPM::new(b, NPMVariant::Npm))?;
 
+    print_separator("Node Package Manager");
+
     #[cfg(target_os = "linux")]
     {
         npm.upgrade(ctx.run_type(), should_use_sudo(&npm, ctx)?)
@@ -231,6 +226,8 @@ pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_pnpm_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let pnpm = require("pnpm").map(|b| NPM::new(b, NPMVariant::Pnpm))?;
+
+    print_separator("Node Package Manager");
 
     #[cfg(target_os = "linux")]
     {
@@ -250,6 +247,8 @@ pub fn run_yarn_upgrade(ctx: &ExecutionContext) -> Result<()> {
         debug!("Yarn is 2.x or above, skipping global upgrade");
         return Ok(());
     }
+
+    print_separator("Yarn Package Manager");
 
     #[cfg(target_os = "linux")]
     {
@@ -272,5 +271,5 @@ pub fn deno_upgrade(ctx: &ExecutionContext) -> Result<()> {
     }
 
     print_separator("Deno");
-    ctx.run_type().execute(&deno).arg("upgrade").check_run()
+    ctx.run_type().execute(&deno).arg("upgrade").status_checked()
 }
