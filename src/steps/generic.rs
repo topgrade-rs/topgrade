@@ -70,10 +70,27 @@ pub fn run_gem(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     let gem = utils::require("gem")?;
     base_dirs.home_dir().join(".gem").require()?;
 
-    print_separator("RubyGems");
+    print_separator("Gems");
 
     let mut command = run_type.execute(gem);
     command.arg("update");
+
+    if env::var_os("RBENV_SHELL").is_none() {
+        debug!("Detected rbenv. Avoiding --user-install");
+        command.arg("--user-install");
+    }
+
+    command.status_checked()
+}
+
+pub fn run_rubygems(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+    let gem = utils::require("gem")?;
+    base_dirs.home_dir().join(".gem").require()?;
+
+    print_separator("RubyGems");
+
+    let mut command = run_type.execute(gem);
+    command.arg("update --system");
 
     if env::var_os("RBENV_SHELL").is_none() {
         debug!("Detected rbenv. Avoiding --user-install");
@@ -173,6 +190,19 @@ pub fn run_rustup(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     }
 
     run_type.execute(&rustup).arg("update").status_checked()
+}
+
+pub fn run_juliaup(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+    let juliaup = utils::require("juliaup")?;
+
+    print_separator("juliaup");
+
+    if juliaup.canonicalize()?.is_descendant_of(base_dirs.home_dir()) {
+        run_type.execute(&juliaup).args(["self", "update"]).status_checked()?;
+    }
+
+    run_type.execute(&juliaup).arg("update").status_checked()
+
 }
 
 pub fn run_choosenim(ctx: &ExecutionContext) -> Result<()> {

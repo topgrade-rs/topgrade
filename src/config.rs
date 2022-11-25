@@ -106,6 +106,7 @@ pub enum Step {
     HomeManager,
     Jetpack,
     Julia,
+    Juliaup,
     Kakoune,
     Krew,
     Macports,
@@ -129,6 +130,7 @@ pub enum Step {
     Remotes,
     Restarts,
     Rtcl,
+    RubyGems,
     Rustup,
     Scoop,
     Sdkman,
@@ -270,6 +272,7 @@ pub struct Vim {
 #[serde(deny_unknown_fields)]
 /// Configuration file
 pub struct ConfigFile {
+    pre_sudo: Option<bool>,
     pre_commands: Option<Commands>,
     post_commands: Option<Commands>,
     commands: Option<Commands>,
@@ -946,6 +949,12 @@ impl Config {
             .as_ref()
             .and_then(|windows| windows.open_remotes_in_new_terminal)
             .unwrap_or(false)
+    }
+
+    /// If `true`, `sudo` should be called after `pre_commands` in order to elevate at the
+    /// start of the session (and not in the middle).
+    pub fn pre_sudo(&self) -> bool {
+        self.config_file.pre_sudo.unwrap_or(false)
     }
 
     #[cfg(target_os = "linux")]

@@ -67,13 +67,6 @@ pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBuf> {
     }
 }
 
-pub fn sudo() -> Option<PathBuf> {
-    which("doas")
-        .or_else(|| which("sudo"))
-        .or_else(|| which("gsudo"))
-        .or_else(|| which("pkexec"))
-}
-
 pub fn editor() -> Vec<String> {
     env::var("EDITOR")
         .unwrap_or_else(|_| String::from(if cfg!(windows) { "notepad" } else { "vi" }))
