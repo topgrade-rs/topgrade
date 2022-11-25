@@ -204,7 +204,7 @@ fn run() -> Result<()> {
 
     #[cfg(target_os = "dragonfly")]
     runner.execute(Step::Pkg, "DragonFly BSD Packages", || {
-        dragonfly::upgrade_packages(sudo.as_ref(), run_type)
+        dragonfly::upgrade_packages(ctx.sudo().as_ref(), run_type)
     })?;
 
     #[cfg(target_os = "freebsd")]
@@ -385,7 +385,7 @@ fn run() -> Result<()> {
         runner.execute(Step::DebGet, "deb-get", || linux::run_deb_get(&ctx))?;
         runner.execute(Step::Toolbx, "toolbx", || toolbx::run_toolbx(&ctx))?;
         runner.execute(Step::Flatpak, "Flatpak", || linux::flatpak_update(&ctx))?;
-        runner.execute(Step::Snap, "snap", || linux::run_snap(sudo.as_ref(), run_type))?;
+        runner.execute(Step::Snap, "snap", || linux::run_snap(ctx.sudo().as_ref(), run_type))?;
         runner.execute(Step::Pacstall, "pacstall", || linux::run_pacstall(&ctx))?;
         runner.execute(Step::Pacdef, "pacdef", || linux::run_pacdef(&ctx))?;
         runner.execute(Step::Protonup, "protonup", || linux::run_protonup_update(&ctx))?;
@@ -405,11 +405,11 @@ fn run() -> Result<()> {
     #[cfg(target_os = "linux")]
     {
         runner.execute(Step::System, "pihole", || {
-            linux::run_pihole_update(sudo.as_ref(), run_type)
+            linux::run_pihole_update(ctx.sudo().as_ref(), run_type)
         })?;
         runner.execute(Step::Firmware, "Firmware upgrades", || linux::run_fwupdmgr(&ctx))?;
         runner.execute(Step::Restarts, "Restarts", || {
-            linux::run_needrestart(sudo.as_ref(), run_type)
+            linux::run_needrestart(ctx.sudo().as_ref(), run_type)
         })?;
     }
 
@@ -459,10 +459,10 @@ fn run() -> Result<()> {
         }
 
         #[cfg(target_os = "freebsd")]
-        freebsd::audit_packages(&sudo).ok();
+        freebsd::audit_packages(ctx.sudo().as_ref()).ok();
 
         #[cfg(target_os = "dragonfly")]
-        dragonfly::audit_packages(&sudo).ok();
+        dragonfly::audit_packages(ctx.sudo().as_ref()).ok();
     }
 
     let mut post_command_failed = false;

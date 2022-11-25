@@ -30,7 +30,7 @@ pub fn upgrade_packages(ctx: &ExecutionContext, sudo: Option<&Sudo>, run_type: R
     command.status_checked()
 }
 
-pub fn audit_packages(sudo: &Option<Sudo>) -> Result<()> {
+pub fn audit_packages(sudo: Option<&Sudo>) -> Result<()> {
     if let Some(sudo) = sudo {
         println!();
         Command::new(sudo)
