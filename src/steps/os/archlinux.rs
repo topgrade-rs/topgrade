@@ -10,6 +10,7 @@ use walkdir::WalkDir;
 use crate::command::CommandExt;
 use crate::error::TopgradeError;
 use crate::execution_context::ExecutionContext;
+use crate::sudo::Sudo;
 use crate::utils::which;
 use crate::{config, Step};
 
@@ -110,7 +111,7 @@ impl Trizen {
 }
 
 pub struct Pacman {
-    sudo: PathBuf,
+    sudo: Sudo,
     executable: PathBuf,
 }
 

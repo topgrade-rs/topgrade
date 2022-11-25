@@ -1,6 +1,7 @@
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::executor::RunType;
+use crate::sudo::Sudo;
 use crate::terminal::print_separator;
 use crate::utils::require_option;
 use crate::Step;
@@ -8,7 +9,7 @@ use color_eyre::eyre::Result;
 use std::path::PathBuf;
 use std::process::Command;
 
-pub fn upgrade_freebsd(sudo: Option<&PathBuf>, run_type: RunType) -> Result<()> {
+pub fn upgrade_freebsd(sudo: Option<&Sudo>, run_type: RunType) -> Result<()> {
     let sudo = require_option(sudo, String::from("No sudo detected"))?;
     print_separator("FreeBSD Update");
     run_type
@@ -17,7 +18,7 @@ pub fn upgrade_freebsd(sudo: Option<&PathBuf>, run_type: RunType) -> Result<()> 
         .status_checked()
 }
 
-pub fn upgrade_packages(ctx: &ExecutionContext, sudo: Option<&PathBuf>, run_type: RunType) -> Result<()> {
+pub fn upgrade_packages(ctx: &ExecutionContext, sudo: Option<&Sudo>, run_type: RunType) -> Result<()> {
     let sudo = require_option(sudo, String::from("No sudo detected"))?;
     print_separator("FreeBSD Packages");
 
@@ -30,7 +31,7 @@ pub fn upgrade_packages(ctx: &ExecutionContext, sudo: Option<&PathBuf>, run_type
     command.status_checked()
 }
 
-pub fn audit_packages(sudo: &Option<PathBuf>) -> Result<()> {
+pub fn audit_packages(sudo: &Option<Sudo>) -> Result<()> {
     if let Some(sudo) = sudo {
         println!();
         Command::new(sudo)
