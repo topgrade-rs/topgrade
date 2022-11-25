@@ -230,7 +230,7 @@ impl ArchPackageManager for Pamac {
 
 pub struct Aura {
     executable: PathBuf,
-    sudo: PathBuf,
+    sudo: Sudo,
 }
 
 impl Aura {

@@ -6,7 +6,6 @@ use crate::terminal::print_separator;
 use crate::utils::require_option;
 use crate::Step;
 use color_eyre::eyre::Result;
-use std::path::PathBuf;
 use std::process::Command;
 
 pub fn upgrade_freebsd(sudo: Option<&Sudo>, run_type: RunType) -> Result<()> {
