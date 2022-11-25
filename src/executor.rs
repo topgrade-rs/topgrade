@@ -176,6 +176,7 @@ impl Executor {
 
     /// An extension of `status_checked` that allows you to set a sequence of codes
     /// that can indicate success of a script
+    #[allow(dead_code)]
     pub fn status_checked_with_codes(&mut self, codes: &[i32]) -> Result<()> {
         match self {
             Executor::Wet(c) => c.status_checked_with(|status| {
