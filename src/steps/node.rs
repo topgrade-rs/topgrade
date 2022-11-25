@@ -4,7 +4,6 @@ use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::sudo;
 use crate::utils::require_option;
 use color_eyre::eyre::Result;
 #[cfg(target_os = "linux")]
@@ -13,9 +12,7 @@ use semver::Version;
 use tracing::debug;
 
 use crate::command::CommandExt;
-use crate::executor::RunType;
 use crate::terminal::print_separator;
-use crate::utils::sudo;
 use crate::utils::{require, PathExt};
 use crate::{error::SkipStep, execution_context::ExecutionContext};
 
@@ -91,14 +88,17 @@ impl NPM {
         Version::parse(&version_str?).map_err(|err| err.into())
     }
 
-    fn upgrade(&self, run_type: RunType, use_sudo: bool) -> Result<()> {
+    fn upgrade(&self, ctx: &ExecutionContext, use_sudo: bool) -> Result<()> {
         let args = ["update", self.global_location_arg()];
         if use_sudo {
-            let sudo_option = sudo::path();
-            let sudo = require_option(sudo_option, String::from("sudo is not installed"))?;
-            run_type.execute(sudo).arg(&self.command).args(args).status_checked()?;
+            let sudo = require_option(ctx.sudo().clone(), String::from("sudo is not installed"))?;
+            ctx.run_type()
+                .execute(sudo)
+                .arg(&self.command)
+                .args(args)
+                .status_checked()?;
         } else {
-            run_type.execute(&self.command).args(args).status_checked()?;
+            ctx.run_type().execute(&self.command).args(args).status_checked()?;
         }
 
         Ok(())
@@ -151,17 +151,18 @@ impl Yarn {
             .map(|s| PathBuf::from(s.stdout.trim()))
     }
 
-    fn upgrade(&self, run_type: RunType, use_sudo: bool) -> Result<()> {
+    fn upgrade(&self, ctx: &ExecutionContext, use_sudo: bool) -> Result<()> {
         let args = ["global", "upgrade"];
 
         if use_sudo {
-            run_type
-                .execute("sudo")
+            let sudo = require_option(ctx.sudo().clone(), String::from("sudo is not installed"))?;
+            ctx.run_type()
+                .execute(sudo)
                 .arg(self.yarn.as_ref().unwrap_or(&self.command))
                 .args(args)
                 .status_checked()?;
         } else {
-            run_type.execute(&self.command).args(args).status_checked()?;
+            ctx.run_type().execute(&self.command).args(args).status_checked()?;
         }
 
         Ok(())
@@ -216,12 +217,12 @@ pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     #[cfg(target_os = "linux")]
     {
-        npm.upgrade(ctx.run_type(), should_use_sudo(&npm, ctx)?)
+        npm.upgrade(ctx, should_use_sudo(&npm, ctx)?)
     }
 
     #[cfg(not(target_os = "linux"))]
     {
-        npm.upgrade(ctx.run_type(), false)
+        npm.upgrade(ctx, false)
     }
 }
 
@@ -232,12 +233,12 @@ pub fn run_pnpm_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     #[cfg(target_os = "linux")]
     {
-        pnpm.upgrade(ctx.run_type(), should_use_sudo(&pnpm, ctx)?)
+        pnpm.upgrade(ctx, should_use_sudo(&pnpm, ctx)?)
     }
 
     #[cfg(not(target_os = "linux"))]
     {
-        pnpm.upgrade(ctx.run_type(), false)
+        pnpm.upgrade(ctx, false)
     }
 }
 
@@ -253,12 +254,12 @@ pub fn run_yarn_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     #[cfg(target_os = "linux")]
     {
-        yarn.upgrade(ctx.run_type(), should_use_sudo_yarn(&yarn, ctx)?)
+        yarn.upgrade(ctx, should_use_sudo_yarn(&yarn, ctx)?)
     }
 
     #[cfg(not(target_os = "linux"))]
     {
-        yarn.upgrade(ctx.run_type(), false)
+        yarn.upgrade(ctx, false)
     }
 }
 
