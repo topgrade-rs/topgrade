@@ -15,7 +15,6 @@ use tracing::debug;
 use crate::command::CommandExt;
 use crate::executor::RunType;
 use crate::terminal::print_separator;
-use crate::utils::sudo;
 use crate::utils::{require, PathExt};
 use crate::{error::SkipStep, execution_context::ExecutionContext};
 
