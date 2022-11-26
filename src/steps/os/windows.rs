@@ -19,17 +19,16 @@ pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Chocolatey");
 
-    let mut cmd = &choco;
-    let mut args = vec!["upgrade", "all"];
+    let mut command = match ctx.sudo() {
+        Some(sudo) => {
+            let mut command = ctx.run_type().execute(sudo);
+            command.arg(choco);
+            command
+        }
+        None => ctx.run_type().execute(choco),
+    };
 
-    if let Some(sudo) = ctx.sudo() {
-        cmd = sudo;
-        args.insert(0, "choco");
-    }
-
-    let mut command = ctx.run_type().execute(cmd);
-
-    command.args(&args);
+    command.args(["upgrade", "all"]);
 
     if yes {
         command.arg("--yes");
