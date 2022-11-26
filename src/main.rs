@@ -4,6 +4,7 @@ use std::env;
 use std::io;
 use std::process::exit;
 
+use clap::CommandFactory;
 use clap::{crate_version, Parser};
 use color_eyre::eyre::Context;
 use color_eyre::eyre::{eyre, Result};
@@ -41,6 +42,18 @@ fn run() -> Result<()> {
     let base_dirs = directories::BaseDirs::new().ok_or_else(|| eyre!("No base directories"))?;
 
     let opt = CommandLineArgs::parse();
+
+    if let Some(shell) = opt.gen_completion {
+        let cmd = &mut CommandLineArgs::command();
+        clap_complete::generate(shell, cmd, clap::crate_name!(), &mut std::io::stdout());
+        return Ok(());
+    }
+
+    if opt.gen_manpage {
+        let man = clap_mangen::Man::new(CommandLineArgs::command());
+        man.render(&mut std::io::stdout())?;
+        return Ok(());
+    }
 
     install_tracing(&opt.tracing_filter_directives())?;
 
