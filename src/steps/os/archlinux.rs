@@ -73,6 +73,27 @@ impl YayParu {
     }
 }
 
+pub struct GarudaUpdate {
+    executable: PathBuf,
+}
+
+impl ArchPackageManager for GarudaUpdate {
+    fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
+        let mut command = ctx.run_type().execute(&self.executable);
+        command.env("PATH", get_execution_path());
+        command.status_checked()?;
+        Ok(())
+    }
+}
+
+impl GarudaUpdate {
+    fn get() -> Option<Self> {
+        Some(Self {
+            executable: which("garuda-update")?,
+        })
+    }
+}
+
 pub struct Trizen {
     executable: PathBuf,
 }
@@ -285,14 +306,16 @@ pub fn get_arch_package_manager(ctx: &ExecutionContext) -> Option<Box<dyn ArchPa
     let pacman = which("powerpill").unwrap_or_else(|| PathBuf::from("pacman"));
 
     match ctx.config().arch_package_manager() {
-        config::ArchPackageManager::Autodetect => YayParu::get("paru", &pacman)
+        config::ArchPackageManager::Autodetect => GarudaUpdate::get()
             .map(box_package_manager)
+            .or_else(|| YayParu::get("paru", &pacman).map(box_package_manager))
             .or_else(|| YayParu::get("yay", &pacman).map(box_package_manager))
             .or_else(|| Trizen::get().map(box_package_manager))
             .or_else(|| Pikaur::get().map(box_package_manager))
             .or_else(|| Pamac::get().map(box_package_manager))
             .or_else(|| Pacman::get(ctx).map(box_package_manager))
             .or_else(|| Aura::get(ctx).map(box_package_manager)),
+        config::ArchPackageManager::GarudaUpdate => GarudaUpdate::get().map(box_package_manager),
         config::ArchPackageManager::Trizen => Trizen::get().map(box_package_manager),
         config::ArchPackageManager::Paru => YayParu::get("paru", &pacman).map(box_package_manager),
         config::ArchPackageManager::Yay => YayParu::get("yay", &pacman).map(box_package_manager),
