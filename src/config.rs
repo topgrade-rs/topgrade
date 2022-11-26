@@ -6,6 +6,7 @@ use std::process::Command;
 use std::{env, fs};
 
 use clap::{ArgEnum, Parser};
+use clap_complete::Shell;
 use color_eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
@@ -488,6 +489,14 @@ pub struct CommandLineArgs {
     /// See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/struct.EnvFilter.html
     #[clap(long, default_value = "info")]
     pub log_filter: String,
+
+    /// Print completion script for the given shell and exit
+    #[clap(long, arg_enum, hide = true)]
+    pub gen_completion: Option<Shell>,
+
+    /// Print roff manpage and exit
+    #[clap(long, hide = true)]
+    pub gen_manpage: bool,
 }
 
 impl CommandLineArgs {
