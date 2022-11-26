@@ -4,7 +4,6 @@ use crate::sudo::Sudo;
 use crate::terminal::print_separator;
 use crate::utils::require_option;
 use color_eyre::eyre::Result;
-use std::path::PathBuf;
 use std::process::Command;
 
 pub fn upgrade_packages(sudo: Option<&Sudo>, run_type: RunType) -> Result<()> {

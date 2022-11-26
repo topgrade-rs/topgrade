@@ -259,6 +259,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap_complete"
+version = "3.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da92e6facd8d73c22745a5d3cbb59bdf8e46e3235c923e516527d8e81eec14a4"
+dependencies = [
+ "clap",
+]
+
+[[package]]
 name = "clap_derive"
 version = "3.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -278,6 +287,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2850f2f5a82cbf437dd5af4d49848fbdfc27c157c3d010345776f952765261c5"
 dependencies = [
  "os_str_bytes",
+]
+
+[[package]]
+name = "clap_mangen"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "121b598d1b9d63d4ff3b7dae8defd88cc23e41850ee89fd2feec2e7d992e6ec8"
+dependencies = [
+ "clap",
+ "roff",
 ]
 
 [[package]]
@@ -1534,6 +1553,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "roff"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b833d8d034ea094b1ea68aa6d5c740e0d04bad9d16568d08ba6f76823a114316"
+
+[[package]]
 name = "rust-ini"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2041,6 +2066,8 @@ dependencies = [
  "cfg-if",
  "chrono",
  "clap",
+ "clap_complete",
+ "clap_mangen",
  "color-eyre",
  "console",
  "directories",
