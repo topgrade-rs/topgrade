@@ -26,6 +26,8 @@ jobs:
           components: rustfmt
 
       - name: Run cargo fmt
+        env:
+          TERM: xterm-256color
         run: |
           cargo fmt --all -- --check
 
