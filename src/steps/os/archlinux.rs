@@ -1,7 +1,6 @@
 use std::env::var_os;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use color_eyre::eyre;
 use color_eyre::eyre::Result;
@@ -32,7 +31,10 @@ pub struct YayParu {
 impl ArchPackageManager for YayParu {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
         if ctx.config().show_arch_news() {
-            Command::new(&self.executable).arg("-Pw").status_checked()?;
+            ctx.run_type()
+                .execute(&self.executable)
+                .arg("-Pw")
+                .status_checked_with_codes(&[1, 0])?;
         }
 
         let mut command = ctx.run_type().execute(&self.executable);
