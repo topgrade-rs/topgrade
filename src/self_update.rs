@@ -1,13 +1,15 @@
+use std::env;
+#[cfg(unix)]
+use std::os::unix::process::CommandExt as _;
+use std::process::Command;
+
+use color_eyre::eyre::{bail, Result};
+use self_update_crate::backends::github::Update;
+use self_update_crate::update::UpdateStatus;
+
 use super::terminal::*;
 #[cfg(windows)]
 use crate::error::Upgraded;
-use anyhow::{bail, Result};
-use self_update_crate::backends::github::Update;
-use self_update_crate::update::UpdateStatus;
-use std::env;
-#[cfg(unix)]
-use std::os::unix::process::CommandExt;
-use std::process::Command;
 
 pub fn self_update() -> Result<()> {
     print_separator("Self update");
@@ -18,11 +20,7 @@ pub fn self_update() -> Result<()> {
         .repo_owner("topgrade-rs")
         .repo_name("topgrade")
         .target(target)
-        .bin_name(if cfg!(windows) {
-            "topgrade-rs.exe"
-        } else {
-            "topgrade-rs"
-        })
+        .bin_name(if cfg!(windows) { "topgrade.exe" } else { "topgrade" })
         .show_output(false)
         .show_download_progress(true)
         .current_version(self_update_crate::cargo_crate_version!())
@@ -53,7 +51,8 @@ pub fn self_update() -> Result<()> {
 
             #[cfg(windows)]
             {
-                let status = command.spawn().and_then(|mut c| c.wait())?;
+                #[allow(clippy::disallowed_methods)]
+                let status = command.status()?;
                 bail!(Upgraded(status));
             }
         }

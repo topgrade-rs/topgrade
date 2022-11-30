@@ -3,9 +3,10 @@ name = "topgrade"
 description = "Upgrade all the things"
 categories = ["os"]
 keywords = ["upgrade", "update"]
-license-file = "LICENSE"
+license = "GPL-3.0"
+# license-file = "LICENSE"
 repository = "https://github.com/topgrade-rs/topgrade"
-version = "10.1.0"
+version = "10.2.1"
 authors = ["Roey Darwish Dror <roey.ghost@gmail.com>", "Thomas Schönauer <t.schoenauer@hgs-wt.at>"]
 exclude = ["doc/screenshot.gif"]
 edition = "2021"
@@ -27,29 +28,40 @@ toml = "0.5"
 which_crate = { version = "~4.1", package = "which" }
 shellexpand = "~2.1"
 clap = { version = "~3.1", features = ["cargo", "derive"] }
-log = "~0.4"
+clap_complete = "~3.1"
+clap_mangen = "~0.1"
 walkdir = "~2.3"
 console = "~0.15"
 lazy_static = "~1.4"
 chrono = "~0.4"
-pretty_env_logger = "~0.4"
 glob = "~0.3"
 strum = { version = "~0.24", features = ["derive"] }
 thiserror = "~1.0"
-anyhow = "~1.0"
 tempfile = "~3.2"
 cfg-if = "~1.0"
 tokio = { version = "~1.8", features = ["process", "rt-multi-thread"] }
 futures = "~0.3"
 regex = "~1.5"
-sys-info = "~0.9"
 semver = "~1.0"
 shell-words = "~1.1"
+color-eyre = "0.6.2"
+tracing = { version = "0.1.37", features = ["attributes", "log"] }
+tracing-subscriber = { version = "0.3.16", features = ["env-filter", "time"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 notify-rust = "~4.5"
 
+[package.metadata.generate-rpm]
+assets = [{source = "target/release/topgrade", dest="/usr/bin/topgrade"}]
+
+[package.metadata.generate-rpm.requires]
+git = "*"
+
+[package.metadata.deb]
+depends = "$auto,git"
+
 [target.'cfg(unix)'.dependencies]
+libc = "~0.2"
 nix = "~0.24"
 rust-ini = "~0.18"
 self_update_crate = { version = "~0.30", default-features = false, optional = true, package = "self_update", features = ["archive-tar", "compression-flate2", "rustls"] }

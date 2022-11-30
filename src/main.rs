@@ -4,12 +4,12 @@ use std::env;
 use std::io;
 use std::process::exit;
 
-use anyhow::{anyhow, Result};
+use clap::CommandFactory;
 use clap::{crate_version, Parser};
+use color_eyre::eyre::Context;
+use color_eyre::eyre::{eyre, Result};
 use console::Key;
-use log::debug;
-use log::LevelFilter;
-use pretty_env_logger::formatted_timed_builder;
+use tracing::debug;
 
 use self::config::{CommandLineArgs, Config, Step};
 use self::error::StepFailed;
@@ -18,6 +18,7 @@ use self::error::Upgraded;
 use self::steps::{remote::*, *};
 use self::terminal::*;
 
+mod command;
 mod config;
 mod ctrlc;
 mod error;
@@ -30,15 +31,31 @@ mod self_renamer;
 #[cfg(feature = "self-update")]
 mod self_update;
 mod steps;
+mod sudo;
 mod terminal;
 mod utils;
 
 fn run() -> Result<()> {
+    color_eyre::install()?;
     ctrlc::set_handler();
 
-    let base_dirs = directories::BaseDirs::new().ok_or_else(|| anyhow!("No base directories"))?;
+    let base_dirs = directories::BaseDirs::new().ok_or_else(|| eyre!("No base directories"))?;
 
     let opt = CommandLineArgs::parse();
+
+    if let Some(shell) = opt.gen_completion {
+        let cmd = &mut CommandLineArgs::command();
+        clap_complete::generate(shell, cmd, clap::crate_name!(), &mut std::io::stdout());
+        return Ok(());
+    }
+
+    if opt.gen_manpage {
+        let man = clap_mangen::Man::new(CommandLineArgs::command());
+        man.render(&mut std::io::stdout())?;
+        return Ok(());
+    }
+
+    install_tracing(&opt.tracing_filter_directives())?;
 
     for env in opt.env_variables() {
         let mut splitted = env.split('=');
@@ -46,14 +63,6 @@ fn run() -> Result<()> {
         let value = splitted.next().unwrap();
         env::set_var(var, value);
     }
-
-    let mut builder = formatted_timed_builder();
-
-    if opt.verbose {
-        builder.filter(Some("topgrade"), LevelFilter::Trace);
-    }
-
-    builder.init();
 
     if opt.edit_config() {
         Config::edit(&base_dirs)?;
@@ -79,17 +88,18 @@ fn run() -> Result<()> {
     if config.run_in_tmux() && env::var("TOPGRADE_INSIDE_TMUX").is_err() {
         #[cfg(unix)]
         {
-            tmux::run_in_tmux(config.tmux_arguments()?);
+            tmux::run_in_tmux(config.tmux_arguments()?)?;
+            return Ok(());
         }
     }
 
     let git = git::Git::new();
     let mut git_repos = git::Repositories::new(&git);
 
-    let sudo = utils::sudo();
+    let sudo = sudo::Sudo::detect();
     let run_type = executor::RunType::new(config.dry_run());
 
-    let ctx = execution_context::ExecutionContext::new(run_type, &sudo, &git, &config, &base_dirs);
+    let ctx = execution_context::ExecutionContext::new(run_type, sudo, &git, &config, &base_dirs);
 
     let mut runner = runner::Runner::new(&ctx);
 
@@ -120,6 +130,12 @@ fn run() -> Result<()> {
     if let Some(commands) = config.pre_commands() {
         for (name, command) in commands {
             generic::run_custom_command(name, command, &ctx)?;
+        }
+    }
+
+    if config.pre_sudo() {
+        if let Some(sudo) = ctx.sudo() {
+            sudo.elevate(&ctx)?;
         }
     }
 
@@ -201,17 +217,17 @@ fn run() -> Result<()> {
 
     #[cfg(target_os = "dragonfly")]
     runner.execute(Step::Pkg, "DragonFly BSD Packages", || {
-        dragonfly::upgrade_packages(sudo.as_ref(), run_type)
+        dragonfly::upgrade_packages(ctx.sudo().as_ref(), run_type)
     })?;
 
     #[cfg(target_os = "freebsd")]
     runner.execute(Step::Pkg, "FreeBSD Packages", || {
-        freebsd::upgrade_packages(sudo.as_ref(), run_type)
+        freebsd::upgrade_packages(&ctx, ctx.sudo().as_ref(), run_type)
     })?;
 
     #[cfg(target_os = "openbsd")]
     runner.execute(Step::Pkg, "OpenBSD Packages", || {
-        openbsd::upgrade_packages(sudo.as_ref(), run_type)
+        openbsd::upgrade_packages(ctx.sudo().as_ref(), run_type)
     })?;
 
     #[cfg(target_os = "android")]
@@ -296,7 +312,7 @@ fn run() -> Result<()> {
         runner.execute(Step::Shell, "zi", || zsh::run_zi(&base_dirs, run_type))?;
         runner.execute(Step::Shell, "zim", || zsh::run_zim(&base_dirs, run_type))?;
         runner.execute(Step::Shell, "oh-my-zsh", || zsh::run_oh_my_zsh(&ctx))?;
-        runner.execute(Step::Shell, "fisher", || unix::run_fisher(&base_dirs, run_type))?;
+        runner.execute(Step::Shell, "fisher", || unix::run_fisher(run_type))?;
         runner.execute(Step::Shell, "bash-it", || unix::run_bashit(&ctx))?;
         runner.execute(Step::Shell, "oh-my-fish", || unix::run_oh_my_fish(&ctx))?;
         runner.execute(Step::Shell, "fish-plug", || unix::run_fish_plug(&ctx))?;
@@ -323,11 +339,13 @@ fn run() -> Result<()> {
     runner.execute(Step::Atom, "apm", || generic::run_apm(run_type))?;
     runner.execute(Step::Fossil, "fossil", || generic::run_fossil(run_type))?;
     runner.execute(Step::Rustup, "rustup", || generic::run_rustup(&base_dirs, run_type))?;
+    runner.execute(Step::Juliaup, "juliaup", || generic::run_juliaup(&base_dirs, run_type))?;
     runner.execute(Step::Dotnet, ".NET", || generic::run_dotnet_upgrade(&ctx))?;
     runner.execute(Step::Choosenim, "choosenim", || generic::run_choosenim(&ctx))?;
     runner.execute(Step::Cargo, "cargo", || generic::run_cargo_update(&ctx))?;
     runner.execute(Step::Flutter, "Flutter", || generic::run_flutter_upgrade(run_type))?;
-    runner.execute(Step::Go, "Go", || generic::run_go(run_type))?;
+    runner.execute(Step::Go, "go-global-update", || go::run_go_global_update(run_type))?;
+    runner.execute(Step::Go, "gup", || go::run_go_gup(run_type))?;
     runner.execute(Step::Emacs, "Emacs", || emacs.upgrade(&ctx))?;
     runner.execute(Step::Opam, "opam", || generic::run_opam_update(&ctx))?;
     runner.execute(Step::Vcpkg, "vcpkg", || generic::run_vcpkg_update(run_type))?;
@@ -357,6 +375,9 @@ fn run() -> Result<()> {
     runner.execute(Step::Composer, "composer", || generic::run_composer_update(&ctx))?;
     runner.execute(Step::Krew, "krew", || generic::run_krew_upgrade(run_type))?;
     runner.execute(Step::Gem, "gem", || generic::run_gem(&base_dirs, run_type))?;
+    runner.execute(Step::RubyGems, "rubygems", || {
+        generic::run_rubygems(&base_dirs, run_type)
+    })?;
     runner.execute(Step::Julia, "julia", || generic::update_julia_packages(&ctx))?;
     runner.execute(Step::Haxelib, "haxelib", || generic::run_haxelib_update(&ctx))?;
     runner.execute(Step::Sheldon, "sheldon", || generic::run_sheldon(&ctx))?;
@@ -377,7 +398,7 @@ fn run() -> Result<()> {
         runner.execute(Step::DebGet, "deb-get", || linux::run_deb_get(&ctx))?;
         runner.execute(Step::Toolbx, "toolbx", || toolbx::run_toolbx(&ctx))?;
         runner.execute(Step::Flatpak, "Flatpak", || linux::flatpak_update(&ctx))?;
-        runner.execute(Step::Snap, "snap", || linux::run_snap(sudo.as_ref(), run_type))?;
+        runner.execute(Step::Snap, "snap", || linux::run_snap(ctx.sudo().as_ref(), run_type))?;
         runner.execute(Step::Pacstall, "pacstall", || linux::run_pacstall(&ctx))?;
         runner.execute(Step::Pacdef, "pacdef", || linux::run_pacdef(&ctx))?;
         runner.execute(Step::Protonup, "protonup", || linux::run_protonup_update(&ctx))?;
@@ -397,11 +418,11 @@ fn run() -> Result<()> {
     #[cfg(target_os = "linux")]
     {
         runner.execute(Step::System, "pihole", || {
-            linux::run_pihole_update(sudo.as_ref(), run_type)
+            linux::run_pihole_update(ctx.sudo().as_ref(), run_type)
         })?;
         runner.execute(Step::Firmware, "Firmware upgrades", || linux::run_fwupdmgr(&ctx))?;
         runner.execute(Step::Restarts, "Restarts", || {
-            linux::run_needrestart(sudo.as_ref(), run_type)
+            linux::run_needrestart(ctx.sudo().as_ref(), run_type)
         })?;
     }
 
@@ -414,12 +435,12 @@ fn run() -> Result<()> {
 
     #[cfg(target_os = "freebsd")]
     runner.execute(Step::System, "FreeBSD Upgrade", || {
-        freebsd::upgrade_freebsd(sudo.as_ref(), run_type)
+        freebsd::upgrade_freebsd(ctx.sudo().as_ref(), run_type)
     })?;
 
     #[cfg(target_os = "openbsd")]
     runner.execute(Step::System, "OpenBSD Upgrade", || {
-        openbsd::upgrade_openbsd(sudo.as_ref(), run_type)
+        openbsd::upgrade_openbsd(ctx.sudo().as_ref(), run_type)
     })?;
 
     #[cfg(windows)]
@@ -451,10 +472,10 @@ fn run() -> Result<()> {
         }
 
         #[cfg(target_os = "freebsd")]
-        freebsd::audit_packages(&sudo).ok();
+        freebsd::audit_packages(ctx.sudo().as_ref()).ok();
 
         #[cfg(target_os = "dragonfly")]
-        dragonfly::audit_packages(&sudo).ok();
+        dragonfly::audit_packages(ctx.sudo().as_ref()).ok();
     }
 
     let mut post_command_failed = false;
@@ -471,10 +492,10 @@ fn run() -> Result<()> {
         loop {
             match get_key() {
                 Ok(Key::Char('s')) | Ok(Key::Char('S')) => {
-                    run_shell();
+                    run_shell().context("Failed to execute shell")?;
                 }
                 Ok(Key::Char('r')) | Ok(Key::Char('R')) => {
-                    reboot();
+                    reboot().context("Failed to reboot")?;
                 }
                 Ok(Key::Char('q')) | Ok(Key::Char('Q')) => (),
                 _ => {
@@ -524,7 +545,7 @@ fn main() {
                     .is_some());
 
             if !skip_print {
-                // The `Debug` implementation of `anyhow::Result` prints a multi-line
+                // The `Debug` implementation of `eyre::Result` prints a multi-line
                 // error message that includes all the 'causes' added with
                 // `.with_context(...)` calls.
                 println!("Error: {:?}", error);
@@ -532,4 +553,27 @@ fn main() {
             exit(1);
         }
     }
+}
+
+pub fn install_tracing(filter_directives: &str) -> Result<()> {
+    use tracing_subscriber::fmt;
+    use tracing_subscriber::fmt::format::FmtSpan;
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::util::SubscriberInitExt;
+    use tracing_subscriber::EnvFilter;
+
+    let env_filter = EnvFilter::try_new(filter_directives)
+        .or_else(|_| EnvFilter::try_from_default_env())
+        .or_else(|_| EnvFilter::try_new("info"))?;
+
+    let fmt_layer = fmt::layer()
+        .with_target(false)
+        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
+        .without_time();
+
+    let registry = tracing_subscriber::registry();
+
+    registry.with(env_filter).with(fmt_layer).init();
+
+    Ok(())
 }

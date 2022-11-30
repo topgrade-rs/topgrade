@@ -1,13 +1,15 @@
 use std::env::var_os;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
-use anyhow::Result;
+use color_eyre::eyre;
+use color_eyre::eyre::Result;
 use walkdir::WalkDir;
 
+use crate::command::CommandExt;
 use crate::error::TopgradeError;
 use crate::execution_context::ExecutionContext;
+use crate::sudo::Sudo;
 use crate::utils::which;
 use crate::{config, Step};
 
@@ -29,11 +31,10 @@ pub struct YayParu {
 impl ArchPackageManager for YayParu {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
         if ctx.config().show_arch_news() {
-            Command::new(&self.executable)
+            ctx.run_type()
+                .execute(&self.executable)
                 .arg("-Pw")
-                .spawn()
-                .and_then(|mut p| p.wait())
-                .ok();
+                .status_checked_with_codes(&[1, 0])?;
         }
 
         let mut command = ctx.run_type().execute(&self.executable);
@@ -48,7 +49,7 @@ impl ArchPackageManager for YayParu {
         if ctx.config().yes(Step::System) {
             command.arg("--noconfirm");
         }
-        command.check_run()?;
+        command.status_checked()?;
 
         if ctx.config().cleanup() {
             let mut command = ctx.run_type().execute(&self.executable);
@@ -56,7 +57,7 @@ impl ArchPackageManager for YayParu {
             if ctx.config().yes(Step::System) {
                 command.arg("--noconfirm");
             }
-            command.check_run()?;
+            command.status_checked()?;
         }
 
         Ok(())
@@ -68,6 +69,27 @@ impl YayParu {
         Some(Self {
             executable: which(exec_name)?,
             pacman: pacman.to_owned(),
+        })
+    }
+}
+
+pub struct GarudaUpdate {
+    executable: PathBuf,
+}
+
+impl ArchPackageManager for GarudaUpdate {
+    fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
+        let mut command = ctx.run_type().execute(&self.executable);
+        command.env("PATH", get_execution_path());
+        command.status_checked()?;
+        Ok(())
+    }
+}
+
+impl GarudaUpdate {
+    fn get() -> Option<Self> {
+        Some(Self {
+            executable: which("garuda-update")?,
         })
     }
 }
@@ -88,7 +110,7 @@ impl ArchPackageManager for Trizen {
         if ctx.config().yes(Step::System) {
             command.arg("--noconfirm");
         }
-        command.check_run()?;
+        command.status_checked()?;
 
         if ctx.config().cleanup() {
             let mut command = ctx.run_type().execute(&self.executable);
@@ -96,7 +118,7 @@ impl ArchPackageManager for Trizen {
             if ctx.config().yes(Step::System) {
                 command.arg("--noconfirm");
             }
-            command.check_run()?;
+            command.status_checked()?;
         }
 
         Ok(())
@@ -112,7 +134,7 @@ impl Trizen {
 }
 
 pub struct Pacman {
-    sudo: PathBuf,
+    sudo: Sudo,
     executable: PathBuf,
 }
 
@@ -126,7 +148,7 @@ impl ArchPackageManager for Pacman {
         if ctx.config().yes(Step::System) {
             command.arg("--noconfirm");
         }
-        command.check_run()?;
+        command.status_checked()?;
 
         if ctx.config().cleanup() {
             let mut command = ctx.run_type().execute(&self.sudo);
@@ -134,7 +156,7 @@ impl ArchPackageManager for Pacman {
             if ctx.config().yes(Step::System) {
                 command.arg("--noconfirm");
             }
-            command.check_run()?;
+            command.status_checked()?;
         }
 
         Ok(())
@@ -175,7 +197,7 @@ impl ArchPackageManager for Pikaur {
             command.arg("--noconfirm");
         }
 
-        command.check_run()?;
+        command.status_checked()?;
 
         if ctx.config().cleanup() {
             let mut command = ctx.run_type().execute(&self.executable);
@@ -183,7 +205,7 @@ impl ArchPackageManager for Pikaur {
             if ctx.config().yes(Step::System) {
                 command.arg("--noconfirm");
             }
-            command.check_run()?;
+            command.status_checked()?;
         }
 
         Ok(())
@@ -214,7 +236,7 @@ impl ArchPackageManager for Pamac {
             command.arg("--no-confirm");
         }
 
-        command.check_run()?;
+        command.status_checked()?;
 
         if ctx.config().cleanup() {
             let mut command = ctx.run_type().execute(&self.executable);
@@ -222,7 +244,7 @@ impl ArchPackageManager for Pamac {
             if ctx.config().yes(Step::System) {
                 command.arg("--no-confirm");
             }
-            command.check_run()?;
+            command.status_checked()?;
         }
 
         Ok(())
@@ -231,7 +253,7 @@ impl ArchPackageManager for Pamac {
 
 pub struct Aura {
     executable: PathBuf,
-    sudo: PathBuf,
+    sudo: Sudo,
 }
 
 impl Aura {
@@ -257,7 +279,7 @@ impl ArchPackageManager for Aura {
                 aur_update.arg("--noconfirm");
             }
 
-            aur_update.check_run()?;
+            aur_update.status_checked()?;
         } else {
             println!("Aura requires sudo installed to work with AUR packages")
         }
@@ -270,7 +292,7 @@ impl ArchPackageManager for Aura {
         if ctx.config().yes(Step::System) {
             pacman_update.arg("--noconfirm");
         }
-        pacman_update.check_run()?;
+        pacman_update.status_checked()?;
 
         Ok(())
     }
@@ -284,14 +306,16 @@ pub fn get_arch_package_manager(ctx: &ExecutionContext) -> Option<Box<dyn ArchPa
     let pacman = which("powerpill").unwrap_or_else(|| PathBuf::from("pacman"));
 
     match ctx.config().arch_package_manager() {
-        config::ArchPackageManager::Autodetect => YayParu::get("paru", &pacman)
+        config::ArchPackageManager::Autodetect => GarudaUpdate::get()
             .map(box_package_manager)
+            .or_else(|| YayParu::get("paru", &pacman).map(box_package_manager))
             .or_else(|| YayParu::get("yay", &pacman).map(box_package_manager))
             .or_else(|| Trizen::get().map(box_package_manager))
             .or_else(|| Pikaur::get().map(box_package_manager))
             .or_else(|| Pamac::get().map(box_package_manager))
             .or_else(|| Pacman::get(ctx).map(box_package_manager))
             .or_else(|| Aura::get(ctx).map(box_package_manager)),
+        config::ArchPackageManager::GarudaUpdate => GarudaUpdate::get().map(box_package_manager),
         config::ArchPackageManager::Trizen => Trizen::get().map(box_package_manager),
         config::ArchPackageManager::Paru => YayParu::get("paru", &pacman).map(box_package_manager),
         config::ArchPackageManager::Yay => YayParu::get("yay", &pacman).map(box_package_manager),
@@ -304,7 +328,7 @@ pub fn get_arch_package_manager(ctx: &ExecutionContext) -> Option<Box<dyn ArchPa
 
 pub fn upgrade_arch_linux(ctx: &ExecutionContext) -> Result<()> {
     let package_manager =
-        get_arch_package_manager(ctx).ok_or_else(|| anyhow::Error::from(TopgradeError::FailedGettingPackageManager))?;
+        get_arch_package_manager(ctx).ok_or_else(|| eyre::Report::from(TopgradeError::FailedGettingPackageManager))?;
     package_manager.upgrade(ctx)
 }
 

@@ -1,0 +1,38 @@
+name: Publish to Homebrew
+
+on:
+  # workflow_run:
+  #   workflows: ["Check SemVer compliance"]
+  #   types:
+  #     - completed
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  homebrew-publish:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Homebrew
+      id: set-up-homebrew
+      uses: Homebrew/actions/setup-homebrew@master
+    - name: Cache Homebrew Bundler RubyGems
+      id: cache
+      uses: actions/cache@v1
+      with:
+        path: ${{ steps.set-up-homebrew.outputs.gems-path }}
+        key: ${{ runner.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
+        restore-keys: ${{ runner.os }}-rubygems-
+
+    - name: Install Homebrew Bundler RubyGems
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: brew install-bundler-gems
+    - name: Bump formulae
+      uses: Homebrew/actions/bump-formulae@master
+      with:
+        # Custom GitHub access token with only the 'public_repo' scope enabled
+        token: ${{secrets.HOMEBREW_ACCESS_TOKEN}}
+        # Bump only these formulae if outdated
+        formulae: |
+          topgrade

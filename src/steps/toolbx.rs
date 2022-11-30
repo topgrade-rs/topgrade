@@ -1,17 +1,20 @@
-use anyhow::Result;
+use color_eyre::eyre::Result;
 
+use crate::command::CommandExt;
 use crate::config::Step;
 use crate::terminal::print_separator;
 use crate::{execution_context::ExecutionContext, utils::require};
-use log::debug;
 use std::path::Path;
 use std::{path::PathBuf, process::Command};
+use tracing::debug;
 
 fn list_toolboxes(toolbx: &Path) -> Result<Vec<String>> {
-    let output = Command::new(toolbx).args(["list", "--containers"]).output()?;
-    let output_str = String::from_utf8(output.stdout)?;
+    let output = Command::new(toolbx)
+        .args(["list", "--containers"])
+        .output_checked_utf8()?;
 
-    let proc: Vec<String> = output_str
+    let proc: Vec<String> = output
+        .stdout
         .lines()
         // Skip the first line since that contains only status information
         .skip(1)
@@ -54,7 +57,7 @@ pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
             args.push("--yes");
         }
 
-        let _output = ctx.run_type().execute(&toolbx).args(&args).check_run();
+        ctx.run_type().execute(&toolbx).args(&args).status_checked()?;
     }
 
     Ok(())

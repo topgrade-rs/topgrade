@@ -1,21 +1,25 @@
 #![allow(dead_code)]
-use anyhow::Context;
-use anyhow::Result;
-use clap::{ArgEnum, Parser};
-use directories::BaseDirs;
-use log::debug;
-use regex::Regex;
-use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fs::write;
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, fs};
+
+use clap::{ArgEnum, Parser};
+use clap_complete::Shell;
+use color_eyre::eyre;
+use color_eyre::eyre::Context;
+use color_eyre::eyre::Result;
+use directories::BaseDirs;
+use regex::Regex;
+use serde::Deserialize;
 use strum::{EnumIter, EnumString, EnumVariantNames, IntoEnumIterator};
-use sys_info::hostname;
+use tracing::debug;
 use which_crate::which;
 
-use super::utils::editor;
+use crate::command::CommandExt;
+
+use super::utils::{editor, hostname};
 
 pub static EXAMPLE_CONFIG: &str = include_str!("../config.example.toml");
 
@@ -103,6 +107,7 @@ pub enum Step {
     HomeManager,
     Jetpack,
     Julia,
+    Juliaup,
     Kakoune,
     Krew,
     Macports,
@@ -126,6 +131,7 @@ pub enum Step {
     Remotes,
     Restarts,
     Rtcl,
+    RubyGems,
     Rustup,
     Scoop,
     Sdkman,
@@ -220,6 +226,7 @@ pub struct Brew {
 #[derive(Debug, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum ArchPackageManager {
+    GarudaUpdate,
     Autodetect,
     Trizen,
     Paru,
@@ -266,6 +273,7 @@ pub struct Vim {
 #[serde(deny_unknown_fields)]
 /// Configuration file
 pub struct ConfigFile {
+    pre_sudo: Option<bool>,
     pre_commands: Option<Commands>,
     post_commands: Option<Commands>,
     commands: Option<Commands>,
@@ -348,12 +356,12 @@ impl ConfigFile {
         };
 
         let contents = fs::read_to_string(&config_path).map_err(|e| {
-            log::error!("Unable to read {}", config_path.display());
+            tracing::error!("Unable to read {}", config_path.display());
             e
         })?;
 
         let mut result: Self = toml::from_str(&contents).map_err(|e| {
-            log::error!("Failed to deserialize {}", config_path.display());
+            tracing::error!("Failed to deserialize {}", config_path.display());
             e
         })?;
 
@@ -389,9 +397,8 @@ impl ConfigFile {
         Command::new(command)
             .args(args)
             .arg(config_path)
-            .spawn()
-            .and_then(|mut p| p.wait())?;
-        Ok(())
+            .status_checked()
+            .context("Failed to open configuration file editor")
     }
 }
 
@@ -424,22 +431,22 @@ pub struct CommandLineArgs {
     no_retry: bool,
 
     /// Do not perform upgrades for the given steps
-    #[clap(long = "disable", arg_enum, multiple_values = true)]
+    #[clap(long = "disable", value_name = "STEP", arg_enum, multiple_values = true)]
     disable: Vec<Step>,
 
     /// Perform only the specified steps (experimental)
-    #[clap(long = "only", arg_enum, multiple_values = true)]
+    #[clap(long = "only", value_name = "STEP", arg_enum, multiple_values = true)]
     only: Vec<Step>,
 
     /// Run only specific custom commands
-    #[clap(long = "custom-commands")]
+    #[clap(long = "custom-commands", value_name = "NAME", multiple_values = true)]
     custom_commands: Vec<String>,
 
     /// Set environment variables
-    #[clap(long = "env", multiple_values = true)]
+    #[clap(long = "env", value_name = "NAME=VALUE", multiple_values = true)]
     env: Vec<String>,
 
-    /// Output logs
+    /// Output debug logs. Alias for `--log-filter debug`.
     #[clap(short = 'v', long = "verbose")]
     pub verbose: bool,
 
@@ -452,7 +459,14 @@ pub struct CommandLineArgs {
     skip_notify: bool,
 
     /// Say yes to package manager's prompt
-    #[clap(short = 'y', long = "yes", arg_enum, multiple_values = true, min_values = 0)]
+    #[clap(
+        short = 'y',
+        long = "yes",
+        value_name = "STEP",
+        arg_enum,
+        multiple_values = true,
+        min_values = 0
+    )]
     yes: Option<Vec<Step>>,
 
     /// Don't pull the predefined git repos
@@ -460,16 +474,30 @@ pub struct CommandLineArgs {
     disable_predefined_git_repos: bool,
 
     /// Alternative configuration file
-    #[clap(long = "config")]
+    #[clap(long = "config", value_name = "PATH")]
     config: Option<PathBuf>,
 
     /// A regular expression for restricting remote host execution
-    #[clap(long = "remote-host-limit")]
+    #[clap(long = "remote-host-limit", value_name = "REGEX")]
     remote_host_limit: Option<Regex>,
 
     /// Show the reason for skipped steps
     #[clap(long = "show-skipped")]
     show_skipped: bool,
+
+    /// Tracing filter directives.
+    ///
+    /// See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/struct.EnvFilter.html
+    #[clap(long, default_value = "info")]
+    pub log_filter: String,
+
+    /// Print completion script for the given shell and exit
+    #[clap(long, arg_enum, hide = true)]
+    pub gen_completion: Option<Shell>,
+
+    /// Print roff manpage and exit
+    #[clap(long, hide = true)]
+    pub gen_manpage: bool,
 }
 
 impl CommandLineArgs {
@@ -483,6 +511,14 @@ impl CommandLineArgs {
 
     pub fn env_variables(&self) -> &Vec<String> {
         &self.env
+    }
+
+    pub fn tracing_filter_directives(&self) -> String {
+        if self.verbose {
+            "debug".into()
+        } else {
+            self.log_filter.clone()
+        }
     }
 }
 
@@ -507,11 +543,11 @@ impl Config {
             ConfigFile::read(base_dirs, opt.config.clone()).unwrap_or_else(|e| {
                 // Inform the user about errors when loading the configuration,
                 // but fallback to the default config to at least attempt to do something
-                log::error!("failed to load configuration: {}", e);
+                tracing::error!("failed to load configuration: {}", e);
                 ConfigFile::default()
             })
         } else {
-            log::debug!("Configuration directory {} does not exist", config_directory.display());
+            tracing::debug!("Configuration directory {} does not exist", config_directory.display());
             ConfigFile::default()
         };
 
@@ -626,7 +662,7 @@ impl Config {
     }
 
     /// Extra Tmux arguments
-    pub fn tmux_arguments(&self) -> anyhow::Result<Vec<String>> {
+    pub fn tmux_arguments(&self) -> eyre::Result<Vec<String>> {
         let args = &self.config_file.tmux_arguments.as_deref().unwrap_or_default();
         shell_words::split(args)
             // The only time the parse failed is in case of a missing close quote.
@@ -922,6 +958,12 @@ impl Config {
             .as_ref()
             .and_then(|windows| windows.open_remotes_in_new_terminal)
             .unwrap_or(false)
+    }
+
+    /// If `true`, `sudo` should be called after `pre_commands` in order to elevate at the
+    /// start of the session (and not in the middle).
+    pub fn pre_sudo(&self) -> bool {
+        self.config_file.pre_sudo.unwrap_or(false)
     }
 
     #[cfg(target_os = "linux")]
