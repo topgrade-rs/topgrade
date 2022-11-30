@@ -6,6 +6,7 @@ use std::process::Command;
 use std::{env, fs};
 
 use clap::{ArgEnum, Parser};
+use clap_complete::Shell;
 use color_eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
@@ -106,6 +107,7 @@ pub enum Step {
     HomeManager,
     Jetpack,
     Julia,
+    Juliaup,
     Kakoune,
     Krew,
     Macports,
@@ -129,6 +131,7 @@ pub enum Step {
     Remotes,
     Restarts,
     Rtcl,
+    RubyGems,
     Rustup,
     Scoop,
     Sdkman,
@@ -223,6 +226,7 @@ pub struct Brew {
 #[derive(Debug, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum ArchPackageManager {
+    GarudaUpdate,
     Autodetect,
     Trizen,
     Paru,
@@ -269,6 +273,7 @@ pub struct Vim {
 #[serde(deny_unknown_fields)]
 /// Configuration file
 pub struct ConfigFile {
+    pre_sudo: Option<bool>,
     pre_commands: Option<Commands>,
     post_commands: Option<Commands>,
     commands: Option<Commands>,
@@ -485,6 +490,14 @@ pub struct CommandLineArgs {
     /// See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/struct.EnvFilter.html
     #[clap(long, default_value = "info")]
     pub log_filter: String,
+
+    /// Print completion script for the given shell and exit
+    #[clap(long, arg_enum, hide = true)]
+    pub gen_completion: Option<Shell>,
+
+    /// Print roff manpage and exit
+    #[clap(long, hide = true)]
+    pub gen_manpage: bool,
 }
 
 impl CommandLineArgs {
@@ -945,6 +958,12 @@ impl Config {
             .as_ref()
             .and_then(|windows| windows.open_remotes_in_new_terminal)
             .unwrap_or(false)
+    }
+
+    /// If `true`, `sudo` should be called after `pre_commands` in order to elevate at the
+    /// start of the session (and not in the middle).
+    pub fn pre_sudo(&self) -> bool {
+        self.config_file.pre_sudo.unwrap_or(false)
     }
 
     #[cfg(target_os = "linux")]

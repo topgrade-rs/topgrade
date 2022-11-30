@@ -1,16 +1,17 @@
 #![allow(dead_code)]
 use crate::executor::RunType;
 use crate::git::Git;
+use crate::sudo::Sudo;
 use crate::utils::require_option;
 use crate::{config::Config, executor::Executor};
 use color_eyre::eyre::Result;
 use directories::BaseDirs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Mutex;
 
 pub struct ExecutionContext<'a> {
     run_type: RunType,
-    sudo: &'a Option<PathBuf>,
+    sudo: Option<Sudo>,
     git: &'a Git,
     config: &'a Config,
     base_dirs: &'a BaseDirs,
@@ -23,7 +24,7 @@ pub struct ExecutionContext<'a> {
 impl<'a> ExecutionContext<'a> {
     pub fn new(
         run_type: RunType,
-        sudo: &'a Option<PathBuf>,
+        sudo: Option<Sudo>,
         git: &'a Git,
         config: &'a Config,
         base_dirs: &'a BaseDirs,
@@ -40,18 +41,7 @@ impl<'a> ExecutionContext<'a> {
 
     pub fn execute_elevated(&self, command: &Path, interactive: bool) -> Result<Executor> {
         let sudo = require_option(self.sudo.clone(), "Sudo is required for this operation".into())?;
-        let mut cmd = self.run_type.execute(&sudo);
-
-        if sudo.ends_with("sudo") {
-            cmd.arg("--preserve-env=DIFFPROG");
-        }
-
-        if interactive {
-            cmd.arg("-i");
-        }
-
-        cmd.arg(command);
-        Ok(cmd)
+        Ok(sudo.execute_elevated(self, command, interactive))
     }
 
     pub fn run_type(&self) -> RunType {
@@ -62,8 +52,8 @@ impl<'a> ExecutionContext<'a> {
         self.git
     }
 
-    pub fn sudo(&self) -> &Option<PathBuf> {
-        self.sudo
+    pub fn sudo(&self) -> &Option<Sudo> {
+        &self.sudo
     }
 
     pub fn config(&self) -> &Config {
