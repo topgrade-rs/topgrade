@@ -90,7 +90,7 @@ pub fn run_rubygems(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     print_separator("RubyGems");
 
     let mut command = run_type.execute(gem);
-    command.arg("update --system");
+    command.args(["update", "--system"]);
 
     if env::var_os("RBENV_SHELL").is_none() {
         debug!("Detected rbenv. Avoiding --user-install");
