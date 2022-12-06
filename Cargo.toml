@@ -6,7 +6,7 @@ keywords = ["upgrade", "update"]
 license = "GPL-3.0"
 # license-file = "LICENSE"
 repository = "https://github.com/topgrade-rs/topgrade"
-version = "10.2.1"
+version = "10.2.2"
 authors = ["Roey Darwish Dror <roey.ghost@gmail.com>", "Thomas Schönauer <t.schoenauer@hgs-wt.at>"]
 exclude = ["doc/screenshot.gif"]
 edition = "2021"
@@ -44,9 +44,9 @@ futures = "~0.3"
 regex = "~1.5"
 semver = "~1.0"
 shell-words = "~1.1"
-color-eyre = "0.6.2"
-tracing = { version = "0.1.37", features = ["attributes", "log"] }
-tracing-subscriber = { version = "0.3.16", features = ["env-filter", "time"] }
+color-eyre = "~0.6"
+tracing = { version = "~0.1", features = ["attributes", "log"] }
+tracing-subscriber = { version = "~0.3", features = ["env-filter", "time"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 notify-rust = "~4.5"
