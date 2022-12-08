@@ -110,6 +110,7 @@ pub enum Step {
     Juliaup,
     Kakoune,
     Krew,
+    Helm,
     Macports,
     Mas,
     Micro,

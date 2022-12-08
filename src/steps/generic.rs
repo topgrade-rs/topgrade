@@ -546,3 +546,10 @@ pub fn update_julia_packages(ctx: &ExecutionContext) -> Result<()> {
         .args(["-e", "using Pkg; Pkg.update()"])
         .status_checked()
 }
+
+pub fn run_helm_repo_update(run_type: RunType) -> Result<()> {
+    let helm = utils::require("helm")?;
+
+    print_separator("Helm");
+    run_type.execute(helm).arg("repo").arg("update").status_checked()
+}
