@@ -20,6 +20,7 @@ use which_crate::which;
 
 use crate::command::CommandExt;
 use crate::report::StepResult;
+use crate::terminal;
 #[cfg(target_os = "linux")]
 use crate::utils::which;
 
@@ -104,8 +105,8 @@ impl Terminal {
                     }
                     command.args(["-a", "Topgrade", "Topgrade"]);
                     command.arg(message.as_ref());
-                    if let Err(err) = command.output_checked() {
-                        tracing::error!("{err:?}");
+                    if let Err(err) = command.output() {
+                        terminal::print_warning("Senfing notification failed with {err:?}");
                     }
                 }
             }
