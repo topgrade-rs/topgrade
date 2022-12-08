@@ -20,10 +20,10 @@ use which_crate::which;
 
 use crate::command::CommandExt;
 use crate::report::StepResult;
+#[cfg(target_os = "linux")]
 use crate::terminal;
 #[cfg(target_os = "linux")]
 use crate::utils::which;
-
 lazy_static! {
     static ref TERMINAL: Mutex<Terminal> = Mutex::new(Terminal::new());
 }
