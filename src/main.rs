@@ -374,6 +374,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Deno, "deno", || node::deno_upgrade(&ctx))?;
     runner.execute(Step::Composer, "composer", || generic::run_composer_update(&ctx))?;
     runner.execute(Step::Krew, "krew", || generic::run_krew_upgrade(run_type))?;
+    runner.execute(Step::Helm, "helm", || generic::run_helm_repo_update(run_type))?;
     runner.execute(Step::Gem, "gem", || generic::run_gem(&base_dirs, run_type))?;
     runner.execute(Step::RubyGems, "rubygems", || {
         generic::run_rubygems(&base_dirs, run_type)
