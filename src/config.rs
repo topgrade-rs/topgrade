@@ -153,7 +153,7 @@ pub enum Step {
     Winget,
     Wsl,
     Yadm,
-    Yarn
+    Yarn,
 }
 
 #[derive(Deserialize, Default, Debug)]
