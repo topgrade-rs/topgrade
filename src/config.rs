@@ -109,6 +109,7 @@ pub enum Step {
     Julia,
     Juliaup,
     Kakoune,
+    Helix,
     Krew,
     Macports,
     Mas,

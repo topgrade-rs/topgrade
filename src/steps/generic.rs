@@ -499,6 +499,26 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
+    utils::require("helix")?;
+
+    print_separator("Helix");
+
+    ctx.run_type()
+        .execute(ctx.sudo().as_ref().ok_or(TopgradeError::SudoRequired)?)
+        .args(["helix", "--grammar", "fetch"])
+        .status_checked()
+        .with_context(|| "Failed to download helix grammars!")?;
+
+    ctx.run_type()
+        .execute(ctx.sudo().as_ref().ok_or(TopgradeError::SudoRequired)?)
+        .args(["helix", "--grammar", "build"])
+        .status_checked()
+        .with_context(|| "Failed to build helix grammars!")?;
+
+    Ok(())
+}
+
 pub fn run_raco_update(run_type: RunType) -> Result<()> {
     let raco = utils::require("raco")?;
 
