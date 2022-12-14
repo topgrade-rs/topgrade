@@ -126,6 +126,7 @@ pub enum Step {
     Pipx,
     Pkg,
     Pkgin,
+    Pnpm,
     Powershell,
     Protonup,
     Raco,
@@ -154,6 +155,7 @@ pub enum Step {
     Winget,
     Wsl,
     Yadm,
+    Yarn,
 }
 
 #[derive(Deserialize, Default, Debug)]
