@@ -110,6 +110,7 @@ pub enum Step {
     Julia,
     Juliaup,
     Kakoune,
+    Helix,
     Krew,
     Macports,
     Mas,
@@ -125,6 +126,7 @@ pub enum Step {
     Pipx,
     Pkg,
     Pkgin,
+    Pnpm,
     Powershell,
     Protonup,
     Raco,
@@ -153,6 +155,7 @@ pub enum Step {
     Winget,
     Wsl,
     Yadm,
+    Yarn,
 }
 
 #[derive(Deserialize, Default, Debug)]
