@@ -223,7 +223,7 @@ impl Terminal {
             self.term.set_title("Topgrade - Awaiting user");
         }
 
-        self.notify_desktop(&format!("{} failed", step_name), None);
+        self.notify_desktop(format!("{} failed", step_name), None);
 
         self.term
             .write_fmt(format_args!(

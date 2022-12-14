@@ -47,6 +47,6 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
         print_separator(format!("Remote ({})", hostname));
         println!("Connecting to {}...", hostname);
 
-        ctx.run_type().execute(&ssh).args(&args).check_run()
+        ctx.run_type().execute(ssh).args(&args).check_run()
     }
 }
