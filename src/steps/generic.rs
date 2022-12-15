@@ -89,7 +89,11 @@ pub fn run_rubygems(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
 
     print_separator("RubyGems");
 
-    run_type.execute(gem).args(["update", "--system"]).status_checked()
+    if !std::path::Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
+        run_type.execute(gem).args(["update", "--system"]).status_checked()
+    } else {
+        Ok(())
+    }
 }
 
 pub fn run_haxelib_update(ctx: &ExecutionContext) -> Result<()> {
