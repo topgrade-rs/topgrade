@@ -89,7 +89,11 @@ pub fn run_rubygems(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
 
     print_separator("RubyGems");
 
-    run_type.execute(gem).args(["update", "--system"]).status_checked()
+    if !std::path::Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
+        run_type.execute(gem).args(["update", "--system"]).status_checked()
+    } else {
+        Ok(())
+    }
 }
 
 pub fn run_haxelib_update(ctx: &ExecutionContext) -> Result<()> {
@@ -260,14 +264,27 @@ pub fn run_opam_update(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-pub fn run_vcpkg_update(run_type: RunType) -> Result<()> {
+pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
     let vcpkg = utils::require("vcpkg")?;
     print_separator("vcpkg");
 
-    run_type
-        .execute(vcpkg)
-        .args(["upgrade", "--no-dry-run"])
-        .status_checked()
+    #[cfg(unix)]
+    let is_root_install = !&vcpkg.starts_with("/home");
+
+    #[cfg(not(unix))]
+    let is_root_install = false;
+
+    let mut command = if is_root_install {
+        ctx.run_type().execute(&vcpkg)
+    } else {
+        let mut c = ctx
+            .run_type()
+            .execute(ctx.sudo().as_ref().ok_or(TopgradeError::SudoRequired)?);
+        c.arg(&vcpkg);
+        c
+    };
+
+    command.args(["upgrade", "--no-dry-run"]).status_checked()
 }
 
 pub fn run_pipx_update(run_type: RunType) -> Result<()> {
