@@ -102,6 +102,12 @@ pub fn run_fisher(run_type: RunType) -> Result<()> {
         .and_then(|output| Path::new(&output.stdout.trim()).require().map(|_| ()))
         .map_err(|err| SkipStep(format!("`fish_plugins` path doesn't exist: {err}")))?;
 
+    Command::new(&fish)
+        .args(["-c", "fish_update_completions"])
+        .output_checked_utf8()
+        .map(|_| ())
+        .map_err(|_| SkipStep("`fish_update_completions` is not available".to_owned()))?;
+
     print_separator("Fisher");
 
     let version_str = run_type
