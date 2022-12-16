@@ -471,9 +471,9 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let dotnet = utils::require("dotnet")?;
 
-    let dotnet_tool_output = ctx.run_type().execute(&dotnet).arg("tool").output().err().unwrap();
+    let dotnet_help_output = ctx.run_type().execute(&dotnet).arg("-h").output().err().unwrap();
 
-    if dotnet_tool_output.to_string().contains("install <PACKAGE_ID>") {
+    if dotnet_help_output.to_string().contains("tool") {
         let output = Command::new(dotnet)
             .args(["tool", "list", "--global"])
             .output_checked_utf8()?;
