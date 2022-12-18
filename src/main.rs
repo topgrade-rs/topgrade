@@ -348,7 +348,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Go, "gup", || go::run_go_gup(run_type))?;
     runner.execute(Step::Emacs, "Emacs", || emacs.upgrade(&ctx))?;
     runner.execute(Step::Opam, "opam", || generic::run_opam_update(&ctx))?;
-    runner.execute(Step::Vcpkg, "vcpkg", || generic::run_vcpkg_update(run_type))?;
+    runner.execute(Step::Vcpkg, "vcpkg", || generic::run_vcpkg_update(&ctx))?;
     runner.execute(Step::Pipx, "pipx", || generic::run_pipx_update(run_type))?;
     runner.execute(Step::Conda, "conda", || generic::run_conda_update(&ctx))?;
     runner.execute(Step::Pip3, "pip3", || generic::run_pip3_update(run_type))?;
@@ -367,13 +367,15 @@ fn run() -> Result<()> {
     runner.execute(Step::Vim, "The Ultimate vimrc", || vim::upgrade_ultimate_vimrc(&ctx))?;
     runner.execute(Step::Vim, "voom", || vim::run_voom(&base_dirs, run_type))?;
     runner.execute(Step::Kakoune, "Kakoune", || kakoune::upgrade_kak_plug(&ctx))?;
+    runner.execute(Step::Helix, "helix", || generic::run_helix_grammars(&ctx))?;
     runner.execute(Step::Node, "npm", || node::run_npm_upgrade(&ctx))?;
-    runner.execute(Step::Node, "yarn", || node::run_yarn_upgrade(&ctx))?;
-    runner.execute(Step::Node, "pnpm", || node::run_pnpm_upgrade(&ctx))?;
+    runner.execute(Step::Yarn, "yarn", || node::run_yarn_upgrade(&ctx))?;
+    runner.execute(Step::Pnpm, "pnpm", || node::run_pnpm_upgrade(&ctx))?;
     runner.execute(Step::Containers, "Containers", || containers::run_containers(&ctx))?;
     runner.execute(Step::Deno, "deno", || node::deno_upgrade(&ctx))?;
     runner.execute(Step::Composer, "composer", || generic::run_composer_update(&ctx))?;
     runner.execute(Step::Krew, "krew", || generic::run_krew_upgrade(run_type))?;
+    runner.execute(Step::Helm, "helm", || generic::run_helm_repo_update(run_type))?;
     runner.execute(Step::Gem, "gem", || generic::run_gem(&base_dirs, run_type))?;
     runner.execute(Step::RubyGems, "rubygems", || {
         generic::run_rubygems(&base_dirs, run_type)

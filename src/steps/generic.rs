@@ -89,7 +89,11 @@ pub fn run_rubygems(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
 
     print_separator("RubyGems");
 
-    run_type.execute(gem).args(["update", "--system"]).status_checked()
+    if !std::path::Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
+        run_type.execute(gem).args(["update", "--system"]).status_checked()
+    } else {
+        Ok(())
+    }
 }
 
 pub fn run_haxelib_update(ctx: &ExecutionContext) -> Result<()> {
@@ -260,14 +264,27 @@ pub fn run_opam_update(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-pub fn run_vcpkg_update(run_type: RunType) -> Result<()> {
+pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
     let vcpkg = utils::require("vcpkg")?;
     print_separator("vcpkg");
 
-    run_type
-        .execute(vcpkg)
-        .args(["upgrade", "--no-dry-run"])
-        .status_checked()
+    #[cfg(unix)]
+    let is_root_install = !&vcpkg.starts_with("/home");
+
+    #[cfg(not(unix))]
+    let is_root_install = false;
+
+    let mut command = if is_root_install {
+        ctx.run_type().execute(&vcpkg)
+    } else {
+        let mut c = ctx
+            .run_type()
+            .execute(ctx.sudo().as_ref().ok_or(TopgradeError::SudoRequired)?);
+        c.arg(&vcpkg);
+        c
+    };
+
+    command.args(["upgrade", "--no-dry-run"]).status_checked()
 }
 
 pub fn run_pipx_update(run_type: RunType) -> Result<()> {
@@ -471,30 +488,53 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let dotnet = utils::require("dotnet")?;
 
-    let output = Command::new(dotnet)
-        .args(["tool", "list", "--global"])
-        .output_checked_utf8()?;
+    let dotnet_help_output = ctx.run_type().execute(&dotnet).arg("-h").output().err().unwrap();
 
-    if !output.stdout.starts_with("Package Id") {
-        return Err(SkipStep(String::from("dotnet did not output packages")).into());
+    if dotnet_help_output.to_string().contains("tool") {
+        let output = Command::new(dotnet)
+            .args(["tool", "list", "--global"])
+            .output_checked_utf8()?;
+
+        if !output.stdout.starts_with("Package Id") {
+            return Err(SkipStep(String::from("dotnet did not output packages")).into());
+        }
+
+        let mut packages = output.stdout.lines().skip(2).filter(|line| !line.is_empty()).peekable();
+
+        if packages.peek().is_none() {
+            return Err(SkipStep(String::from("No dotnet global tools installed")).into());
+        }
+
+        print_separator(".NET");
+
+        for package in packages {
+            let package_name = package.split_whitespace().next().unwrap();
+            ctx.run_type()
+                .execute("dotnet")
+                .args(["tool", "update", package_name, "--global"])
+                .status_checked()
+                .with_context(|| format!("Failed to update .NET package {package_name}"))?;
+        }
     }
+    Ok(())
+}
 
-    let mut packages = output.stdout.lines().skip(2).filter(|line| !line.is_empty()).peekable();
+pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
+    utils::require("helix")?;
 
-    if packages.peek().is_none() {
-        return Err(SkipStep(String::from("No dotnet global tools installed")).into());
-    }
+    print_separator("Helix");
 
-    print_separator(".NET");
+    ctx.run_type()
+        .execute(ctx.sudo().as_ref().ok_or(TopgradeError::SudoRequired)?)
+        .args(["helix", "--grammar", "fetch"])
+        .status_checked()
+        .with_context(|| "Failed to download helix grammars!")?;
 
-    for package in packages {
-        let package_name = package.split_whitespace().next().unwrap();
-        ctx.run_type()
-            .execute("dotnet")
-            .args(["tool", "update", package_name, "--global"])
-            .status_checked()
-            .with_context(|| format!("Failed to update .NET package {package_name}"))?;
-    }
+    ctx.run_type()
+        .execute(ctx.sudo().as_ref().ok_or(TopgradeError::SudoRequired)?)
+        .args(["helix", "--grammar", "build"])
+        .status_checked()
+        .with_context(|| "Failed to build helix grammars!")?;
 
     Ok(())
 }
@@ -545,4 +585,11 @@ pub fn update_julia_packages(ctx: &ExecutionContext) -> Result<()> {
         .execute(julia)
         .args(["-e", "using Pkg; Pkg.update()"])
         .status_checked()
+}
+
+pub fn run_helm_repo_update(run_type: RunType) -> Result<()> {
+    let helm = utils::require("helm")?;
+
+    print_separator("Helm");
+    run_type.execute(helm).arg("repo").arg("update").status_checked()
 }
