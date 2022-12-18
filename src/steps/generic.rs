@@ -488,31 +488,34 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let dotnet = utils::require("dotnet")?;
 
-    let output = Command::new(dotnet)
-        .args(["tool", "list", "--global"])
-        .output_checked_utf8()?;
+    let dotnet_help_output = ctx.run_type().execute(&dotnet).arg("-h").output().err().unwrap();
 
-    if !output.stdout.starts_with("Package Id") {
-        return Err(SkipStep(String::from("dotnet did not output packages")).into());
+    if dotnet_help_output.to_string().contains("tool") {
+        let output = Command::new(dotnet)
+            .args(["tool", "list", "--global"])
+            .output_checked_utf8()?;
+
+        if !output.stdout.starts_with("Package Id") {
+            return Err(SkipStep(String::from("dotnet did not output packages")).into());
+        }
+
+        let mut packages = output.stdout.lines().skip(2).filter(|line| !line.is_empty()).peekable();
+
+        if packages.peek().is_none() {
+            return Err(SkipStep(String::from("No dotnet global tools installed")).into());
+        }
+
+        print_separator(".NET");
+
+        for package in packages {
+            let package_name = package.split_whitespace().next().unwrap();
+            ctx.run_type()
+                .execute("dotnet")
+                .args(["tool", "update", package_name, "--global"])
+                .status_checked()
+                .with_context(|| format!("Failed to update .NET package {package_name}"))?;
+        }
     }
-
-    let mut packages = output.stdout.lines().skip(2).filter(|line| !line.is_empty()).peekable();
-
-    if packages.peek().is_none() {
-        return Err(SkipStep(String::from("No dotnet global tools installed")).into());
-    }
-
-    print_separator(".NET");
-
-    for package in packages {
-        let package_name = package.split_whitespace().next().unwrap();
-        ctx.run_type()
-            .execute("dotnet")
-            .args(["tool", "update", package_name, "--global"])
-            .status_checked()
-            .with_context(|| format!("Failed to update .NET package {package_name}"))?;
-    }
-
     Ok(())
 }
 
