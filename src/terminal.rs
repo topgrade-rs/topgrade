@@ -143,7 +143,7 @@ impl Terminal {
                     .write_fmt(format_args!(
                         "{}\n",
                         style(format_args!(
-                            "\n―― {} {:―^border$}",
+                            "\n── {} {:─^border$}",
                             message,
                             "",
                             border = max(
