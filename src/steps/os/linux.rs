@@ -29,6 +29,7 @@ pub enum Distribution {
     Debian,
     Gentoo,
     OpenMandriva,
+    PCLinuxOS,
     Suse,
     Void,
     Solus,
@@ -57,6 +58,7 @@ impl Distribution {
             Some("nixos") => Distribution::NixOS,
             Some("neon") => Distribution::KDENeon,
             Some("openmandriva") => Distribution::OpenMandriva,
+            Some("pclinuxos") => Distribution::PCLinuxOS,
             _ => {
                 if let Some(id_like) = id_like {
                     if id_like.contains(&"debian") || id_like.contains(&"ubuntu") {
@@ -110,6 +112,7 @@ impl Distribution {
             Distribution::KDENeon => upgrade_neon(ctx),
             Distribution::Bedrock => update_bedrock(ctx),
             Distribution::OpenMandriva => upgrade_openmandriva(ctx),
+            Distribution::PCLinuxOS => upgrade_pclinuxos(ctx),
         }
     }
 
@@ -240,6 +243,33 @@ fn upgrade_openmandriva(ctx: &ExecutionContext) -> Result<()> {
         }
 
         command.status_checked()?;
+    } else {
+        print_warning("No sudo detected. Skipping system upgrade");
+    }
+
+    Ok(())
+}
+fn upgrade_pclinuxos(ctx: &ExecutionContext) -> Result<()> {
+    if let Some(sudo) = &ctx.sudo() {
+        let mut command_update = ctx.run_type().execute(sudo);
+
+        command_update.arg(&which("apt-get").unwrap()).arg("update");
+
+        if let Some(args) = ctx.config().dnf_arguments() {
+            command_update.args(args.split_whitespace());
+        }
+
+        if ctx.config().yes(Step::System) {
+            command_update.arg("-y");
+        }
+
+        command_update.status_checked()?;
+
+        ctx.run_type()
+            .execute(sudo)
+            .arg(&which("apt-get").unwrap())
+            .arg("dist-upgrade")
+            .status_checked()?;
     } else {
         print_warning("No sudo detected. Skipping system upgrade");
     }
