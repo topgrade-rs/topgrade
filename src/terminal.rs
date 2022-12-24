@@ -237,7 +237,9 @@ impl Terminal {
             self.term.set_title("Topgrade - Awaiting user");
         }
 
-        self.notify_desktop(format!("{} failed", step_name), None);
+        if self.desktop_notification {
+            self.notify_desktop(format!("{} failed", step_name), None);
+        }
 
         let prompt_inner = style(format!("{}Retry? (y)es/(N)o/(s)hell/(q)uit", self.prefix))
             .yellow()
