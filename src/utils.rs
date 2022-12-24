@@ -149,6 +149,6 @@ pub fn hostname() -> Result<String> {
 
     Command::new("hostname")
         .output_checked_utf8()
-        .map_err(|err| SkipStep(format!("Failed to get hostname: {}", err)).into())
+        .map_err(|err| SkipStep(format!("Failed to get hostname: {err}")).into())
         .map(|output| output.stdout.trim().to_owned())
 }

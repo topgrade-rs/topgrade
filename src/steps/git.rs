@@ -71,7 +71,7 @@ async fn pull_repository(repo: String, git: &Path, ctx: &ExecutionContext<'_>) -
 
     if let Err(message) = &result {
         println!("{} pulling {}", style("Failed").red().bold(), &repo);
-        print!("{}", message);
+        print!("{message}");
     } else {
         let after_revision = get_head_revision(git, &repo);
 
@@ -87,7 +87,7 @@ async fn pull_repository(repo: String, git: &Path, ctx: &ExecutionContext<'_>) -
                         "log",
                         "--no-decorate",
                         "--oneline",
-                        &format!("{}..{}", before, after),
+                        &format!("{before}..{after}"),
                     ])
                     .status_checked()?;
                 println!();
@@ -187,7 +187,7 @@ impl Git {
         repositories
             .bad_patterns
             .iter()
-            .for_each(|pattern| print_warning(format!("Path {} did not contain any git repositories", pattern)));
+            .for_each(|pattern| print_warning(format!("Path {pattern} did not contain any git repositories")));
         self.multi_pull(repositories, ctx)
     }
 

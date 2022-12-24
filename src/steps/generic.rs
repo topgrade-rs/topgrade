@@ -435,7 +435,7 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
     let composer_home = Command::new(&composer)
         .args(["global", "config", "--absolute", "--quiet", "home"])
         .output_checked_utf8()
-        .map_err(|e| (SkipStep(format!("Error getting the composer directory: {}", e))))
+        .map_err(|e| (SkipStep(format!("Error getting the composer directory: {e}"))))
         .map(|s| PathBuf::from(s.stdout.trim()))?
         .require()?;
 

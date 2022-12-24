@@ -147,7 +147,7 @@ fn run() -> Result<()> {
 
     if let Some(topgrades) = config.remote_topgrades() {
         for remote_topgrade in topgrades.iter().filter(|t| config.should_execute_remote(t)) {
-            runner.execute(Step::Remotes, format!("Remote ({})", remote_topgrade), || {
+            runner.execute(Step::Remotes, format!("Remote ({remote_topgrade})"), || {
                 remote::ssh::ssh_step(&ctx, remote_topgrade)
             })?;
         }
@@ -550,7 +550,7 @@ fn main() {
                 // The `Debug` implementation of `eyre::Result` prints a multi-line
                 // error message that includes all the 'causes' added with
                 // `.with_context(...)` calls.
-                println!("Error: {:?}", error);
+                println!("Error: {error:?}");
             }
             exit(1);
         }
