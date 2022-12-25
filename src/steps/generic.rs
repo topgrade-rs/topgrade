@@ -488,7 +488,7 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let dotnet = utils::require("dotnet")?;
 
-    let dotnet_help_output = ctx.run_type().execute(&dotnet).arg("-h").output().err().unwrap();
+    let dotnet_help_output = ctx.run_type().execute(&dotnet).arg("-h").output_checked_utf8().unwrap();
 
     if dotnet_help_output.to_string().contains("tool") {
         let output = Command::new(dotnet)
