@@ -48,7 +48,7 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
     }
 
     ctx.run_type()
-        .execute(&winget)
+        .execute(winget)
         .args(["upgrade", "--all"])
         .status_checked()
 }
@@ -86,7 +86,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     let mut command = ctx.run_type().execute(wsl);
     command
         .args(["-d", dist, "bash", "-c"])
-        .arg(format!("TOPGRADE_PREFIX={} exec {}", dist, topgrade));
+        .arg(format!("TOPGRADE_PREFIX={dist} exec {topgrade}"));
 
     if ctx.config().yes(Step::Wsl) {
         command.arg("-y");
