@@ -2,3 +2,5 @@
 /target
 /build
 **/*.rs.bk
+
+.idea/
