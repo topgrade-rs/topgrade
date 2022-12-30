@@ -690,6 +690,29 @@ pub fn run_distrobox_update(ctx: &ExecutionContext) -> Result<()> {
     .status_checked()
 }
 
+pub fn run_dkp_pacman_update(ctx: &ExecutionContext) -> Result<()> {
+    let sudo = require_option(ctx.sudo().as_ref(), String::from("sudo is not installed"))?;
+    let dkp_pacman = require("dkp-pacman")?;
+
+    print_separator("Devkitpro pacman");
+
+    ctx.run_type()
+        .execute(sudo)
+        .arg(&dkp_pacman)
+        .arg("-Syu")
+        .status_checked()?;
+
+    if ctx.config().cleanup() {
+        ctx.run_type()
+            .execute(sudo)
+            .arg(&dkp_pacman)
+            .arg("-Scc")
+            .status_checked()?;
+    }
+
+    Ok(())
+}
+
 pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), String::from("sudo is not installed"))?;
     if ctx.config().yes(Step::ConfigUpdate) {

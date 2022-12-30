@@ -405,6 +405,7 @@ fn run() -> Result<()> {
         runner.execute(Step::Pacdef, "pacdef", || linux::run_pacdef(&ctx))?;
         runner.execute(Step::Protonup, "protonup", || linux::run_protonup_update(&ctx))?;
         runner.execute(Step::Distrobox, "distrobox", || linux::run_distrobox_update(&ctx))?;
+        runner.execute(Step::DkpPacman, "dkp-pacman", || linux::run_dkp_pacman_update(&ctx))?;
     }
 
     if let Some(commands) = config.commands() {
