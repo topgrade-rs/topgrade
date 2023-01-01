@@ -78,6 +78,8 @@
 #arch_package_manager = "pacman"
 # Arguments to pass yay (or paru) when updating packages
 #yay_arguments = "--nodevel"
+# Arguments to pass dnf when updating packages
+#dnf_arguments = "--refresh"
 #aura_aur_arguments = "-kx"
 #aura_pacman_arguments = ""
 #show_arch_news = true
