@@ -147,7 +147,7 @@ fn run() -> Result<()> {
 
     if let Some(topgrades) = config.remote_topgrades() {
         for remote_topgrade in topgrades.iter().filter(|t| config.should_execute_remote(t)) {
-            runner.execute(Step::Remotes, format!("Remote ({})", remote_topgrade), || {
+            runner.execute(Step::Remotes, format!("Remote ({remote_topgrade})"), || {
                 remote::ssh::ssh_step(&ctx, remote_topgrade)
             })?;
         }
@@ -163,7 +163,7 @@ fn run() -> Result<()> {
                 runner.execute(Step::System, "System update", || distribution.upgrade(&ctx))?;
             }
             Err(e) => {
-                println!("Error detecting current distribution: {}", e);
+                println!("Error detecting current distribution: {e}");
             }
         }
         runner.execute(Step::ConfigUpdate, "config-update", || linux::run_config_update(&ctx))?;
@@ -405,6 +405,7 @@ fn run() -> Result<()> {
         runner.execute(Step::Pacdef, "pacdef", || linux::run_pacdef(&ctx))?;
         runner.execute(Step::Protonup, "protonup", || linux::run_protonup_update(&ctx))?;
         runner.execute(Step::Distrobox, "distrobox", || linux::run_distrobox_update(&ctx))?;
+        runner.execute(Step::DkpPacman, "dkp-pacman", || linux::run_dkp_pacman_update(&ctx))?;
     }
 
     if let Some(commands) = config.commands() {
@@ -550,7 +551,7 @@ fn main() {
                 // The `Debug` implementation of `eyre::Result` prints a multi-line
                 // error message that includes all the 'causes' added with
                 // `.with_context(...)` calls.
-                println!("Error: {:?}", error);
+                println!("Error: {error:?}");
             }
             exit(1);
         }

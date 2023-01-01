@@ -89,6 +89,7 @@ pub enum Step {
     DebGet,
     Deno,
     Distrobox,
+    DkpPacman,
     Dotnet,
     Emacs,
     Firmware,

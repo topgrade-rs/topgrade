@@ -60,7 +60,7 @@ impl Terminal {
             width: term.size_checked().map(|(_, w)| w),
             term,
             prefix: env::var("TOPGRADE_PREFIX")
-                .map(|prefix| format!("({}) ", prefix))
+                .map(|prefix| format!("({prefix}) "))
                 .unwrap_or_else(|_| String::new()),
             set_title: true,
             display_time: true,
@@ -143,7 +143,7 @@ impl Terminal {
                     .write_fmt(format_args!(
                         "{}\n",
                         style(format_args!(
-                            "\n―― {} {:―^border$}",
+                            "\n── {} {:─^border$}",
                             message,
                             "",
                             border = max(
@@ -159,7 +159,7 @@ impl Terminal {
                     .ok();
             }
             None => {
-                self.term.write_fmt(format_args!("―― {} ――\n", message)).ok();
+                self.term.write_fmt(format_args!("―― {message} ――\n")).ok();
             }
         }
     }
@@ -171,7 +171,7 @@ impl Terminal {
         self.term
             .write_fmt(format_args!(
                 "{} {}",
-                style(format!("{} failed:", key)).red().bold(),
+                style(format!("{key} failed:")).red().bold(),
                 message
             ))
             .ok();
@@ -215,7 +215,7 @@ impl Terminal {
         self.term
             .write_fmt(format_args!(
                 "{}",
-                style(format!("{} (y)es/(N)o", question,)).yellow().bold()
+                style(format!("{question} (y)es/(N)o",)).yellow().bold()
             ))
             .ok();
 
@@ -237,13 +237,15 @@ impl Terminal {
             self.term.set_title("Topgrade - Awaiting user");
         }
 
-        self.notify_desktop(format!("{} failed", step_name), None);
+        if self.desktop_notification {
+            self.notify_desktop(format!("{step_name} failed"), None);
+        }
 
         let prompt_inner = style(format!("{}Retry? (y)es/(N)o/(s)hell/(q)uit", self.prefix))
             .yellow()
             .bold();
 
-        self.term.write_fmt(format_args!("\n{}", prompt_inner)).ok();
+        self.term.write_fmt(format_args!("\n{prompt_inner}")).ok();
 
         let answer = loop {
             match self.term.read_key() {
@@ -251,7 +253,7 @@ impl Terminal {
                 Ok(Key::Char('s')) | Ok(Key::Char('S')) => {
                     println!("\n\nDropping you to shell. Fix what you need and then exit the shell.\n");
                     if let Err(err) = run_shell().context("Failed to run shell") {
-                        self.term.write_fmt(format_args!("{err:?}\n{}", prompt_inner)).ok();
+                        self.term.write_fmt(format_args!("{err:?}\n{prompt_inner}")).ok();
                     } else {
                         break Ok(true);
                     }
