@@ -231,15 +231,15 @@ pub struct Brew {
 #[derive(Debug, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum ArchPackageManager {
-    GarudaUpdate,
     Autodetect,
-    Trizen,
-    Paru,
-    Yay,
-    Pacman,
-    Pikaur,
-    Pamac,
     Aura,
+    GarudaUpdate,
+    Pacman,
+    Pamac,
+    Paru,
+    Pikaur,
+    Trizen,
+    Yay,
 }
 
 #[derive(Deserialize, Default, Debug)]
