@@ -250,6 +250,7 @@ pub struct Linux {
     aura_pacman_arguments: Option<String>,
     arch_package_manager: Option<ArchPackageManager>,
     show_arch_news: Option<bool>,
+    garuda_update_arguments: Option<String>,
     trizen_arguments: Option<String>,
     pikaur_arguments: Option<String>,
     pamac_arguments: Option<String>,
@@ -779,6 +780,15 @@ impl Config {
     /// Whether to send a desktop notification at the beginning of every step
     pub fn notify_each_step(&self) -> bool {
         self.config_file.notify_each_step.unwrap_or(false)
+    }
+
+    /// Extra garuda-update arguments
+    pub fn garuda_update_arguments(&self) -> &str {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|s| s.garuda_update_arguments.as_deref())
+            .unwrap_or("")
     }
 
     /// Extra trizen arguments

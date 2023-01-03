@@ -82,6 +82,7 @@
 #dnf_arguments = "--refresh"
 #aura_aur_arguments = "-kx"
 #aura_pacman_arguments = ""
+#garuda_update_arguments = ""
 #show_arch_news = true
 #trizen_arguments = "--devel"
 #pikaur_arguments = ""

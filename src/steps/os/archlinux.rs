@@ -89,6 +89,7 @@ impl ArchPackageManager for GarudaUpdate {
         if ctx.config().yes(Step::System) {
             command.env("PACMAN_NOCONFIRM", "1");
         }
+        command.args(ctx.config().garuda_update_arguments().split_whitespace());
         command.status_checked()?;
 
         Ok(())
