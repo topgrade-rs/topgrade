@@ -86,6 +86,9 @@ impl ArchPackageManager for GarudaUpdate {
             .env("UPDATE_AUR", "1")
             .env("SKIP_MIRRORLIST", "1");
 
+        if ctx.config().yes(Step::System) {
+            command.env("PACMAN_NOCONFIRM", "1");
+        }
         command.status_checked()?;
 
         Ok(())
