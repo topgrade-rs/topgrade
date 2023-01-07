@@ -48,7 +48,7 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
     }
 
     ctx.run_type()
-        .execute(&winget)
+        .execute(winget)
         .args(["upgrade", "--all"])
         .status_checked()
 }
