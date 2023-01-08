@@ -10,7 +10,7 @@ use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use directories::BaseDirs;
 use tempfile::tempfile_in;
-use tracing::debug;
+use tracing::{debug, error};
 
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
@@ -18,7 +18,7 @@ use crate::executor::{ExecutorOutput, RunType};
 use crate::terminal::{print_separator, shell};
 use crate::utils::{self, require_option, PathExt};
 use crate::{
-    error::{SkipStep, TopgradeError},
+    error::{SkipStep, StepFailed, TopgradeError},
     terminal::print_warning,
 };
 
@@ -591,5 +591,24 @@ pub fn run_helm_repo_update(run_type: RunType) -> Result<()> {
     let helm = utils::require("helm")?;
 
     print_separator("Helm");
-    run_type.execute(helm).arg("repo").arg("update").status_checked()
+
+    let no_repo = "no repositories found";
+    let mut success = true;
+    let mut exec = run_type.execute(helm);
+    if let Err(e) = exec.arg("repo").arg("update").status_checked() {
+        error!("Updating repositories failed: {}", e);
+        success = match exec.output_checked_utf8() {
+            Ok(s) => s.stdout.contains(no_repo) || s.stderr.contains(no_repo),
+            Err(e) => match e.downcast_ref::<TopgradeError>() {
+                Some(TopgradeError::ProcessFailedWithOutput(_, _, stderr)) => stderr.contains(no_repo),
+                _ => false,
+            },
+        };
+    }
+
+    if success {
+        Ok(())
+    } else {
+        Err(eyre!(StepFailed))
+    }
 }
