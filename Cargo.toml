@@ -39,7 +39,7 @@ strum = { version = "~0.24", features = ["derive"] }
 thiserror = "~1.0"
 tempfile = "~3.2"
 cfg-if = "~1.0"
-tokio = { version = "~1.8", features = ["process", "rt-multi-thread"] }
+tokio = { version = "~1.18", features = ["process", "rt-multi-thread"] }
 futures = "~0.3"
 regex = "~1.5"
 semver = "~1.0"
