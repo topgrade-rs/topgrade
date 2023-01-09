@@ -74,7 +74,7 @@
 #autoremove = true
 
 [linux]
-# Arch Package Manager to use. Allowed values: autodetect, trizen, aura, paru, yay, pikaur, pacman, pamac.
+# Arch Package Manager to use. Allowed values: autodetect, aura, garuda_update, pacman, pamac, paru, pikaur, trizen, yay.
 #arch_package_manager = "pacman"
 # Arguments to pass yay (or paru) when updating packages
 #yay_arguments = "--nodevel"
@@ -82,6 +82,7 @@
 #dnf_arguments = "--refresh"
 #aura_aur_arguments = "-kx"
 #aura_pacman_arguments = ""
+#garuda_update_arguments = ""
 #show_arch_news = true
 #trizen_arguments = "--devel"
 #pikaur_arguments = ""
