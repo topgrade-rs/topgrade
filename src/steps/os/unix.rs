@@ -153,7 +153,7 @@ pub fn run_pkgin(ctx: &ExecutionContext) -> Result<()> {
     let pkgin = require("pkgin")?;
 
     print_separator("Pkgin");
-    
+
     let mut command = ctx.run_type().execute(ctx.sudo().as_ref().unwrap());
     command.arg(&pkgin).arg("update");
     if ctx.config().yes(Step::Pkgin) {
