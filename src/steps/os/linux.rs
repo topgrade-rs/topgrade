@@ -431,8 +431,16 @@ pub fn run_pacstall(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Pacstall");
 
-    ctx.run_type().execute(&pacstall).arg("-U").status_checked()?;
-    ctx.run_type().execute(pacstall).arg("-Up").status_checked()
+    let mut update_cmd = ctx.run_type().execute(&pacstall);
+    let mut upgrade_cmd = ctx.run_type().execute(pacstall);
+
+    if ctx.config().yes(Step::Pacstall) {
+        update_cmd.arg("-P");
+        upgrade_cmd.arg("-P");
+    }
+
+    update_cmd.arg("-U").status_checked()?;
+    upgrade_cmd.arg("-Up").status_checked()
 }
 
 fn upgrade_clearlinux(ctx: &ExecutionContext) -> Result<()> {
