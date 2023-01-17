@@ -347,7 +347,13 @@ fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
 fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
     if let Some(sudo) = &ctx.sudo() {
         let apt = which("apt-fast")
-            .or_else(|| which("nala"))
+            .or_else(|| {
+                if Path::new("/usr/bin/nala").exists() {
+                    Some(Path::new("/usr/bin/nala").to_path_buf())
+                } else {
+                    None
+                }
+            })
             .unwrap_or_else(|| PathBuf::from("apt-get"));
 
         let is_nala = apt.ends_with("nala");
