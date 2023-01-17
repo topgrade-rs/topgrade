@@ -352,6 +352,8 @@ fn run() -> Result<()> {
     runner.execute(Step::Pipx, "pipx", || generic::run_pipx_update(run_type))?;
     runner.execute(Step::Conda, "conda", || generic::run_conda_update(&ctx))?;
     runner.execute(Step::Pip3, "pip3", || generic::run_pip3_update(run_type))?;
+    runner.execute(Step::PipReview, "pip-review", || generic::run_pip_review_update(&ctx))?;
+    runner.execute(Step::Pipupgrade, "pipupgrade", || generic::run_pipupgrade_update(&ctx))?;
     runner.execute(Step::Ghcup, "ghcup", || generic::run_ghcup_update(run_type))?;
     runner.execute(Step::Stack, "stack", || generic::run_stack_update(run_type))?;
     runner.execute(Step::Tlmgr, "tlmgr", || generic::run_tlmgr_update(&ctx))?;

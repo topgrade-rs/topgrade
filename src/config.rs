@@ -124,6 +124,8 @@ pub enum Step {
     Pacstall,
     Pearl,
     Pip3,
+    PipReview,
+    Pipupgrade,
     Pipx,
     Pkg,
     Pkgin,
@@ -183,6 +185,18 @@ pub struct Windows {
     self_rename: Option<bool>,
     open_remotes_in_new_terminal: Option<bool>,
     enable_winget: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct PipReview {
+    enable: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct Pipupgrade {
+    enable: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug)]
@@ -298,6 +312,8 @@ pub struct ConfigFile {
     yay_arguments: Option<String>,
     aura_aur_arguments: Option<String>,
     aura_pacman_arguments: Option<String>,
+    enable_pipupgrade: Option<Pipupgrade>,
+    enable_pip_review: Option<PipReview>,
     no_retry: Option<bool>,
     run_in_tmux: Option<bool>,
     cleanup: Option<bool>,
@@ -1043,6 +1059,23 @@ impl Config {
             .windows
             .as_ref()
             .and_then(|w| w.enable_winget)
+            .unwrap_or(false);
+    }
+
+    pub fn enable_pipupgrade(&self) -> bool {
+        return self
+            .config_file
+            .enable_pipupgrade
+            .as_ref()
+            .and_then(|pipupgrade| pipupgrade.enable)
+            .unwrap_or(false);
+    }
+    pub fn enable_pip_review(&self) -> bool {
+        return self
+            .config_file
+            .enable_pip_review
+            .as_ref()
+            .and_then(|pip_review| pip_review.enable)
             .unwrap_or(false);
     }
 

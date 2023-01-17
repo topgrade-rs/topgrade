@@ -83,6 +83,8 @@
 #aura_aur_arguments = "-kx"
 #aura_pacman_arguments = ""
 #garuda_update_arguments = ""
+#enable_pip_review = true   ###disabled by default
+#enable_pipupgrade = true   ###disabled by default
 #show_arch_news = true
 #trizen_arguments = "--devel"
 #pikaur_arguments = ""

@@ -16,7 +16,7 @@ use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::{ExecutorOutput, RunType};
 use crate::terminal::{print_separator, shell};
-use crate::utils::{self, require_option, PathExt};
+use crate::utils::{self, require, require_option, which, PathExt};
 use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
     terminal::print_warning,
@@ -330,6 +330,36 @@ pub fn run_pip3_update(run_type: RunType) -> Result<()> {
         .execute(&python3)
         .args(["-m", "pip", "install", "--upgrade", "--user", "pip"])
         .status_checked()
+}
+
+pub fn run_pip_review_update(ctx: &ExecutionContext) -> Result<()> {
+    let pip_review = require("pip-review")?;
+
+    print_separator("pip-review");
+
+    if !ctx.config().enable_pip_review() {
+        print_warning(
+            "Pip-review is disabled by default. Enable it by setting enable_pip_review=true in the configuration.",
+        );
+        return Err(SkipStep(String::from("Pip-review is disabled by default")).into());
+    }
+    ctx.run_type().execute(&pip_review).arg("--auto").status_checked()?;
+
+    Ok(())
+}
+pub fn run_pipupgrade_update(ctx: &ExecutionContext) -> Result<()> {
+    let pipupgrade = require("pipupgrade")?;
+
+    print_separator("Pipupgrade");
+    if !ctx.config().enable_pip_review() {
+        print_warning(
+            "Pipupgrade is disabled by default. Enable it by setting enable_pipupgrade=true in the configuration.",
+        );
+        return Err(SkipStep(String::from("Pipupgrade is disabled by default")).into());
+    }
+    ctx.run_type().execute(&pipupgrade).status_checked()?;
+
+    Ok(())
 }
 
 pub fn run_stack_update(run_type: RunType) -> Result<()> {
