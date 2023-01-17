@@ -172,31 +172,30 @@ fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
             command.arg("upgrade");
             return command.status_checked();
         }
-    };
-
-    if let Some(sudo) = &ctx.sudo() {
-        let mut command = ctx.run_type().execute(sudo);
-        command
-            .arg(which("dnf").unwrap_or_else(|| Path::new("yum").to_path_buf()))
-            .arg(if ctx.config().redhat_distro_sync() {
-                "distro-sync"
-            } else {
-                "upgrade"
-            });
-
-        if let Some(args) = ctx.config().dnf_arguments() {
-            command.args(args.split_whitespace());
-        }
-
-        if ctx.config().yes(Step::System) {
-            command.arg("-y");
-        }
-
-        command.status_checked()?;
     } else {
-        print_warning("No sudo detected. Skipping system upgrade");
-    }
+        if let Some(sudo) = &ctx.sudo() {
+            let mut command = ctx.run_type().execute(sudo);
+            command
+                .arg(which("dnf").unwrap_or_else(|| Path::new("yum").to_path_buf()))
+                .arg(if ctx.config().redhat_distro_sync() {
+                    "distro-sync"
+                } else {
+                    "upgrade"
+                });
 
+            if let Some(args) = ctx.config().dnf_arguments() {
+                command.args(args.split_whitespace());
+            }
+
+            if ctx.config().yes(Step::System) {
+                command.arg("-y");
+            }
+
+            command.status_checked()?;
+        } else {
+            print_warning("No sudo detected. Skipping system upgrade");
+        }
+    }
     Ok(())
 }
 
