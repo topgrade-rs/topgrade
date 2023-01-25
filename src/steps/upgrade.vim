@@ -39,7 +39,7 @@ function! UpdateCoCAndTS()
         CocUpdateSync
     endif
 
-    if exists(":TSUpdate")
+    if exists(":TSUpdateSync")
         echo "TreeSitter Update"
         TSUpdate
     endif
