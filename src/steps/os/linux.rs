@@ -199,7 +199,6 @@ fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
     } else {
         print_warning("No sudo detected. Skipping system upgrade");
     }
-
     Ok(())
 }
 
