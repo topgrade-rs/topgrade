@@ -31,6 +31,7 @@ pub enum Distribution {
     OpenMandriva,
     PCLinuxOS,
     Suse,
+    SuseMicro,
     Void,
     Solus,
     Exherbo,
@@ -56,6 +57,7 @@ impl Distribution {
             Some("gentoo") => Distribution::Gentoo,
             Some("exherbo") => Distribution::Exherbo,
             Some("nixos") => Distribution::NixOS,
+            Some("opensuse-microos") => Distribution::SuseMicro,
             Some("neon") => Distribution::KDENeon,
             Some("openmandriva") => Distribution::OpenMandriva,
             Some("pclinuxos") => Distribution::PCLinuxOS,
@@ -105,6 +107,7 @@ impl Distribution {
             Distribution::Debian => upgrade_debian(ctx),
             Distribution::Gentoo => upgrade_gentoo(ctx),
             Distribution::Suse => upgrade_suse(ctx),
+            Distribution::SuseMicro => upgrade_suse_micro(ctx),
             Distribution::Void => upgrade_void(ctx),
             Distribution::Solus => upgrade_solus(ctx),
             Distribution::Exherbo => upgrade_exherbo(ctx),
@@ -220,6 +223,18 @@ fn upgrade_suse(ctx: &ExecutionContext) -> Result<()> {
         ctx.run_type()
             .execute(sudo)
             .args(["zypper", "dist-upgrade"])
+            .status_checked()?;
+    } else {
+        print_warning("No sudo detected. Skipping system upgrade");
+    }
+
+    Ok(())
+}
+fn upgrade_suse_micro(ctx: &ExecutionContext) -> Result<()> {
+    if let Some(sudo) = ctx.sudo() {
+        ctx.run_type()
+            .execute(sudo)
+            .args(["transactional-update", "dup"])
             .status_checked()?;
     } else {
         print_warning("No sudo detected. Skipping system upgrade");
