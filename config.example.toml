@@ -83,8 +83,6 @@
 #aura_aur_arguments = "-kx"
 #aura_pacman_arguments = ""
 #garuda_update_arguments = ""
-#enable_pip_review = true   ###disabled by default
-#enable_pipupgrade = true   ###disabled by default
 #show_arch_news = true
 #trizen_arguments = "--devel"
 #pikaur_arguments = ""
@@ -94,6 +92,10 @@
 #emerge_update_flags = "-uDNa --with-bdeps=y world"
 #redhat_distro_sync = false
 #rpm_ostree = false
+
+[python]
+#enable_pip_review = true   ###disabled by default
+#enable_pipupgrade = true   ###disabled by default
 
 [windows]
 # Manually select Windows updates

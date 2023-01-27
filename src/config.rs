@@ -189,14 +189,9 @@ pub struct Windows {
 
 #[derive(Deserialize, Default, Debug)]
 #[serde(deny_unknown_fields)]
-pub struct PipReview {
-    enable: Option<bool>,
-}
-
-#[derive(Deserialize, Default, Debug)]
-#[serde(deny_unknown_fields)]
-pub struct Pipupgrade {
-    enable: Option<bool>,
+pub struct Python {
+    enable_pip_review: Option<bool>,
+    enable_pipupgrade: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug)]
@@ -312,8 +307,7 @@ pub struct ConfigFile {
     yay_arguments: Option<String>,
     aura_aur_arguments: Option<String>,
     aura_pacman_arguments: Option<String>,
-    enable_pipupgrade: Option<Pipupgrade>,
-    enable_pip_review: Option<PipReview>,
+    python: Option<Python>,
     no_retry: Option<bool>,
     run_in_tmux: Option<bool>,
     cleanup: Option<bool>,
@@ -1065,17 +1059,17 @@ impl Config {
     pub fn enable_pipupgrade(&self) -> bool {
         return self
             .config_file
-            .enable_pipupgrade
+            .python
             .as_ref()
-            .and_then(|pipupgrade| pipupgrade.enable)
+            .and_then(|python| python.enable_pipupgrade)
             .unwrap_or(false);
     }
     pub fn enable_pip_review(&self) -> bool {
         return self
             .config_file
-            .enable_pip_review
+            .python
             .as_ref()
-            .and_then(|pip_review| pip_review.enable)
+            .and_then(|python| python.enable_pip_review)
             .unwrap_or(false);
     }
 

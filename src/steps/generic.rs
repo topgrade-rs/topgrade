@@ -343,7 +343,10 @@ pub fn run_pip_review_update(ctx: &ExecutionContext) -> Result<()> {
         );
         return Err(SkipStep(String::from("Pip-review is disabled by default")).into());
     }
-    ctx.run_type().execute(&pip_review).arg("--auto").status_checked()?;
+    ctx.run_type()
+        .execute(&pip_review)
+        .arg("--auto")
+        .status_checked_with_codes(&[1])?;
 
     Ok(())
 }
