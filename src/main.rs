@@ -3,6 +3,7 @@
 use std::env;
 use std::io;
 use std::process::exit;
+use std::time::Duration;
 
 use clap::CommandFactory;
 use clap::{crate_version, Parser};
@@ -517,8 +518,8 @@ fn run() -> Result<()> {
                 "Topgrade finished {}",
                 if failed { "with errors" } else { "successfully" }
             ),
-            None,
-        );
+            Some(Duration::from_secs(10)),
+        )
     }
 
     if failed {
