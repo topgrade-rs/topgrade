@@ -106,7 +106,7 @@ impl Terminal {
                     command.args(["-a", "Topgrade", "Topgrade"]);
                     command.arg(message.as_ref());
                     if let Err(err) = command.output_checked() {
-                        terminal::print_warning("Senfing notification failed with {err:?}");
+                        terminal::print_warning("Sending notification failed with {err:?}");
                     }
                 }
             }
