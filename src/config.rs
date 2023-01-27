@@ -255,6 +255,7 @@ pub struct Linux {
     pikaur_arguments: Option<String>,
     pamac_arguments: Option<String>,
     dnf_arguments: Option<String>,
+    nix_arguments: Option<String>,
     apt_arguments: Option<String>,
     enable_tlmgr: Option<bool>,
     redhat_distro_sync: Option<bool>,
@@ -877,6 +878,14 @@ impl Config {
             .linux
             .as_ref()
             .and_then(|linux| linux.dnf_arguments.as_deref())
+    }
+
+    /// Extra nix arguments
+    pub fn nix_arguments(&self) -> Option<&str> {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|linux| linux.nix_arguments.as_deref())
     }
 
     /// Distrobox use root

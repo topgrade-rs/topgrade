@@ -510,10 +510,13 @@ fn upgrade_exherbo(ctx: &ExecutionContext) -> Result<()> {
 
 fn upgrade_nixos(ctx: &ExecutionContext) -> Result<()> {
     if let Some(sudo) = ctx.sudo() {
-        ctx.run_type()
-            .execute(sudo)
-            .args(["/run/current-system/sw/bin/nixos-rebuild", "switch", "--upgrade"])
-            .status_checked()?;
+        let mut command = ctx.run_type().execute(sudo);
+        command.args(["/run/current-system/sw/bin/nixos-rebuild", "switch", "--upgrade"]);
+
+        if let Some(args) = ctx.config().nix_arguments() {
+            command.args(args.split_whitespace());
+        }
+        command.status_checked()?;
 
         if ctx.config().cleanup() {
             ctx.run_type()
