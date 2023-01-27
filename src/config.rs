@@ -294,7 +294,7 @@ pub struct ConfigFile {
     tmux_arguments: Option<String>,
     set_title: Option<bool>,
     display_time: Option<bool>,
-    display_preambe: Option<bool>,
+    display_preamble: Option<bool>,
     assume_yes: Option<bool>,
     yay_arguments: Option<String>,
     aura_aur_arguments: Option<String>,
@@ -1052,7 +1052,7 @@ impl Config {
     }
 
     pub fn display_preamble(&self) -> bool {
-        self.config_file.display_preambe.unwrap_or(true)
+        self.config_file.display_preamble.unwrap_or(true)
     }
 
     pub fn should_run_custom_command(&self, name: &str) -> bool {
