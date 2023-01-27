@@ -175,7 +175,9 @@ fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
             command.arg("upgrade");
             return command.status_checked();
         }
-    } else if let Some(sudo) = &ctx.sudo() {
+    };
+
+    if let Some(sudo) = &ctx.sudo() {
         let mut command = ctx.run_type().execute(sudo);
         command
             .arg(which("dnf").unwrap_or_else(|| Path::new("yum").to_path_buf()))
