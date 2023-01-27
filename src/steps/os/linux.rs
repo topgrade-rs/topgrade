@@ -199,7 +199,6 @@ fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
     } else {
         print_warning("No sudo detected. Skipping system upgrade");
     }
-
     Ok(())
 }
 
@@ -362,7 +361,13 @@ fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
 fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
     if let Some(sudo) = &ctx.sudo() {
         let apt = which("apt-fast")
-            .or_else(|| which("nala"))
+            .or_else(|| {
+                if Path::new("/usr/bin/nala").exists() {
+                    Some(Path::new("/usr/bin/nala").to_path_buf())
+                } else {
+                    None
+                }
+            })
             .unwrap_or_else(|| PathBuf::from("apt-get"));
 
         let is_nala = apt.ends_with("nala");
@@ -505,10 +510,13 @@ fn upgrade_exherbo(ctx: &ExecutionContext) -> Result<()> {
 
 fn upgrade_nixos(ctx: &ExecutionContext) -> Result<()> {
     if let Some(sudo) = ctx.sudo() {
-        ctx.run_type()
-            .execute(sudo)
-            .args(["/run/current-system/sw/bin/nixos-rebuild", "switch", "--upgrade"])
-            .status_checked()?;
+        let mut command = ctx.run_type().execute(sudo);
+        command.args(["/run/current-system/sw/bin/nixos-rebuild", "switch", "--upgrade"]);
+
+        if let Some(args) = ctx.config().nix_arguments() {
+            command.args(args.split_whitespace());
+        }
+        command.status_checked()?;
 
         if ctx.config().cleanup() {
             ctx.run_type()

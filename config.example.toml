@@ -44,6 +44,9 @@
 # Skip sending a notification at the end of a run
 #skip_notify = true
 
+# Skip the preamble displayed when topgrade is run
+#display_preamble = false
+
 [git]
 #max_concurrency = 5
 # Additional git repositories to pull
@@ -92,6 +95,7 @@
 #emerge_update_flags = "-uDNa --with-bdeps=y world"
 #redhat_distro_sync = false
 #rpm_ostree = false
+#nix_arguments = "--flake"
 
 [python]
 #enable_pip_review = true   ###disabled by default

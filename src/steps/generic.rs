@@ -83,17 +83,24 @@ pub fn run_gem(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     command.status_checked()
 }
 
-pub fn run_rubygems(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
-    let gem = utils::require("gem")?;
-    base_dirs.home_dir().join(".gem").require()?;
+pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
+    ctx.base_dirs().home_dir().join(".gem").require()?;
 
     print_separator("RubyGems");
-
-    if !std::path::Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
-        run_type.execute(gem).args(["update", "--system"]).status_checked()
+    if let Some(sudo) = &ctx.sudo() {
+        if !std::path::Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
+            ctx.run_type()
+                .execute(sudo)
+                .arg("-EH")
+                .arg(require("gem")?)
+                .args(["update", "--system"])
+                .status_checked()?;
+        }
     } else {
-        Ok(())
+        print_warning("No sudo detected. Skipping system upgrade");
     }
+
+    Ok(())
 }
 
 pub fn run_haxelib_update(ctx: &ExecutionContext) -> Result<()> {

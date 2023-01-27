@@ -264,6 +264,7 @@ pub struct Linux {
     pikaur_arguments: Option<String>,
     pamac_arguments: Option<String>,
     dnf_arguments: Option<String>,
+    nix_arguments: Option<String>,
     apt_arguments: Option<String>,
     enable_tlmgr: Option<bool>,
     redhat_distro_sync: Option<bool>,
@@ -303,6 +304,7 @@ pub struct ConfigFile {
     tmux_arguments: Option<String>,
     set_title: Option<bool>,
     display_time: Option<bool>,
+    display_preamble: Option<bool>,
     assume_yes: Option<bool>,
     yay_arguments: Option<String>,
     aura_aur_arguments: Option<String>,
@@ -888,6 +890,14 @@ impl Config {
             .and_then(|linux| linux.dnf_arguments.as_deref())
     }
 
+    /// Extra nix arguments
+    pub fn nix_arguments(&self) -> Option<&str> {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|linux| linux.nix_arguments.as_deref())
+    }
+
     /// Distrobox use root
     pub fn distrobox_root(&self) -> bool {
         self.config_file
@@ -952,7 +962,7 @@ impl Config {
             .linux
             .as_ref()
             .and_then(|linux| linux.rpm_ostree)
-            .unwrap_or(false)
+            .unwrap_or(true)
     }
 
     /// Should we ignore failures for this step
@@ -1075,6 +1085,10 @@ impl Config {
 
     pub fn display_time(&self) -> bool {
         self.config_file.display_time.unwrap_or(true)
+    }
+
+    pub fn display_preamble(&self) -> bool {
+        self.config_file.display_preamble.unwrap_or(true)
     }
 
     pub fn should_run_custom_command(&self, name: &str) -> bool {

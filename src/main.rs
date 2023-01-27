@@ -3,6 +3,7 @@
 use std::env;
 use std::io;
 use std::process::exit;
+use std::time::Duration;
 
 use clap::CommandFactory;
 use clap::{crate_version, Parser};
@@ -84,6 +85,13 @@ fn run() -> Result<()> {
     debug!("{:?}", std::env::args());
     debug!("Binary path: {:?}", std::env::current_exe());
     debug!("Self Update: {:?}", cfg!(feature = "self-update"));
+
+    if config.display_preamble() || !config.skip_notify() {
+        print_warning("Due to a design issue with notify-send it could be that topgrade hangs when it's finished.
+If this is the case on your system add the --skip-notify flag to the topgrade command or set skip_notify = true in the config file.
+If you don't want this message to appear any longer set display_preamble = false in the config file.
+For more information about this issue see https://askubuntu.com/questions/110969/notify-send-ignores-timeout and https://github.com/topgrade-rs/topgrade/issues/288.");
+    }
 
     if config.run_in_tmux() && env::var("TOPGRADE_INSIDE_TMUX").is_err() {
         #[cfg(unix)]
@@ -379,9 +387,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Krew, "krew", || generic::run_krew_upgrade(run_type))?;
     runner.execute(Step::Helm, "helm", || generic::run_helm_repo_update(run_type))?;
     runner.execute(Step::Gem, "gem", || generic::run_gem(&base_dirs, run_type))?;
-    runner.execute(Step::RubyGems, "rubygems", || {
-        generic::run_rubygems(&base_dirs, run_type)
-    })?;
+    runner.execute(Step::RubyGems, "rubygems", || generic::run_rubygems(&ctx))?;
     runner.execute(Step::Julia, "julia", || generic::update_julia_packages(&ctx))?;
     runner.execute(Step::Haxelib, "haxelib", || generic::run_haxelib_update(&ctx))?;
     runner.execute(Step::Sheldon, "sheldon", || generic::run_sheldon(&ctx))?;
@@ -519,8 +525,8 @@ fn run() -> Result<()> {
                 "Topgrade finished {}",
                 if failed { "with errors" } else { "successfully" }
             ),
-            None,
-        );
+            Some(Duration::from_secs(10)),
+        )
     }
 
     if failed {
