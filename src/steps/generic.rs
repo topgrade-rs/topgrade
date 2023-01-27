@@ -91,6 +91,7 @@ pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
         if !std::path::Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
             ctx.run_type()
                 .execute(sudo)
+                .arg("-EH")
                 .arg(require("gem")?)
                 .args(["update", "--system"])
                 .status_checked()?;
