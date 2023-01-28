@@ -35,7 +35,7 @@ endif
 
 if exists(":Lazy")
     echo "Lazy Update"
-    Lazy sync
+    +Lazy! sync
 endif
 
 function! UpdateCoCAndTS()
