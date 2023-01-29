@@ -33,28 +33,29 @@ if exists(":PaqUpdate")
     PaqUpdate
 endif
 
-if exists(":CocUpdateSync")
-    echo "CocUpdateSync"
-    CocUpdateSync
-endif
-
 if exists(":Lazy")
-    echo "Lazy"
-    Lazy update
+    echo "Lazy Update"
+    +Lazy! sync
 endif
 
-" TODO: Should this be after `PackerSync`?
-" Not sure how to sequence this after Packer without doing something weird
-" with that `PackerComplete` autocommand.
-if exists(":TSUpdate")
-    echo "TreeSitter Update"
-    TSUpdate
-endif
+function! UpdateCoCAndTS()
+    if exists(":CocUpdateSync")
+        echo "CocUpdateSync"
+        CocUpdateSync
+    endif
+
+    if exists(":TSUpdateSync")
+        echo "TreeSitter Update"
+        TSUpdate
+    endif
+
+    quitall
+endfunction
 
 if exists(':PackerSync')
-  echo "Packer"
-  autocmd User PackerComplete quitall
-  PackerSync
+    echo "Packer"
+    autocmd User PackerComplete * call UpdateCoCAndTS()
+    PackerSync
 else
-  quitall
+    call UpdateCoCAndTS()
 endif
