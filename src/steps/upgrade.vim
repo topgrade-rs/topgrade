@@ -33,6 +33,11 @@ if exists(":PaqUpdate")
     PaqUpdate
 endif
 
+if exists(":Lazy")
+    echo "Lazy Update"
+    +Lazy! sync
+endif
+
 function! UpdateCoCAndTS()
     if exists(":CocUpdateSync")
         echo "CocUpdateSync"
