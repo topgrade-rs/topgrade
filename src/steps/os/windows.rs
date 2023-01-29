@@ -71,16 +71,16 @@ pub fn run_scoop(cleanup: bool, run_type: RunType) -> Result<()> {
 pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
     let wsl = require("wsl")?;
 
-    print_seperator("Update WSL");
+    print_separator("Update WSL");
 
     let mut wsl_command = ctx.run_type().execute(wsl).args(["--update"]);
 
     if ctx.config().wsl_update_pre_release() {
-        wsl_command = ctx.args(["--pre-release"]);
+        wsl_command.args(["--pre-release"]);
     }
 
     if ctx.config().wsl_update_use_web_download() {
-        wsl_command = ctx.args(["--web-download"]);
+        wls_command.args(["--web-download"]);
     }
     wsl_command.status_checked()?;
     Ok(())
