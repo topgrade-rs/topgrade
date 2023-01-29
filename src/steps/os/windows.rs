@@ -68,6 +68,24 @@ pub fn run_scoop(cleanup: bool, run_type: RunType) -> Result<()> {
     Ok(())
 }
 
+pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
+    let wsl = require("wsl")?;
+
+    print_seperator("Update WSL");
+
+    let mut wsl_command = ctx.runtype().execute(wsl).args(["--update"]);
+
+    if ctx.config().wsl_update_pre_release() {
+        wsl_command = ctx.args(["--pre-release"]);
+    }
+
+    if ctx.config().wsl_update_use_web_download() {
+        wsl_command = ctx.args(["--web-download"]);
+    }
+    wsl_command.status_checked()?;
+    Ok(())
+}
+
 fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
     let output = Command::new(wsl).args(["--list", "-q"]).output_checked_utf8()?.stdout;
     Ok(output

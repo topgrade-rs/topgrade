@@ -157,6 +157,7 @@ pub enum Step {
     Vim,
     Winget,
     Wsl,
+    WslUpdate,
     Yadm,
     Yarn,
 }
@@ -185,6 +186,8 @@ pub struct Windows {
     self_rename: Option<bool>,
     open_remotes_in_new_terminal: Option<bool>,
     enable_winget: Option<bool>,
+    wsl_update_pre_release: Option<bool>,
+    wsl_update_use_web_download: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug)]
@@ -750,6 +753,24 @@ impl Config {
             .windows
             .as_ref()
             .and_then(|w| w.self_rename)
+            .unwrap_or(false)
+    }
+
+    // Should wsl --update should use the --pre-release flag
+    pub fn wsl_update_pre_release(&self) -> bool {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|w| w.wsl_update_pre_release)
+            .unwrap_or(false)
+    }
+
+    // Should wsl --update use the --web-download flag
+    pub fn wsl_update_use_web_download(&self) -> bool {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|w| w.wsl_update_use_web_download)
             .unwrap_or(false)
     }
 
