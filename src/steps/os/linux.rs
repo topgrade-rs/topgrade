@@ -436,8 +436,9 @@ fn upgrade_solus(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn update_am(ctx: &ExecutionContext) -> Result<()> {
+    let am = require("am")?;
     if let Some(sudo) = ctx.sudo() {
-        ctx.run_type().execute(sudo).args(["am", "-u"]).status_checked()?;
+        ctx.run_type().execute(sudo).arg(am).arg("-u").status_checked()?;
     } else {
         print_warning("No sudo detected. Skipping AM Step");
     }
