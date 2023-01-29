@@ -73,7 +73,8 @@ pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Update WSL");
 
-    let mut wsl_command = ctx.run_type().execute(wsl).args(["--update"]);
+    let mut wsl_command = ctx.run_type().execute(wsl);
+    wsl_command.args(["--update"]);
 
     if ctx.config().wsl_update_pre_release() {
         wsl_command.args(["--pre-release"]);
