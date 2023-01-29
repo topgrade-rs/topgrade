@@ -311,6 +311,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
 
     #[cfg(unix)]
     {
+        runner.execute(Step::AM, "am", || linux::update_am(&ctx))?;
         runner.execute(Step::Shell, "zr", || zsh::run_zr(&base_dirs, run_type))?;
         runner.execute(Step::Shell, "antibody", || zsh::run_antibody(run_type))?;
         runner.execute(Step::Shell, "antigen", || zsh::run_antigen(&base_dirs, run_type))?;

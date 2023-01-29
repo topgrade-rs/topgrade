@@ -10,7 +10,7 @@ use crate::error::{SkipStep, TopgradeError};
 use crate::execution_context::ExecutionContext;
 use crate::executor::RunType;
 use crate::steps::os::archlinux;
-use crate::sudo::Sudo;
+use crate::sudo::{self, Sudo};
 use crate::terminal::{print_separator, print_warning};
 use crate::utils::{require, require_option, which, PathExt};
 use crate::Step;
@@ -430,6 +430,16 @@ fn upgrade_solus(ctx: &ExecutionContext) -> Result<()> {
             .status_checked()?;
     } else {
         print_warning("No sudo detected. Skipping system upgrade");
+    }
+
+    Ok(())
+}
+
+pub fn update_am(ctx: &ExecutionContext) -> Result<()> {
+    if let Some(sudo) = ctx.sudo() {
+        ctx.run_type().execute(sudo).args(["am", "-u"]).status_checked()?;
+    } else {
+        print_warning("No sudo detected. Skipping AM Step");
     }
 
     Ok(())
