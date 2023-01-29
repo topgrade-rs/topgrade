@@ -123,7 +123,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
                         return result;
                     }
                 }
-                print_warning(format!("Self update error: {}", e));
+                print_warning(format!("Self update error: {e}"));
             }
         }
     }
