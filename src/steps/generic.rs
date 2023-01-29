@@ -351,7 +351,7 @@ pub fn run_pip_review_update(ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep(String::from("Pip-review is disabled by default")).into());
     }
     ctx.run_type()
-        .execute(&pip_review)
+        .execute(pip_review)
         .arg("--auto")
         .status_checked_with_codes(&[1])?;
 
@@ -367,7 +367,7 @@ pub fn run_pipupgrade_update(ctx: &ExecutionContext) -> Result<()> {
         );
         return Err(SkipStep(String::from("Pipupgrade is disabled by default")).into());
     }
-    ctx.run_type().execute(&pipupgrade).status_checked()?;
+    ctx.run_type().execute(pipupgrade).status_checked()?;
 
     Ok(())
 }
