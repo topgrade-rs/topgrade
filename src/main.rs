@@ -153,6 +153,9 @@ For more information about this issue see https://askubuntu.com/questions/110969
     #[cfg(windows)]
     runner.execute(Step::Wsl, "WSL", || windows::run_wsl_topgrade(&ctx))?;
 
+    #[cfg(windows)]
+    runner.execute(Step::WslUpdate, "WSL", || windows::update_wsl(&ctx))?;
+
     if let Some(topgrades) = config.remote_topgrades() {
         for remote_topgrade in topgrades.iter().filter(|t| config.should_execute_remote(t)) {
             runner.execute(Step::Remotes, format!("Remote ({remote_topgrade})"), || {
