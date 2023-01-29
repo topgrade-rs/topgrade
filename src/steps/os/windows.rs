@@ -80,7 +80,7 @@ pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
     }
 
     if ctx.config().wsl_update_use_web_download() {
-        wls_command.args(["--web-download"]);
+        wsl_command.args(["--web-download"]);
     }
     wsl_command.status_checked()?;
     Ok(())
