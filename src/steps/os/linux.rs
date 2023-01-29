@@ -435,6 +435,16 @@ fn upgrade_solus(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+pub fn update_am(ctx: &ExecutionContext) -> Result<()> {
+    if let Some(sudo) = ctx.sudo() {
+        ctx.run_type().execute(sudo).args(["am", "-u"]).status_checked()?;
+    } else {
+        print_warning("No sudo detected. Skipping AM Step");
+    }
+
+    Ok(())
+}
+
 pub fn run_pacdef(ctx: &ExecutionContext) -> Result<()> {
     let pacdef = require("pacdef")?;
 

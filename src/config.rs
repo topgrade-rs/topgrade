@@ -71,6 +71,7 @@ type Commands = BTreeMap<String, String>;
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum Step {
+    AM,
     Asdf,
     Atom,
     Bin,
