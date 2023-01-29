@@ -3,6 +3,7 @@
 use std::env;
 use std::io;
 use std::process::exit;
+use std::time::Duration;
 
 use clap::CommandFactory;
 use clap::{crate_version, Parser};
@@ -85,6 +86,13 @@ fn run() -> Result<()> {
     debug!("Binary path: {:?}", std::env::current_exe());
     debug!("Self Update: {:?}", cfg!(feature = "self-update"));
 
+    if config.display_preamble() || !config.skip_notify() {
+        print_warning("Due to a design issue with notify-send it could be that topgrade hangs when it's finished.
+If this is the case on your system add the --skip-notify flag to the topgrade command or set skip_notify = true in the config file.
+If you don't want this message to appear any longer set display_preamble = false in the config file.
+For more information about this issue see https://askubuntu.com/questions/110969/notify-send-ignores-timeout and https://github.com/topgrade-rs/topgrade/issues/288.");
+    }
+
     if config.run_in_tmux() && env::var("TOPGRADE_INSIDE_TMUX").is_err() {
         #[cfg(unix)]
         {
@@ -145,9 +153,12 @@ fn run() -> Result<()> {
     #[cfg(windows)]
     runner.execute(Step::Wsl, "WSL", || windows::run_wsl_topgrade(&ctx))?;
 
+    #[cfg(windows)]
+    runner.execute(Step::WslUpdate, "WSL", || windows::update_wsl(&ctx))?;
+
     if let Some(topgrades) = config.remote_topgrades() {
         for remote_topgrade in topgrades.iter().filter(|t| config.should_execute_remote(t)) {
-            runner.execute(Step::Remotes, format!("Remote ({})", remote_topgrade), || {
+            runner.execute(Step::Remotes, format!("Remote ({remote_topgrade})"), || {
                 remote::ssh::ssh_step(&ctx, remote_topgrade)
             })?;
         }
@@ -163,7 +174,7 @@ fn run() -> Result<()> {
                 runner.execute(Step::System, "System update", || distribution.upgrade(&ctx))?;
             }
             Err(e) => {
-                println!("Error detecting current distribution: {}", e);
+                println!("Error detecting current distribution: {e}");
             }
         }
         runner.execute(Step::ConfigUpdate, "config-update", || linux::run_config_update(&ctx))?;
@@ -352,6 +363,8 @@ fn run() -> Result<()> {
     runner.execute(Step::Pipx, "pipx", || generic::run_pipx_update(run_type))?;
     runner.execute(Step::Conda, "conda", || generic::run_conda_update(&ctx))?;
     runner.execute(Step::Pip3, "pip3", || generic::run_pip3_update(run_type))?;
+    runner.execute(Step::PipReview, "pip-review", || generic::run_pip_review_update(&ctx))?;
+    runner.execute(Step::Pipupgrade, "pipupgrade", || generic::run_pipupgrade_update(&ctx))?;
     runner.execute(Step::Ghcup, "ghcup", || generic::run_ghcup_update(run_type))?;
     runner.execute(Step::Stack, "stack", || generic::run_stack_update(run_type))?;
     runner.execute(Step::Tlmgr, "tlmgr", || generic::run_tlmgr_update(&ctx))?;
@@ -377,9 +390,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Krew, "krew", || generic::run_krew_upgrade(run_type))?;
     runner.execute(Step::Helm, "helm", || generic::run_helm_repo_update(run_type))?;
     runner.execute(Step::Gem, "gem", || generic::run_gem(&base_dirs, run_type))?;
-    runner.execute(Step::RubyGems, "rubygems", || {
-        generic::run_rubygems(&base_dirs, run_type)
-    })?;
+    runner.execute(Step::RubyGems, "rubygems", || generic::run_rubygems(&ctx))?;
     runner.execute(Step::Julia, "julia", || generic::update_julia_packages(&ctx))?;
     runner.execute(Step::Haxelib, "haxelib", || generic::run_haxelib_update(&ctx))?;
     runner.execute(Step::Sheldon, "sheldon", || generic::run_sheldon(&ctx))?;
@@ -397,6 +408,7 @@ fn run() -> Result<()> {
 
     #[cfg(target_os = "linux")]
     {
+        runner.execute(Step::AM, "am", || linux::update_am(&ctx))?;
         runner.execute(Step::DebGet, "deb-get", || linux::run_deb_get(&ctx))?;
         runner.execute(Step::Toolbx, "toolbx", || toolbx::run_toolbx(&ctx))?;
         runner.execute(Step::Flatpak, "Flatpak", || linux::flatpak_update(&ctx))?;
@@ -405,6 +417,7 @@ fn run() -> Result<()> {
         runner.execute(Step::Pacdef, "pacdef", || linux::run_pacdef(&ctx))?;
         runner.execute(Step::Protonup, "protonup", || linux::run_protonup_update(&ctx))?;
         runner.execute(Step::Distrobox, "distrobox", || linux::run_distrobox_update(&ctx))?;
+        runner.execute(Step::DkpPacman, "dkp-pacman", || linux::run_dkp_pacman_update(&ctx))?;
     }
 
     if let Some(commands) = config.commands() {
@@ -516,8 +529,8 @@ fn run() -> Result<()> {
                 "Topgrade finished {}",
                 if failed { "with errors" } else { "successfully" }
             ),
-            None,
-        );
+            Some(Duration::from_secs(10)),
+        )
     }
 
     if failed {
@@ -550,7 +563,7 @@ fn main() {
                 // The `Debug` implementation of `eyre::Result` prints a multi-line
                 // error message that includes all the 'causes' added with
                 // `.with_context(...)` calls.
-                println!("Error: {:?}", error);
+                println!("Error: {error:?}");
             }
             exit(1);
         }

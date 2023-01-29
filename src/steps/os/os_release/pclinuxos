@@ -1,0 +1,9 @@
+NAME="PCLinuxOS"
+VERSION="2022"
+ID=pclinuxos
+VERSION_ID=2022
+ID_LIKE="mandriva"
+PRETTY_NAME="PCLinuxOS 2022"
+ANSI_COLOR="1;37"
+HOME_URL="http://www.pclinuxos.com/"
+SUPPORT_URL="http://www.pclinuxos.com/"

@@ -29,7 +29,9 @@ pub enum Distribution {
     Debian,
     Gentoo,
     OpenMandriva,
+    PCLinuxOS,
     Suse,
+    SuseMicro,
     Void,
     Solus,
     Exherbo,
@@ -55,8 +57,10 @@ impl Distribution {
             Some("gentoo") => Distribution::Gentoo,
             Some("exherbo") => Distribution::Exherbo,
             Some("nixos") => Distribution::NixOS,
+            Some("opensuse-microos") => Distribution::SuseMicro,
             Some("neon") => Distribution::KDENeon,
             Some("openmandriva") => Distribution::OpenMandriva,
+            Some("pclinuxos") => Distribution::PCLinuxOS,
             _ => {
                 if let Some(id_like) = id_like {
                     if id_like.contains(&"debian") || id_like.contains(&"ubuntu") {
@@ -103,6 +107,7 @@ impl Distribution {
             Distribution::Debian => upgrade_debian(ctx),
             Distribution::Gentoo => upgrade_gentoo(ctx),
             Distribution::Suse => upgrade_suse(ctx),
+            Distribution::SuseMicro => upgrade_suse_micro(ctx),
             Distribution::Void => upgrade_void(ctx),
             Distribution::Solus => upgrade_solus(ctx),
             Distribution::Exherbo => upgrade_exherbo(ctx),
@@ -110,6 +115,7 @@ impl Distribution {
             Distribution::KDENeon => upgrade_neon(ctx),
             Distribution::Bedrock => update_bedrock(ctx),
             Distribution::OpenMandriva => upgrade_openmandriva(ctx),
+            Distribution::PCLinuxOS => upgrade_pclinuxos(ctx),
         }
     }
 
@@ -193,7 +199,6 @@ fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
     } else {
         print_warning("No sudo detected. Skipping system upgrade");
     }
-
     Ok(())
 }
 
@@ -224,6 +229,18 @@ fn upgrade_suse(ctx: &ExecutionContext) -> Result<()> {
 
     Ok(())
 }
+fn upgrade_suse_micro(ctx: &ExecutionContext) -> Result<()> {
+    if let Some(sudo) = ctx.sudo() {
+        ctx.run_type()
+            .execute(sudo)
+            .args(["transactional-update", "dup"])
+            .status_checked()?;
+    } else {
+        print_warning("No sudo detected. Skipping system upgrade");
+    }
+
+    Ok(())
+}
 
 fn upgrade_openmandriva(ctx: &ExecutionContext) -> Result<()> {
     if let Some(sudo) = &ctx.sudo() {
@@ -240,6 +257,33 @@ fn upgrade_openmandriva(ctx: &ExecutionContext) -> Result<()> {
         }
 
         command.status_checked()?;
+    } else {
+        print_warning("No sudo detected. Skipping system upgrade");
+    }
+
+    Ok(())
+}
+fn upgrade_pclinuxos(ctx: &ExecutionContext) -> Result<()> {
+    if let Some(sudo) = &ctx.sudo() {
+        let mut command_update = ctx.run_type().execute(sudo);
+
+        command_update.arg(&which("apt-get").unwrap()).arg("update");
+
+        if let Some(args) = ctx.config().dnf_arguments() {
+            command_update.args(args.split_whitespace());
+        }
+
+        if ctx.config().yes(Step::System) {
+            command_update.arg("-y");
+        }
+
+        command_update.status_checked()?;
+
+        ctx.run_type()
+            .execute(sudo)
+            .arg(&which("apt-get").unwrap())
+            .arg("dist-upgrade")
+            .status_checked()?;
     } else {
         print_warning("No sudo detected. Skipping system upgrade");
     }
@@ -317,7 +361,13 @@ fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
 fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
     if let Some(sudo) = &ctx.sudo() {
         let apt = which("apt-fast")
-            .or_else(|| which("nala"))
+            .or_else(|| {
+                if Path::new("/usr/bin/nala").exists() {
+                    Some(Path::new("/usr/bin/nala").to_path_buf())
+                } else {
+                    None
+                }
+            })
             .unwrap_or_else(|| PathBuf::from("apt-get"));
 
         let is_nala = apt.ends_with("nala");
@@ -385,6 +435,16 @@ fn upgrade_solus(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+pub fn update_am(ctx: &ExecutionContext) -> Result<()> {
+    if let Some(sudo) = ctx.sudo() {
+        ctx.run_type().execute(sudo).args(["am", "-u"]).status_checked()?;
+    } else {
+        print_warning("No sudo detected. Skipping AM Step");
+    }
+
+    Ok(())
+}
+
 pub fn run_pacdef(ctx: &ExecutionContext) -> Result<()> {
     let pacdef = require("pacdef")?;
 
@@ -401,8 +461,16 @@ pub fn run_pacstall(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Pacstall");
 
-    ctx.run_type().execute(&pacstall).arg("-U").status_checked()?;
-    ctx.run_type().execute(pacstall).arg("-Up").status_checked()
+    let mut update_cmd = ctx.run_type().execute(&pacstall);
+    let mut upgrade_cmd = ctx.run_type().execute(pacstall);
+
+    if ctx.config().yes(Step::Pacstall) {
+        update_cmd.arg("-P");
+        upgrade_cmd.arg("-P");
+    }
+
+    update_cmd.arg("-U").status_checked()?;
+    upgrade_cmd.arg("-Up").status_checked()
 }
 
 fn upgrade_clearlinux(ctx: &ExecutionContext) -> Result<()> {
@@ -452,10 +520,13 @@ fn upgrade_exherbo(ctx: &ExecutionContext) -> Result<()> {
 
 fn upgrade_nixos(ctx: &ExecutionContext) -> Result<()> {
     if let Some(sudo) = ctx.sudo() {
-        ctx.run_type()
-            .execute(sudo)
-            .args(["/run/current-system/sw/bin/nixos-rebuild", "switch", "--upgrade"])
-            .status_checked()?;
+        let mut command = ctx.run_type().execute(sudo);
+        command.args(["/run/current-system/sw/bin/nixos-rebuild", "switch", "--upgrade"]);
+
+        if let Some(args) = ctx.config().nix_arguments() {
+            command.args(args.split_whitespace());
+        }
+        command.status_checked()?;
 
         if ctx.config().cleanup() {
             ctx.run_type()
@@ -658,6 +729,29 @@ pub fn run_distrobox_update(ctx: &ExecutionContext) -> Result<()> {
         (r, false) => r,
     }
     .status_checked()
+}
+
+pub fn run_dkp_pacman_update(ctx: &ExecutionContext) -> Result<()> {
+    let sudo = require_option(ctx.sudo().as_ref(), String::from("sudo is not installed"))?;
+    let dkp_pacman = require("dkp-pacman")?;
+
+    print_separator("Devkitpro pacman");
+
+    ctx.run_type()
+        .execute(sudo)
+        .arg(&dkp_pacman)
+        .arg("-Syu")
+        .status_checked()?;
+
+    if ctx.config().cleanup() {
+        ctx.run_type()
+            .execute(sudo)
+            .arg(&dkp_pacman)
+            .arg("-Scc")
+            .status_checked()?;
+    }
+
+    Ok(())
 }
 
 pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {

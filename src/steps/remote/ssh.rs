@@ -19,7 +19,7 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
         args.extend(ssh_arguments.split_whitespace());
     }
 
-    let env = format!("TOPGRADE_PREFIX={}", hostname);
+    let env = format!("TOPGRADE_PREFIX={hostname}");
     args.extend(["env", &env, "$SHELL", "-lc", topgrade]);
 
     if ctx.config().run_in_tmux() && !ctx.run_type().dry() {
@@ -43,11 +43,11 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
             args.extend(ssh_arguments.split_whitespace());
         }
 
-        let env = format!("TOPGRADE_PREFIX={}", hostname);
+        let env = format!("TOPGRADE_PREFIX={hostname}");
         args.extend(["env", &env, "$SHELL", "-lc", topgrade]);
 
-        print_separator(format!("Remote ({})", hostname));
-        println!("Connecting to {}...", hostname);
+        print_separator(format!("Remote ({hostname})"));
+        println!("Connecting to {hostname}...");
 
         ctx.run_type().execute(ssh).args(&args).status_checked()
     }

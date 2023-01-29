@@ -44,6 +44,9 @@
 # Skip sending a notification at the end of a run
 #skip_notify = true
 
+# Skip the preamble displayed when topgrade is run
+#display_preamble = false
+
 [git]
 #max_concurrency = 5
 # Additional git repositories to pull
@@ -74,7 +77,7 @@
 #autoremove = true
 
 [linux]
-# Arch Package Manager to use. Allowed values: autodetect, trizen, aura, paru, yay, pikaur, pacman, pamac.
+# Arch Package Manager to use. Allowed values: autodetect, aura, garuda_update, pacman, pamac, paru, pikaur, trizen, yay.
 #arch_package_manager = "pacman"
 # Arguments to pass yay (or paru) when updating packages
 #yay_arguments = "--nodevel"
@@ -82,6 +85,7 @@
 #dnf_arguments = "--refresh"
 #aura_aur_arguments = "-kx"
 #aura_pacman_arguments = ""
+#garuda_update_arguments = ""
 #show_arch_news = true
 #trizen_arguments = "--devel"
 #pikaur_arguments = ""
@@ -91,11 +95,18 @@
 #emerge_update_flags = "-uDNa --with-bdeps=y world"
 #redhat_distro_sync = false
 #rpm_ostree = false
+#nix_arguments = "--flake"
+
+[python]
+#enable_pip_review = true   ###disabled by default
+#enable_pipupgrade = true   ###disabled by default
 
 [windows]
 # Manually select Windows updates
 #accept_all_updates = false
 #open_remotes_in_new_terminal = true
+#wsl_update_pre_release = true
+#wsl_update_use_web_download = true
 
 # Causes Topgrade to rename itself during the run to allow package managers
 # to upgrade it. Use this only if you installed Topgrade by using a package
