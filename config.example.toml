@@ -97,6 +97,10 @@
 #rpm_ostree = false
 #nix_arguments = "--flake"
 
+[python]
+#enable_pip_review = true   ###disabled by default
+#enable_pipupgrade = true   ###disabled by default
+
 [windows]
 # Manually select Windows updates
 #accept_all_updates = false
