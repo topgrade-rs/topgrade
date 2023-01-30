@@ -80,8 +80,18 @@ pub struct GarudaUpdate {
 impl ArchPackageManager for GarudaUpdate {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
         let mut command = ctx.run_type().execute(&self.executable);
-        command.env("PATH", get_execution_path());
+
+        command
+            .env("PATH", get_execution_path())
+            .env("UPDATE_AUR", "1")
+            .env("SKIP_MIRRORLIST", "1");
+
+        if ctx.config().yes(Step::System) {
+            command.env("PACMAN_NOCONFIRM", "1");
+        }
+        command.args(ctx.config().garuda_update_arguments().split_whitespace());
         command.status_checked()?;
+
         Ok(())
     }
 }
