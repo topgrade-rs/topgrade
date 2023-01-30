@@ -50,7 +50,7 @@ impl Powershell {
             .args([
                 "-NoProfile",
                 "-Command",
-                &format!("Get-Module -ListAvailable {}", command),
+                &format!("Get-Module -ListAvailable {command}"),
             ])
             .output_checked_utf8()
             .map(|result| !result.stdout.is_empty())

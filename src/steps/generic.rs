@@ -10,15 +10,15 @@ use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use directories::BaseDirs;
 use tempfile::tempfile_in;
-use tracing::debug;
+use tracing::{debug, error};
 
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::{ExecutorOutput, RunType};
 use crate::terminal::{print_separator, shell};
-use crate::utils::{self, require_option, PathExt};
+use crate::utils::{self, require, require_option, which, PathExt};
 use crate::{
-    error::{SkipStep, TopgradeError},
+    error::{SkipStep, StepFailed, TopgradeError},
     terminal::print_warning,
 };
 
@@ -83,17 +83,24 @@ pub fn run_gem(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     command.status_checked()
 }
 
-pub fn run_rubygems(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
-    let gem = utils::require("gem")?;
-    base_dirs.home_dir().join(".gem").require()?;
+pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
+    ctx.base_dirs().home_dir().join(".gem").require()?;
 
     print_separator("RubyGems");
-
-    if !std::path::Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
-        run_type.execute(gem).args(["update", "--system"]).status_checked()
+    if let Some(sudo) = &ctx.sudo() {
+        if !std::path::Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
+            ctx.run_type()
+                .execute(sudo)
+                .arg("-EH")
+                .arg(require("gem")?)
+                .args(["update", "--system"])
+                .status_checked()?;
+        }
     } else {
-        Ok(())
+        print_warning("No sudo detected. Skipping system upgrade");
     }
+
+    Ok(())
 }
 
 pub fn run_haxelib_update(ctx: &ExecutionContext) -> Result<()> {
@@ -332,6 +339,39 @@ pub fn run_pip3_update(run_type: RunType) -> Result<()> {
         .status_checked()
 }
 
+pub fn run_pip_review_update(ctx: &ExecutionContext) -> Result<()> {
+    let pip_review = require("pip-review")?;
+
+    print_separator("pip-review");
+
+    if !ctx.config().enable_pip_review() {
+        print_warning(
+            "Pip-review is disabled by default. Enable it by setting enable_pip_review=true in the configuration.",
+        );
+        return Err(SkipStep(String::from("Pip-review is disabled by default")).into());
+    }
+    ctx.run_type()
+        .execute(pip_review)
+        .arg("--auto")
+        .status_checked_with_codes(&[1])?;
+
+    Ok(())
+}
+pub fn run_pipupgrade_update(ctx: &ExecutionContext) -> Result<()> {
+    let pipupgrade = require("pipupgrade")?;
+
+    print_separator("Pipupgrade");
+    if !ctx.config().enable_pip_review() {
+        print_warning(
+            "Pipupgrade is disabled by default. Enable it by setting enable_pipupgrade=true in the configuration.",
+        );
+        return Err(SkipStep(String::from("Pipupgrade is disabled by default")).into());
+    }
+    ctx.run_type().execute(pipupgrade).status_checked()?;
+
+    Ok(())
+}
+
 pub fn run_stack_update(run_type: RunType) -> Result<()> {
     if utils::require("ghcup").is_ok() {
         // `ghcup` is present and probably(?) being used to install `stack`.
@@ -435,7 +475,7 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
     let composer_home = Command::new(&composer)
         .args(["global", "config", "--absolute", "--quiet", "home"])
         .output_checked_utf8()
-        .map_err(|e| (SkipStep(format!("Error getting the composer directory: {}", e))))
+        .map_err(|e| (SkipStep(format!("Error getting the composer directory: {e}"))))
         .map(|s| PathBuf::from(s.stdout.trim()))?
         .require()?;
 
@@ -488,34 +528,43 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let dotnet = utils::require("dotnet")?;
 
-    let dotnet_help_output = ctx.run_type().execute(&dotnet).arg("-h").output_checked_utf8().unwrap();
-
-    if dotnet_help_output.to_string().contains("tool") {
-        let output = Command::new(dotnet)
-            .args(["tool", "list", "--global"])
-            .output_checked_utf8()?;
-
-        if !output.stdout.starts_with("Package Id") {
-            return Err(SkipStep(String::from("dotnet did not output packages")).into());
+    //Skip when the `dotnet tool list` subcommand fails. (This is expected when a dotnet runtime is installed but no SDK.)
+    let output = match ctx
+        .run_type()
+        .execute(&dotnet)
+        .args(["tool", "list", "--global"])
+        .output_checked_utf8()
+    {
+        Ok(output) => output,
+        Err(_) => {
+            return Err(SkipStep(String::from(
+                "Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK.",
+            ))
+            .into())
         }
+    };
 
-        let mut packages = output.stdout.lines().skip(2).filter(|line| !line.is_empty()).peekable();
-
-        if packages.peek().is_none() {
-            return Err(SkipStep(String::from("No dotnet global tools installed")).into());
-        }
-
-        print_separator(".NET");
-
-        for package in packages {
-            let package_name = package.split_whitespace().next().unwrap();
-            ctx.run_type()
-                .execute("dotnet")
-                .args(["tool", "update", package_name, "--global"])
-                .status_checked()
-                .with_context(|| format!("Failed to update .NET package {package_name}"))?;
-        }
+    if !output.stdout.starts_with("Package Id") {
+        return Err(SkipStep(String::from("dotnet did not output packages")).into());
     }
+
+    let mut packages = output.stdout.lines().skip(2).filter(|line| !line.is_empty()).peekable();
+
+    if packages.peek().is_none() {
+        return Err(SkipStep(String::from("No dotnet global tools installed")).into());
+    }
+
+    print_separator(".NET");
+
+    for package in packages {
+        let package_name = package.split_whitespace().next().unwrap();
+        ctx.run_type()
+            .execute(&dotnet)
+            .args(["tool", "update", package_name, "--global"])
+            .status_checked()
+            .with_context(|| format!("Failed to update .NET package {package_name}"))?;
+    }
+
     Ok(())
 }
 
@@ -591,5 +640,24 @@ pub fn run_helm_repo_update(run_type: RunType) -> Result<()> {
     let helm = utils::require("helm")?;
 
     print_separator("Helm");
-    run_type.execute(helm).arg("repo").arg("update").status_checked()
+
+    let no_repo = "no repositories found";
+    let mut success = true;
+    let mut exec = run_type.execute(helm);
+    if let Err(e) = exec.arg("repo").arg("update").status_checked() {
+        error!("Updating repositories failed: {}", e);
+        success = match exec.output_checked_utf8() {
+            Ok(s) => s.stdout.contains(no_repo) || s.stderr.contains(no_repo),
+            Err(e) => match e.downcast_ref::<TopgradeError>() {
+                Some(TopgradeError::ProcessFailedWithOutput(_, _, stderr)) => stderr.contains(no_repo),
+                _ => false,
+            },
+        };
+    }
+
+    if success {
+        Ok(())
+    } else {
+        Err(eyre!(StepFailed))
+    }
 }

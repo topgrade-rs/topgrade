@@ -71,6 +71,7 @@ type Commands = BTreeMap<String, String>;
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum Step {
+    AM,
     Asdf,
     Atom,
     Bin,
@@ -89,6 +90,7 @@ pub enum Step {
     DebGet,
     Deno,
     Distrobox,
+    DkpPacman,
     Dotnet,
     Emacs,
     Firmware,
@@ -123,6 +125,8 @@ pub enum Step {
     Pacstall,
     Pearl,
     Pip3,
+    PipReview,
+    Pipupgrade,
     Pipx,
     Pkg,
     Pkgin,
@@ -154,6 +158,7 @@ pub enum Step {
     Vim,
     Winget,
     Wsl,
+    WslUpdate,
     Yadm,
     Yarn,
 }
@@ -182,6 +187,15 @@ pub struct Windows {
     self_rename: Option<bool>,
     open_remotes_in_new_terminal: Option<bool>,
     enable_winget: Option<bool>,
+    wsl_update_pre_release: Option<bool>,
+    wsl_update_use_web_download: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct Python {
+    enable_pip_review: Option<bool>,
+    enable_pipupgrade: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug)]
@@ -230,15 +244,15 @@ pub struct Brew {
 #[derive(Debug, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum ArchPackageManager {
-    GarudaUpdate,
     Autodetect,
-    Trizen,
-    Paru,
-    Yay,
-    Pacman,
-    Pikaur,
-    Pamac,
     Aura,
+    GarudaUpdate,
+    Pacman,
+    Pamac,
+    Paru,
+    Pikaur,
+    Trizen,
+    Yay,
 }
 
 #[derive(Deserialize, Default, Debug)]
@@ -249,10 +263,12 @@ pub struct Linux {
     aura_pacman_arguments: Option<String>,
     arch_package_manager: Option<ArchPackageManager>,
     show_arch_news: Option<bool>,
+    garuda_update_arguments: Option<String>,
     trizen_arguments: Option<String>,
     pikaur_arguments: Option<String>,
     pamac_arguments: Option<String>,
     dnf_arguments: Option<String>,
+    nix_arguments: Option<String>,
     apt_arguments: Option<String>,
     enable_tlmgr: Option<bool>,
     redhat_distro_sync: Option<bool>,
@@ -292,10 +308,12 @@ pub struct ConfigFile {
     tmux_arguments: Option<String>,
     set_title: Option<bool>,
     display_time: Option<bool>,
+    display_preamble: Option<bool>,
     assume_yes: Option<bool>,
     yay_arguments: Option<String>,
     aura_aur_arguments: Option<String>,
     aura_pacman_arguments: Option<String>,
+    python: Option<Python>,
     no_retry: Option<bool>,
     run_in_tmux: Option<bool>,
     cleanup: Option<bool>,
@@ -739,6 +757,24 @@ impl Config {
             .unwrap_or(false)
     }
 
+    // Should wsl --update should use the --pre-release flag
+    pub fn wsl_update_pre_release(&self) -> bool {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|w| w.wsl_update_pre_release)
+            .unwrap_or(false)
+    }
+
+    // Should wsl --update use the --web-download flag
+    pub fn wsl_update_use_web_download(&self) -> bool {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|w| w.wsl_update_use_web_download)
+            .unwrap_or(false)
+    }
+
     /// Whether Brew cask should be greedy
     pub fn brew_cask_greedy(&self) -> bool {
         self.config_file
@@ -778,6 +814,15 @@ impl Config {
     /// Whether to send a desktop notification at the beginning of every step
     pub fn notify_each_step(&self) -> bool {
         self.config_file.notify_each_step.unwrap_or(false)
+    }
+
+    /// Extra garuda-update arguments
+    pub fn garuda_update_arguments(&self) -> &str {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|s| s.garuda_update_arguments.as_deref())
+            .unwrap_or("")
     }
 
     /// Extra trizen arguments
@@ -867,6 +912,14 @@ impl Config {
             .and_then(|linux| linux.dnf_arguments.as_deref())
     }
 
+    /// Extra nix arguments
+    pub fn nix_arguments(&self) -> Option<&str> {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|linux| linux.nix_arguments.as_deref())
+    }
+
     /// Distrobox use root
     pub fn distrobox_root(&self) -> bool {
         self.config_file
@@ -931,7 +984,7 @@ impl Config {
             .linux
             .as_ref()
             .and_then(|linux| linux.rpm_ostree)
-            .unwrap_or(false)
+            .unwrap_or(true)
     }
 
     /// Should we ignore failures for this step
@@ -1035,8 +1088,29 @@ impl Config {
             .unwrap_or(false);
     }
 
+    pub fn enable_pipupgrade(&self) -> bool {
+        return self
+            .config_file
+            .python
+            .as_ref()
+            .and_then(|python| python.enable_pipupgrade)
+            .unwrap_or(false);
+    }
+    pub fn enable_pip_review(&self) -> bool {
+        return self
+            .config_file
+            .python
+            .as_ref()
+            .and_then(|python| python.enable_pip_review)
+            .unwrap_or(false);
+    }
+
     pub fn display_time(&self) -> bool {
         self.config_file.display_time.unwrap_or(true)
+    }
+
+    pub fn display_preamble(&self) -> bool {
+        self.config_file.display_preamble.unwrap_or(true)
     }
 
     pub fn should_run_custom_command(&self, name: &str) -> bool {
