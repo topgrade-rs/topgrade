@@ -80,8 +80,6 @@ Just fork the repository and start coding.
 
 - Check if your code passes `cargo fmt` and `cargo clippy`.
 - Check if your code is self explanatory, if not it should be documented by comments.
-- Make a pull request to the `dev` branch for new features or to the `bug-fixes` branch for bug fixes.
-
 ## Roadmap
 
 - [ ] Add a proper testing framework to the code base.
