@@ -41,7 +41,7 @@ endif
 
 if exists(':PackerSync')
     echo "Packer"
-    autocmd User PackerComplete * quitall
+    autocmd User PackerComplete quitall
     PackerSync
 else
     quitall
