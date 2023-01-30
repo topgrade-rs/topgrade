@@ -35,27 +35,14 @@ endif
 
 if exists(":Lazy")
     echo "Lazy Update"
+    autocmd User LazySync * quitall
     Lazy sync
 endif
 
-function! UpdateCoCAndTS()
-    if exists(":CocUpdateSync")
-        echo "CocUpdateSync"
-        CocUpdateSync
-    endif
-
-    if exists(":TSUpdateSync")
-        echo "TreeSitter Update"
-        TSUpdateSync
-    endif
-
-    quitall
-endfunction
-
 if exists(':PackerSync')
     echo "Packer"
-    autocmd User PackerComplete * call UpdateCoCAndTS()
+    autocmd User PackerComplete * quitall
     PackerSync
 else
-    call UpdateCoCAndTS()
+    quitall
 endif
