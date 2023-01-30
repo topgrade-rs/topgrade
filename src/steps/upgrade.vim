@@ -35,7 +35,7 @@ endif
 
 if exists(":Lazy")
     echo "Lazy Update"
-    +Lazy! sync
+    Lazy sync
 endif
 
 function! UpdateCoCAndTS()
@@ -46,7 +46,7 @@ function! UpdateCoCAndTS()
 
     if exists(":TSUpdateSync")
         echo "TreeSitter Update"
-        TSUpdate
+        TSUpdateSync
     endif
 
     quitall
