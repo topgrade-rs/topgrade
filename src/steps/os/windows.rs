@@ -154,8 +154,8 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type()
         .execute(&usoclient)
         .arg("ScanInstallWait")
-        .status_checked()
-    // ctx.run_type().execute(&usoclient).arg("StartInstall").status_checked()
+        .status_checked()?;
+    ctx.run_type().execute(&usoclient).arg("StartInstall").status_checked()
 }
 
 pub fn reboot() -> Result<()> {
