@@ -35,8 +35,7 @@ endif
 
 if exists(":Lazy")
     echo "Lazy Update"
-    autocmd User LazySync * quitall
-    Lazy sync
+    Lazy! sync | qa
 endif
 
 if exists(':PackerSync')
