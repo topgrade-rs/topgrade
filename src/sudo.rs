@@ -24,7 +24,7 @@ impl Sudo {
     pub fn detect() -> Option<Self> {
         which("doas")
             .map(|p| (p, SudoKind::Doas))
-            .or_else(|| which("please").map(|p| (p, SudoKind::please)))
+            .or_else(|| which("please").map(|p| (p, SudoKind::Please)))
             .or_else(|| which("sudo").map(|p| (p, SudoKind::Sudo)))
             .or_else(|| which("gsudo").map(|p| (p, SudoKind::Gsudo)))
             .or_else(|| which("pkexec").map(|p| (p, SudoKind::Pkexec)))
