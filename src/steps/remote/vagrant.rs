@@ -183,7 +183,7 @@ pub fn topgrade_vagrant_box(ctx: &ExecutionContext, vagrant_box: &VagrantBox) ->
     let mut _poweron = None;
     if !vagrant_box.initial_status.powered_on() {
         if !(ctx.config().vagrant_power_on().unwrap_or(true)) {
-            return Err(SkipStep(format!("Skipping powered off box {}", vagrant_box)).into());
+            return Err(SkipStep(format!("Skipping powered off box {vagrant_box}")).into());
         } else {
             print_separator(seperator);
             _poweron = Some(vagrant.temporary_power_on(vagrant_box, ctx)?);

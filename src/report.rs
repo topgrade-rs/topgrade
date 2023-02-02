@@ -34,7 +34,7 @@ impl<'a> Report<'a> {
         if let Some((key, success)) = result {
             let key = key.into();
 
-            debug_assert!(!self.data.iter().any(|(k, _)| k == &key), "{} already reported", key);
+            debug_assert!(!self.data.iter().any(|(k, _)| k == &key), "{key} already reported");
             self.data.push((key, success));
         }
     }

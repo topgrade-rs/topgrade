@@ -33,24 +33,15 @@ if exists(":PaqUpdate")
     PaqUpdate
 endif
 
-function! UpdateCoCAndTS()
-    if exists(":CocUpdateSync")
-        echo "CocUpdateSync"
-        CocUpdateSync
-    endif
-
-    if exists(":TSUpdateSync")
-        echo "TreeSitter Update"
-        TSUpdate
-    endif
-
-    quitall
-endfunction
+if exists(":Lazy")
+    echo "Lazy Update"
+    Lazy! sync | qa
+endif
 
 if exists(':PackerSync')
     echo "Packer"
-    autocmd User PackerComplete * call UpdateCoCAndTS()
+    autocmd User PackerComplete quitall
     PackerSync
 else
-    call UpdateCoCAndTS()
+    quitall
 endif

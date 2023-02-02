@@ -42,7 +42,7 @@ pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
     let topgrade_path = topgrade_path.to_str().unwrap();
 
     for tb in toolboxes.iter() {
-        let topgrade_prefix = format!("TOPGRADE_PREFIX='Toolbx {}'", tb);
+        let topgrade_prefix = format!("TOPGRADE_PREFIX='Toolbx {tb}'");
         let mut args = vec![
             "run",
             "-c",
