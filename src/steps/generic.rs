@@ -85,21 +85,27 @@ pub fn run_gem(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
 
 pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
     ctx.base_dirs().home_dir().join(".gem").require()?;
+    let gem = require("gem")?;
 
     print_separator("RubyGems");
-    if let Some(sudo) = &ctx.sudo() {
+    let gem_path_str = gem.as_os_str();
+    if gem_path_str.to_str().unwrap().contains("asdf") {
+        ctx.run_type()
+            .execute(gem)
+            .args(["update", "--system"])
+            .status_checked()?;
+    } else if let Some(sudo) = &ctx.sudo() {
         if !std::path::Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
             ctx.run_type()
                 .execute(sudo)
                 .arg("-EH")
-                .arg(require("gem")?)
+                .arg(gem)
                 .args(["update", "--system"])
                 .status_checked()?;
         }
     } else {
         print_warning("No sudo detected. Skipping system upgrade");
     }
-
     Ok(())
 }
 
