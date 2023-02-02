@@ -38,6 +38,11 @@ if exists(":Lazy")
     Lazy! sync | qa
 endif
 
+if exists(":AstroUpdate")
+   echo "AstroUpdate"
+   AstroUpdate
+endif
+
 if exists(':PackerSync')
     echo "Packer"
     autocmd User PackerComplete quitall
