@@ -8,7 +8,7 @@ name: CI
 
 env:
   RUST_VER: '1.60.0'
-  CROSS_VER: '0.2.4'
+  CROSS_VER: '0.2.5'
   CARGO_NET_RETRY: 3
 
 jobs:

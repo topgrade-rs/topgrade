@@ -86,6 +86,7 @@ fn run() -> Result<()> {
     debug!("Binary path: {:?}", std::env::current_exe());
     debug!("Self Update: {:?}", cfg!(feature = "self-update"));
 
+    #[cfg(target_os = "linux")]
     if config.display_preamble() && !config.skip_notify() {
         print_warning("Due to a design issue with notify-send it could be that topgrade hangs when it's finished.
 If this is the case on your system add the --skip-notify flag to the topgrade command or set skip_notify = true in the config file.
