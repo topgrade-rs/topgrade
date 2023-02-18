@@ -362,6 +362,13 @@ fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
     if let Some(sudo) = &ctx.sudo() {
         let apt = which("apt-fast")
             .or_else(|| {
+                if which("mist").is_some() {
+                    Some(PathBuf::from("mist"))
+                } else {
+                    None
+                }
+            })
+            .or_else(|| {
                 if Path::new("/usr/bin/nala").exists() {
                     Some(Path::new("/usr/bin/nala").to_path_buf())
                 } else {
