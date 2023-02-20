@@ -458,10 +458,28 @@ pub fn run_pacdef(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("pacdef");
 
-    ctx.run_type().execute(&pacdef).arg("sync").status_checked()?;
+    let output = ctx.run_type().execute(&pacdef).arg("version").output_checked()?;
+    let string = String::from_utf8(output.stdout)?;
+    let new_version = string.contains("version: 1");
 
-    println!();
-    ctx.run_type().execute(&pacdef).arg("review").status_checked()
+    if new_version {
+        ctx.run_type()
+            .execute(&pacdef)
+            .args(["package", "sync"])
+            .status_checked()?;
+
+        println!();
+        ctx.run_type()
+            .execute(&pacdef)
+            .args(["package", "review"])
+            .status_checked()
+    } else {
+        ctx.run_type().execute(&pacdef).arg("sync").status_checked()?;
+
+        println!();
+        ctx.run_type().execute(&pacdef).arg("review").status_checked()
+    }
+
 }
 
 pub fn run_pacstall(ctx: &ExecutionContext) -> Result<()> {
