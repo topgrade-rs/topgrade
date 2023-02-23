@@ -472,14 +472,14 @@ pub fn run_pacdef(ctx: &ExecutionContext) -> Result<()> {
         ctx.run_type()
             .execute(&pacdef)
             .args(["package", "review"])
-            .status_checked()
+            .status_checked()?;
     } else {
         ctx.run_type().execute(&pacdef).arg("sync").status_checked()?;
 
         println!();
-        ctx.run_type().execute(&pacdef).arg("review").status_checked()
+        ctx.run_type().execute(&pacdef).arg("review").status_checked()?;
     }
-
+    Ok(())
 }
 
 pub fn run_pacstall(ctx: &ExecutionContext) -> Result<()> {
