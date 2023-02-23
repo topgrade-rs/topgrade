@@ -333,6 +333,21 @@ pub fn run_pip3_update(run_type: RunType) -> Result<()> {
         .output_checked_utf8()
         .map_err(|_| SkipStep("pip does not exists".to_string()))?;
 
+    let check_externally_managed = "import sysconfig; from os import path; print('Y') if path.isfile(path.join(sysconfig.get_path('stdlib'), 'EXTERNALLY-MANAGED')) else print('N')";
+    Command::new(&python3)
+        .args(["-c", check_externally_managed])
+        .output_checked_utf8()
+        .map_err(|_| SkipStep("pip may be externally managed".to_string()))
+        .and_then(|output| match output.stdout.trim() {
+            "N" => Ok(()),
+            "Y" => Err(SkipStep("pip is externally managed".to_string())),
+            _ => {
+                print_warning("Unexpected output when checking EXTERNALLY-MANAGED");
+                print_warning(output.stdout.trim());
+                Err(SkipStep("pip may be externally managed".to_string()))
+            }
+        })?;
+
     print_separator("pip3");
     if std::env::var("VIRTUAL_ENV").is_ok() {
         print_warning("This step is will be skipped when running inside a virtual environment");
