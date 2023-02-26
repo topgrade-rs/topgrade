@@ -1,5 +1,5 @@
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::Command;
 
 use color_eyre::eyre::Result;
@@ -25,10 +25,28 @@ pub fn run_zr(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     run_type.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
 }
 
-pub fn zshrc(base_dirs: &BaseDirs) -> PathBuf {
+fn zdotdir(base_dirs: &BaseDirs) -> PathBuf {
     env::var("ZDOTDIR")
-        .map(|p| Path::new(&p).join(".zshrc"))
-        .unwrap_or_else(|_| base_dirs.home_dir().join(".zshrc"))
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| base_dirs.home_dir().to_path_buf())
+}
+
+pub fn zshrc(base_dirs: &BaseDirs) -> PathBuf {
+    zdotdir(base_dirs).join(".zshrc")
+}
+
+pub fn run_antidote(ctx: &ExecutionContext) -> Result<()> {
+    let zsh = require("zsh")?;
+    let mut antidote = zdotdir(ctx.base_dirs()).join(".antidote").require()?;
+    antidote.push("antidote.zsh");
+
+    print_separator("antidote");
+
+    ctx.run_type()
+        .execute(zsh)
+        .arg("-c")
+        .arg(format!("source {} && antidote update", antidote.display()))
+        .status_checked()
 }
 
 pub fn run_antibody(run_type: RunType) -> Result<()> {
