@@ -27,7 +27,7 @@ pub fn run_zr(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
 
 fn zdotdir(base_dirs: &BaseDirs) -> PathBuf {
     env::var("ZDOTDIR")
-        .map(|p| PathBuf::from(p))
+        .map(PathBuf::from)
         .unwrap_or_else(|_| base_dirs.home_dir().to_path_buf())
 }
 
