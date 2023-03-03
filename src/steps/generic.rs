@@ -56,7 +56,24 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type()
         .execute(cargo_update)
         .args(["install-update", "--git", "--all"])
-        .status_checked()
+        .status_checked()?;
+
+    if ctx.config().cleanup() {
+        let cargo_cache = utils::require("cargo-cache")
+            .ok()
+            .or_else(|| cargo_dir.join("bin/cargo-cache").if_exists());
+        match cargo_cache {
+            Some(e) => {
+                ctx.run_type().execute(e).args(["-a"]).status_checked()?;
+            }
+            None => {
+                let message = String::from("cargo-cache isn't installed so Topgrade can't cleanup cargo packages.\nInstall cargo-cache by running `cargo install cargo-cache`");
+                print_warning(message);
+            }
+        }
+    }
+
+    Ok(())
 }
 
 pub fn run_flutter_upgrade(run_type: RunType) -> Result<()> {
