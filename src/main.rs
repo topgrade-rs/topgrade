@@ -107,7 +107,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
     let git = git::Git::new();
     let mut git_repos = git::Repositories::new(&git);
 
-    let sudo = sudo::Sudo::detect();
+    let sudo = config.sudo_command().map_or_else(sudo::Sudo::detect, sudo::Sudo::new);
     let run_type = executor::RunType::new(config.dry_run());
 
     let ctx = execution_context::ExecutionContext::new(run_type, sudo, &git, &config, &base_dirs);
