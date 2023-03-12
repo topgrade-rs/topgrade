@@ -26,7 +26,7 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
         ctx.run_type().execute(&pkg).arg("clean").status_checked()?;
 
         let apt = require("apt")?;
-        let mut command = ctx.run_type().execute(&apt);
+        let mut command = ctx.run_type().execute(apt);
         command.arg("autoremove");
         if ctx.config().yes(Step::System) {
             command.arg("-y");
