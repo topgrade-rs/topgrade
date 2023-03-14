@@ -505,7 +505,15 @@ pub fn run_myrepos_update(base_dirs: &BaseDirs, run_type: RunType) -> Result<()>
 
 pub fn run_custom_command(name: &str, command: &str, ctx: &ExecutionContext) -> Result<()> {
     print_separator(name);
-    ctx.run_type().execute(shell()).arg("-c").arg(command).status_checked()
+    let mut exec = ctx.run_type().execute(shell());
+    #[cfg(unix)]
+    let command = if let Some(command) = command.strip_prefix("-i ") {
+        exec.arg("-i");
+        command
+    } else {
+        command
+    };
+    exec.arg("-c").arg(command).status_checked()
 }
 
 pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
