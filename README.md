@@ -44,7 +44,7 @@ Visit the documentation at [topgrade-rs.github.io](https://topgrade-rs.github.io
 > **Warning**
 > Work in Progress
 
-## Customization
+## Configuration 
 
 See `config.example.toml` for an example configuration file.
 
@@ -54,6 +54,14 @@ The configuration should be placed in the following paths depending on the opera
 
 - **Windows** - `%APPDATA%/topgrade.toml`
 - **macOS** and **other Unix systems** - `${XDG_CONFIG_HOME:-~/.config}/topgrade.toml`
+
+### Custom Commands
+
+Custom commands can be defined in the config file which can be run before, during, or after the inbuilt commands, as required.
+By default, the custom commands are run using a new shell according to the `$SHELL` environment variable on unix (falls back to `sh`) or `pwsh` on windows (falls back to `powershell`).
+
+On unix, if you want to run your command using an interactive shell, for example to source your shell's rc files, you can add `-i` at the start of your custom command.
+But note that this requires the command to exit the shell correctly or else the shell will hang indefinitely.
 
 ## Remote Execution
 

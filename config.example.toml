@@ -74,6 +74,7 @@
 # Custom commands
 [commands]
 #"Python Environment" = "~/dev/.env/bin/pip install -i https://pypi.python.org/simple -U --upgrade-strategy eager jupyter"
+#"Custom command using interactive shell (unix)" = "-i vim_upgrade"
 
 [brew]
 #greedy_cask = true
