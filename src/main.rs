@@ -116,7 +116,9 @@ For more information about this issue see https://askubuntu.com/questions/110969
 
     #[cfg(feature = "self-update")]
     {
-        if !run_type.dry() && env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() {
+        let config_self_upgrade = env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() && !config.no_self_update();
+
+        if !run_type.dry() && config_self_upgrade {
             let result = self_update::self_update();
 
             if let Err(e) = &result {
