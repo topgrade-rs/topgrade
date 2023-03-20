@@ -523,7 +523,7 @@ pub struct CommandLineArgs {
     /// Print roff manpage and exit
     #[clap(long, hide = true)]
     pub gen_manpage: bool,
-    
+
     /// Don't update Topgrade
     #[clap(long = "no-self-update")]
     pub no_self_update: bool,
@@ -649,12 +649,12 @@ impl Config {
         enabled_steps.retain(|e| !disabled_steps.contains(e) || opt.only.contains(e));
         enabled_steps
     }
-    
+
     /// Tell whether we should run a self update.
     pub fn no_self_update(&self) -> bool {
         self.opt.no_self_update || self.config_file.no_self_update.unwrap_or(false)
     }
-    
+
     /// Tell whether we should run in tmux.
     pub fn run_in_tmux(&self) -> bool {
         self.opt.run_in_tmux || self.config_file.run_in_tmux.unwrap_or(false)
