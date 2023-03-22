@@ -50,6 +50,9 @@
 # Skip the preamble displayed when topgrade is run
 #display_preamble = false
 
+# Whether to self update (this is ignored if the binary has been built without self update support, available also via setting the environment variable TOPGRADE_NO_SELF_UPGRADE)
+#no_self_update = true
+
 [git]
 #max_concurrency = 5
 # Additional git repositories to pull
