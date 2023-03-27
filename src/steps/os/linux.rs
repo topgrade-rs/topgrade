@@ -26,6 +26,7 @@ pub enum Distribution {
     CentOS,
     ClearLinux,
     Fedora,
+    FedoraSilverblue,
     Debian,
     Gentoo,
     OpenMandriva,
@@ -43,13 +44,25 @@ impl Distribution {
     fn parse_os_release(os_release: &ini::Ini) -> Result<Self> {
         let section = os_release.general_section();
         let id = section.get("ID");
+        let variant: Option<Vec<&str>> = section.get("VARIANT").map(|s| s.split_whitespace().collect());
         let id_like: Option<Vec<&str>> = section.get("ID_LIKE").map(|s| s.split_whitespace().collect());
 
         Ok(match id {
             Some("alpine") => Distribution::Alpine,
             Some("centos") | Some("rhel") | Some("ol") => Distribution::CentOS,
             Some("clear-linux-os") => Distribution::ClearLinux,
-            Some("fedora") | Some("nobara") => Distribution::Fedora,
+            Some("fedora") | Some("nobara") => {
+                if let Some(variant) = variant {
+                    if variant.contains(&"Silverblue") {
+                        return Ok(Distribution::FedoraSilverblue);
+                    } else {
+                        return Ok(Distribution::FedoraSilverblue);
+                    };
+                } else {
+                    return Ok(Distribution::Fedora);
+                }
+            }
+
             Some("void") => Distribution::Void,
             Some("debian") | Some("pureos") => Distribution::Debian,
             Some("arch") | Some("anarchy") | Some("manjaro-arm") | Some("garuda") | Some("artix") => Distribution::Arch,
@@ -103,6 +116,7 @@ impl Distribution {
             Distribution::Alpine => upgrade_alpine_linux(ctx),
             Distribution::Arch => archlinux::upgrade_arch_linux(ctx),
             Distribution::CentOS | Distribution::Fedora => upgrade_redhat(ctx),
+            Distribution::FedoraSilverblue => upgrade_fedora_silverblue(ctx),
             Distribution::ClearLinux => upgrade_clearlinux(ctx),
             Distribution::Debian => upgrade_debian(ctx),
             Distribution::Gentoo => upgrade_gentoo(ctx),
@@ -198,6 +212,16 @@ fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
         command.status_checked()?;
     } else {
         print_warning("No sudo detected. Skipping system upgrade");
+    }
+    Ok(())
+}
+
+fn upgrade_fedora_silverblue(ctx: &ExecutionContext) -> Result<()> {
+    let ostree = require("rpm-ostree")?;
+    if ctx.config().rpm_ostree() {
+        let mut command = ctx.run_type().execute(ostree);
+        command.arg("upgrade");
+        command.status_checked()?
     }
     Ok(())
 }
