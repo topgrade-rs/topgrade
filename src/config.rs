@@ -996,7 +996,7 @@ impl Config {
             .linux
             .as_ref()
             .and_then(|linux| linux.rpm_ostree)
-            .unwrap_or(true)
+            .unwrap_or(false)
     }
 
     /// Should we ignore failures for this step

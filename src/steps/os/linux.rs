@@ -218,11 +218,9 @@ fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
 
 fn upgrade_fedora_silverblue(ctx: &ExecutionContext) -> Result<()> {
     let ostree = require("rpm-ostree")?;
-    if ctx.config().rpm_ostree() {
-        let mut command = ctx.run_type().execute(ostree);
-        command.arg("upgrade");
-        command.status_checked()?
-    }
+    let mut command = ctx.run_type().execute(ostree);
+    command.arg("upgrade");
+    command.status_checked()?;
     Ok(())
 }
 
