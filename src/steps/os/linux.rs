@@ -56,7 +56,7 @@ impl Distribution {
                     if variant.contains(&"Silverblue") {
                         return Ok(Distribution::FedoraSilverblue);
                     } else {
-                        return Ok(Distribution::FedoraSilverblue);
+                        return Ok(Distribution::Fedora);
                     };
                 } else {
                     return Ok(Distribution::Fedora);
