@@ -116,6 +116,7 @@ pub enum Step {
     Helix,
     Krew,
     Macports,
+    Mamba,
     Mas,
     Micro,
     Myrepos,

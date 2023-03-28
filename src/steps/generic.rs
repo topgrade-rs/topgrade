@@ -343,6 +343,25 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
+pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
+    let mamba = utils::require("mamba")?;
+
+    let output = Command::new("mamba")
+        .args(["config", "--show", "auto_activate_base"])
+        .output_checked_utf8()?;
+    debug!("Mamba output: {}", output.stdout);
+    if output.stdout.contains("False") {
+        return Err(SkipStep("auto_activate_base is set to False".to_string()).into());
+    }
+
+    print_separator("Mamba");
+
+    ctx.run_type()
+        .execute(mamba)
+        .args(["update", "--all", "-y"])
+        .status_checked()
+}
+
 pub fn run_pip3_update(run_type: RunType) -> Result<()> {
     let python3 = utils::require("python3")?;
     Command::new(&python3)

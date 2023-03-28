@@ -368,6 +368,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
     runner.execute(Step::Vcpkg, "vcpkg", || generic::run_vcpkg_update(&ctx))?;
     runner.execute(Step::Pipx, "pipx", || generic::run_pipx_update(run_type))?;
     runner.execute(Step::Conda, "conda", || generic::run_conda_update(&ctx))?;
+    runner.execute(Step::Mamba, "mamba", || generic::run_mamba_update(&ctx))?;
     runner.execute(Step::Pip3, "pip3", || generic::run_pip3_update(run_type))?;
     runner.execute(Step::PipReview, "pip-review", || generic::run_pip_review_update(&ctx))?;
     runner.execute(Step::Pipupgrade, "pipupgrade", || generic::run_pipupgrade_update(&ctx))?;
