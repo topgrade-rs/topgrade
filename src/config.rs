@@ -18,6 +18,7 @@ use tracing::debug;
 use which_crate::which;
 
 use crate::command::CommandExt;
+use crate::sudo::SudoKind;
 
 use super::utils::{editor, hostname};
 
@@ -293,6 +294,7 @@ pub struct Vim {
 #[serde(deny_unknown_fields)]
 /// Configuration file
 pub struct ConfigFile {
+    sudo_command: Option<SudoKind>,
     pre_sudo: Option<bool>,
     pre_commands: Option<Commands>,
     post_commands: Option<Commands>,
@@ -334,6 +336,7 @@ pub struct ConfigFile {
     vagrant: Option<Vagrant>,
     flatpak: Option<Flatpak>,
     distrobox: Option<Distrobox>,
+    no_self_update: Option<bool>,
 }
 
 fn config_directory(base_dirs: &BaseDirs) -> PathBuf {
@@ -520,6 +523,10 @@ pub struct CommandLineArgs {
     /// Print roff manpage and exit
     #[clap(long, hide = true)]
     pub gen_manpage: bool,
+
+    /// Don't update Topgrade
+    #[clap(long = "no-self-update")]
+    pub no_self_update: bool,
 }
 
 impl CommandLineArgs {
@@ -641,6 +648,11 @@ impl Config {
 
         enabled_steps.retain(|e| !disabled_steps.contains(e) || opt.only.contains(e));
         enabled_steps
+    }
+
+    /// Tell whether we should run a self update.
+    pub fn no_self_update(&self) -> bool {
+        self.opt.no_self_update || self.config_file.no_self_update.unwrap_or(false)
     }
 
     /// Tell whether we should run in tmux.
@@ -1015,6 +1027,10 @@ impl Config {
             .as_ref()
             .and_then(|windows| windows.open_remotes_in_new_terminal)
             .unwrap_or(false)
+    }
+
+    pub fn sudo_command(&self) -> Option<SudoKind> {
+        self.config_file.sudo_command
     }
 
     /// If `true`, `sudo` should be called after `pre_commands` in order to elevate at the

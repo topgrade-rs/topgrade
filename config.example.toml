@@ -13,6 +13,9 @@
 # Do not ask to retry failed steps (default: false)
 #no_retry = true
 
+# Sudo command to be used
+#sudo_command = "sudo"
+
 # Run `sudo -v` to cache credentials at the start of the run; this avoids a
 # blocking password prompt in the middle of a possibly-unattended run.
 #pre_sudo = false
@@ -47,6 +50,9 @@
 # Skip the preamble displayed when topgrade is run
 #display_preamble = false
 
+# Whether to self update (this is ignored if the binary has been built without self update support, available also via setting the environment variable TOPGRADE_NO_SELF_UPGRADE)
+#no_self_update = true
+
 [git]
 #max_concurrency = 5
 # Additional git repositories to pull
@@ -71,6 +77,7 @@
 # Custom commands
 [commands]
 #"Python Environment" = "~/dev/.env/bin/pip install -i https://pypi.python.org/simple -U --upgrade-strategy eager jupyter"
+#"Custom command using interactive shell (unix)" = "-i vim_upgrade"
 
 [brew]
 #greedy_cask = true

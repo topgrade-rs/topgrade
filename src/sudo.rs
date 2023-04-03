@@ -4,6 +4,8 @@ use std::path::PathBuf;
 
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use serde::Deserialize;
+use strum::AsRefStr;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
@@ -29,6 +31,11 @@ impl Sudo {
             .or_else(|| which("gsudo").map(|p| (p, SudoKind::Gsudo)))
             .or_else(|| which("pkexec").map(|p| (p, SudoKind::Pkexec)))
             .map(|(path, kind)| Self { path, kind })
+    }
+
+    /// Create Sudo from SudoKind, if found in the system
+    pub fn new(kind: SudoKind) -> Option<Self> {
+        which(kind.as_ref()).map(|path| Self { path, kind })
     }
 
     /// Elevate permissions with `sudo`.
@@ -100,8 +107,10 @@ impl Sudo {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-enum SudoKind {
+#[derive(Clone, Copy, Debug, Deserialize, AsRefStr)]
+#[serde(rename_all = "lowercase")]
+#[strum(serialize_all = "lowercase")]
+pub enum SudoKind {
     Doas,
     Please,
     Sudo,

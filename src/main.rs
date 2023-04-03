@@ -87,11 +87,13 @@ fn run() -> Result<()> {
     debug!("Self Update: {:?}", cfg!(feature = "self-update"));
 
     #[cfg(target_os = "linux")]
-    if config.display_preamble() && terminal::supports_notify_send() && !config.skip_notify() {
-        print_warning("Due to a design issue with notify-send it could be that topgrade hangs when it's finished.
+    {
+        if config.display_preamble() && terminal::supports_notify_send() && !config.skip_notify() {
+            print_warning("Due to a design issue with notify-send it could be that topgrade hangs when it's finished.
 If this is the case on your system add the --skip-notify flag to the topgrade command or set skip_notify = true in the config file.
 If you don't want this message to appear any longer set display_preamble = false in the config file.
 For more information about this issue see https://askubuntu.com/questions/110969/notify-send-ignores-timeout and https://github.com/topgrade-rs/topgrade/issues/288.");
+        }
     }
 
     if config.run_in_tmux() && env::var("TOPGRADE_INSIDE_TMUX").is_err() {
@@ -105,7 +107,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
     let git = git::Git::new();
     let mut git_repos = git::Repositories::new(&git);
 
-    let sudo = sudo::Sudo::detect();
+    let sudo = config.sudo_command().map_or_else(sudo::Sudo::detect, sudo::Sudo::new);
     let run_type = executor::RunType::new(config.dry_run());
 
     let ctx = execution_context::ExecutionContext::new(run_type, sudo, &git, &config, &base_dirs);
@@ -114,7 +116,9 @@ For more information about this issue see https://askubuntu.com/questions/110969
 
     #[cfg(feature = "self-update")]
     {
-        if !run_type.dry() && env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() {
+        let config_self_upgrade = env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() && !config.no_self_update();
+
+        if !run_type.dry() && config_self_upgrade {
             let result = self_update::self_update();
 
             if let Err(e) = &result {
@@ -317,6 +321,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
     {
         runner.execute(Step::Shell, "zr", || zsh::run_zr(&base_dirs, run_type))?;
         runner.execute(Step::Shell, "antibody", || zsh::run_antibody(run_type))?;
+        runner.execute(Step::Shell, "antidote", || zsh::run_antidote(&ctx))?;
         runner.execute(Step::Shell, "antigen", || zsh::run_antigen(&base_dirs, run_type))?;
         runner.execute(Step::Shell, "zgenom", || zsh::run_zgenom(&base_dirs, run_type))?;
         runner.execute(Step::Shell, "zplug", || zsh::run_zplug(&base_dirs, run_type))?;
