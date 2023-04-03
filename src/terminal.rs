@@ -345,3 +345,8 @@ pub fn notify_desktop<P: AsRef<str>>(message: P, timeout: Option<Duration>) {
 pub fn display_time(display_time: bool) {
     TERMINAL.lock().unwrap().display_time(display_time);
 }
+
+#[cfg(target_os = "linux")]
+pub fn supports_notify_send() -> bool {
+    TERMINAL.lock().unwrap().notify_send.is_some()
+}
