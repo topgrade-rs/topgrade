@@ -350,7 +350,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
     )))]
     runner.execute(Step::Atom, "apm", || generic::run_apm(run_type))?;
     runner.execute(Step::Fossil, "fossil", || generic::run_fossil(run_type))?;
-    runner.execute(Step::Rustup, "rustup", || generic::run_rustup(&base_dirs, run_type))?;
+    runner.execute(Step::Rustup, "rustup", || generic::run_rustup(&ctx))?;
     runner.execute(Step::Juliaup, "juliaup", || generic::run_juliaup(&base_dirs, run_type))?;
     runner.execute(Step::Dotnet, ".NET", || generic::run_dotnet_upgrade(&ctx))?;
     runner.execute(Step::Choosenim, "choosenim", || generic::run_choosenim(&ctx))?;

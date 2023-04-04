@@ -189,16 +189,11 @@ pub fn run_apm(run_type: RunType) -> Result<()> {
         .status_checked()
 }
 
-pub fn run_rustup(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
     let rustup = utils::require("rustup")?;
 
     print_separator("rustup");
-
-    if rustup.canonicalize()?.is_descendant_of(base_dirs.home_dir()) {
-        run_type.execute(&rustup).args(["self", "update"]).status_checked()?;
-    }
-
-    run_type.execute(&rustup).arg("update").status_checked()
+    ctx.run_type().execute(rustup).arg("update").status_checked()
 }
 
 pub fn run_juliaup(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
