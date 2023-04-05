@@ -88,7 +88,7 @@ fn run() -> Result<()> {
 
     #[cfg(target_os = "linux")]
     {
-        if config.display_preamble() && !config.skip_notify() {
+        if config.display_preamble() && terminal::supports_notify_send() && !config.skip_notify() {
             print_warning("Due to a design issue with notify-send it could be that topgrade hangs when it's finished.
 If this is the case on your system add the --skip-notify flag to the topgrade command or set skip_notify = true in the config file.
 If you don't want this message to appear any longer set display_preamble = false in the config file.
