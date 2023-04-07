@@ -17,6 +17,7 @@ use crate::execution_context::ExecutionContext;
 use crate::executor::{ExecutorOutput, RunType};
 use crate::terminal::{print_separator, shell};
 use crate::utils::{self, require, require_option, which, PathExt};
+use crate::Step;
 use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
     terminal::print_warning,
@@ -332,10 +333,13 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Conda");
 
-    ctx.run_type()
-        .execute(conda)
-        .args(["update", "--all"])
-        .status_checked()
+    let mut command = ctx.run_type().execute(conda);
+    command.args(["update", "--all"]);
+    if ctx.config().yes(Step::Conda) {
+        command.arg("--yes");
+    }
+    
+    command.status_checked()
 }
 
 pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
@@ -351,10 +355,13 @@ pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Mamba");
 
-    ctx.run_type()
-        .execute(mamba)
-        .args(["update", "--all"])
-        .status_checked()
+    let mut command = ctx.run_type().execute(mamba);
+    command.args(["update", "--all"]);
+    if ctx.config().yes(Step::Mamba) {
+        command.arg("--yes");
+    }
+    
+    command.status_checked()
 }
 
 pub fn run_pip3_update(run_type: RunType) -> Result<()> {
