@@ -88,7 +88,7 @@ fn run() -> Result<()> {
 
     #[cfg(target_os = "linux")]
     {
-        if config.display_preamble() && !config.skip_notify() {
+        if config.display_preamble() && terminal::supports_notify_send() && !config.skip_notify() {
             print_warning("Due to a design issue with notify-send it could be that topgrade hangs when it's finished.
 If this is the case on your system add the --skip-notify flag to the topgrade command or set skip_notify = true in the config file.
 If you don't want this message to appear any longer set display_preamble = false in the config file.
@@ -355,7 +355,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
     )))]
     runner.execute(Step::Atom, "apm", || generic::run_apm(run_type))?;
     runner.execute(Step::Fossil, "fossil", || generic::run_fossil(run_type))?;
-    runner.execute(Step::Rustup, "rustup", || generic::run_rustup(&base_dirs, run_type))?;
+    runner.execute(Step::Rustup, "rustup", || generic::run_rustup(&ctx))?;
     runner.execute(Step::Juliaup, "juliaup", || generic::run_juliaup(&base_dirs, run_type))?;
     runner.execute(Step::Dotnet, ".NET", || generic::run_dotnet_upgrade(&ctx))?;
     runner.execute(Step::Choosenim, "choosenim", || generic::run_choosenim(&ctx))?;
