@@ -353,7 +353,7 @@ pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.run_type()
         .execute(mamba)
-        .args(["update", "--all", "-y"])
+        .args(["update", "--all"])
         .status_checked()
 }
 
