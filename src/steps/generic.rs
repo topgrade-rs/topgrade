@@ -338,7 +338,6 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
     if ctx.config().yes(Step::Conda) {
         command.arg("--yes");
     }
-    
     command.status_checked()
 }
 
@@ -360,7 +359,6 @@ pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
     if ctx.config().yes(Step::Mamba) {
         command.arg("--yes");
     }
-    
     command.status_checked()
 }
 
