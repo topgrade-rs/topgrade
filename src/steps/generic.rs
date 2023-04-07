@@ -334,7 +334,7 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.run_type()
         .execute(conda)
-        .args(["update", "--all", "-y"])
+        .args(["update", "--all"])
         .status_checked()
 }
 
