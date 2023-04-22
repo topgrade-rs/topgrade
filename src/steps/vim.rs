@@ -19,7 +19,7 @@ use tracing::debug;
 
 const UPGRADE_VIM: &str = include_str!("upgrade.vim");
 
-pub fn vimrc(base_dirs: &BaseDirs) -> Result<PathBuf> {
+pub fn vimrc() -> Result<PathBuf> {
     HOME_DIR
         .join(".vimrc")
         .require()
@@ -105,7 +105,7 @@ pub fn upgrade_ultimate_vimrc(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-pub fn upgrade_vim(base_dirs: &BaseDirs, ctx: &ExecutionContext) -> Result<()> {
+pub fn upgrade_vim(ctx: &ExecutionContext) -> Result<()> {
     let vim = require("vim")?;
 
     let output = Command::new(&vim).arg("--version").output_checked_utf8()?;
@@ -113,7 +113,7 @@ pub fn upgrade_vim(base_dirs: &BaseDirs, ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep(String::from("vim binary might be actually nvim")).into());
     }
 
-    let vimrc = vimrc(base_dirs)?;
+    let vimrc = vimrc()?;
 
     print_separator("Vim");
     upgrade(
@@ -143,7 +143,7 @@ pub fn upgrade_neovim(base_dirs: &BaseDirs, ctx: &ExecutionContext) -> Result<()
     )
 }
 
-pub fn run_voom(_base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_voom(run_type: RunType) -> Result<()> {
     let voom = require("voom")?;
 
     print_separator("voom");

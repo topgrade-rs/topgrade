@@ -8,7 +8,6 @@ use std::{fs, io::Write};
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use directories::BaseDirs;
 use tempfile::tempfile_in;
 use tracing::{debug, error};
 
@@ -85,7 +84,7 @@ pub fn run_flutter_upgrade(run_type: RunType) -> Result<()> {
     run_type.execute(flutter).arg("upgrade").status_checked()
 }
 
-pub fn run_gem(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_gem(run_type: RunType) -> Result<()> {
     let gem = utils::require("gem")?;
     HOME_DIR.join(".gem").require()?;
 
@@ -215,7 +214,7 @@ pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(rustup).arg("update").status_checked()
 }
 
-pub fn run_juliaup(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_juliaup(run_type: RunType) -> Result<()> {
     let juliaup = utils::require("juliaup")?;
 
     print_separator("juliaup");
@@ -494,7 +493,7 @@ pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
     command.status_checked()
 }
 
-pub fn run_chezmoi_update(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_chezmoi_update(run_type: RunType) -> Result<()> {
     let chezmoi = utils::require("chezmoi")?;
     HOME_DIR.join(".local/share/chezmoi").require()?;
 
@@ -503,7 +502,7 @@ pub fn run_chezmoi_update(base_dirs: &BaseDirs, run_type: RunType) -> Result<()>
     run_type.execute(chezmoi).arg("update").status_checked()
 }
 
-pub fn run_myrepos_update(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_myrepos_update(run_type: RunType) -> Result<()> {
     let myrepos = utils::require("mr")?;
     HOME_DIR.join(".mrconfig").require()?;
 

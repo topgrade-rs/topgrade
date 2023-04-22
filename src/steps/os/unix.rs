@@ -7,7 +7,6 @@ use std::{env, path::Path};
 use crate::command::CommandExt;
 use crate::{Step, HOME_DIR};
 use color_eyre::eyre::Result;
-use directories::BaseDirs;
 use home;
 use ini::Ini;
 use tracing::debug;
@@ -432,7 +431,7 @@ pub fn run_pearl(run_type: RunType) -> Result<()> {
     run_type.execute(pearl).arg("update").status_checked()
 }
 
-pub fn run_sdkman(base_dirs: &BaseDirs, cleanup: bool, run_type: RunType) -> Result<()> {
+pub fn run_sdkman(cleanup: bool, run_type: RunType) -> Result<()> {
     let bash = require("bash")?;
 
     let sdkman_init_path = env::var("SDKMAN_DIR")

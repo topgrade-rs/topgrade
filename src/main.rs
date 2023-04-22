@@ -278,7 +278,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
 
         #[cfg(unix)]
         {
-            git_repos.insert_if_repo(zsh::zshrc(&base_dirs));
+            git_repos.insert_if_repo(zsh::zshrc());
             if config.should_run(Step::Tmux) {
                 git_repos.insert_if_repo(HOME_DIR.join(".tmux"));
             }
@@ -323,31 +323,29 @@ For more information about this issue see https://askubuntu.com/questions/110969
 
     #[cfg(unix)]
     {
-        runner.execute(Step::Shell, "zr", || zsh::run_zr(&base_dirs, run_type))?;
+        runner.execute(Step::Shell, "zr", || zsh::run_zr(run_type))?;
         runner.execute(Step::Shell, "antibody", || zsh::run_antibody(run_type))?;
         runner.execute(Step::Shell, "antidote", || zsh::run_antidote(&ctx))?;
-        runner.execute(Step::Shell, "antigen", || zsh::run_antigen(&base_dirs, run_type))?;
-        runner.execute(Step::Shell, "zgenom", || zsh::run_zgenom(&base_dirs, run_type))?;
-        runner.execute(Step::Shell, "zplug", || zsh::run_zplug(&base_dirs, run_type))?;
-        runner.execute(Step::Shell, "zinit", || zsh::run_zinit(&base_dirs, run_type))?;
-        runner.execute(Step::Shell, "zi", || zsh::run_zi(&base_dirs, run_type))?;
-        runner.execute(Step::Shell, "zim", || zsh::run_zim(&base_dirs, run_type))?;
+        runner.execute(Step::Shell, "antigen", || zsh::run_antigen(run_type))?;
+        runner.execute(Step::Shell, "zgenom", || zsh::run_zgenom(run_type))?;
+        runner.execute(Step::Shell, "zplug", || zsh::run_zplug(run_type))?;
+        runner.execute(Step::Shell, "zinit", || zsh::run_zinit(run_type))?;
+        runner.execute(Step::Shell, "zi", || zsh::run_zi(run_type))?;
+        runner.execute(Step::Shell, "zim", || zsh::run_zim(run_type))?;
         runner.execute(Step::Shell, "oh-my-zsh", || zsh::run_oh_my_zsh(&ctx))?;
         runner.execute(Step::Shell, "fisher", || unix::run_fisher(run_type))?;
         runner.execute(Step::Shell, "bash-it", || unix::run_bashit(&ctx))?;
         runner.execute(Step::Shell, "oh-my-fish", || unix::run_oh_my_fish(&ctx))?;
         runner.execute(Step::Shell, "fish-plug", || unix::run_fish_plug(&ctx))?;
         runner.execute(Step::Shell, "fundle", || unix::run_fundle(&ctx))?;
-        runner.execute(Step::Tmux, "tmux", || tmux::run_tpm(&base_dirs, run_type))?;
+        runner.execute(Step::Tmux, "tmux", || tmux::run_tpm(run_type))?;
         runner.execute(Step::Tldr, "TLDR", || unix::run_tldr(run_type))?;
         runner.execute(Step::Pearl, "pearl", || unix::run_pearl(run_type))?;
         #[cfg(not(any(target_os = "macos", target_os = "android")))]
         runner.execute(Step::GnomeShellExtensions, "Gnome Shell Extensions", || {
             unix::upgrade_gnome_extensions(&ctx)
         })?;
-        runner.execute(Step::Sdkman, "SDKMAN!", || {
-            unix::run_sdkman(&base_dirs, config.cleanup(), run_type)
-        })?;
+        runner.execute(Step::Sdkman, "SDKMAN!", || unix::run_sdkman(config.cleanup(), run_type))?;
         runner.execute(Step::Rcm, "rcm", || unix::run_rcm(&ctx))?;
     }
 
@@ -379,17 +377,13 @@ For more information about this issue see https://askubuntu.com/questions/110969
     runner.execute(Step::Ghcup, "ghcup", || generic::run_ghcup_update(run_type))?;
     runner.execute(Step::Stack, "stack", || generic::run_stack_update(run_type))?;
     runner.execute(Step::Tlmgr, "tlmgr", || generic::run_tlmgr_update(&ctx))?;
-    runner.execute(Step::Myrepos, "myrepos", || {
-        generic::run_myrepos_update(&base_dirs, run_type)
-    })?;
-    runner.execute(Step::Chezmoi, "chezmoi", || {
-        generic::run_chezmoi_update(&base_dirs, run_type)
-    })?;
+    runner.execute(Step::Myrepos, "myrepos", || generic::run_myrepos_update(run_type))?;
+    runner.execute(Step::Chezmoi, "chezmoi", || generic::run_chezmoi_update(run_type))?;
     runner.execute(Step::Jetpack, "jetpack", || generic::run_jetpack(run_type))?;
-    runner.execute(Step::Vim, "vim", || vim::upgrade_vim(&base_dirs, &ctx))?;
+    runner.execute(Step::Vim, "vim", || vim::upgrade_vim(&ctx))?;
     runner.execute(Step::Vim, "Neovim", || vim::upgrade_neovim(&base_dirs, &ctx))?;
     runner.execute(Step::Vim, "The Ultimate vimrc", || vim::upgrade_ultimate_vimrc(&ctx))?;
-    runner.execute(Step::Vim, "voom", || vim::run_voom(&base_dirs, run_type))?;
+    runner.execute(Step::Vim, "voom", || vim::run_voom(run_type))?;
     runner.execute(Step::Kakoune, "Kakoune", || kakoune::upgrade_kak_plug(&ctx))?;
     runner.execute(Step::Helix, "helix", || generic::run_helix_grammars(&ctx))?;
     runner.execute(Step::Node, "npm", || node::run_npm_upgrade(&ctx))?;
@@ -400,7 +394,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
     runner.execute(Step::Composer, "composer", || generic::run_composer_update(&ctx))?;
     runner.execute(Step::Krew, "krew", || generic::run_krew_upgrade(run_type))?;
     runner.execute(Step::Helm, "helm", || generic::run_helm_repo_update(run_type))?;
-    runner.execute(Step::Gem, "gem", || generic::run_gem(&base_dirs, run_type))?;
+    runner.execute(Step::Gem, "gem", || generic::run_gem(run_type))?;
     runner.execute(Step::RubyGems, "rubygems", || generic::run_rubygems(&ctx))?;
     runner.execute(Step::Julia, "julia", || generic::update_julia_packages(&ctx))?;
     runner.execute(Step::Haxelib, "haxelib", || generic::run_haxelib_update(&ctx))?;

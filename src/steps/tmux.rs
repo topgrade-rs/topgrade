@@ -5,7 +5,6 @@ use std::process::Command;
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use directories::BaseDirs;
 
 use crate::command::CommandExt;
 use crate::executor::RunType;
@@ -19,7 +18,7 @@ use crate::{
 #[cfg(unix)]
 use std::os::unix::process::CommandExt as _;
 
-pub fn run_tpm(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_tpm(run_type: RunType) -> Result<()> {
     let tpm = HOME_DIR.join(".tmux/plugins/tpm/bin/update_plugins").require()?;
 
     print_separator("tmux plugins");
