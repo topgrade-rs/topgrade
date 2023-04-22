@@ -2059,6 +2059,7 @@ dependencies = [
  "libc",
  "nix 0.24.3",
  "notify-rust",
+ "once_cell",
  "parselnk",
  "regex",
  "rust-ini",

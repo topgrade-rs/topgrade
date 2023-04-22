@@ -9,7 +9,7 @@ use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::terminal::print_separator;
 use crate::utils::{require, require_option, PathExt};
-use crate::Step;
+use crate::{Step, HOME_DIR};
 
 const EMACS_UPGRADE: &str = include_str!("emacs.el");
 #[cfg(windows)]
@@ -30,13 +30,13 @@ impl Emacs {
                 let emacs_xdg_dir = env::var("XDG_CONFIG_HOME")
                     .ok()
                     .and_then(|config| PathBuf::from(config).join("emacs").if_exists())
-                    .or_else(|| base_dirs.home_dir().join(".config/emacs").if_exists());
+                    .or_else(|| HOME_DIR.join(".config/emacs").if_exists());
             } else {
                 let emacs_xdg_dir = base_dirs.config_dir().join("emacs").if_exists();
             }
         }
         #[cfg(unix)]
-        return base_dirs.home_dir().join(".emacs.d").if_exists().or(emacs_xdg_dir);
+        return HOME_DIR.join(".emacs.d").if_exists().or(emacs_xdg_dir);
 
         #[cfg(windows)]
         return env::var("HOME")

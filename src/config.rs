@@ -345,7 +345,7 @@ fn config_directory(base_dirs: &BaseDirs) -> PathBuf {
     return base_dirs.config_dir().to_owned();
 
     #[cfg(target_os = "macos")]
-    return base_dirs.home_dir().join(".config");
+    return crate::HOME_DIR.join(".config");
 }
 
 impl ConfigFile {

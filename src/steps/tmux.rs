@@ -10,6 +10,7 @@ use directories::BaseDirs;
 use crate::command::CommandExt;
 use crate::executor::RunType;
 use crate::terminal::print_separator;
+use crate::HOME_DIR;
 use crate::{
     execution_context::ExecutionContext,
     utils::{which, PathExt},
@@ -19,10 +20,7 @@ use crate::{
 use std::os::unix::process::CommandExt as _;
 
 pub fn run_tpm(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
-    let tpm = base_dirs
-        .home_dir()
-        .join(".tmux/plugins/tpm/bin/update_plugins")
-        .require()?;
+    let tpm = HOME_DIR.join(".tmux/plugins/tpm/bin/update_plugins").require()?;
 
     print_separator("tmux plugins");
 

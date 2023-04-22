@@ -2,6 +2,7 @@
 
 use std::env;
 use std::io;
+use std::path::PathBuf;
 use std::process::exit;
 use std::time::Duration;
 
@@ -10,6 +11,7 @@ use clap::{crate_version, Parser};
 use color_eyre::eyre::Context;
 use color_eyre::eyre::{eyre, Result};
 use console::Key;
+use once_cell::sync::Lazy;
 use tracing::debug;
 
 use self::config::{CommandLineArgs, Config, Step};
@@ -35,6 +37,8 @@ mod steps;
 mod sudo;
 mod terminal;
 mod utils;
+
+pub static HOME_DIR: Lazy<PathBuf> = Lazy::new(|| home::home_dir().expect("No home directory"));
 
 fn run() -> Result<()> {
     color_eyre::install()?;
@@ -257,28 +261,28 @@ For more information about this issue see https://askubuntu.com/questions/110969
                     git_repos.insert_if_repo(directory);
                 }
             }
-            git_repos.insert_if_repo(base_dirs.home_dir().join(".doom.d"));
+            git_repos.insert_if_repo(HOME_DIR.join(".doom.d"));
         }
 
         if config.should_run(Step::Vim) {
-            git_repos.insert_if_repo(base_dirs.home_dir().join(".vim"));
-            git_repos.insert_if_repo(base_dirs.home_dir().join(".config/nvim"));
+            git_repos.insert_if_repo(HOME_DIR.join(".vim"));
+            git_repos.insert_if_repo(HOME_DIR.join(".config/nvim"));
         }
 
-        git_repos.insert_if_repo(base_dirs.home_dir().join(".ideavimrc"));
-        git_repos.insert_if_repo(base_dirs.home_dir().join(".intellimacs"));
+        git_repos.insert_if_repo(HOME_DIR.join(".ideavimrc"));
+        git_repos.insert_if_repo(HOME_DIR.join(".intellimacs"));
 
         if config.should_run(Step::Rcm) {
-            git_repos.insert_if_repo(base_dirs.home_dir().join(".dotfiles"));
+            git_repos.insert_if_repo(HOME_DIR.join(".dotfiles"));
         }
 
         #[cfg(unix)]
         {
             git_repos.insert_if_repo(zsh::zshrc(&base_dirs));
             if config.should_run(Step::Tmux) {
-                git_repos.insert_if_repo(base_dirs.home_dir().join(".tmux"));
+                git_repos.insert_if_repo(HOME_DIR.join(".tmux"));
             }
-            git_repos.insert_if_repo(base_dirs.home_dir().join(".config/fish"));
+            git_repos.insert_if_repo(HOME_DIR.join(".config/fish"));
             git_repos.insert_if_repo(base_dirs.config_dir().join("openbox"));
             git_repos.insert_if_repo(base_dirs.config_dir().join("bspwm"));
             git_repos.insert_if_repo(base_dirs.config_dir().join("i3"));

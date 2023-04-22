@@ -1,5 +1,6 @@
 use crate::command::CommandExt;
 use crate::error::{SkipStep, TopgradeError};
+use crate::HOME_DIR;
 use color_eyre::eyre::Result;
 
 use crate::executor::{Executor, ExecutorOutput, RunType};
@@ -19,18 +20,17 @@ use tracing::debug;
 const UPGRADE_VIM: &str = include_str!("upgrade.vim");
 
 pub fn vimrc(base_dirs: &BaseDirs) -> Result<PathBuf> {
-    base_dirs
-        .home_dir()
+    HOME_DIR
         .join(".vimrc")
         .require()
-        .or_else(|_| base_dirs.home_dir().join(".vim/vimrc").require())
+        .or_else(|_| HOME_DIR.join(".vim/vimrc").require())
 }
 
 fn nvimrc(base_dirs: &BaseDirs) -> Result<PathBuf> {
     #[cfg(unix)]
         let base_dir =
         // Bypass directories crate as nvim doesn't use the macOS-specific directories.
-        std::env::var_os("XDG_CONFIG_HOME").map_or_else(|| base_dirs.home_dir().join(".config"), PathBuf::from);
+        std::env::var_os("XDG_CONFIG_HOME").map_or_else(|| HOME_DIR.join(".config"), PathBuf::from);
 
     #[cfg(windows)]
     let base_dir = base_dirs.cache_dir();
@@ -74,7 +74,7 @@ fn upgrade(command: &mut Executor, ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn upgrade_ultimate_vimrc(ctx: &ExecutionContext) -> Result<()> {
-    let config_dir = ctx.base_dirs().home_dir().join(".vim_runtime").require()?;
+    let config_dir = HOME_DIR.join(".vim_runtime").require()?;
     let git = require("git")?;
     let python = require("python3")?;
     let update_plugins = config_dir.join("update_plugins.py").require()?;
