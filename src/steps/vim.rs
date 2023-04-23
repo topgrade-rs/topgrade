@@ -2,6 +2,7 @@ use crate::command::CommandExt;
 use crate::error::{SkipStep, TopgradeError};
 use crate::HOME_DIR;
 use color_eyre::eyre::Result;
+use etcetera::base_strategy::BaseStrategy;
 
 use crate::executor::{Executor, ExecutorOutput, RunType};
 use crate::terminal::print_separator;
@@ -9,7 +10,6 @@ use crate::{
     execution_context::ExecutionContext,
     utils::{require, PathExt},
 };
-use directories::BaseDirs;
 use std::path::PathBuf;
 use std::{
     io::{self, Write},
@@ -26,14 +26,12 @@ pub fn vimrc() -> Result<PathBuf> {
         .or_else(|_| HOME_DIR.join(".vim/vimrc").require())
 }
 
-fn nvimrc(base_dirs: &BaseDirs) -> Result<PathBuf> {
+fn nvimrc() -> Result<PathBuf> {
     #[cfg(unix)]
-        let base_dir =
-        // Bypass directories crate as nvim doesn't use the macOS-specific directories.
-        std::env::var_os("XDG_CONFIG_HOME").map_or_else(|| HOME_DIR.join(".config"), PathBuf::from);
+    let base_dir = crate::XDG_DIRS.config_dir();
 
     #[cfg(windows)]
-    let base_dir = base_dirs.cache_dir();
+    let base_dir = crate::WINDOWS_DIRS.cache_dir();
 
     base_dir
         .join("nvim/init.vim")
@@ -127,9 +125,9 @@ pub fn upgrade_vim(ctx: &ExecutionContext) -> Result<()> {
     )
 }
 
-pub fn upgrade_neovim(base_dirs: &BaseDirs, ctx: &ExecutionContext) -> Result<()> {
+pub fn upgrade_neovim(ctx: &ExecutionContext) -> Result<()> {
     let nvim = require("nvim")?;
-    let nvimrc = nvimrc(base_dirs)?;
+    let nvimrc = nvimrc()?;
 
     print_separator("Neovim");
     upgrade(

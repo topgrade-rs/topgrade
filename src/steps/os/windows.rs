@@ -3,6 +3,7 @@ use std::path::Path;
 use std::{ffi::OsStr, process::Command};
 
 use color_eyre::eyre::Result;
+use etcetera::base_strategy::BaseStrategy;
 use tracing::debug;
 
 use crate::command::CommandExt;
@@ -164,9 +165,8 @@ pub fn reboot() -> Result<()> {
     Command::new("shutdown").args(["/R", "/T", "0"]).status_checked()
 }
 
-pub fn insert_startup_scripts(ctx: &ExecutionContext, git_repos: &mut Repositories) -> Result<()> {
-    let startup_dir = ctx
-        .base_dirs()
+pub fn insert_startup_scripts(git_repos: &mut Repositories) -> Result<()> {
+    let startup_dir = crate::WINDOWS_DIRS
         .data_dir()
         .join("Microsoft\\Windows\\Start Menu\\Programs\\Startup");
     for entry in std::fs::read_dir(&startup_dir)?.flatten() {

@@ -5,7 +5,6 @@ use crate::sudo::Sudo;
 use crate::utils::require_option;
 use crate::{config::Config, executor::Executor};
 use color_eyre::eyre::Result;
-use directories::BaseDirs;
 use std::path::Path;
 use std::sync::Mutex;
 
@@ -14,7 +13,6 @@ pub struct ExecutionContext<'a> {
     sudo: Option<Sudo>,
     git: &'a Git,
     config: &'a Config,
-    base_dirs: &'a BaseDirs,
     /// Name of a tmux session to execute commands in, if any.
     /// This is used in `./steps/remote/ssh.rs`, where we want to run `topgrade` in a new
     /// tmux window for each remote.
@@ -22,19 +20,12 @@ pub struct ExecutionContext<'a> {
 }
 
 impl<'a> ExecutionContext<'a> {
-    pub fn new(
-        run_type: RunType,
-        sudo: Option<Sudo>,
-        git: &'a Git,
-        config: &'a Config,
-        base_dirs: &'a BaseDirs,
-    ) -> Self {
+    pub fn new(run_type: RunType, sudo: Option<Sudo>, git: &'a Git, config: &'a Config) -> Self {
         Self {
             run_type,
             sudo,
             git,
             config,
-            base_dirs,
             tmux_session: Mutex::new(None),
         }
     }
@@ -58,10 +49,6 @@ impl<'a> ExecutionContext<'a> {
 
     pub fn config(&self) -> &Config {
         self.config
-    }
-
-    pub fn base_dirs(&self) -> &BaseDirs {
-        self.base_dirs
     }
 
     pub fn set_tmux_session(&self, session_name: String) {

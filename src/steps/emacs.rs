@@ -1,15 +1,15 @@
-#[cfg(any(windows, target_os = "macos"))]
+#[cfg(any(windows))]
 use std::env;
 use std::path::{Path, PathBuf};
 
 use color_eyre::eyre::Result;
-use directories::BaseDirs;
+use etcetera::base_strategy::BaseStrategy;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::terminal::print_separator;
 use crate::utils::{require, require_option, PathExt};
-use crate::{Step, HOME_DIR};
+use crate::Step;
 
 const EMACS_UPGRADE: &str = include_str!("emacs.el");
 #[cfg(windows)]
@@ -23,20 +23,12 @@ pub struct Emacs {
 }
 
 impl Emacs {
-    fn directory_path(base_dirs: &BaseDirs) -> Option<PathBuf> {
+    fn directory_path() -> Option<PathBuf> {
         #[cfg(unix)]
-        cfg_if::cfg_if! {
-            if #[cfg(target_os = "macos")] {
-                let emacs_xdg_dir = env::var("XDG_CONFIG_HOME")
-                    .ok()
-                    .and_then(|config| PathBuf::from(config).join("emacs").if_exists())
-                    .or_else(|| HOME_DIR.join(".config/emacs").if_exists());
-            } else {
-                let emacs_xdg_dir = base_dirs.config_dir().join("emacs").if_exists();
-            }
-        }
-        #[cfg(unix)]
-        return HOME_DIR.join(".emacs.d").if_exists().or(emacs_xdg_dir);
+        return {
+            let emacs_xdg_dir = crate::XDG_DIRS.config_dir().join("emacs").if_exists();
+            crate::HOME_DIR.join(".emacs.d").if_exists().or(emacs_xdg_dir)
+        };
 
         #[cfg(windows)]
         return env::var("HOME")
@@ -47,11 +39,11 @@ impl Emacs {
                     .if_exists()
                     .or_else(|| PathBuf::from(&home).join(".config\\emacs").if_exists())
             })
-            .or_else(|| base_dirs.data_dir().join(".emacs.d").if_exists());
+            .or_else(|| crate::WINDOWS_DIRS.data_dir().join(".emacs.d").if_exists());
     }
 
-    pub fn new(base_dirs: &BaseDirs) -> Self {
-        let directory = Emacs::directory_path(base_dirs);
+    pub fn new() -> Self {
+        let directory = Emacs::directory_path();
         let doom = directory.as_ref().and_then(|d| d.join(DOOM_PATH).if_exists());
         Self { directory, doom }
     }

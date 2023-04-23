@@ -9,8 +9,11 @@ use std::time::Duration;
 use clap::CommandFactory;
 use clap::{crate_version, Parser};
 use color_eyre::eyre::Context;
-use color_eyre::eyre::{eyre, Result};
+use color_eyre::eyre::Result;
 use console::Key;
+#[cfg(windows)]
+use etcetera::base_strategy::Windows;
+use etcetera::base_strategy::{BaseStrategy, Xdg};
 use once_cell::sync::Lazy;
 use tracing::debug;
 
@@ -39,12 +42,13 @@ mod terminal;
 mod utils;
 
 pub static HOME_DIR: Lazy<PathBuf> = Lazy::new(|| home::home_dir().expect("No home directory"));
+pub static XDG_DIRS: Lazy<Xdg> = Lazy::new(|| Xdg::new().expect("No home directory"));
+#[cfg(windows)]
+pub static WINDOWS_DIRS: Lazy<Windows> = Lazy::new(|| Windows::new().expect("No home directory"));
 
 fn run() -> Result<()> {
     color_eyre::install()?;
     ctrlc::set_handler();
-
-    let base_dirs = directories::BaseDirs::new().ok_or_else(|| eyre!("No base directories"))?;
 
     let opt = CommandLineArgs::parse();
 
@@ -70,7 +74,7 @@ fn run() -> Result<()> {
     }
 
     if opt.edit_config() {
-        Config::edit(&base_dirs)?;
+        Config::edit()?;
         return Ok(());
     };
 
@@ -79,7 +83,7 @@ fn run() -> Result<()> {
         return Ok(());
     }
 
-    let config = Config::load(&base_dirs, opt)?;
+    let config = Config::load(opt)?;
     terminal::set_title(config.set_title());
     terminal::display_time(config.display_time());
     terminal::set_desktop_notifications(config.notify_each_step());
@@ -114,7 +118,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
     let sudo = config.sudo_command().map_or_else(sudo::Sudo::detect, sudo::Sudo::new);
     let run_type = executor::RunType::new(config.dry_run());
 
-    let ctx = execution_context::ExecutionContext::new(run_type, sudo, &git, &config, &base_dirs);
+    let ctx = execution_context::ExecutionContext::new(run_type, sudo, &git, &config);
 
     let mut runner = runner::Runner::new(&ctx);
 
@@ -253,7 +257,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
     #[cfg(target_os = "android")]
     runner.execute(Step::Pkg, "Termux Packages", || android::upgrade_packages(&ctx))?;
 
-    let emacs = emacs::Emacs::new(&base_dirs);
+    let emacs = emacs::Emacs::new();
     if config.use_predefined_git_repos() {
         if config.should_run(Step::Emacs) {
             if !emacs.is_doom() {
@@ -283,21 +287,21 @@ For more information about this issue see https://askubuntu.com/questions/110969
                 git_repos.insert_if_repo(HOME_DIR.join(".tmux"));
             }
             git_repos.insert_if_repo(HOME_DIR.join(".config/fish"));
-            git_repos.insert_if_repo(base_dirs.config_dir().join("openbox"));
-            git_repos.insert_if_repo(base_dirs.config_dir().join("bspwm"));
-            git_repos.insert_if_repo(base_dirs.config_dir().join("i3"));
-            git_repos.insert_if_repo(base_dirs.config_dir().join("sway"));
+            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("openbox"));
+            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("bspwm"));
+            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("i3"));
+            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("sway"));
         }
 
         #[cfg(windows)]
         git_repos.insert_if_repo(
-            base_dirs
-                .data_local_dir()
+            WINDOWS_DIRS
+                .cache_dir()
                 .join("Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"),
         );
 
         #[cfg(windows)]
-        windows::insert_startup_scripts(&ctx, &mut git_repos).ok();
+        windows::insert_startup_scripts(&mut git_repos).ok();
 
         if let Some(profile) = powershell.profile() {
             git_repos.insert_if_repo(profile);
@@ -358,7 +362,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
     runner.execute(Step::Atom, "apm", || generic::run_apm(run_type))?;
     runner.execute(Step::Fossil, "fossil", || generic::run_fossil(run_type))?;
     runner.execute(Step::Rustup, "rustup", || generic::run_rustup(&ctx))?;
-    runner.execute(Step::Juliaup, "juliaup", || generic::run_juliaup(&base_dirs, run_type))?;
+    runner.execute(Step::Juliaup, "juliaup", || generic::run_juliaup(run_type))?;
     runner.execute(Step::Dotnet, ".NET", || generic::run_dotnet_upgrade(&ctx))?;
     runner.execute(Step::Choosenim, "choosenim", || generic::run_choosenim(&ctx))?;
     runner.execute(Step::Cargo, "cargo", || generic::run_cargo_update(&ctx))?;
@@ -381,7 +385,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
     runner.execute(Step::Chezmoi, "chezmoi", || generic::run_chezmoi_update(run_type))?;
     runner.execute(Step::Jetpack, "jetpack", || generic::run_jetpack(run_type))?;
     runner.execute(Step::Vim, "vim", || vim::upgrade_vim(&ctx))?;
-    runner.execute(Step::Vim, "Neovim", || vim::upgrade_neovim(&base_dirs, &ctx))?;
+    runner.execute(Step::Vim, "Neovim", || vim::upgrade_neovim(&ctx))?;
     runner.execute(Step::Vim, "The Ultimate vimrc", || vim::upgrade_ultimate_vimrc(&ctx))?;
     runner.execute(Step::Vim, "voom", || vim::run_voom(run_type))?;
     runner.execute(Step::Kakoune, "Kakoune", || kakoune::upgrade_kak_plug(&ctx))?;
