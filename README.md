@@ -10,7 +10,8 @@
 
   <img alt="Demo" src="doc/screenshot.gif" width="550px">
 </div>
-## Maintainers wanted
+
+## Maintainers Wanted
 
 I currently have not enough time to maintain this project on the level required and which the project deserves. For this reason I'm asking the community to help supporting the project, to help and work on resolving issues and create new features. Thanks for all your help.
 
