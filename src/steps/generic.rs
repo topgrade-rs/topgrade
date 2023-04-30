@@ -17,6 +17,7 @@ use crate::execution_context::ExecutionContext;
 use crate::executor::{ExecutorOutput, RunType};
 use crate::terminal::{print_separator, shell};
 use crate::utils::{self, require, require_option, which, PathExt};
+use crate::Step;
 use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
     terminal::print_warning,
@@ -206,16 +207,11 @@ pub fn run_apm(run_type: RunType) -> Result<()> {
         .status_checked()
 }
 
-pub fn run_rustup(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
     let rustup = utils::require("rustup")?;
 
     print_separator("rustup");
-
-    if rustup.canonicalize()?.is_descendant_of(base_dirs.home_dir()) {
-        run_type.execute(&rustup).args(["self", "update"]).status_checked()?;
-    }
-
-    run_type.execute(&rustup).arg("update").status_checked()
+    ctx.run_type().execute(rustup).arg("update").status_checked()
 }
 
 pub fn run_juliaup(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
@@ -337,10 +333,33 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Conda");
 
-    ctx.run_type()
-        .execute(conda)
-        .args(["update", "--all", "-y"])
-        .status_checked()
+    let mut command = ctx.run_type().execute(conda);
+    command.args(["update", "--all"]);
+    if ctx.config().yes(Step::Conda) {
+        command.arg("--yes");
+    }
+    command.status_checked()
+}
+
+pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
+    let mamba = utils::require("mamba")?;
+
+    let output = Command::new("mamba")
+        .args(["config", "--show", "auto_activate_base"])
+        .output_checked_utf8()?;
+    debug!("Mamba output: {}", output.stdout);
+    if output.stdout.contains("False") {
+        return Err(SkipStep("auto_activate_base is set to False".to_string()).into());
+    }
+
+    print_separator("Mamba");
+
+    let mut command = ctx.run_type().execute(mamba);
+    command.args(["update", "--all"]);
+    if ctx.config().yes(Step::Mamba) {
+        command.arg("--yes");
+    }
+    command.status_checked()
 }
 
 pub fn run_pip3_update(run_type: RunType) -> Result<()> {
