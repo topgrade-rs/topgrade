@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use color_eyre::eyre::Result;
-use directories::BaseDirs;
 use tracing::debug;
 use walkdir::WalkDir;
 
@@ -13,31 +12,32 @@ use crate::executor::RunType;
 use crate::git::Repositories;
 use crate::terminal::print_separator;
 use crate::utils::{require, PathExt};
+use crate::HOME_DIR;
 
-pub fn run_zr(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_zr(run_type: RunType) -> Result<()> {
     let zsh = require("zsh")?;
 
     require("zr")?;
 
     print_separator("zr");
 
-    let cmd = format!("source {} && zr --update", zshrc(base_dirs).display());
+    let cmd = format!("source {} && zr --update", zshrc().display());
     run_type.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
 }
 
-fn zdotdir(base_dirs: &BaseDirs) -> PathBuf {
+fn zdotdir() -> PathBuf {
     env::var("ZDOTDIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| base_dirs.home_dir().to_path_buf())
+        .unwrap_or_else(|_| HOME_DIR.clone())
 }
 
-pub fn zshrc(base_dirs: &BaseDirs) -> PathBuf {
-    zdotdir(base_dirs).join(".zshrc")
+pub fn zshrc() -> PathBuf {
+    zdotdir().join(".zshrc")
 }
 
 pub fn run_antidote(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
-    let mut antidote = zdotdir(ctx.base_dirs()).join(".antidote").require()?;
+    let mut antidote = zdotdir().join(".antidote").require()?;
     antidote.push("antidote.zsh");
 
     print_separator("antidote");
@@ -58,12 +58,12 @@ pub fn run_antibody(run_type: RunType) -> Result<()> {
     run_type.execute(antibody).arg("update").status_checked()
 }
 
-pub fn run_antigen(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_antigen(run_type: RunType) -> Result<()> {
     let zsh = require("zsh")?;
-    let zshrc = zshrc(base_dirs).require()?;
+    let zshrc = zshrc().require()?;
     env::var("ADOTDIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| base_dirs.home_dir().join("antigen.zsh"))
+        .unwrap_or_else(|_| HOME_DIR.join("antigen.zsh"))
         .require()?;
 
     print_separator("antigen");
@@ -72,12 +72,12 @@ pub fn run_antigen(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     run_type.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
 }
 
-pub fn run_zgenom(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_zgenom(run_type: RunType) -> Result<()> {
     let zsh = require("zsh")?;
-    let zshrc = zshrc(base_dirs).require()?;
+    let zshrc = zshrc().require()?;
     env::var("ZGEN_SOURCE")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| base_dirs.home_dir().join(".zgenom"))
+        .unwrap_or_else(|_| HOME_DIR.join(".zgenom"))
         .require()?;
 
     print_separator("zgenom");
@@ -86,13 +86,13 @@ pub fn run_zgenom(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     run_type.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
 }
 
-pub fn run_zplug(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_zplug(run_type: RunType) -> Result<()> {
     let zsh = require("zsh")?;
-    zshrc(base_dirs).require()?;
+    zshrc().require()?;
 
     env::var("ZPLUG_HOME")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| base_dirs.home_dir().join(".zplug"))
+        .unwrap_or_else(|_| HOME_DIR.join(".zplug"))
         .require()?;
 
     print_separator("zplug");
@@ -103,13 +103,13 @@ pub fn run_zplug(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
         .status_checked()
 }
 
-pub fn run_zinit(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_zinit(run_type: RunType) -> Result<()> {
     let zsh = require("zsh")?;
-    let zshrc = zshrc(base_dirs).require()?;
+    let zshrc = zshrc().require()?;
 
     env::var("ZINIT_HOME")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| base_dirs.home_dir().join(".zinit"))
+        .unwrap_or_else(|_| HOME_DIR.join(".zinit"))
         .require()?;
 
     print_separator("zinit");
@@ -118,11 +118,11 @@ pub fn run_zinit(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     run_type.execute(zsh).args(["-i", "-c", cmd.as_str()]).status_checked()
 }
 
-pub fn run_zi(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_zi(run_type: RunType) -> Result<()> {
     let zsh = require("zsh")?;
-    let zshrc = zshrc(base_dirs).require()?;
+    let zshrc = zshrc().require()?;
 
-    base_dirs.home_dir().join(".zi").require()?;
+    HOME_DIR.join(".zi").require()?;
 
     print_separator("zi");
 
@@ -130,7 +130,7 @@ pub fn run_zi(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
     run_type.execute(zsh).args(["-i", "-c", &cmd]).status_checked()
 }
 
-pub fn run_zim(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_zim(run_type: RunType) -> Result<()> {
     let zsh = require("zsh")?;
     env::var("ZIM_HOME")
         .or_else(|_| {
@@ -141,7 +141,7 @@ pub fn run_zim(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
                 .map(|o| o.stdout)
         })
         .map(PathBuf::from)
-        .unwrap_or_else(|_| base_dirs.home_dir().join(".zim"))
+        .unwrap_or_else(|_| HOME_DIR.join(".zim"))
         .require()?;
 
     print_separator("zim");
@@ -154,7 +154,7 @@ pub fn run_zim(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
 
 pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
     require("zsh")?;
-    let oh_my_zsh = ctx.base_dirs().home_dir().join(".oh-my-zsh").require()?;
+    let oh_my_zsh = HOME_DIR.join(".oh-my-zsh").require()?;
 
     print_separator("oh-my-zsh");
 

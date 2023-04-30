@@ -1,6 +1,8 @@
 use crate::command::CommandExt;
 use crate::error::{SkipStep, TopgradeError};
+use crate::HOME_DIR;
 use color_eyre::eyre::Result;
+use etcetera::base_strategy::BaseStrategy;
 
 use crate::executor::{Executor, ExecutorOutput, RunType};
 use crate::terminal::print_separator;
@@ -8,7 +10,6 @@ use crate::{
     execution_context::ExecutionContext,
     utils::{require, PathExt},
 };
-use directories::BaseDirs;
 use std::path::PathBuf;
 use std::{
     io::{self, Write},
@@ -18,22 +19,19 @@ use tracing::debug;
 
 const UPGRADE_VIM: &str = include_str!("upgrade.vim");
 
-pub fn vimrc(base_dirs: &BaseDirs) -> Result<PathBuf> {
-    base_dirs
-        .home_dir()
+pub fn vimrc() -> Result<PathBuf> {
+    HOME_DIR
         .join(".vimrc")
         .require()
-        .or_else(|_| base_dirs.home_dir().join(".vim/vimrc").require())
+        .or_else(|_| HOME_DIR.join(".vim/vimrc").require())
 }
 
-fn nvimrc(base_dirs: &BaseDirs) -> Result<PathBuf> {
+fn nvimrc() -> Result<PathBuf> {
     #[cfg(unix)]
-        let base_dir =
-        // Bypass directories crate as nvim doesn't use the macOS-specific directories.
-        std::env::var_os("XDG_CONFIG_HOME").map_or_else(|| base_dirs.home_dir().join(".config"), PathBuf::from);
+    let base_dir = crate::XDG_DIRS.config_dir();
 
     #[cfg(windows)]
-    let base_dir = base_dirs.cache_dir();
+    let base_dir = crate::WINDOWS_DIRS.cache_dir();
 
     base_dir
         .join("nvim/init.vim")
@@ -74,7 +72,7 @@ fn upgrade(command: &mut Executor, ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn upgrade_ultimate_vimrc(ctx: &ExecutionContext) -> Result<()> {
-    let config_dir = ctx.base_dirs().home_dir().join(".vim_runtime").require()?;
+    let config_dir = HOME_DIR.join(".vim_runtime").require()?;
     let git = require("git")?;
     let python = require("python3")?;
     let update_plugins = config_dir.join("update_plugins.py").require()?;
@@ -105,7 +103,7 @@ pub fn upgrade_ultimate_vimrc(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-pub fn upgrade_vim(base_dirs: &BaseDirs, ctx: &ExecutionContext) -> Result<()> {
+pub fn upgrade_vim(ctx: &ExecutionContext) -> Result<()> {
     let vim = require("vim")?;
 
     let output = Command::new(&vim).arg("--version").output_checked_utf8()?;
@@ -113,7 +111,7 @@ pub fn upgrade_vim(base_dirs: &BaseDirs, ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep(String::from("vim binary might be actually nvim")).into());
     }
 
-    let vimrc = vimrc(base_dirs)?;
+    let vimrc = vimrc()?;
 
     print_separator("Vim");
     upgrade(
@@ -127,9 +125,9 @@ pub fn upgrade_vim(base_dirs: &BaseDirs, ctx: &ExecutionContext) -> Result<()> {
     )
 }
 
-pub fn upgrade_neovim(base_dirs: &BaseDirs, ctx: &ExecutionContext) -> Result<()> {
+pub fn upgrade_neovim(ctx: &ExecutionContext) -> Result<()> {
     let nvim = require("nvim")?;
-    let nvimrc = nvimrc(base_dirs)?;
+    let nvimrc = nvimrc()?;
 
     print_separator("Neovim");
     upgrade(
@@ -143,7 +141,7 @@ pub fn upgrade_neovim(base_dirs: &BaseDirs, ctx: &ExecutionContext) -> Result<()
     )
 }
 
-pub fn run_voom(_base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_voom(run_type: RunType) -> Result<()> {
     let voom = require("voom")?;
 
     print_separator("voom");

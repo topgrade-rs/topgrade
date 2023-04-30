@@ -8,7 +8,6 @@ use std::{fs, io::Write};
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use directories::BaseDirs;
 use tempfile::tempfile_in;
 use tracing::{debug, error};
 
@@ -18,6 +17,7 @@ use crate::executor::{ExecutorOutput, RunType};
 use crate::terminal::{print_separator, shell};
 use crate::utils::{self, require, require_option, which, PathExt};
 use crate::Step;
+use crate::HOME_DIR;
 use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
     terminal::print_warning,
@@ -26,7 +26,7 @@ use crate::{
 pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     let cargo_dir = env::var_os("CARGO_HOME")
         .map(PathBuf::from)
-        .unwrap_or_else(|| ctx.base_dirs().home_dir().join(".cargo"))
+        .unwrap_or_else(|| HOME_DIR.join(".cargo"))
         .require()?;
     utils::require("cargo").or_else(|_| {
         require_option(
@@ -84,9 +84,9 @@ pub fn run_flutter_upgrade(run_type: RunType) -> Result<()> {
     run_type.execute(flutter).arg("upgrade").status_checked()
 }
 
-pub fn run_gem(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_gem(run_type: RunType) -> Result<()> {
     let gem = utils::require("gem")?;
-    base_dirs.home_dir().join(".gem").require()?;
+    HOME_DIR.join(".gem").require()?;
 
     print_separator("Gems");
 
@@ -102,7 +102,7 @@ pub fn run_gem(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
 }
 
 pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
-    ctx.base_dirs().home_dir().join(".gem").require()?;
+    HOME_DIR.join(".gem").require()?;
     let gem = require("gem")?;
 
     print_separator("RubyGems");
@@ -214,12 +214,12 @@ pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(rustup).arg("update").status_checked()
 }
 
-pub fn run_juliaup(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_juliaup(run_type: RunType) -> Result<()> {
     let juliaup = utils::require("juliaup")?;
 
     print_separator("juliaup");
 
-    if juliaup.canonicalize()?.is_descendant_of(base_dirs.home_dir()) {
+    if juliaup.canonicalize()?.is_descendant_of(&HOME_DIR) {
         run_type.execute(&juliaup).args(["self", "update"]).status_checked()?;
     }
 
@@ -493,31 +493,31 @@ pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
     command.status_checked()
 }
 
-pub fn run_chezmoi_update(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_chezmoi_update(run_type: RunType) -> Result<()> {
     let chezmoi = utils::require("chezmoi")?;
-    base_dirs.home_dir().join(".local/share/chezmoi").require()?;
+    HOME_DIR.join(".local/share/chezmoi").require()?;
 
     print_separator("chezmoi");
 
     run_type.execute(chezmoi).arg("update").status_checked()
 }
 
-pub fn run_myrepos_update(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
+pub fn run_myrepos_update(run_type: RunType) -> Result<()> {
     let myrepos = utils::require("mr")?;
-    base_dirs.home_dir().join(".mrconfig").require()?;
+    HOME_DIR.join(".mrconfig").require()?;
 
     print_separator("myrepos");
 
     run_type
         .execute(&myrepos)
         .arg("--directory")
-        .arg(base_dirs.home_dir())
+        .arg(&*HOME_DIR)
         .arg("checkout")
         .status_checked()?;
     run_type
         .execute(&myrepos)
         .arg("--directory")
-        .arg(base_dirs.home_dir())
+        .arg(&*HOME_DIR)
         .arg("update")
         .status_checked()
 }
@@ -544,7 +544,7 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
         .map(|s| PathBuf::from(s.stdout.trim()))?
         .require()?;
 
-    if !composer_home.is_descendant_of(ctx.base_dirs().home_dir()) {
+    if !composer_home.is_descendant_of(&HOME_DIR) {
         return Err(SkipStep(format!(
             "Composer directory {} isn't a decandent of the user's home directory",
             composer_home.display()

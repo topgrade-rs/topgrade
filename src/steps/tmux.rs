@@ -5,11 +5,11 @@ use std::process::Command;
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use directories::BaseDirs;
 
 use crate::command::CommandExt;
 use crate::executor::RunType;
 use crate::terminal::print_separator;
+use crate::HOME_DIR;
 use crate::{
     execution_context::ExecutionContext,
     utils::{which, PathExt},
@@ -18,11 +18,8 @@ use crate::{
 #[cfg(unix)]
 use std::os::unix::process::CommandExt as _;
 
-pub fn run_tpm(base_dirs: &BaseDirs, run_type: RunType) -> Result<()> {
-    let tpm = base_dirs
-        .home_dir()
-        .join(".tmux/plugins/tpm/bin/update_plugins")
-        .require()?;
+pub fn run_tpm(run_type: RunType) -> Result<()> {
+    let tpm = HOME_DIR.join(".tmux/plugins/tpm/bin/update_plugins").require()?;
 
     print_separator("tmux plugins");
 

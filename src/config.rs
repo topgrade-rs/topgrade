@@ -10,7 +10,7 @@ use clap_complete::Shell;
 use color_eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use directories::BaseDirs;
+use etcetera::base_strategy::BaseStrategy;
 use regex::Regex;
 use serde::Deserialize;
 use strum::{EnumIter, EnumString, EnumVariantNames, IntoEnumIterator};
@@ -340,17 +340,17 @@ pub struct ConfigFile {
     no_self_update: Option<bool>,
 }
 
-fn config_directory(base_dirs: &BaseDirs) -> PathBuf {
-    #[cfg(not(target_os = "macos"))]
-    return base_dirs.config_dir().to_owned();
+fn config_directory() -> PathBuf {
+    #[cfg(unix)]
+    return crate::XDG_DIRS.config_dir();
 
-    #[cfg(target_os = "macos")]
-    return base_dirs.home_dir().join(".config");
+    #[cfg(windows)]
+    return crate::WINDOWS_DIRS.config_dir();
 }
 
 impl ConfigFile {
-    fn ensure(base_dirs: &BaseDirs) -> Result<PathBuf> {
-        let config_directory = config_directory(base_dirs);
+    fn ensure() -> Result<PathBuf> {
+        let config_directory = config_directory();
 
         let config_path = config_directory.join("topgrade.toml");
 
@@ -374,11 +374,11 @@ impl ConfigFile {
     /// Read the configuration file.
     ///
     /// If the configuration file does not exist the function returns the default ConfigFile.
-    fn read(base_dirs: &BaseDirs, config_path: Option<PathBuf>) -> Result<ConfigFile> {
+    fn read(config_path: Option<PathBuf>) -> Result<ConfigFile> {
         let config_path = if let Some(path) = config_path {
             path
         } else {
-            Self::ensure(base_dirs)?
+            Self::ensure()?
         };
 
         let contents = fs::read_to_string(&config_path).map_err(|e| {
@@ -412,8 +412,8 @@ impl ConfigFile {
         Ok(result)
     }
 
-    fn edit(base_dirs: &BaseDirs) -> Result<()> {
-        let config_path = Self::ensure(base_dirs)?;
+    fn edit() -> Result<()> {
+        let config_path = Self::ensure()?;
         let editor = editor();
         debug!("Editor: {:?}", editor);
 
@@ -567,10 +567,10 @@ impl Config {
     /// Load the configuration.
     ///
     /// The function parses the command line arguments and reading the configuration file.
-    pub fn load(base_dirs: &BaseDirs, opt: CommandLineArgs) -> Result<Self> {
-        let config_directory = config_directory(base_dirs);
+    pub fn load(opt: CommandLineArgs) -> Result<Self> {
+        let config_directory = config_directory();
         let config_file = if config_directory.is_dir() {
-            ConfigFile::read(base_dirs, opt.config.clone()).unwrap_or_else(|e| {
+            ConfigFile::read(opt.config.clone()).unwrap_or_else(|e| {
                 // Inform the user about errors when loading the configuration,
                 // but fallback to the default config to at least attempt to do something
                 tracing::error!("failed to load configuration: {}", e);
@@ -597,8 +597,8 @@ impl Config {
     }
 
     /// Launch an editor to edit the configuration
-    pub fn edit(base_dirs: &BaseDirs) -> Result<()> {
-        ConfigFile::edit(base_dirs)
+    pub fn edit() -> Result<()> {
+        ConfigFile::edit()
     }
 
     /// The list of commands to run before performing any step.

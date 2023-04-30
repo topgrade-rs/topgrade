@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use crate::utils::require_option;
+use crate::HOME_DIR;
 use color_eyre::eyre::Result;
 #[cfg(target_os = "linux")]
 use nix::unistd::Uid;
@@ -265,7 +266,7 @@ pub fn run_yarn_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn deno_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let deno = require("deno")?;
-    let deno_dir = ctx.base_dirs().home_dir().join(".deno");
+    let deno_dir = HOME_DIR.join(".deno");
 
     if !deno.canonicalize()?.is_descendant_of(&deno_dir) {
         let skip_reason = SkipStep("Deno installed outside of .deno directory".to_string());

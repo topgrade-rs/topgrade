@@ -5,9 +5,8 @@ use std::process::Command;
 use std::{env, path::Path};
 
 use crate::command::CommandExt;
-use crate::Step;
+use crate::{Step, HOME_DIR};
 use color_eyre::eyre::Result;
-use directories::BaseDirs;
 use home;
 use ini::Ini;
 use tracing::debug;
@@ -127,7 +126,7 @@ pub fn run_fisher(run_type: RunType) -> Result<()> {
 }
 
 pub fn run_bashit(ctx: &ExecutionContext) -> Result<()> {
-    ctx.base_dirs().home_dir().join(".bash_it").require()?;
+    HOME_DIR.join(".bash_it").require()?;
 
     print_separator("Bash-it");
 
@@ -139,10 +138,7 @@ pub fn run_bashit(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_oh_my_fish(ctx: &ExecutionContext) -> Result<()> {
     let fish = require("fish")?;
-    ctx.base_dirs()
-        .home_dir()
-        .join(".local/share/omf/pkg/omf/functions/omf.fish")
-        .require()?;
+    HOME_DIR.join(".local/share/omf/pkg/omf/functions/omf.fish").require()?;
 
     print_separator("oh-my-fish");
 
@@ -171,8 +167,7 @@ pub fn run_pkgin(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_fish_plug(ctx: &ExecutionContext) -> Result<()> {
     let fish = require("fish")?;
-    ctx.base_dirs()
-        .home_dir()
+    HOME_DIR
         .join(".local/share/fish/plug/kidonng/fish-plug/functions/plug.fish")
         .require()?;
 
@@ -191,7 +186,7 @@ pub fn run_fish_plug(ctx: &ExecutionContext) -> Result<()> {
 /// See: <https://github.com/danhper/fundle>
 pub fn run_fundle(ctx: &ExecutionContext) -> Result<()> {
     let fish = require("fish")?;
-    ctx.base_dirs().home_dir().join(".config/fish/fundle").require()?;
+    HOME_DIR.join(".config/fish/fundle").require()?;
 
     print_separator("fundle");
 
@@ -335,6 +330,7 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     let nix = require("nix")?;
     let nix_channel = require("nix-channel")?;
     let nix_env = require("nix-env")?;
+    // TODO: Is None possible here?
     let profile_path = match home::home_dir() {
         Some(home) => Path::new(&home).join(".nix-profile"),
         None => Path::new("/nix/var/nix/profiles/per-user/default").into(),
@@ -435,12 +431,12 @@ pub fn run_pearl(run_type: RunType) -> Result<()> {
     run_type.execute(pearl).arg("update").status_checked()
 }
 
-pub fn run_sdkman(base_dirs: &BaseDirs, cleanup: bool, run_type: RunType) -> Result<()> {
+pub fn run_sdkman(cleanup: bool, run_type: RunType) -> Result<()> {
     let bash = require("bash")?;
 
     let sdkman_init_path = env::var("SDKMAN_DIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| base_dirs.home_dir().join(".sdkman"))
+        .unwrap_or_else(|_| HOME_DIR.join(".sdkman"))
         .join("bin")
         .join("sdkman-init.sh")
         .require()
@@ -450,7 +446,7 @@ pub fn run_sdkman(base_dirs: &BaseDirs, cleanup: bool, run_type: RunType) -> Res
 
     let sdkman_config_path = env::var("SDKMAN_DIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| base_dirs.home_dir().join(".sdkman"))
+        .unwrap_or_else(|_| HOME_DIR.join(".sdkman"))
         .join("etc")
         .join("config")
         .require()?;
