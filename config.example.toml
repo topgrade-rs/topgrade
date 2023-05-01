@@ -101,6 +101,7 @@
 #emerge_sync_flags = "-q"
 #emerge_update_flags = "-uDNa --with-bdeps=y world"
 #redhat_distro_sync = false
+#suse_dup = false
 #rpm_ostree = false
 #nix_arguments = "--flake"
 
