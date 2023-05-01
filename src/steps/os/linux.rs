@@ -13,7 +13,7 @@ use crate::steps::os::archlinux;
 use crate::sudo::Sudo;
 use crate::terminal::{print_separator, print_warning};
 use crate::utils::{require, require_option, which, PathExt};
-use crate::Step;
+use crate::{Step, HOME_DIR};
 
 static OS_RELEASE_PATH: &str = "/etc/os-release";
 
@@ -519,6 +519,25 @@ pub fn run_pacstall(ctx: &ExecutionContext) -> Result<()> {
 
     update_cmd.arg("-U").status_checked()?;
     upgrade_cmd.arg("-Up").status_checked()
+}
+
+pub fn run_packer_nu(ctx: &ExecutionContext) -> Result<()> {
+    let nu = require("nu")?;
+    let packer_home = HOME_DIR.join(".local/share/nushell/packer");
+
+    packer_home.clone().require()?;
+
+    print_separator("packer.nu");
+
+    ctx.run_type()
+        .execute(nu)
+        .env("PWD", "/")
+        .env("NU_PACKER_HOME", packer_home)
+        .args([
+            "-c",
+            "use ~/.local/share/nushell/packer/start/packer.nu/api_layer/packer.nu; packer update",
+        ])
+        .status_checked()
 }
 
 fn upgrade_clearlinux(ctx: &ExecutionContext) -> Result<()> {
