@@ -353,8 +353,15 @@ impl ConfigFile {
         let config_directory = config_directory();
 
         let config_path = config_directory.join("topgrade.toml");
+        let alt_config_path = config_directory.join("topgrade/topgrade.toml");
 
-        if !config_path.exists() {
+        if config_path.exists() {
+            debug!("Configuration at {}", config_path.display());
+            Ok(config_path)
+        } else if alt_config_path.exists() {
+            debug!("Configuration at {}", alt_config_path.display());
+            Ok(alt_config_path)
+        } else {
             debug!("No configuration exists");
             write(&config_path, EXAMPLE_CONFIG).map_err(|e| {
                 debug!(
@@ -364,11 +371,8 @@ impl ConfigFile {
                 );
                 e
             })?;
-        } else {
-            debug!("Configuration at {}", config_path.display());
+            Ok(config_path)
         }
-
-        Ok(config_path)
     }
 
     /// Read the configuration file.
