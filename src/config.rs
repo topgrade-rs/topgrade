@@ -150,6 +150,7 @@ pub enum Step {
     Sparkle,
     Spicetify,
     Stack,
+    Stew,
     System,
     Tldr,
     Tlmgr,
