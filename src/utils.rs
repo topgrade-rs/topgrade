@@ -180,7 +180,10 @@ pub mod merge_strategies {
         }
     }
 
-    pub fn inner_merge_opt<T>(left: &mut Option<T>, right: Option<T>) where T: Merge {
+    pub fn inner_merge_opt<T>(left: &mut Option<T>, right: Option<T>)
+    where
+        T: Merge,
+    {
         if let Some(ref mut left_inner) = left {
             if let Some(right_inner) = right {
                 left_inner.merge(right_inner);
