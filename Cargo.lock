@@ -1089,6 +1089,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "merge"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10bbef93abb1da61525bbc45eeaff6473a41907d19f8f9aa5168d214e10693e9"
+dependencies = [
+ "merge_derive",
+ "num-traits",
+]
+
+[[package]]
+name = "merge_derive"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "209d075476da2e63b4b29e72a2ef627b840589588e71400a25e3565c4f849d07"
+dependencies = [
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2137,6 +2159,7 @@ dependencies = [
  "home",
  "lazy_static",
  "libc",
+ "merge",
  "nix 0.24.3",
  "notify-rust",
  "once_cell",
@@ -2146,6 +2169,7 @@ dependencies = [
  "self_update",
  "semver",
  "serde",
+ "serde_json",
  "shell-words",
  "shellexpand",
  "strum 0.24.1",

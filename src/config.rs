@@ -11,6 +11,7 @@ use color_eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use etcetera::base_strategy::BaseStrategy;
+use merge::Merge;
 use regex::Regex;
 use serde::Deserialize;
 use strum::{EnumIter, EnumString, EnumVariantNames, IntoEnumIterator};
@@ -165,24 +166,31 @@ pub enum Step {
     Yarn,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Git {
     max_concurrency: Option<usize>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     repos: Option<Vec<String>>,
+
     pull_predefined: Option<bool>,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Vagrant {
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     directories: Option<Vec<String>>,
+
     power_on: Option<bool>,
     always_suspend: Option<bool>,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Windows {
     accept_all_updates: Option<bool>,
@@ -193,50 +201,52 @@ pub struct Windows {
     wsl_update_use_web_download: Option<bool>,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Python {
     enable_pip_review: Option<bool>,
     enable_pipupgrade: Option<bool>,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct Distrobox {
     use_root: Option<bool>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     containers: Option<Vec<String>>,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct Yarn {
     use_sudo: Option<bool>,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct NPM {
     use_sudo: Option<bool>,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct Firmware {
     upgrade: Option<bool>,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct Flatpak {
     use_sudo: Option<bool>,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Brew {
     greedy_cask: Option<bool>,
@@ -257,86 +267,179 @@ pub enum ArchPackageManager {
     Yay,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Linux {
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     yay_arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     aura_aur_arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     aura_pacman_arguments: Option<String>,
     arch_package_manager: Option<ArchPackageManager>,
     show_arch_news: Option<bool>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     garuda_update_arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     trizen_arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     pikaur_arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     pamac_arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     dnf_arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     nix_arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     apt_arguments: Option<String>,
+
     enable_tlmgr: Option<bool>,
     redhat_distro_sync: Option<bool>,
     rpm_ostree: Option<bool>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     emerge_sync_flags: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     emerge_update_flags: Option<String>,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Composer {
     self_update: Option<bool>,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Vim {
     force_plug_update: Option<bool>,
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 /// Configuration file
 pub struct ConfigFile {
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    include: Option<Vec<String>>,
+
     sudo_command: Option<SudoKind>,
+
     pre_sudo: Option<bool>,
-    pre_commands: Option<Commands>,
+
+    pre_commands: Option<Commands>, // Probably Commands should be handled in another way
+
     post_commands: Option<Commands>,
+
     commands: Option<Commands>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     git_repos: Option<Vec<String>>,
+
     predefined_git_repos: Option<bool>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     disable: Option<Vec<Step>>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     ignore_failures: Option<Vec<Step>>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     remote_topgrades: Option<Vec<String>>,
+
     remote_topgrade_path: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     ssh_arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     git_arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     tmux_arguments: Option<String>,
+
     set_title: Option<bool>,
+
     display_time: Option<bool>,
+
     display_preamble: Option<bool>,
+
     assume_yes: Option<bool>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     yay_arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     aura_aur_arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     aura_pacman_arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     python: Option<Python>,
+
     no_retry: Option<bool>,
+
     run_in_tmux: Option<bool>,
+
     cleanup: Option<bool>,
+
     notify_each_step: Option<bool>,
+
     accept_all_windows_updates: Option<bool>,
+
     skip_notify: Option<bool>,
+
     bashit_branch: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     only: Option<Vec<Step>>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     composer: Option<Composer>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     brew: Option<Brew>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     linux: Option<Linux>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     git: Option<Git>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     windows: Option<Windows>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     npm: Option<NPM>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     yarn: Option<Yarn>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     vim: Option<Vim>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     firmware: Option<Firmware>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     vagrant: Option<Vagrant>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     flatpak: Option<Flatpak>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     distrobox: Option<Distrobox>,
+
     no_self_update: Option<bool>,
 }
 
@@ -346,6 +449,12 @@ fn config_directory() -> PathBuf {
 
     #[cfg(windows)]
     return crate::WINDOWS_DIRS.config_dir();
+}
+
+/// The only purpose of this struct is to deserialize only the `include` field of the config file.
+#[derive(Deserialize, Default, Debug)]
+struct ConfigFileIncludeOnly {
+    include: Option<Vec<String>>,
 }
 
 impl ConfigFile {
@@ -390,10 +499,35 @@ impl ConfigFile {
             e
         })?;
 
-        let mut result: Self = toml::from_str(&contents).map_err(|e| {
-            tracing::error!("Failed to deserialize {}", config_path.display());
+        let config_file_include_only: ConfigFileIncludeOnly = toml::from_str(&contents).map_err(|e| {
+            tracing::error!("Failed to deserialize the include section of {}", config_path.display());
             e
         })?;
+
+        let mut result: Self = Default::default();
+
+        if let Some(includes) = &config_file_include_only.include {
+            for include in includes.iter().rev() {
+                let include_path = shellexpand::tilde::<&str>(&include.as_ref()).into_owned();
+                let include_path = PathBuf::from(include_path);
+                let include_contents = fs::read_to_string(&include_path).map_err(|e| {
+                    tracing::error!("Unable to read {}", include_path.display());
+                    e
+                })?;
+
+                result.merge(toml::from_str::<Self>(&include_contents).map_err(|e| {
+                    tracing::error!("Failed to deserialize {}", include_path.display());
+                    e
+                })?);
+
+                debug!("Configuration include found: {}", include_path.display());
+            }
+        }
+
+        result.merge(toml::from_str::<Self>(&contents).map_err(|e| {
+            tracing::error!("Failed to deserialize {}", config_path.display());
+            e
+        })?);
 
         if let Some(ref mut paths) = &mut result.git_repos {
             for path in paths.iter_mut() {
@@ -581,7 +715,7 @@ impl Config {
                 ConfigFile::default()
             })
         } else {
-            tracing::debug!("Configuration directory {} does not exist", config_directory.display());
+            debug!("Configuration directory {} does not exist", config_directory.display());
             ConfigFile::default()
         };
 

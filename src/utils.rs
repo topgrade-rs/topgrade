@@ -152,3 +152,41 @@ pub fn hostname() -> Result<String> {
         .map_err(|err| SkipStep(format!("Failed to get hostname: {err}")).into())
         .map(|output| output.stdout.trim().to_owned())
 }
+
+pub mod merge_strategies {
+    use merge::Merge;
+
+    /// Prepends right to left (both Option<Vec<T>>)
+    pub fn vec_prepend_opt<T>(left: &mut Option<Vec<T>>, right: Option<Vec<T>>) {
+        if let Some(left_vec) = left {
+            if let Some(mut right_vec) = right {
+                right_vec.append(left_vec);
+                let _ = std::mem::replace(left, Some(right_vec));
+            }
+        } else {
+            *left = right;
+        }
+    }
+
+    /// Appends an Option<String> to another Option<String>
+    pub fn string_append_opt(left: &mut Option<String>, right: Option<String>) {
+        if let Some(left_str) = left {
+            if let Some(right_str) = right {
+                left_str.push(' ');
+                left_str.push_str(&right_str);
+            }
+        } else {
+            *left = right;
+        }
+    }
+
+    pub fn inner_merge_opt<T>(left: &mut Option<T>, right: Option<T>) where T: Merge {
+        if let Some(ref mut left_inner) = left {
+            if let Some(right_inner) = right {
+                left_inner.merge(right_inner);
+            }
+        } else {
+            *left = right;
+        }
+    }
+}
