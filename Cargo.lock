@@ -2169,7 +2169,6 @@ dependencies = [
  "self_update",
  "semver",
  "serde",
- "serde_json",
  "shell-words",
  "shellexpand",
  "strum 0.24.1",
