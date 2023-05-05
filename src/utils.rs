@@ -1,11 +1,12 @@
-use crate::error::SkipStep;
-use color_eyre::eyre::Result;
-
 use std::env;
 use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
+
+use color_eyre::eyre::Result;
 use tracing::{debug, error};
+
+use crate::error::SkipStep;
 
 pub trait PathExt
 where
@@ -155,6 +156,7 @@ pub fn hostname() -> Result<String> {
 
 pub mod merge_strategies {
     use merge::Merge;
+
     use crate::config::Commands;
 
     /// Prepends right to left (both Option<Vec<T>>)

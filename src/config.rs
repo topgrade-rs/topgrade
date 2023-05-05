@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+
 use std::collections::BTreeMap;
 use std::fs::write;
 use std::path::PathBuf;
@@ -515,24 +516,32 @@ impl ConfigFile {
             for include in includes.iter().rev() {
                 let include_path = shellexpand::tilde::<&str>(&include.as_ref()).into_owned();
                 let include_path = PathBuf::from(include_path);
-                let include_contents = fs::read_to_string(&include_path).map_err(|e| {
-                    tracing::error!("Unable to read {}", include_path.display());
-                    e
-                })?;
+                let include_contents = match fs::read_to_string(&include_path) {
+                    Ok(contents) => contents,
+                    Err(e) => {
+                        tracing::error!("Unable to read {}: {}", include_path.display(), e);
+                        continue;
+                    }
+                };
+                let include_parsed = match toml::from_str::<Self>(&include_contents) {
+                    Ok(contents) => contents,
+                    Err(e) => {
+                        tracing::error!("Failed to deserialize {}: {}", include_path.display(), e);
+                        continue;
+                    }
+                };
 
-                result.merge(toml::from_str::<Self>(&include_contents).map_err(|e| {
-                    tracing::error!("Failed to deserialize {}", include_path.display());
-                    e
-                })?);
+                result.merge(include_parsed);
 
                 debug!("Configuration include found: {}", include_path.display());
             }
         }
 
-        result.merge(toml::from_str::<Self>(&contents).map_err(|e| {
+        if let Ok(contents) = toml::from_str::<Self>(&contents) {
+            result.merge(contents);
+        } else {
             tracing::error!("Failed to deserialize {}", config_path.display());
-            e
-        })?);
+        }
 
         if let Some(ref mut paths) = &mut result.git_repos {
             for path in paths.iter_mut() {
