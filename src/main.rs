@@ -178,6 +178,11 @@ For more information about this issue see https://askubuntu.com/questions/110969
     }
 
     #[cfg(target_os = "linux")]
+    // NOTE: Due to breaking `nu` updates, `packer.nu` needs to be updated before `nu` get updated
+    // by other package managers.
+    runner.execute(Step::Shell, "packer.nu", || linux::run_packer_nu(&ctx))?;
+
+    #[cfg(target_os = "linux")]
     let distribution = linux::Distribution::detect();
 
     #[cfg(target_os = r#"linux"#)]
@@ -421,7 +426,6 @@ For more information about this issue see https://askubuntu.com/questions/110969
         runner.execute(Step::DebGet, "deb-get", || linux::run_deb_get(&ctx))?;
         runner.execute(Step::Toolbx, "toolbx", || toolbx::run_toolbx(&ctx))?;
         runner.execute(Step::Flatpak, "Flatpak", || linux::flatpak_update(&ctx))?;
-        runner.execute(Step::Shell, "packer.nu", || linux::run_packer_nu(&ctx))?;
         runner.execute(Step::Snap, "snap", || linux::run_snap(ctx.sudo().as_ref(), run_type))?;
         runner.execute(Step::Pacstall, "pacstall", || linux::run_pacstall(&ctx))?;
         runner.execute(Step::Pacdef, "pacdef", || linux::run_pacdef(&ctx))?;
