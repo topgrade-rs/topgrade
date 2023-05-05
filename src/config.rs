@@ -151,6 +151,7 @@ pub enum Step {
     Sparkle,
     Spicetify,
     Stack,
+    Stew,
     System,
     Tldr,
     Tlmgr,
@@ -304,6 +305,7 @@ pub struct Linux {
 
     enable_tlmgr: Option<bool>,
     redhat_distro_sync: Option<bool>,
+    suse_dup: Option<bool>,
     rpm_ostree: Option<bool>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
@@ -1129,6 +1131,15 @@ impl Config {
             .linux
             .as_ref()
             .and_then(|linux| linux.redhat_distro_sync)
+            .unwrap_or(false)
+    }
+
+    /// Use zypper dist-upgrade (same as distro-sync on RH) instead of update (default: false on SLE/Leap, ignored on Tumbleweed (dup is always ran))
+    pub fn suse_dup(&self) -> bool {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|linux| linux.suse_dup)
             .unwrap_or(false)
     }
 

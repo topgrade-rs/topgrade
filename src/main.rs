@@ -178,6 +178,11 @@ For more information about this issue see https://askubuntu.com/questions/110969
     }
 
     #[cfg(target_os = "linux")]
+    // NOTE: Due to breaking `nu` updates, `packer.nu` needs to be updated before `nu` get updated
+    // by other package managers.
+    runner.execute(Step::Shell, "packer.nu", || linux::run_packer_nu(&ctx))?;
+
+    #[cfg(target_os = "linux")]
     let distribution = linux::Distribution::detect();
 
     #[cfg(target_os = r#"linux"#)]
@@ -403,6 +408,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
     runner.execute(Step::Julia, "julia", || generic::update_julia_packages(&ctx))?;
     runner.execute(Step::Haxelib, "haxelib", || generic::run_haxelib_update(&ctx))?;
     runner.execute(Step::Sheldon, "sheldon", || generic::run_sheldon(&ctx))?;
+    runner.execute(Step::Stew, "stew", || generic::run_stew(run_type))?;
     runner.execute(Step::Rtcl, "rtcl", || generic::run_rtcl(&ctx))?;
     runner.execute(Step::Bin, "bin", || generic::bin_update(&ctx))?;
     runner.execute(Step::Gcloud, "gcloud", || {

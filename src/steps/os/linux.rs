@@ -13,7 +13,7 @@ use crate::steps::os::archlinux;
 use crate::sudo::Sudo;
 use crate::terminal::{print_separator, print_warning};
 use crate::utils::{require, require_option, which, PathExt};
-use crate::Step;
+use crate::{Step, HOME_DIR};
 
 static OS_RELEASE_PATH: &str = "/etc/os-release";
 
@@ -30,6 +30,7 @@ pub enum Distribution {
     Debian,
     Gentoo,
     OpenMandriva,
+    OpenSuseTumbleweed,
     PCLinuxOS,
     Suse,
     SuseMicro,
@@ -81,7 +82,12 @@ impl Distribution {
                     } else if id_like.contains(&"centos") {
                         return Ok(Distribution::CentOS);
                     } else if id_like.contains(&"suse") {
-                        return Ok(Distribution::Suse);
+                        let id_variant = id.unwrap_or_default();
+                        if id_variant.contains("tumbleweed") {
+                            return Ok(Distribution::OpenSuseTumbleweed);
+                        } else {
+                            return Ok(Distribution::Suse);
+                        }
                     } else if id_like.contains(&"arch") || id_like.contains(&"archlinux") {
                         return Ok(Distribution::Arch);
                     } else if id_like.contains(&"alpine") {
@@ -122,6 +128,7 @@ impl Distribution {
             Distribution::Gentoo => upgrade_gentoo(ctx),
             Distribution::Suse => upgrade_suse(ctx),
             Distribution::SuseMicro => upgrade_suse_micro(ctx),
+            Distribution::OpenSuseTumbleweed => upgrade_opensuse_tumbleweed(ctx),
             Distribution::Void => upgrade_void(ctx),
             Distribution::Solus => upgrade_solus(ctx),
             Distribution::Exherbo => upgrade_exherbo(ctx),
@@ -243,7 +250,12 @@ fn upgrade_suse(ctx: &ExecutionContext) -> Result<()> {
 
         ctx.run_type()
             .execute(sudo)
-            .args(["zypper", "dist-upgrade"])
+            .arg("zypper")
+            .arg(if ctx.config().suse_dup() {
+                "dist-upgrade"
+            } else {
+                "update"
+            })
             .status_checked()?;
     } else {
         print_warning("No sudo detected. Skipping system upgrade");
@@ -251,6 +263,26 @@ fn upgrade_suse(ctx: &ExecutionContext) -> Result<()> {
 
     Ok(())
 }
+
+fn upgrade_opensuse_tumbleweed(ctx: &ExecutionContext) -> Result<()> {
+    if let Some(sudo) = ctx.sudo() {
+        ctx.run_type()
+            .execute(sudo)
+            .args(["zypper", "refresh"])
+            .status_checked()?;
+
+        ctx.run_type()
+            .execute(sudo)
+            .arg("zypper")
+            .arg("dist-upgrade")
+            .status_checked()?;
+    } else {
+        print_warning("No sudo detected. Skipping system upgrade");
+    }
+
+    Ok(())
+}
+
 fn upgrade_suse_micro(ctx: &ExecutionContext) -> Result<()> {
     if let Some(sudo) = ctx.sudo() {
         ctx.run_type()
@@ -519,6 +551,25 @@ pub fn run_pacstall(ctx: &ExecutionContext) -> Result<()> {
 
     update_cmd.arg("-U").status_checked()?;
     upgrade_cmd.arg("-Up").status_checked()
+}
+
+pub fn run_packer_nu(ctx: &ExecutionContext) -> Result<()> {
+    let nu = require("nu")?;
+    let packer_home = HOME_DIR.join(".local/share/nushell/packer");
+
+    packer_home.clone().require()?;
+
+    print_separator("packer.nu");
+
+    ctx.run_type()
+        .execute(nu)
+        .env("PWD", "/")
+        .env("NU_PACKER_HOME", packer_home)
+        .args([
+            "-c",
+            "use ~/.local/share/nushell/packer/start/packer.nu/api_layer/packer.nu; packer update",
+        ])
+        .status_checked()
 }
 
 fn upgrade_clearlinux(ctx: &ExecutionContext) -> Result<()> {
