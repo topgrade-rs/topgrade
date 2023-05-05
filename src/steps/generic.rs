@@ -726,3 +726,10 @@ pub fn run_helm_repo_update(run_type: RunType) -> Result<()> {
         Err(eyre!(StepFailed))
     }
 }
+
+pub fn run_stew(run_type: RunType) -> Result<()> {
+    let stew = require("stew")?;
+
+    print_separator("stew");
+    run_type.execute(stew).args(["upgrade", "--all"]).status_checked()
+}
