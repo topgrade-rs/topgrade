@@ -66,7 +66,7 @@ macro_rules! get_deprecated {
     };
 }
 
-type Commands = BTreeMap<String, String>;
+pub type Commands = BTreeMap<String, String>;
 
 #[derive(ArgEnum, EnumString, EnumVariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
 #[clap(rename_all = "snake_case")]
@@ -336,10 +336,13 @@ pub struct ConfigFile {
 
     pre_sudo: Option<bool>,
 
-    pre_commands: Option<Commands>, // Probably Commands should be handled in another way
+    #[merge(strategy = crate::utils::merge_strategies::commands_merge_opt)]
+    pre_commands: Option<Commands>,
 
+    #[merge(strategy = crate::utils::merge_strategies::commands_merge_opt)]
     post_commands: Option<Commands>,
 
+    #[merge(strategy = crate::utils::merge_strategies::commands_merge_opt)]
     commands: Option<Commands>,
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]

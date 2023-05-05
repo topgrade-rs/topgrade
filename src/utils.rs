@@ -155,6 +155,7 @@ pub fn hostname() -> Result<String> {
 
 pub mod merge_strategies {
     use merge::Merge;
+    use crate::config::Commands;
 
     /// Prepends right to left (both Option<Vec<T>>)
     pub fn vec_prepend_opt<T>(left: &mut Option<Vec<T>>, right: Option<Vec<T>>) {
@@ -187,6 +188,16 @@ pub mod merge_strategies {
         if let Some(ref mut left_inner) = left {
             if let Some(right_inner) = right {
                 left_inner.merge(right_inner);
+            }
+        } else {
+            *left = right;
+        }
+    }
+
+    pub fn commands_merge_opt(left: &mut Option<Commands>, right: Option<Commands>) {
+        if let Some(ref mut left_inner) = left {
+            if let Some(right_inner) = right {
+                left_inner.extend(right_inner);
             }
         } else {
             *left = right;
