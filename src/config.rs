@@ -119,6 +119,7 @@ pub enum Step {
     Macports,
     Mamba,
     Mas,
+    Maza,
     Micro,
     Myrepos,
     Nix,

@@ -356,6 +356,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
         })?;
         runner.execute(Step::Sdkman, "SDKMAN!", || unix::run_sdkman(config.cleanup(), run_type))?;
         runner.execute(Step::Rcm, "rcm", || unix::run_rcm(&ctx))?;
+        runner.execute(Step::Maza, "maza", || unix::run_maza(&ctx))?;
     }
 
     #[cfg(not(any(
