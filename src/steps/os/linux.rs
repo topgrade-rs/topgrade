@@ -507,6 +507,14 @@ pub fn update_am(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+pub fn run_appman(ctx: &ExecutionContext) -> Result<()> {
+    let appman = require("appman")?;
+
+    print_separator("appman");
+
+    ctx.run_type().execute(appman).arg("-u").status_checked()
+}
+
 pub fn run_pacdef(ctx: &ExecutionContext) -> Result<()> {
     let pacdef = require("pacdef")?;
 
