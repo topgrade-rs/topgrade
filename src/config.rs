@@ -75,6 +75,7 @@ pub type Commands = BTreeMap<String, String>;
 #[strum(serialize_all = "snake_case")]
 pub enum Step {
     AM,
+    AppMan,
     Asdf,
     Atom,
     Bin,

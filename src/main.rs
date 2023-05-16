@@ -424,6 +424,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
     #[cfg(target_os = "linux")]
     {
         runner.execute(Step::AM, "am", || linux::update_am(&ctx))?;
+        runner.execute(Step::AppMan, "appman", || linux::run_appman(&ctx))?;
         runner.execute(Step::DebGet, "deb-get", || linux::run_deb_get(&ctx))?;
         runner.execute(Step::Toolbx, "toolbx", || toolbx::run_toolbx(&ctx))?;
         runner.execute(Step::Flatpak, "Flatpak", || linux::flatpak_update(&ctx))?;
