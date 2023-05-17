@@ -536,6 +536,13 @@ pub fn run_rcm(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(rcup).arg("-v").status_checked()
 }
 
+pub fn run_maza(ctx: &ExecutionContext) -> Result<()> {
+    let maza = require("maza")?;
+
+    print_separator("maza");
+    ctx.run_type().execute(maza).arg("update").status_checked()
+}
+
 pub fn reboot() -> Result<()> {
     print!("Rebooting...");
     Command::new("sudo").arg("reboot").status_checked()
