@@ -342,6 +342,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
         runner.execute(Step::Shell, "zi", || zsh::run_zi(run_type))?;
         runner.execute(Step::Shell, "zim", || zsh::run_zim(run_type))?;
         runner.execute(Step::Shell, "oh-my-zsh", || zsh::run_oh_my_zsh(&ctx))?;
+        runner.execute(Step::Shell, "oh-my-bash", || unix::run_oh_my_bash(&ctx))?;
         runner.execute(Step::Shell, "fisher", || unix::run_fisher(run_type))?;
         runner.execute(Step::Shell, "bash-it", || unix::run_bashit(&ctx))?;
         runner.execute(Step::Shell, "oh-my-fish", || unix::run_oh_my_fish(&ctx))?;
