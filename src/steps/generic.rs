@@ -414,6 +414,25 @@ pub fn run_pip_review_update(ctx: &ExecutionContext) -> Result<()> {
 
     Ok(())
 }
+pub fn run_pip_review_local_update(ctx: &ExecutionContext) -> Result<()> {
+    let pip_review = require("pip-review")?;
+
+    print_separator("pip-review (local)");
+
+    if !ctx.config().enable_pip_review_local() {
+        print_warning(
+            "Pip-review (local) is disabled by default. Enable it by setting enable_pip_review_local=true in the configuration.",
+        );
+        return Err(SkipStep(String::from("Pip-review (local) is disabled by default")).into());
+    }
+    ctx.run_type()
+        .execute(pip_review)
+        .arg("--local")
+        .arg("--auto")
+        .status_checked_with_codes(&[1])?;
+
+    Ok(())
+}
 pub fn run_pipupgrade_update(ctx: &ExecutionContext) -> Result<()> {
     let pipupgrade = require("pipupgrade")?;
 
