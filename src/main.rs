@@ -384,6 +384,9 @@ For more information about this issue see https://askubuntu.com/questions/110969
     runner.execute(Step::Mamba, "mamba", || generic::run_mamba_update(&ctx))?;
     runner.execute(Step::Pip3, "pip3", || generic::run_pip3_update(run_type))?;
     runner.execute(Step::PipReview, "pip-review", || generic::run_pip_review_update(&ctx))?;
+    runner.execute(Step::PipReviewLocal, "pip-review (local)", || {
+        generic::run_pip_review_local_update(&ctx)
+    })?;
     runner.execute(Step::Pipupgrade, "pipupgrade", || generic::run_pipupgrade_update(&ctx))?;
     runner.execute(Step::Ghcup, "ghcup", || generic::run_ghcup_update(run_type))?;
     runner.execute(Step::Stack, "stack", || generic::run_stack_update(run_type))?;
