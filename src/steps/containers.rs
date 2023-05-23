@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use std::path::Path;
 use std::process::Command;
 
@@ -18,15 +19,42 @@ use crate::{execution_context::ExecutionContext, utils::require};
 // themselves or when using docker-compose.
 const NONEXISTENT_REPO: &str = "repository does not exist";
 
+/// Uniquely identifies a `Container`.
+#[derive(Debug)]
+struct Container {
+    /// `Repository` and `Tag`
+    ///
+    /// format: `Repository:Tag`, e.g., `fedora:latest`.
+    repo_tag: String,
+    /// Platform
+    ///
+    /// format: `OS/Architecture`, e.g., `linux/amd64`.
+    platform: String,
+}
+
+impl Container {
+    /// Construct a new `Container`.
+    fn new(repo_tag: String, platform: String) -> Self {
+        Self { repo_tag, platform }
+    }
+}
+
+impl Display for Container {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        // e.g., "`fedora/latest` for `linux/amd64`"
+        write!(f, "`{}` for `{}`", self.repo_tag, self.platform)
+    }
+}
+
 /// Returns a Vector of all containers, with Strings in the format
 /// "REGISTRY/[PATH/]CONTAINER_NAME:TAG"
-fn list_containers(crt: &Path) -> Result<Vec<String>> {
+fn list_containers(crt: &Path) -> Result<Vec<Container>> {
     debug!(
-        "Querying '{} image ls --format \"{{{{.Repository}}}}:{{{{.Tag}}}}\"' for containers",
+        "Querying '{} image ls --format \"{{{{.Repository}}}}:{{{{.Tag}}}}/{{{{.ID}}}}\"' for containers",
         crt.display()
     );
     let output = Command::new(crt)
-        .args(["image", "ls", "--format", "{{.Repository}}:{{.Tag}}"])
+        .args(["image", "ls", "--format", "{{.Repository}}:{{.Tag}}/{{.ID}}"])
         .output_checked_with_utf8(|_| Ok(()))?;
 
     let mut retval = vec![];
@@ -49,7 +77,26 @@ fn list_containers(crt: &Path) -> Result<Vec<String>> {
         }
 
         debug!("Using container '{}'", line);
-        retval.push(String::from(line));
+
+        // line is of format: `Repository:Tag/ImageID`, e.g., `fedora:latest/be300d2b6d94`.
+        let split_res = line.split('/').collect::<Vec<&str>>();
+        assert_eq!(split_res.len(), 2);
+        let (repo_tag, image_id) = (split_res[0], split_res[1]);
+
+        debug!(
+            "Querying '{} image inspect --format \"{{{{.Os}}}}/{{{{.Architecture}}}}\"' for container {}",
+            crt.display(),
+            image_id
+        );
+        let inspect_output = Command::new(crt)
+            .args(["image", "inspect", image_id, "--format", "{{.Os}}/{{.Architecture}}"])
+            .output_checked_with_utf8(|_| Ok(()))?;
+        let mut platform = inspect_output.stdout;
+        // truncate the tailing new line character
+        platform.truncate(platform.len() - 1);
+        assert!(platform.contains('/'));
+
+        retval.push(Container::new(repo_tag.to_string(), platform));
     }
 
     Ok(retval)
@@ -67,7 +114,12 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
 
     for container in containers.iter() {
         debug!("Pulling container '{}'", container);
-        let args = vec!["pull", &container[..]];
+        let args = vec![
+            "pull",
+            container.repo_tag.as_str(),
+            "--platform",
+            container.platform.as_str(),
+        ];
         let mut exec = ctx.run_type().execute(&crt);
 
         if let Err(e) = exec.args(&args).status_checked() {
