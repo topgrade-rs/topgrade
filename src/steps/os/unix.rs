@@ -2,7 +2,10 @@ use std::fs;
 use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 use std::process::Command;
-use std::{env, path::Path};
+use std::{
+    env::{self, var},
+    path::Path,
+};
 
 use crate::command::CommandExt;
 use crate::{Step, HOME_DIR};
@@ -134,6 +137,27 @@ pub fn run_bashit(ctx: &ExecutionContext) -> Result<()> {
         .execute("bash")
         .args(["-lic", &format!("bash-it update {}", ctx.config().bashit_branch())])
         .status_checked()
+}
+
+pub fn run_oh_my_bash(ctx: &ExecutionContext) -> Result<()> {
+    require("bash")?;
+    let oh_my_bash = var("OSH")
+        // default to `~/.oh-my-bash`
+        .unwrap_or(
+            HOME_DIR
+                .join(".oh-my-bash")
+                .to_str()
+                .expect("should be UTF-8 encoded")
+                .to_string(),
+        )
+        .require()?;
+
+    print_separator("oh-my-bash");
+
+    let mut update_script = oh_my_bash;
+    update_script.push_str("tools/upgrade.sh");
+
+    ctx.run_type().execute("bash").arg(update_script).status_checked()
 }
 
 pub fn run_oh_my_fish(ctx: &ExecutionContext) -> Result<()> {
@@ -510,6 +534,13 @@ pub fn run_rcm(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("rcm");
     ctx.run_type().execute(rcup).arg("-v").status_checked()
+}
+
+pub fn run_maza(ctx: &ExecutionContext) -> Result<()> {
+    let maza = require("maza")?;
+
+    print_separator("maza");
+    ctx.run_type().execute(maza).arg("update").status_checked()
 }
 
 pub fn reboot() -> Result<()> {

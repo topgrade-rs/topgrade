@@ -154,7 +154,11 @@ pub fn run_zim(run_type: RunType) -> Result<()> {
 
 pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
     require("zsh")?;
-    let oh_my_zsh = HOME_DIR.join(".oh-my-zsh").require()?;
+    let oh_my_zsh = env::var("ZSH")
+        .map(PathBuf::from)
+        // default to `~/.oh-my-zsh`
+        .unwrap_or(HOME_DIR.join(".oh-my-zsh"))
+        .require()?;
 
     print_separator("oh-my-zsh");
 
@@ -194,7 +198,10 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.run_type()
         .execute("zsh")
-        .env("ZSH", &oh_my_zsh)
         .arg(&oh_my_zsh.join("tools/upgrade.sh"))
+        // oh-my-zsh returns 80 when it is already updated and no changes pulled
+        // in this update.
+        // See this comment: https://github.com/r-darwish/topgrade/issues/569#issuecomment-736756731
+        // for more information.
         .status_checked_with_codes(&[80])
 }
