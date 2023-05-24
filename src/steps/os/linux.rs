@@ -473,11 +473,11 @@ pub fn run_deb_get(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("deb-get");
 
-    ctx.execute_elevated(&deb_get, false)?.arg("update").status_checked()?;
-    ctx.execute_elevated(&deb_get, false)?.arg("upgrade").status_checked()?;
+    ctx.run_type().execute(&deb_get).arg("update").status_checked()?;
+    ctx.run_type().execute(&deb_get).arg("upgrade").status_checked()?;
 
     if ctx.config().cleanup() {
-        ctx.execute_elevated(&deb_get, false)?.arg("clean").status_checked()?;
+        ctx.run_type().execute(&deb_get).arg("clean").status_checked()?;
     }
 
     Ok(())

@@ -230,7 +230,7 @@ pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_pnpm_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let pnpm = require("pnpm").map(|b| NPM::new(b, NPMVariant::Pnpm))?;
 
-    print_separator("Node Package Manager");
+    print_separator("Performant Node Package Manager");
 
     #[cfg(target_os = "linux")]
     {

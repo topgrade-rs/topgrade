@@ -342,6 +342,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
         runner.execute(Step::Shell, "zi", || zsh::run_zi(run_type))?;
         runner.execute(Step::Shell, "zim", || zsh::run_zim(run_type))?;
         runner.execute(Step::Shell, "oh-my-zsh", || zsh::run_oh_my_zsh(&ctx))?;
+        runner.execute(Step::Shell, "oh-my-bash", || unix::run_oh_my_bash(&ctx))?;
         runner.execute(Step::Shell, "fisher", || unix::run_fisher(run_type))?;
         runner.execute(Step::Shell, "bash-it", || unix::run_bashit(&ctx))?;
         runner.execute(Step::Shell, "oh-my-fish", || unix::run_oh_my_fish(&ctx))?;
@@ -356,6 +357,7 @@ For more information about this issue see https://askubuntu.com/questions/110969
         })?;
         runner.execute(Step::Sdkman, "SDKMAN!", || unix::run_sdkman(config.cleanup(), run_type))?;
         runner.execute(Step::Rcm, "rcm", || unix::run_rcm(&ctx))?;
+        runner.execute(Step::Maza, "maza", || unix::run_maza(&ctx))?;
     }
 
     #[cfg(not(any(
@@ -382,6 +384,9 @@ For more information about this issue see https://askubuntu.com/questions/110969
     runner.execute(Step::Mamba, "mamba", || generic::run_mamba_update(&ctx))?;
     runner.execute(Step::Pip3, "pip3", || generic::run_pip3_update(run_type))?;
     runner.execute(Step::PipReview, "pip-review", || generic::run_pip_review_update(&ctx))?;
+    runner.execute(Step::PipReviewLocal, "pip-review (local)", || {
+        generic::run_pip_review_local_update(&ctx)
+    })?;
     runner.execute(Step::Pipupgrade, "pipupgrade", || generic::run_pipupgrade_update(&ctx))?;
     runner.execute(Step::Ghcup, "ghcup", || generic::run_ghcup_update(run_type))?;
     runner.execute(Step::Stack, "stack", || generic::run_stack_update(run_type))?;

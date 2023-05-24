@@ -111,8 +111,9 @@
 #nix_arguments = "--flake"
 
 [python]
-#enable_pip_review = true   ###disabled by default
-#enable_pipupgrade = true   ###disabled by default
+#enable_pip_review = true         ###disabled by default
+#enable_pip_review_local = true   ###disabled by default
+#enable_pipupgrade = true         ###disabled by default
 
 [windows]
 # Manually select Windows updates

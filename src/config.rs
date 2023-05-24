@@ -145,6 +145,7 @@ pub enum Step {
     Macports,
     Mamba,
     Mas,
+    Maza,
     Micro,
     Myrepos,
     Nix,
@@ -155,6 +156,7 @@ pub enum Step {
     Pearl,
     Pip3,
     PipReview,
+    PipReviewLocal,
     Pipupgrade,
     Pipx,
     Pkg,
@@ -239,6 +241,7 @@ pub struct Windows {
 #[serde(deny_unknown_fields)]
 pub struct Python {
     enable_pip_review: Option<bool>,
+    enable_pip_review_local: Option<bool>,
     enable_pipupgrade: Option<bool>,
 }
 
@@ -1407,6 +1410,14 @@ impl Config {
             .python
             .as_ref()
             .and_then(|python| python.enable_pip_review)
+            .unwrap_or(false);
+    }
+    pub fn enable_pip_review_local(&self) -> bool {
+        return self
+            .config_file
+            .python
+            .as_ref()
+            .and_then(|python| python.enable_pip_review_local)
             .unwrap_or(false);
     }
 
