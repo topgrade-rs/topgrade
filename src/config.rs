@@ -14,6 +14,7 @@ use color_eyre::eyre::Result;
 use etcetera::base_strategy::BaseStrategy;
 use merge::Merge;
 use regex::Regex;
+use regex_split::RegexSplit;
 use serde::Deserialize;
 use strum::{EnumIter, EnumString, EnumVariantNames, IntoEnumIterator};
 use tracing::debug;
@@ -53,18 +54,40 @@ macro_rules! check_deprecated {
         }
     };
 }
-macro_rules! get_deprecated {
-    ($config:expr, $old:ident, $section:ident, $new:ident) => {
-        if $config.$old.is_some() {
-            &$config.$old
-        } else {
-            if let Some(section) = &$config.$section {
-                &section.$new
-            } else {
-                &None
+
+/// Get a deprecated option moved from a section to another
+macro_rules! get_deprecated_moved_opt {
+    ($old_section:expr, $old:ident, $new_section:expr, $new:ident) => {{
+        if let Some(old_section) = &$old_section {
+            if old_section.$old.is_some() {
+                return &old_section.$old;
             }
         }
-    };
+
+        if let Some(new_section) = &$new_section {
+            return &new_section.$new;
+        }
+
+        return &None;
+    }};
+}
+
+macro_rules! get_deprecated_moved_or_default_to {
+    ($old_section:expr, $old:ident, $new_section:expr, $new:ident, $default_ret:ident) => {{
+        if let Some(old_section) = &$old_section {
+            if let Some(old) = old_section.$old {
+                return old;
+            }
+        }
+
+        if let Some(new_section) = &$new_section {
+            if let Some(new) = new_section.$new {
+                return new;
+            }
+        }
+
+        return $default_ret;
+    }};
 }
 
 pub type Commands = BTreeMap<String, String>;
@@ -167,6 +190,13 @@ pub enum Step {
     WslUpdate,
     Yadm,
     Yarn,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct Include {
+    #[merge(strategy = merge::vec::append)]
+    paths: Vec<String>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -329,25 +359,11 @@ pub struct Vim {
     force_plug_update: Option<bool>,
 }
 
+// TODO: Auto-migrate configs without [misc]
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
-/// Configuration file
-pub struct ConfigFile {
-    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
-    include: Option<Vec<String>>,
-
-    sudo_command: Option<SudoKind>,
-
+pub struct Misc {
     pre_sudo: Option<bool>,
-
-    #[merge(strategy = crate::utils::merge_strategies::commands_merge_opt)]
-    pre_commands: Option<Commands>,
-
-    #[merge(strategy = crate::utils::merge_strategies::commands_merge_opt)]
-    post_commands: Option<Commands>,
-
-    #[merge(strategy = crate::utils::merge_strategies::commands_merge_opt)]
-    commands: Option<Commands>,
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     git_repos: Option<Vec<String>>,
@@ -391,9 +407,6 @@ pub struct ConfigFile {
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     aura_pacman_arguments: Option<String>,
 
-    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
-    python: Option<Python>,
-
     no_retry: Option<bool>,
 
     run_in_tmux: Option<bool>,
@@ -410,6 +423,33 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     only: Option<Vec<Step>>,
+
+    no_self_update: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+/// Configuration file
+pub struct ConfigFile {
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    include: Option<Include>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    misc: Option<Misc>,
+
+    sudo_command: Option<SudoKind>,
+
+    #[merge(strategy = crate::utils::merge_strategies::commands_merge_opt)]
+    pre_commands: Option<Commands>,
+
+    #[merge(strategy = crate::utils::merge_strategies::commands_merge_opt)]
+    post_commands: Option<Commands>,
+
+    #[merge(strategy = crate::utils::merge_strategies::commands_merge_opt)]
+    commands: Option<Commands>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    python: Option<Python>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     composer: Option<Composer>,
@@ -446,8 +486,6 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     distrobox: Option<Distrobox>,
-
-    no_self_update: Option<bool>,
 }
 
 fn config_directory() -> PathBuf {
@@ -461,7 +499,7 @@ fn config_directory() -> PathBuf {
 /// The only purpose of this struct is to deserialize only the `include` field of the config file.
 #[derive(Deserialize, Default, Debug)]
 struct ConfigFileIncludeOnly {
-    include: Option<Vec<String>>,
+    include: Option<Include>,
 }
 
 impl ConfigFile {
@@ -493,7 +531,7 @@ impl ConfigFile {
 
     /// Read the configuration file.
     ///
-    /// If the configuration file does not exist the function returns the default ConfigFile.
+    /// If the configuration file does not exist, the function returns the default ConfigFile.
     fn read(config_path: Option<PathBuf>) -> Result<ConfigFile> {
         let config_path = if let Some(path) = config_path {
             path
@@ -501,54 +539,59 @@ impl ConfigFile {
             Self::ensure()?
         };
 
-        let contents = fs::read_to_string(&config_path).map_err(|e| {
+        let contents_non_split = fs::read_to_string(&config_path).map_err(|e| {
             tracing::error!("Unable to read {}", config_path.display());
             e
         })?;
 
-        let config_file_include_only: ConfigFileIncludeOnly = toml::from_str(&contents).map_err(|e| {
-            tracing::error!("Failed to deserialize the include section of {}", config_path.display());
-            e
-        })?;
+        let mut result = Self::default();
 
-        let mut result: Self = Default::default();
+        let regex_match_include = Regex::new(r"\[include]").expect("Failed to compile regex");
+        let contents_split = regex_match_include.split_inclusive_left(contents_non_split.as_str());
 
-        if let Some(includes) = &config_file_include_only.include {
-            for include in includes.iter().rev() {
-                let include_path = shellexpand::tilde::<&str>(&include.as_ref()).into_owned();
-                let include_path = PathBuf::from(include_path);
-                let include_contents = match fs::read_to_string(&include_path) {
-                    Ok(contents) => contents,
-                    Err(e) => {
-                        tracing::error!("Unable to read {}: {}", include_path.display(), e);
-                        continue;
-                    }
-                };
-                let include_parsed = match toml::from_str::<Self>(&include_contents) {
-                    Ok(contents) => contents,
-                    Err(e) => {
-                        tracing::error!("Failed to deserialize {}: {}", include_path.display(), e);
-                        continue;
-                    }
-                };
+        for contents in contents_split {
+            let config_file_include_only: ConfigFileIncludeOnly = toml::from_str(contents).map_err(|e| {
+                tracing::error!("Failed to deserialize an include section of {}", config_path.display());
+                e
+            })?;
 
-                result.merge(include_parsed);
+            if let Some(includes) = &config_file_include_only.include {
+                // Parses the [include] section present in the slice
+                for include in includes.paths.iter().rev() {
+                    let include_path = shellexpand::tilde::<&str>(&include.as_ref()).into_owned();
+                    let include_path = PathBuf::from(include_path);
+                    let include_contents = match fs::read_to_string(&include_path) {
+                        Ok(c) => c,
+                        Err(e) => {
+                            tracing::error!("Unable to read {}: {}", include_path.display(), e);
+                            continue;
+                        }
+                    };
+                    match toml::from_str::<Self>(&include_contents) {
+                        Ok(include_parsed) => result.merge(include_parsed),
+                        Err(e) => {
+                            tracing::error!("Failed to deserialize {}: {}", include_path.display(), e);
+                            continue;
+                        }
+                    };
 
-                debug!("Configuration include found: {}", include_path.display());
+                    debug!("Configuration include found: {}", include_path.display());
+                }
+            }
+
+            match toml::from_str::<Self>(contents) {
+                Ok(contents) => result.merge(contents),
+                Err(e) => tracing::error!("Failed to deserialize {}: {}", config_path.display(), e),
             }
         }
 
-        if let Ok(contents) = toml::from_str::<Self>(&contents) {
-            result.merge(contents);
-        } else {
-            tracing::error!("Failed to deserialize {}", config_path.display());
-        }
-
-        if let Some(ref mut paths) = &mut result.git_repos {
-            for path in paths.iter_mut() {
-                let expanded = shellexpand::tilde::<&str>(&path.as_ref()).into_owned();
-                debug!("Path {} expanded to {}", path, expanded);
-                *path = expanded;
+        if let Some(misc) = &mut result.misc {
+            if let Some(ref mut paths) = &mut misc.git_repos {
+                for path in paths.iter_mut() {
+                    let expanded = shellexpand::tilde::<&str>(&path.as_ref()).into_owned();
+                    debug!("Path {} expanded to {}", path, expanded);
+                    *path = expanded;
+                }
             }
         }
 
@@ -708,7 +751,7 @@ impl CommandLineArgs {
 /// Represents the application configuration
 ///
 /// The struct holds the loaded configuration file, as well as the arguments parsed from the command line.
-/// Its provided methods decide the appropriate options based on combining the configuraiton file and the
+/// Its provided methods decide the appropriate options based on combining the configuration file and the
 /// command line arguments.
 pub struct Config {
     opt: CommandLineArgs,
@@ -719,7 +762,7 @@ pub struct Config {
 impl Config {
     /// Load the configuration.
     ///
-    /// The function parses the command line arguments and reading the configuration file.
+    /// The function parses the command line arguments and reads the configuration file.
     pub fn load(opt: CommandLineArgs) -> Result<Self> {
         let config_directory = config_directory();
         let config_file = if config_directory.is_dir() {
@@ -734,11 +777,13 @@ impl Config {
             ConfigFile::default()
         };
 
-        check_deprecated!(config_file, git_arguments, git, arguments);
-        check_deprecated!(config_file, git_repos, git, repos);
-        check_deprecated!(config_file, predefined_git_repos, git, pull_predefined);
-        check_deprecated!(config_file, yay_arguments, linux, yay_arguments);
-        check_deprecated!(config_file, accept_all_windows_updates, windows, accept_all_updates);
+        if let Some(misc) = &config_file.misc {
+            check_deprecated!(misc, git_arguments, git, arguments);
+            check_deprecated!(misc, git_repos, git, repos);
+            check_deprecated!(misc, predefined_git_repos, git, pull_predefined);
+            check_deprecated!(misc, yay_arguments, linux, yay_arguments);
+            check_deprecated!(misc, accept_all_windows_updates, windows, accept_all_updates);
+        }
 
         let allowed_steps = Self::allowed_steps(&opt, &config_file);
 
@@ -771,7 +816,7 @@ impl Config {
 
     /// The list of additional git repositories to pull.
     pub fn git_repos(&self) -> &Option<Vec<String>> {
-        get_deprecated!(self.config_file, git_repos, git, repos)
+        get_deprecated_moved_opt!(&self.config_file.misc, git_repos, &self.config_file.git, repos)
     }
 
     /// Tell whether the specified step should run.
@@ -786,8 +831,10 @@ impl Config {
         let mut enabled_steps: Vec<Step> = Vec::new();
         enabled_steps.extend(&opt.only);
 
-        if let Some(only) = config_file.only.as_ref() {
-            enabled_steps.extend(only)
+        if let Some(misc) = config_file.misc.as_ref() {
+            if let Some(only) = misc.only.as_ref() {
+                enabled_steps.extend(only);
+            }
         }
 
         if enabled_steps.is_empty() {
@@ -796,27 +843,47 @@ impl Config {
 
         let mut disabled_steps: Vec<Step> = Vec::new();
         disabled_steps.extend(&opt.disable);
-        if let Some(disabled) = config_file.disable.as_ref() {
-            disabled_steps.extend(disabled);
+        if let Some(misc) = config_file.misc.as_ref() {
+            if let Some(disabled) = misc.disable.as_ref() {
+                disabled_steps.extend(disabled);
+            }
         }
 
         enabled_steps.retain(|e| !disabled_steps.contains(e) || opt.only.contains(e));
         enabled_steps
     }
 
-    /// Tell whether we should run a self update.
+    /// Tell whether we should run a self-update.
     pub fn no_self_update(&self) -> bool {
-        self.opt.no_self_update || self.config_file.no_self_update.unwrap_or(false)
+        self.opt.no_self_update
+            || self
+                .config_file
+                .misc
+                .as_ref()
+                .and_then(|misc| misc.no_self_update)
+                .unwrap_or(false)
     }
 
     /// Tell whether we should run in tmux.
     pub fn run_in_tmux(&self) -> bool {
-        self.opt.run_in_tmux || self.config_file.run_in_tmux.unwrap_or(false)
+        self.opt.run_in_tmux
+            || self
+                .config_file
+                .misc
+                .as_ref()
+                .and_then(|misc| misc.run_in_tmux)
+                .unwrap_or(false)
     }
 
     /// Tell whether we should perform cleanup steps.
     pub fn cleanup(&self) -> bool {
-        self.opt.cleanup || self.config_file.cleanup.unwrap_or(false)
+        self.opt.cleanup
+            || self
+                .config_file
+                .misc
+                .as_ref()
+                .and_then(|misc| misc.cleanup)
+                .unwrap_or(false)
     }
 
     /// Tell whether we are dry-running.
@@ -826,32 +893,54 @@ impl Config {
 
     /// Tell whether we should not attempt to retry anything.
     pub fn no_retry(&self) -> bool {
-        self.opt.no_retry || self.config_file.no_retry.unwrap_or(false)
+        self.opt.no_retry
+            || self
+                .config_file
+                .misc
+                .as_ref()
+                .and_then(|misc| misc.no_retry)
+                .unwrap_or(false)
     }
 
     /// List of remote hosts to run Topgrade in
-    pub fn remote_topgrades(&self) -> &Option<Vec<String>> {
-        &self.config_file.remote_topgrades
+    pub fn remote_topgrades(&self) -> Option<&Vec<String>> {
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.remote_topgrades.as_ref())
     }
 
     /// Path to Topgrade executable used for all remote hosts
     pub fn remote_topgrade_path(&self) -> &str {
-        self.config_file.remote_topgrade_path.as_deref().unwrap_or("topgrade")
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.remote_topgrade_path.as_deref())
+            .unwrap_or("topgrade")
     }
 
     /// Extra SSH arguments
-    pub fn ssh_arguments(&self) -> &Option<String> {
-        &self.config_file.ssh_arguments
+    pub fn ssh_arguments(&self) -> Option<&String> {
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.ssh_arguments.as_ref())
     }
 
     /// Extra Git arguments
     pub fn git_arguments(&self) -> &Option<String> {
-        get_deprecated!(self.config_file, git_arguments, git, arguments)
+        get_deprecated_moved_opt!(&self.config_file.misc, git_arguments, &self.config_file.git, arguments)
     }
 
     /// Extra Tmux arguments
-    pub fn tmux_arguments(&self) -> eyre::Result<Vec<String>> {
-        let args = &self.config_file.tmux_arguments.as_deref().unwrap_or_default();
+    pub fn tmux_arguments(&self) -> Result<Vec<String>> {
+        let args = &self
+            .config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.tmux_arguments.as_ref())
+            .map(String::to_owned)
+            .unwrap_or_default();
         shell_words::split(args)
             // The only time the parse failed is in case of a missing close quote.
             // The error message looks like this:
@@ -869,7 +958,7 @@ impl Config {
 
     /// Skip sending a notification at the end of a run
     pub fn skip_notify(&self) -> bool {
-        if let Some(yes) = self.config_file.skip_notify {
+        if let Some(yes) = self.config_file.misc.as_ref().and_then(|misc| misc.skip_notify) {
             return yes;
         }
 
@@ -878,12 +967,16 @@ impl Config {
 
     /// Whether to set the terminal title
     pub fn set_title(&self) -> bool {
-        self.config_file.set_title.unwrap_or(true)
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.set_title)
+            .unwrap_or(true)
     }
 
     /// Whether to say yes to package managers
     pub fn yes(&self, step: Step) -> bool {
-        if let Some(yes) = self.config_file.assume_yes {
+        if let Some(yes) = self.config_file.misc.as_ref().and_then(|misc| misc.assume_yes) {
             return yes;
         }
 
@@ -900,18 +993,22 @@ impl Config {
 
     /// Bash-it branch
     pub fn bashit_branch(&self) -> &str {
-        self.config_file.bashit_branch.as_deref().unwrap_or("stable")
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.bashit_branch.as_deref())
+            .unwrap_or("stable")
     }
 
     /// Whether to accept all Windows updates
     pub fn accept_all_windows_updates(&self) -> bool {
-        get_deprecated!(
-            self.config_file,
+        get_deprecated_moved_or_default_to!(
+            &self.config_file.misc,
             accept_all_windows_updates,
-            windows,
-            accept_all_updates
+            &self.config_file.windows,
+            accept_all_updates,
+            true
         )
-        .unwrap_or(true)
     }
 
     /// Whether to self rename the Topgrade executable during the run
@@ -979,7 +1076,11 @@ impl Config {
 
     /// Whether to send a desktop notification at the beginning of every step
     pub fn notify_each_step(&self) -> bool {
-        self.config_file.notify_each_step.unwrap_or(false)
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.notify_each_step)
+            .unwrap_or(false)
     }
 
     /// Extra garuda-update arguments
@@ -1105,7 +1206,7 @@ impl Config {
         self.config_file.git.as_ref().and_then(|git| git.max_concurrency)
     }
 
-    /// Should we power on vagrant boxes if needed
+    /// Determine whether we should power on vagrant boxes
     pub fn vagrant_power_on(&self) -> Option<bool> {
         self.config_file.vagrant.as_ref().and_then(|vagrant| vagrant.power_on)
     }
@@ -1135,7 +1236,7 @@ impl Config {
             .unwrap_or(false)
     }
 
-    /// Use distro-sync in Red Hat based distrbutions
+    /// Use distro-sync in Red Hat based distributions
     pub fn redhat_distro_sync(&self) -> bool {
         self.config_file
             .linux
@@ -1162,18 +1263,25 @@ impl Config {
             .unwrap_or(false)
     }
 
-    /// Should we ignore failures for this step
+    /// Determine if we should ignore failures for this step
     pub fn ignore_failure(&self, step: Step) -> bool {
         self.config_file
-            .ignore_failures
+            .misc
             .as_ref()
+            .and_then(|misc| misc.ignore_failures.as_ref())
             .map(|v| v.contains(&step))
             .unwrap_or(false)
     }
 
     pub fn use_predefined_git_repos(&self) -> bool {
         !self.opt.disable_predefined_git_repos
-            && get_deprecated!(self.config_file, predefined_git_repos, git, pull_predefined).unwrap_or(true)
+            && get_deprecated_moved_or_default_to!(
+                &self.config_file.misc,
+                predefined_git_repos,
+                &self.config_file.git,
+                pull_predefined,
+                true
+            )
     }
 
     pub fn verbose(&self) -> bool {
@@ -1199,7 +1307,11 @@ impl Config {
     /// If `true`, `sudo` should be called after `pre_commands` in order to elevate at the
     /// start of the session (and not in the middle).
     pub fn pre_sudo(&self) -> bool {
-        self.config_file.pre_sudo.unwrap_or(false)
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.pre_sudo)
+            .unwrap_or(false)
     }
 
     #[cfg(target_os = "linux")]
@@ -1285,11 +1397,19 @@ impl Config {
     }
 
     pub fn display_time(&self) -> bool {
-        self.config_file.display_time.unwrap_or(true)
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.display_time)
+            .unwrap_or(true)
     }
 
     pub fn display_preamble(&self) -> bool {
-        self.config_file.display_preamble.unwrap_or(true)
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.display_preamble)
+            .unwrap_or(true)
     }
 
     pub fn should_run_custom_command(&self, name: &str) -> bool {
