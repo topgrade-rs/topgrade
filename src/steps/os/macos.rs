@@ -1,6 +1,5 @@
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
-use crate::executor::RunType;
 use crate::terminal::{print_separator, prompt_yesno};
 use crate::{utils::require, Step};
 use color_eyre::eyre::Result;
@@ -30,11 +29,11 @@ pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-pub fn run_mas(run_type: RunType) -> Result<()> {
+pub fn run_mas(ctx: &ExecutionContext) -> Result<()> {
     let mas = require("mas")?;
     print_separator("macOS App Store");
 
-    run_type.execute(mas).arg("upgrade").status_checked()
+    ctx.run_type().execute(mas).arg("upgrade").status_checked()
 }
 
 pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {

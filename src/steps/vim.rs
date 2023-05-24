@@ -4,7 +4,7 @@ use crate::HOME_DIR;
 use color_eyre::eyre::Result;
 use etcetera::base_strategy::BaseStrategy;
 
-use crate::executor::{Executor, ExecutorOutput, RunType};
+use crate::executor::{Executor, ExecutorOutput};
 use crate::terminal::print_separator;
 use crate::{
     execution_context::ExecutionContext,
@@ -141,10 +141,10 @@ pub fn upgrade_neovim(ctx: &ExecutionContext) -> Result<()> {
     )
 }
 
-pub fn run_voom(run_type: RunType) -> Result<()> {
+pub fn run_voom(ctx: &ExecutionContext) -> Result<()> {
     let voom = require("voom")?;
 
     print_separator("voom");
 
-    run_type.execute(voom).arg("update").status_checked()
+    ctx.run_type().execute(voom).arg("update").status_checked()
 }
