@@ -1,8 +1,9 @@
 # Include any additional configuration file(s)
-# Note that this config file overrides the includes
-# and includes that are on the left override the ones on the right in this array
-#include = ["/etc/topgrade.toml"]
+# [include] sections are processed in the order you write them
+[include]
+#paths = ["/etc/topgrade.toml"]
 
+[misc]
 # Don't ask for confirmations
 #assume_yes = true
 
