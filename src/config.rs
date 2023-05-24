@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 use std::fs::{write, File};
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, fs};
 
@@ -506,40 +506,86 @@ struct ConfigFileIncludeOnly {
 }
 
 impl ConfigFile {
-    fn ensure() -> Result<PathBuf> {
+    /// Returns the main config file and any additional config files
+    /// 0 = main config file
+    /// 1 = additional config files coming from topgrade.d
+    fn ensure() -> Result<(PathBuf, Vec<PathBuf>)> {
+        let mut res = (PathBuf::new(), Vec::new());
+
         let config_directory = config_directory();
 
-        let config_path = config_directory.join("topgrade.toml");
-        let alt_config_path = config_directory.join("topgrade/topgrade.toml");
+        let possible_config_paths = vec![
+            config_directory.join("topgrade.toml"),
+            config_directory.join("topgrade/topgrade.toml"),
+        ];
 
-        if config_path.exists() {
-            debug!("Configuration at {}", config_path.display());
-            Ok(config_path)
-        } else if alt_config_path.exists() {
-            debug!("Configuration at {}", alt_config_path.display());
-            Ok(alt_config_path)
-        } else {
+        // Search for the main config file
+        for path in possible_config_paths.iter() {
+            if path.exists() {
+                debug!("Configuration at {}", path.display());
+                res.0 = path.clone();
+                break;
+            }
+        }
+
+        res.1 = Self::ensure_topgrade_d(&config_directory)?;
+
+        // If no config file exists, create default one in the config directory
+        if !res.0.exists() && res.1.is_empty() {
             debug!("No configuration exists");
-            write(&config_path, EXAMPLE_CONFIG).map_err(|e| {
+            write(&res.0, EXAMPLE_CONFIG).map_err(|e| {
                 debug!(
                     "Unable to write the example configuration file to {}: {}. Using blank config.",
-                    config_path.display(),
+                    &res.0.display(),
                     e
                 );
                 e
             })?;
-            Ok(config_path)
         }
+
+        Ok(res)
+    }
+
+    /// Searches topgrade.d for additional config files
+    fn ensure_topgrade_d(config_directory: &Path) -> Result<Vec<PathBuf>> {
+        let mut res = Vec::new();
+        let dir_to_search = config_directory.join("topgrade.d");
+
+        if dir_to_search.exists() {
+            for entry in fs::read_dir(dir_to_search)? {
+                let entry = entry?;
+                if entry.file_type()?.is_file() {
+                    debug!(
+                        "Found additional (directory) configuration file at {}",
+                        entry.path().display()
+                    );
+                    res.push(entry.path());
+                }
+            }
+            res.sort();
+        } else {
+            debug!("No additional configuration directory exists, creating one");
+            fs::create_dir_all(&dir_to_search)?;
+        }
+
+        Ok(res)
     }
 
     /// Read the configuration file.
     ///
     /// If the configuration file does not exist, the function returns the default ConfigFile.
     fn read(config_path: Option<PathBuf>) -> Result<ConfigFile> {
+        let mut should_read_include_dir = false;
+        let mut dir_include: Vec<PathBuf> = Vec::new();
         let config_path = if let Some(path) = config_path {
             path
         } else {
-            Self::ensure()?
+            should_read_include_dir = true;
+            let (path, include) = Self::ensure()?;
+            {
+                dir_include = include;
+                path
+            }
         };
 
         let mut contents_non_split = fs::read_to_string(&config_path).map_err(|e| {
@@ -551,6 +597,24 @@ impl ConfigFile {
 
         let mut result = Self::default();
 
+        // The Function was called without a config_path, so we need to read the include directory
+        if should_read_include_dir {
+            for include in dir_include {
+                let include_contents = fs::read_to_string(&include).map_err(|e| {
+                    tracing::error!("Unable to read {}", include.display());
+                    e
+                })?;
+                let include_contents_parsed = toml::from_str(include_contents.as_str()).map_err(|e| {
+                    tracing::error!("Failed to deserialize {}", include.display());
+                    e
+                })?;
+
+                result.merge(include_contents_parsed);
+            }
+        }
+
+        // To parse [include] sections in the order as they are written,
+        // we split the file and parse each part as a separate file
         let regex_match_include = Regex::new(r"\[include]").expect("Failed to compile regex");
         let contents_split = regex_match_include.split_inclusive_left(contents_non_split.as_str());
 
@@ -614,7 +678,7 @@ impl ConfigFile {
     }
 
     fn edit() -> Result<()> {
-        let config_path = Self::ensure()?;
+        let config_path = Self::ensure()?.0;
         let editor = editor();
         debug!("Editor: {:?}", editor);
 
@@ -636,7 +700,7 @@ impl ConfigFile {
 
             File::create(path)
                 .and_then(|mut f| f.write_all(contents.as_bytes()))
-                .expect("Tried to auto-migrate the config file, unable to write to config file. Please add \"[misc]\" section manually to the first line of the file.");
+                .expect("Tried to auto-migrate the config file, unable to write to config file.\nPlease add \"[misc]\" section manually to the first line of the file.\nError");
         }
     }
 }
