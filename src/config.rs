@@ -8,7 +8,6 @@ use std::{env, fs};
 
 use clap::{ArgEnum, Parser};
 use clap_complete::Shell;
-use color_eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use etcetera::base_strategy::BaseStrategy;
