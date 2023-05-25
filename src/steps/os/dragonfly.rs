@@ -1,16 +1,15 @@
 use crate::command::CommandExt;
-use crate::executor::RunType;
+use crate::execution_context::ExecutionContext;
 use crate::sudo::Sudo;
 use crate::terminal::print_separator;
 use crate::utils::require_option;
 use color_eyre::eyre::Result;
 use std::process::Command;
 
-pub fn upgrade_packages(sudo: Option<&Sudo>, run_type: RunType) -> Result<()> {
-    let sudo = require_option(sudo, String::from("No sudo detected"))?;
+pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
+    let sudo = require_option(ctx.sudo().as_ref(), String::from("No sudo detected"))?;
     print_separator("DragonFly BSD Packages");
-    run_type
-        .execute(sudo)
+    ctx.execute(sudo)
         .args(["/usr/local/sbin/pkg", "upgrade"])
         .status_checked()
 }

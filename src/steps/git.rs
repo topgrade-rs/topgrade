@@ -14,7 +14,6 @@ use tracing::{debug, error};
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
-use crate::executor::RunType;
 use crate::terminal::print_separator;
 use crate::utils::{which, PathExt};
 use crate::{error::SkipStep, terminal::print_warning};
@@ -194,7 +193,7 @@ impl Git {
     pub fn multi_pull(&self, repositories: &Repositories, ctx: &ExecutionContext) -> Result<()> {
         let git = self.git.as_ref().unwrap();
 
-        if let RunType::Dry = ctx.run_type() {
+        if ctx.run_type().dry() {
             repositories
                 .repositories
                 .iter()

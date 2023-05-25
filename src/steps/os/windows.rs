@@ -8,7 +8,6 @@ use tracing::debug;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
-use crate::executor::RunType;
 use crate::terminal::{print_separator, print_warning};
 use crate::utils::require;
 use crate::{error::SkipStep, steps::git::Repositories};
@@ -54,16 +53,16 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
-pub fn run_scoop(cleanup: bool, run_type: RunType) -> Result<()> {
+pub fn run_scoop(cleanup: bool, ctx: &ExecutionContext) -> Result<()> {
     let scoop = require("scoop")?;
 
     print_separator("Scoop");
 
-    run_type.execute(&scoop).args(["update"]).status_checked()?;
-    run_type.execute(&scoop).args(["update", "*"]).status_checked()?;
+    ctx.run_type().execute(&scoop).args(["update"]).status_checked()?;
+    ctx.run_type().execute(&scoop).args(["update", "*"]).status_checked()?;
 
     if cleanup {
-        run_type.execute(&scoop).args(["cleanup", "*"]).status_checked()?;
+        ctx.run_type().execute(&scoop).args(["cleanup", "*"]).status_checked()?;
     }
 
     Ok(())

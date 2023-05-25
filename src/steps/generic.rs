@@ -13,7 +13,7 @@ use tracing::{debug, error};
 
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
-use crate::executor::{ExecutorOutput, RunType};
+use crate::executor::ExecutorOutput;
 use crate::terminal::{print_separator, shell};
 use crate::utils::{self, require, require_option, which, PathExt};
 use crate::Step;
@@ -77,20 +77,20 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-pub fn run_flutter_upgrade(run_type: RunType) -> Result<()> {
+pub fn run_flutter_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let flutter = utils::require("flutter")?;
 
     print_separator("Flutter");
-    run_type.execute(flutter).arg("upgrade").status_checked()
+    ctx.run_type().execute(flutter).arg("upgrade").status_checked()
 }
 
-pub fn run_gem(run_type: RunType) -> Result<()> {
+pub fn run_gem(ctx: &ExecutionContext) -> Result<()> {
     let gem = utils::require("gem")?;
     HOME_DIR.join(".gem").require()?;
 
     print_separator("Gems");
 
-    let mut command = run_type.execute(gem);
+    let mut command = ctx.run_type().execute(gem);
     command.arg("update");
 
     if env::var_os("RBENV_SHELL").is_none() {
@@ -163,20 +163,21 @@ pub fn run_sheldon(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
-pub fn run_fossil(run_type: RunType) -> Result<()> {
+pub fn run_fossil(ctx: &ExecutionContext) -> Result<()> {
     let fossil = utils::require("fossil")?;
 
     print_separator("Fossil");
 
-    run_type.execute(fossil).args(["all", "sync"]).status_checked()
+    ctx.run_type().execute(fossil).args(["all", "sync"]).status_checked()
 }
 
-pub fn run_micro(run_type: RunType) -> Result<()> {
+pub fn run_micro(ctx: &ExecutionContext) -> Result<()> {
     let micro = utils::require("micro")?;
 
     print_separator("micro");
 
-    let stdout = run_type
+    let stdout = ctx
+        .run_type()
         .execute(micro)
         .args(["-plugin", "update"])
         .output_checked_utf8()?
@@ -196,12 +197,12 @@ pub fn run_micro(run_type: RunType) -> Result<()> {
     target_os = "netbsd",
     target_os = "dragonfly"
 )))]
-pub fn run_apm(run_type: RunType) -> Result<()> {
+pub fn run_apm(ctx: &ExecutionContext) -> Result<()> {
     let apm = utils::require("apm")?;
 
     print_separator("Atom Package Manager");
 
-    run_type
+    ctx.run_type()
         .execute(apm)
         .args(["upgrade", "--confirm=false"])
         .status_checked()
@@ -214,16 +215,19 @@ pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(rustup).arg("update").status_checked()
 }
 
-pub fn run_juliaup(run_type: RunType) -> Result<()> {
+pub fn run_juliaup(ctx: &ExecutionContext) -> Result<()> {
     let juliaup = utils::require("juliaup")?;
 
     print_separator("juliaup");
 
     if juliaup.canonicalize()?.is_descendant_of(&HOME_DIR) {
-        run_type.execute(&juliaup).args(["self", "update"]).status_checked()?;
+        ctx.run_type()
+            .execute(&juliaup)
+            .args(["self", "update"])
+            .status_checked()?;
     }
 
-    run_type.execute(&juliaup).arg("update").status_checked()
+    ctx.run_type().execute(&juliaup).arg("update").status_checked()
 }
 
 pub fn run_choosenim(ctx: &ExecutionContext) -> Result<()> {
@@ -236,15 +240,15 @@ pub fn run_choosenim(ctx: &ExecutionContext) -> Result<()> {
     run_type.execute(&choosenim).args(["update", "stable"]).status_checked()
 }
 
-pub fn run_krew_upgrade(run_type: RunType) -> Result<()> {
+pub fn run_krew_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let krew = utils::require("kubectl-krew")?;
 
     print_separator("Krew");
 
-    run_type.execute(krew).args(["upgrade"]).status_checked()
+    ctx.run_type().execute(krew).args(["upgrade"]).status_checked()
 }
 
-pub fn run_gcloud_components_update(run_type: RunType) -> Result<()> {
+pub fn run_gcloud_components_update(ctx: &ExecutionContext) -> Result<()> {
     let gcloud = utils::require("gcloud")?;
 
     if gcloud.starts_with("/snap") {
@@ -252,19 +256,22 @@ pub fn run_gcloud_components_update(run_type: RunType) -> Result<()> {
     } else {
         print_separator("gcloud");
 
-        run_type
+        ctx.run_type()
             .execute(gcloud)
             .args(["components", "update", "--quiet"])
             .status_checked()
     }
 }
 
-pub fn run_jetpack(run_type: RunType) -> Result<()> {
+pub fn run_jetpack(ctx: &ExecutionContext) -> Result<()> {
     let jetpack = utils::require("jetpack")?;
 
     print_separator("Jetpack");
 
-    run_type.execute(jetpack).args(["global", "update"]).status_checked()
+    ctx.run_type()
+        .execute(jetpack)
+        .args(["global", "update"])
+        .status_checked()
 }
 
 pub fn run_rtcl(ctx: &ExecutionContext) -> Result<()> {
@@ -313,11 +320,11 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
     command.args(["upgrade", "--no-dry-run"]).status_checked()
 }
 
-pub fn run_pipx_update(run_type: RunType) -> Result<()> {
+pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
     let pipx = utils::require("pipx")?;
     print_separator("pipx");
 
-    run_type.execute(pipx).arg("upgrade-all").status_checked()
+    ctx.run_type().execute(pipx).arg("upgrade-all").status_checked()
 }
 
 pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
@@ -362,7 +369,7 @@ pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
     command.status_checked()
 }
 
-pub fn run_pip3_update(run_type: RunType) -> Result<()> {
+pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
     let python3 = utils::require("python3")?;
     Command::new(&python3)
         .args(["-m", "pip"])
@@ -390,7 +397,7 @@ pub fn run_pip3_update(run_type: RunType) -> Result<()> {
         return Err(SkipStep("Does not run inside a virtual environment".to_string()).into());
     }
 
-    run_type
+    ctx.run_type()
         .execute(&python3)
         .args(["-m", "pip", "install", "--upgrade", "--user", "pip"])
         .status_checked()
@@ -448,7 +455,7 @@ pub fn run_pipupgrade_update(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-pub fn run_stack_update(run_type: RunType) -> Result<()> {
+pub fn run_stack_update(ctx: &ExecutionContext) -> Result<()> {
     if utils::require("ghcup").is_ok() {
         // `ghcup` is present and probably(?) being used to install `stack`.
         // Don't upgrade `stack`, let `ghcup` handle it. Per `ghcup install stack`:
@@ -459,14 +466,14 @@ pub fn run_stack_update(run_type: RunType) -> Result<()> {
     let stack = utils::require("stack")?;
     print_separator("stack");
 
-    run_type.execute(stack).arg("upgrade").status_checked()
+    ctx.run_type().execute(stack).arg("upgrade").status_checked()
 }
 
-pub fn run_ghcup_update(run_type: RunType) -> Result<()> {
+pub fn run_ghcup_update(ctx: &ExecutionContext) -> Result<()> {
     let ghcup = utils::require("ghcup")?;
     print_separator("ghcup");
 
-    run_type.execute(ghcup).arg("upgrade").status_checked()
+    ctx.run_type().execute(ghcup).arg("upgrade").status_checked()
 }
 
 pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
@@ -512,28 +519,28 @@ pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
     command.status_checked()
 }
 
-pub fn run_chezmoi_update(run_type: RunType) -> Result<()> {
+pub fn run_chezmoi_update(ctx: &ExecutionContext) -> Result<()> {
     let chezmoi = utils::require("chezmoi")?;
     HOME_DIR.join(".local/share/chezmoi").require()?;
 
     print_separator("chezmoi");
 
-    run_type.execute(chezmoi).arg("update").status_checked()
+    ctx.run_type().execute(chezmoi).arg("update").status_checked()
 }
 
-pub fn run_myrepos_update(run_type: RunType) -> Result<()> {
+pub fn run_myrepos_update(ctx: &ExecutionContext) -> Result<()> {
     let myrepos = utils::require("mr")?;
     HOME_DIR.join(".mrconfig").require()?;
 
     print_separator("myrepos");
 
-    run_type
+    ctx.run_type()
         .execute(&myrepos)
         .arg("--directory")
         .arg(&*HOME_DIR)
         .arg("checkout")
         .status_checked()?;
-    run_type
+    ctx.run_type()
         .execute(&myrepos)
         .arg("--directory")
         .arg(&*HOME_DIR)
@@ -682,12 +689,15 @@ pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-pub fn run_raco_update(run_type: RunType) -> Result<()> {
+pub fn run_raco_update(ctx: &ExecutionContext) -> Result<()> {
     let raco = utils::require("raco")?;
 
     print_separator("Racket Package Manager");
 
-    run_type.execute(raco).args(["pkg", "update", "--all"]).status_checked()
+    ctx.run_type()
+        .execute(raco)
+        .args(["pkg", "update", "--all"])
+        .status_checked()
 }
 
 pub fn bin_update(ctx: &ExecutionContext) -> Result<()> {
@@ -730,14 +740,14 @@ pub fn update_julia_packages(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
-pub fn run_helm_repo_update(run_type: RunType) -> Result<()> {
+pub fn run_helm_repo_update(ctx: &ExecutionContext) -> Result<()> {
     let helm = utils::require("helm")?;
 
     print_separator("Helm");
 
     let no_repo = "no repositories found";
     let mut success = true;
-    let mut exec = run_type.execute(helm);
+    let mut exec = ctx.run_type().execute(helm);
     if let Err(e) = exec.arg("repo").arg("update").status_checked() {
         error!("Updating repositories failed: {}", e);
         success = match exec.output_checked_utf8() {
@@ -756,9 +766,9 @@ pub fn run_helm_repo_update(run_type: RunType) -> Result<()> {
     }
 }
 
-pub fn run_stew(run_type: RunType) -> Result<()> {
+pub fn run_stew(ctx: &ExecutionContext) -> Result<()> {
     let stew = require("stew")?;
 
     print_separator("stew");
-    run_type.execute(stew).args(["upgrade", "--all"]).status_checked()
+    ctx.run_type().execute(stew).args(["upgrade", "--all"]).status_checked()
 }

@@ -4,27 +4,27 @@ use std::process::Command;
 use color_eyre::eyre::Result;
 
 use crate::command::CommandExt;
-use crate::executor::RunType;
+use crate::execution_context::ExecutionContext;
 use crate::terminal::print_separator;
 use crate::utils;
 use crate::utils::PathExt;
 
 /// <https://github.com/Gelio/go-global-update>
-pub fn run_go_global_update(run_type: RunType) -> Result<()> {
+pub fn run_go_global_update(ctx: &ExecutionContext) -> Result<()> {
     let go_global_update = require_go_bin("go-global-update")?;
 
     print_separator("go-global-update");
 
-    run_type.execute(go_global_update).status_checked()
+    ctx.run_type().execute(go_global_update).status_checked()
 }
 
 /// <https://github.com/nao1215/gup>
-pub fn run_go_gup(run_type: RunType) -> Result<()> {
+pub fn run_go_gup(ctx: &ExecutionContext) -> Result<()> {
     let gup = require_go_bin("gup")?;
 
     print_separator("gup");
 
-    run_type.execute(gup).arg("update").status_checked()
+    ctx.run_type().execute(gup).arg("update").status_checked()
 }
 
 /// Get the path of a Go binary.

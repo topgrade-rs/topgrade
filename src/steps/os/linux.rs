@@ -8,9 +8,7 @@ use tracing::{debug, warn};
 use crate::command::CommandExt;
 use crate::error::{SkipStep, TopgradeError};
 use crate::execution_context::ExecutionContext;
-use crate::executor::RunType;
 use crate::steps::os::archlinux;
-use crate::sudo::Sudo;
 use crate::terminal::{print_separator, print_warning};
 use crate::utils::{require, require_option, which, PathExt};
 use crate::{Step, HOME_DIR};
@@ -677,8 +675,8 @@ fn upgrade_neon(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-pub fn run_needrestart(sudo: Option<&Sudo>, run_type: RunType) -> Result<()> {
-    let sudo = require_option(sudo, String::from("sudo is not installed"))?;
+pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
+    let sudo = require_option(ctx.sudo().as_ref(), String::from("sudo is not installed"))?;
     let needrestart = require("needrestart")?;
     let distribution = Distribution::detect()?;
 
@@ -688,7 +686,7 @@ pub fn run_needrestart(sudo: Option<&Sudo>, run_type: RunType) -> Result<()> {
 
     print_separator("Check for needed restarts");
 
-    run_type.execute(sudo).arg(needrestart).status_checked()?;
+    ctx.run_type().execute(sudo).arg(needrestart).status_checked()?;
 
     Ok(())
 }
@@ -782,8 +780,8 @@ pub fn flatpak_update(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-pub fn run_snap(sudo: Option<&Sudo>, run_type: RunType) -> Result<()> {
-    let sudo = require_option(sudo, String::from("sudo is not installed"))?;
+pub fn run_snap(ctx: &ExecutionContext) -> Result<()> {
+    let sudo = require_option(ctx.sudo().as_ref(), String::from("sudo is not installed"))?;
     let snap = require("snap")?;
 
     if !PathBuf::from("/var/snapd.socket").exists() && !PathBuf::from("/run/snapd.socket").exists() {
@@ -791,17 +789,17 @@ pub fn run_snap(sudo: Option<&Sudo>, run_type: RunType) -> Result<()> {
     }
     print_separator("snap");
 
-    run_type.execute(sudo).arg(snap).arg("refresh").status_checked()
+    ctx.run_type().execute(sudo).arg(snap).arg("refresh").status_checked()
 }
 
-pub fn run_pihole_update(sudo: Option<&Sudo>, run_type: RunType) -> Result<()> {
-    let sudo = require_option(sudo, String::from("sudo is not installed"))?;
+pub fn run_pihole_update(ctx: &ExecutionContext) -> Result<()> {
+    let sudo = require_option(ctx.sudo().as_ref(), String::from("sudo is not installed"))?;
     let pihole = require("pihole")?;
     Path::new("/opt/pihole/update.sh").require()?;
 
     print_separator("pihole");
 
-    run_type.execute(sudo).arg(pihole).arg("-up").status_checked()
+    ctx.run_type().execute(sudo).arg(pihole).arg("-up").status_checked()
 }
 
 pub fn run_protonup_update(ctx: &ExecutionContext) -> Result<()> {

@@ -18,6 +18,7 @@ use crate::error::SkipStep;
 use crate::execution_context::ExecutionContext;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use crate::executor::Executor;
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use crate::executor::RunType;
 use crate::terminal::print_separator;
 #[cfg(not(any(target_os = "android", target_os = "macos")))]
@@ -89,7 +90,7 @@ impl BrewVariant {
     }
 }
 
-pub fn run_fisher(run_type: RunType) -> Result<()> {
+pub fn run_fisher(ctx: &ExecutionContext) -> Result<()> {
     let fish = require("fish")?;
 
     Command::new(&fish)
@@ -112,7 +113,8 @@ pub fn run_fisher(run_type: RunType) -> Result<()> {
 
     print_separator("Fisher");
 
-    let version_str = run_type
+    let version_str = ctx
+        .run_type()
         .execute(&fish)
         .args(["-c", "fisher --version"])
         .output_checked_utf8()?
@@ -121,10 +123,13 @@ pub fn run_fisher(run_type: RunType) -> Result<()> {
 
     if version_str.starts_with("fisher version 3.") {
         // v3 - see https://github.com/topgrade-rs/topgrade/pull/37#issuecomment-1283844506
-        run_type.execute(&fish).args(["-c", "fisher"]).status_checked()
+        ctx.run_type().execute(&fish).args(["-c", "fisher"]).status_checked()
     } else {
         // v4
-        run_type.execute(&fish).args(["-c", "fisher update"]).status_checked()
+        ctx.run_type()
+            .execute(&fish)
+            .args(["-c", "fisher update"])
+            .status_checked()
     }
 }
 
@@ -422,40 +427,43 @@ pub fn run_yadm(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(yadm).arg("pull").status_checked()
 }
 
-pub fn run_asdf(run_type: RunType) -> Result<()> {
+pub fn run_asdf(ctx: &ExecutionContext) -> Result<()> {
     let asdf = require("asdf")?;
 
     print_separator("asdf");
-    run_type.execute(&asdf).arg("update").status_checked_with_codes(&[42])?;
+    ctx.run_type()
+        .execute(&asdf)
+        .arg("update")
+        .status_checked_with_codes(&[42])?;
 
-    run_type
+    ctx.run_type()
         .execute(&asdf)
         .args(["plugin", "update", "--all"])
         .status_checked()
 }
 
-pub fn run_home_manager(run_type: RunType) -> Result<()> {
+pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
     let home_manager = require("home-manager")?;
 
     print_separator("home-manager");
-    run_type.execute(home_manager).arg("switch").status_checked()
+    ctx.run_type().execute(home_manager).arg("switch").status_checked()
 }
 
-pub fn run_tldr(run_type: RunType) -> Result<()> {
+pub fn run_tldr(ctx: &ExecutionContext) -> Result<()> {
     let tldr = require("tldr")?;
 
     print_separator("TLDR");
-    run_type.execute(tldr).arg("--update").status_checked()
+    ctx.run_type().execute(tldr).arg("--update").status_checked()
 }
 
-pub fn run_pearl(run_type: RunType) -> Result<()> {
+pub fn run_pearl(ctx: &ExecutionContext) -> Result<()> {
     let pearl = require("pearl")?;
     print_separator("pearl");
 
-    run_type.execute(pearl).arg("update").status_checked()
+    ctx.run_type().execute(pearl).arg("update").status_checked()
 }
 
-pub fn run_sdkman(cleanup: bool, run_type: RunType) -> Result<()> {
+pub fn run_sdkman(cleanup: bool, ctx: &ExecutionContext) -> Result<()> {
     let bash = require("bash")?;
 
     let sdkman_init_path = env::var("SDKMAN_DIR")
@@ -483,33 +491,33 @@ pub fn run_sdkman(cleanup: bool, run_type: RunType) -> Result<()> {
 
     if selfupdate_enabled == "true" {
         let cmd_selfupdate = format!("source {} && sdk selfupdate", &sdkman_init_path);
-        run_type
+        ctx.run_type()
             .execute(&bash)
             .args(["-c", cmd_selfupdate.as_str()])
             .status_checked()?;
     }
 
     let cmd_update = format!("source {} && sdk update", &sdkman_init_path);
-    run_type
+    ctx.run_type()
         .execute(&bash)
         .args(["-c", cmd_update.as_str()])
         .status_checked()?;
 
     let cmd_upgrade = format!("source {} && sdk upgrade", &sdkman_init_path);
-    run_type
+    ctx.run_type()
         .execute(&bash)
         .args(["-c", cmd_upgrade.as_str()])
         .status_checked()?;
 
     if cleanup {
         let cmd_flush_archives = format!("source {} && sdk flush archives", &sdkman_init_path);
-        run_type
+        ctx.run_type()
             .execute(&bash)
             .args(["-c", cmd_flush_archives.as_str()])
             .status_checked()?;
 
         let cmd_flush_temp = format!("source {} && sdk flush temp", &sdkman_init_path);
-        run_type
+        ctx.run_type()
             .execute(&bash)
             .args(["-c", cmd_flush_temp.as_str()])
             .status_checked()?;
