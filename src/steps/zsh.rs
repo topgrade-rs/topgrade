@@ -8,13 +8,12 @@ use walkdir::WalkDir;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
-use crate::executor::RunType;
 use crate::git::Repositories;
 use crate::terminal::print_separator;
 use crate::utils::{require, PathExt};
 use crate::HOME_DIR;
 
-pub fn run_zr(run_type: RunType) -> Result<()> {
+pub fn run_zr(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
 
     require("zr")?;
@@ -22,7 +21,10 @@ pub fn run_zr(run_type: RunType) -> Result<()> {
     print_separator("zr");
 
     let cmd = format!("source {} && zr --update", zshrc().display());
-    run_type.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
+    ctx.run_type()
+        .execute(zsh)
+        .args(["-l", "-c", cmd.as_str()])
+        .status_checked()
 }
 
 fn zdotdir() -> PathBuf {
@@ -49,16 +51,16 @@ pub fn run_antidote(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
-pub fn run_antibody(run_type: RunType) -> Result<()> {
+pub fn run_antibody(ctx: &ExecutionContext) -> Result<()> {
     require("zsh")?;
     let antibody = require("antibody")?;
 
     print_separator("antibody");
 
-    run_type.execute(antibody).arg("update").status_checked()
+    ctx.run_type().execute(antibody).arg("update").status_checked()
 }
 
-pub fn run_antigen(run_type: RunType) -> Result<()> {
+pub fn run_antigen(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
     let zshrc = zshrc().require()?;
     env::var("ADOTDIR")
@@ -69,10 +71,13 @@ pub fn run_antigen(run_type: RunType) -> Result<()> {
     print_separator("antigen");
 
     let cmd = format!("source {} && (antigen selfupdate ; antigen update)", zshrc.display());
-    run_type.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
+    ctx.run_type()
+        .execute(zsh)
+        .args(["-l", "-c", cmd.as_str()])
+        .status_checked()
 }
 
-pub fn run_zgenom(run_type: RunType) -> Result<()> {
+pub fn run_zgenom(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
     let zshrc = zshrc().require()?;
     env::var("ZGEN_SOURCE")
@@ -83,10 +88,13 @@ pub fn run_zgenom(run_type: RunType) -> Result<()> {
     print_separator("zgenom");
 
     let cmd = format!("source {} && zgenom selfupdate && zgenom update", zshrc.display());
-    run_type.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
+    ctx.run_type()
+        .execute(zsh)
+        .args(["-l", "-c", cmd.as_str()])
+        .status_checked()
 }
 
-pub fn run_zplug(run_type: RunType) -> Result<()> {
+pub fn run_zplug(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
     zshrc().require()?;
 
@@ -97,13 +105,13 @@ pub fn run_zplug(run_type: RunType) -> Result<()> {
 
     print_separator("zplug");
 
-    run_type
+    ctx.run_type()
         .execute(zsh)
         .args(["-i", "-c", "zplug update"])
         .status_checked()
 }
 
-pub fn run_zinit(run_type: RunType) -> Result<()> {
+pub fn run_zinit(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
     let zshrc = zshrc().require()?;
 
@@ -115,10 +123,13 @@ pub fn run_zinit(run_type: RunType) -> Result<()> {
     print_separator("zinit");
 
     let cmd = format!("source {} && zinit self-update && zinit update --all", zshrc.display(),);
-    run_type.execute(zsh).args(["-i", "-c", cmd.as_str()]).status_checked()
+    ctx.run_type()
+        .execute(zsh)
+        .args(["-i", "-c", cmd.as_str()])
+        .status_checked()
 }
 
-pub fn run_zi(run_type: RunType) -> Result<()> {
+pub fn run_zi(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
     let zshrc = zshrc().require()?;
 
@@ -127,10 +138,10 @@ pub fn run_zi(run_type: RunType) -> Result<()> {
     print_separator("zi");
 
     let cmd = format!("source {} && zi self-update && zi update --all", zshrc.display(),);
-    run_type.execute(zsh).args(["-i", "-c", &cmd]).status_checked()
+    ctx.run_type().execute(zsh).args(["-i", "-c", &cmd]).status_checked()
 }
 
-pub fn run_zim(run_type: RunType) -> Result<()> {
+pub fn run_zim(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
     env::var("ZIM_HOME")
         .or_else(|_| {
@@ -146,7 +157,7 @@ pub fn run_zim(run_type: RunType) -> Result<()> {
 
     print_separator("zim");
 
-    run_type
+    ctx.run_type()
         .execute(zsh)
         .args(["-i", "-c", "zimfw upgrade && zimfw update"])
         .status_checked()

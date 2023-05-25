@@ -7,7 +7,6 @@ use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 
 use crate::command::CommandExt;
-use crate::executor::RunType;
 use crate::terminal::print_separator;
 use crate::HOME_DIR;
 use crate::{
@@ -18,12 +17,12 @@ use crate::{
 #[cfg(unix)]
 use std::os::unix::process::CommandExt as _;
 
-pub fn run_tpm(run_type: RunType) -> Result<()> {
+pub fn run_tpm(ctx: &ExecutionContext) -> Result<()> {
     let tpm = HOME_DIR.join(".tmux/plugins/tpm/bin/update_plugins").require()?;
 
     print_separator("tmux plugins");
 
-    run_type.execute(tpm).arg("all").status_checked()
+    ctx.run_type().execute(tpm).arg("all").status_checked()
 }
 
 struct Tmux {
