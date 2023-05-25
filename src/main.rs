@@ -94,16 +94,6 @@ fn run() -> Result<()> {
     debug!("Binary path: {:?}", std::env::current_exe());
     debug!("Self Update: {:?}", cfg!(feature = "self-update"));
 
-    #[cfg(target_os = "linux")]
-    {
-        if config.display_preamble() && terminal::supports_notify_send() && !config.skip_notify() {
-            print_warning("Due to a design issue with notify-send it could be that topgrade hangs when it's finished.
-If this is the case on your system add the --skip-notify flag to the topgrade command or set skip_notify = true in the config file.
-If you don't want this message to appear any longer set display_preamble = false in the config file.
-For more information about this issue see https://askubuntu.com/questions/110969/notify-send-ignores-timeout and https://github.com/topgrade-rs/topgrade/issues/288.");
-        }
-    }
-
     if config.run_in_tmux() && env::var("TOPGRADE_INSIDE_TMUX").is_err() {
         #[cfg(unix)]
         {

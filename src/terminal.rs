@@ -1,8 +1,6 @@
 use std::cmp::{max, min};
 use std::env;
 use std::io::{self, Write};
-#[cfg(target_os = "linux")]
-use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Mutex;
 use std::time::Duration;
@@ -20,8 +18,7 @@ use which_crate::which;
 
 use crate::command::CommandExt;
 use crate::report::StepResult;
-#[cfg(target_os = "linux")]
-use crate::utils::which;
+
 lazy_static! {
     static ref TERMINAL: Mutex<Terminal> = Mutex::new(Terminal::new());
 }
@@ -47,8 +44,6 @@ struct Terminal {
     set_title: bool,
     display_time: bool,
     desktop_notification: bool,
-    #[cfg(target_os = "linux")]
-    notify_send: Option<PathBuf>,
 }
 
 impl Terminal {
@@ -63,8 +58,6 @@ impl Terminal {
             set_title: true,
             display_time: true,
             desktop_notification: false,
-            #[cfg(target_os = "linux")]
-            notify_send: which("notify-send"),
         }
     }
 
@@ -331,9 +324,4 @@ pub fn notify_desktop<P: AsRef<str>>(message: P, timeout: Option<Duration>) {
 
 pub fn display_time(display_time: bool) {
     TERMINAL.lock().unwrap().display_time(display_time);
-}
-
-#[cfg(target_os = "linux")]
-pub fn supports_notify_send() -> bool {
-    TERMINAL.lock().unwrap().notify_send.is_some()
 }
