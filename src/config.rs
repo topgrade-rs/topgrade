@@ -530,7 +530,7 @@ impl ConfigFile {
 
         res.1 = Self::ensure_topgrade_d(&config_directory)?;
 
-        // If no config file exists, create default one in the config directory
+        // If no config file exists, create a default one in the config directory
         if !res.0.exists() && res.1.is_empty() {
             debug!("No configuration exists");
             write(&res.0, EXAMPLE_CONFIG).map_err(|e| {
@@ -575,30 +575,17 @@ impl ConfigFile {
     ///
     /// If the configuration file does not exist, the function returns the default ConfigFile.
     fn read(config_path: Option<PathBuf>) -> Result<ConfigFile> {
-        let mut should_read_include_dir = false;
-        let mut dir_include: Vec<PathBuf> = Vec::new();
+        let mut result = Self::default();
+
         let config_path = if let Some(path) = config_path {
             path
         } else {
-            should_read_include_dir = true;
-            let (path, include) = Self::ensure()?;
-            {
-                dir_include = include;
-                path
-            }
-        };
+            let (path, dir_include) = Self::ensure()?;
 
-        let mut contents_non_split = fs::read_to_string(&config_path).map_err(|e| {
-            tracing::error!("Unable to read {}", config_path.display());
-            e
-        })?;
-
-        Self::ensure_misc_is_present(&mut contents_non_split, &config_path);
-
-        let mut result = Self::default();
-
-        // The Function was called without a config_path, so we need to read the include directory
-        if should_read_include_dir {
+            /*
+            The Function was called without a config_path, we need
+            to read the include directory before returning the main config path
+            */
             for include in dir_include {
                 let include_contents = fs::read_to_string(&include).map_err(|e| {
                     tracing::error!("Unable to read {}", include.display());
@@ -611,7 +598,16 @@ impl ConfigFile {
 
                 result.merge(include_contents_parsed);
             }
-        }
+
+            path
+        };
+
+        let mut contents_non_split = fs::read_to_string(&config_path).map_err(|e| {
+            tracing::error!("Unable to read {}", config_path.display());
+            e
+        })?;
+
+        Self::ensure_misc_is_present(&mut contents_non_split, &config_path);
 
         // To parse [include] sections in the order as they are written,
         // we split the file and parse each part as a separate file

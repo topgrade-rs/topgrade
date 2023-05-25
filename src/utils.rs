@@ -102,14 +102,12 @@ pub fn require_option<T>(option: Option<T>, cause: String) -> Result<T> {
     }
 }
 
-
 pub fn string_prepend_str(string: &mut String, s: &str) {
     let mut new_string = String::with_capacity(string.len() + s.len());
     new_string.push_str(s);
     new_string.push_str(string);
     *string = new_string;
 }
-
 
 /* sys-info-rs
  *
