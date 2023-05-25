@@ -1,11 +1,12 @@
-use crate::error::SkipStep;
-use color_eyre::eyre::Result;
-
 use std::env;
 use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
+
+use color_eyre::eyre::Result;
 use tracing::{debug, error};
+
+use crate::error::SkipStep;
 
 pub trait PathExt
 where
@@ -101,6 +102,13 @@ pub fn require_option<T>(option: Option<T>, cause: String) -> Result<T> {
     }
 }
 
+pub fn string_prepend_str(string: &mut String, s: &str) {
+    let mut new_string = String::with_capacity(string.len() + s.len());
+    new_string.push_str(s);
+    new_string.push_str(string);
+    *string = new_string;
+}
+
 /* sys-info-rs
  *
  * Copyright (c) 2015 Siyu Wang
@@ -151,4 +159,57 @@ pub fn hostname() -> Result<String> {
         .output_checked_utf8()
         .map_err(|err| SkipStep(format!("Failed to get hostname: {err}")).into())
         .map(|output| output.stdout.trim().to_owned())
+}
+
+pub mod merge_strategies {
+    use merge::Merge;
+
+    use crate::config::Commands;
+
+    /// Prepends right to left (both Option<Vec<T>>)
+    pub fn vec_prepend_opt<T>(left: &mut Option<Vec<T>>, right: Option<Vec<T>>) {
+        if let Some(left_vec) = left {
+            if let Some(mut right_vec) = right {
+                right_vec.append(left_vec);
+                let _ = std::mem::replace(left, Some(right_vec));
+            }
+        } else {
+            *left = right;
+        }
+    }
+
+    /// Appends an Option<String> to another Option<String>
+    pub fn string_append_opt(left: &mut Option<String>, right: Option<String>) {
+        if let Some(left_str) = left {
+            if let Some(right_str) = right {
+                left_str.push(' ');
+                left_str.push_str(&right_str);
+            }
+        } else {
+            *left = right;
+        }
+    }
+
+    pub fn inner_merge_opt<T>(left: &mut Option<T>, right: Option<T>)
+    where
+        T: Merge,
+    {
+        if let Some(ref mut left_inner) = left {
+            if let Some(right_inner) = right {
+                left_inner.merge(right_inner);
+            }
+        } else {
+            *left = right;
+        }
+    }
+
+    pub fn commands_merge_opt(left: &mut Option<Commands>, right: Option<Commands>) {
+        if let Some(ref mut left_inner) = left {
+            if let Some(right_inner) = right {
+                left_inner.extend(right_inner);
+            }
+        } else {
+            *left = right;
+        }
+    }
 }

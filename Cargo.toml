@@ -41,12 +41,14 @@ tempfile = "~3.2"
 cfg-if = "~1.0"
 tokio = { version = "~1.18", features = ["process", "rt-multi-thread"] }
 futures = "~0.3"
-regex = "~1.5"
+regex = "~1.7"
 semver = "~1.0"
 shell-words = "~1.1"
 color-eyre = "~0.6"
 tracing = { version = "~0.1", features = ["attributes", "log"] }
 tracing-subscriber = { version = "~0.3", features = ["env-filter", "time"] }
+merge = "0.1.0"
+regex-split = "0.1.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 notify-rust = "~4.5"
