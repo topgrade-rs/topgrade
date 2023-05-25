@@ -12,7 +12,6 @@ use color_eyre::eyre;
 use color_eyre::eyre::Context;
 use console::{style, Key, Term};
 use lazy_static::lazy_static;
-#[cfg(target_os = "macos")]
 use notify_rust::{Notification, Timeout};
 use tracing::{debug, error};
 #[cfg(windows)]
@@ -20,8 +19,6 @@ use which_crate::which;
 
 use crate::command::CommandExt;
 use crate::report::StepResult;
-#[cfg(target_os = "linux")]
-use crate::terminal;
 #[cfg(target_os = "linux")]
 use crate::utils::which;
 lazy_static! {
@@ -81,37 +78,26 @@ impl Terminal {
     fn display_time(&mut self, display_time: bool) {
         self.display_time = display_time
     }
-
-    #[allow(unused_variables)]
+    
+    // Add BSD maybe
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     fn notify_desktop<P: AsRef<str>>(&self, message: P, timeout: Option<Duration>) {
         debug!("Desktop notification: {}", message.as_ref());
-        cfg_if::cfg_if! {
-            if #[cfg(target_os = "macos")] {
-                let mut notification = Notification::new();
-                notification.summary("Topgrade")
-                    .body(message.as_ref())
-                    .appname("topgrade");
+        let mut notification = Notification::new();
+        notification
+            .summary("Topgrade")
+            .body(message.as_ref())
+            .appname("topgrade");
 
-                if let Some(timeout) = timeout {
-                    notification.timeout(Timeout::Milliseconds(timeout.as_millis() as u32));
-                }
-                notification.show().ok();
-            } else if #[cfg(target_os = "linux")] {
-                if let Some(ns) = self.notify_send.as_ref() {
-                    let mut command = Command::new(ns);
-                    if let Some(timeout) = timeout {
-                        command.arg("-t");
-                        command.arg(format!("{}", timeout.as_millis()));
-                    }
-                    command.args(["-a", "Topgrade", "Topgrade"]);
-                    command.arg(message.as_ref());
-                    if let Err(err) = command.output_checked() {
-                        terminal::print_warning("Sending notification failed with {err:?}");
-                    }
-                }
-            }
+        if let Some(timeout) = timeout {
+            notification.timeout(Timeout::Milliseconds(timeout.as_millis() as u32));
         }
+        notification.show().ok();
     }
+
+    // Windows could use https://crates.io/crates/winrt-notification
+    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+    fn notify_desktop<P: AsRef<str>>(&self, _message: P, _timeout: Option<Duration>) {}
 
     fn print_separator<P: AsRef<str>>(&mut self, message: P) {
         if self.set_title {
