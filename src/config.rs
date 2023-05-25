@@ -397,8 +397,6 @@ pub struct Misc {
 
     display_time: Option<bool>,
 
-    display_preamble: Option<bool>,
-
     assume_yes: Option<bool>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
@@ -1486,14 +1484,6 @@ impl Config {
             .misc
             .as_ref()
             .and_then(|misc| misc.display_time)
-            .unwrap_or(true)
-    }
-
-    pub fn display_preamble(&self) -> bool {
-        self.config_file
-            .misc
-            .as_ref()
-            .and_then(|misc| misc.display_preamble)
             .unwrap_or(true)
     }
 
