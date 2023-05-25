@@ -612,7 +612,8 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let dotnet = utils::require("dotnet")?;
 
-    //Skip when the `dotnet tool list` subcommand fails. (This is expected when a dotnet runtime is installed but no SDK.)
+    // Skip when the `dotnet tool list` subcommand fails.
+    // (This is expected when a dotnet runtime is installed but no SDK.)
     let output = match ctx
         .run_type()
         .execute(&dotnet)
@@ -628,11 +629,20 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
         }
     };
 
-    if !output.stdout.starts_with("Package Id") {
-        return Err(SkipStep(String::from("dotnet did not output packages")).into());
-    }
-
-    let mut packages = output.stdout.lines().skip(2).filter(|line| !line.is_empty()).peekable();
+    let mut packages = output
+        .stdout
+        .lines()
+        // Skip the header:
+        //
+        // Package Id      Version      Commands
+        // -------------------------------------
+        //
+        // One thing to note is that .NET SDK respect locale, which means this
+        // header can be printed in languages other than English, do NOT use it
+        // to do any check.
+        .skip(2)
+        .filter(|line| !line.is_empty())
+        .peekable();
 
     if packages.peek().is_none() {
         return Err(SkipStep(String::from("No dotnet global tools installed")).into());
