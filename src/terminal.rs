@@ -72,7 +72,7 @@ impl Terminal {
     fn display_time(&mut self, display_time: bool) {
         self.display_time = display_time
     }
-    
+
     // Add BSD maybe
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     fn notify_desktop<P: AsRef<str>>(&self, message: P, timeout: Option<Duration>) {
