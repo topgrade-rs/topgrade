@@ -12,6 +12,7 @@ use color_eyre::eyre;
 use color_eyre::eyre::Context;
 use console::{style, Key, Term};
 use lazy_static::lazy_static;
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 use notify_rust::{Notification, Timeout};
 use tracing::{debug, error};
 #[cfg(windows)]
