@@ -1,8 +1,6 @@
 use std::cmp::{max, min};
 use std::env;
 use std::io::{self, Write};
-#[cfg(target_os = "linux")]
-use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Mutex;
 use std::time::Duration;
@@ -12,7 +10,6 @@ use color_eyre::eyre;
 use color_eyre::eyre::Context;
 use console::{style, Key, Term};
 use lazy_static::lazy_static;
-#[cfg(target_os = "macos")]
 use notify_rust::{Notification, Timeout};
 use tracing::{debug, error};
 #[cfg(windows)]
@@ -20,10 +17,7 @@ use which_crate::which;
 
 use crate::command::CommandExt;
 use crate::report::StepResult;
-#[cfg(target_os = "linux")]
-use crate::terminal;
-#[cfg(target_os = "linux")]
-use crate::utils::which;
+
 lazy_static! {
     static ref TERMINAL: Mutex<Terminal> = Mutex::new(Terminal::new());
 }
@@ -49,8 +43,6 @@ struct Terminal {
     set_title: bool,
     display_time: bool,
     desktop_notification: bool,
-    #[cfg(target_os = "linux")]
-    notify_send: Option<PathBuf>,
 }
 
 impl Terminal {
@@ -65,8 +57,6 @@ impl Terminal {
             set_title: true,
             display_time: true,
             desktop_notification: false,
-            #[cfg(target_os = "linux")]
-            notify_send: which("notify-send"),
         }
     }
 
@@ -82,35 +72,18 @@ impl Terminal {
         self.display_time = display_time
     }
 
-    #[allow(unused_variables)]
     fn notify_desktop<P: AsRef<str>>(&self, message: P, timeout: Option<Duration>) {
         debug!("Desktop notification: {}", message.as_ref());
-        cfg_if::cfg_if! {
-            if #[cfg(target_os = "macos")] {
-                let mut notification = Notification::new();
-                notification.summary("Topgrade")
-                    .body(message.as_ref())
-                    .appname("topgrade");
+        let mut notification = Notification::new();
+        notification
+            .summary("Topgrade")
+            .body(message.as_ref())
+            .appname("topgrade");
 
-                if let Some(timeout) = timeout {
-                    notification.timeout(Timeout::Milliseconds(timeout.as_millis() as u32));
-                }
-                notification.show().ok();
-            } else if #[cfg(target_os = "linux")] {
-                if let Some(ns) = self.notify_send.as_ref() {
-                    let mut command = Command::new(ns);
-                    if let Some(timeout) = timeout {
-                        command.arg("-t");
-                        command.arg(format!("{}", timeout.as_millis()));
-                    }
-                    command.args(["-a", "Topgrade", "Topgrade"]);
-                    command.arg(message.as_ref());
-                    if let Err(err) = command.output_checked() {
-                        terminal::print_warning("Sending notification failed with {err:?}");
-                    }
-                }
-            }
+        if let Some(timeout) = timeout {
+            notification.timeout(Timeout::Milliseconds(timeout.as_millis() as u32));
         }
+        notification.show().ok();
     }
 
     fn print_separator<P: AsRef<str>>(&mut self, message: P) {
@@ -344,9 +317,4 @@ pub fn notify_desktop<P: AsRef<str>>(message: P, timeout: Option<Duration>) {
 
 pub fn display_time(display_time: bool) {
     TERMINAL.lock().unwrap().display_time(display_time);
-}
-
-#[cfg(target_os = "linux")]
-pub fn supports_notify_send() -> bool {
-    TERMINAL.lock().unwrap().notify_send.is_some()
 }

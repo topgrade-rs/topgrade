@@ -397,8 +397,6 @@ pub struct Misc {
 
     display_time: Option<bool>,
 
-    display_preamble: Option<bool>,
-
     assume_yes: Option<bool>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
@@ -787,7 +785,7 @@ pub struct CommandLineArgs {
     /// Tracing filter directives.
     ///
     /// See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/struct.EnvFilter.html
-    #[clap(long, default_value = "info")]
+    #[clap(long, default_value = "warn")]
     pub log_filter: String,
 
     /// Print completion script for the given shell and exit
@@ -1486,14 +1484,6 @@ impl Config {
             .misc
             .as_ref()
             .and_then(|misc| misc.display_time)
-            .unwrap_or(true)
-    }
-
-    pub fn display_preamble(&self) -> bool {
-        self.config_file
-            .misc
-            .as_ref()
-            .and_then(|misc| misc.display_preamble)
             .unwrap_or(true)
     }
 
