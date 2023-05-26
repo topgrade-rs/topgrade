@@ -49,7 +49,7 @@ tracing = { version = "~0.1", features = ["attributes", "log"] }
 tracing-subscriber = { version = "~0.3", features = ["env-filter", "time"] }
 merge = "0.1.0"
 regex-split = "0.1.0"
-notify-rust = "~4.5"
+notify-rust = "4.8.0"
 
 [package.metadata.generate-rpm]
 assets = [{source = "target/release/topgrade", dest="/usr/bin/topgrade"}]

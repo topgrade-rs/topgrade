@@ -785,7 +785,7 @@ pub struct CommandLineArgs {
     /// Tracing filter directives.
     ///
     /// See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/struct.EnvFilter.html
-    #[clap(long, default_value = "info")]
+    #[clap(long, default_value = "warn")]
     pub log_filter: String,
 
     /// Print completion script for the given shell and exit
