@@ -100,8 +100,8 @@ Just fork the repository and start coding.
 
 ### Contribution Guidelines
 
-- Check if your code passes `cargo fmt` and `cargo clippy`.
-- Check if your code is self explanatory, if not it should be documented by comments.
+See [CONTRIBUTING.md](https://github.com/topgrade-rs/topgrade/blob/master/CONTRIBUTING.md)
+
 ## Roadmap
 
 - [ ] Add a proper testing framework to the code base.
