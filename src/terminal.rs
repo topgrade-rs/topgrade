@@ -10,7 +10,6 @@ use color_eyre::eyre;
 use color_eyre::eyre::Context;
 use console::{style, Key, Term};
 use lazy_static::lazy_static;
-#[cfg(any(target_os = "linux", target_os = "macos"))]
 use notify_rust::{Notification, Timeout};
 use tracing::{debug, error};
 #[cfg(windows)]
@@ -73,8 +72,6 @@ impl Terminal {
         self.display_time = display_time
     }
 
-    // Add BSD maybe
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
     fn notify_desktop<P: AsRef<str>>(&self, message: P, timeout: Option<Duration>) {
         debug!("Desktop notification: {}", message.as_ref());
         let mut notification = Notification::new();
@@ -88,10 +85,6 @@ impl Terminal {
         }
         notification.show().ok();
     }
-
-    // Windows could use https://crates.io/crates/winrt-notification
-    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-    fn notify_desktop<P: AsRef<str>>(&self, _message: P, _timeout: Option<Duration>) {}
 
     fn print_separator<P: AsRef<str>>(&mut self, message: P) {
         if self.set_title {

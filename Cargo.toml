@@ -49,6 +49,7 @@ tracing = { version = "~0.1", features = ["attributes", "log"] }
 tracing-subscriber = { version = "~0.3", features = ["env-filter", "time"] }
 merge = "0.1.0"
 regex-split = "0.1.0"
+notify-rust = "~4.5"
 
 [package.metadata.generate-rpm]
 assets = [{source = "target/release/topgrade", dest="/usr/bin/topgrade"}]
@@ -64,9 +65,6 @@ libc = "~0.2"
 nix = "~0.24"
 rust-ini = "~0.18"
 self_update_crate = { version = "~0.30", default-features = false, optional = true, package = "self_update", features = ["archive-tar", "compression-flate2", "rustls"] }
-
-[target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
-notify-rust = "~4.5"
 
 [target.'cfg(windows)'.dependencies]
 self_update_crate = { version = "~0.30", default-features = false, optional = true, package = "self_update", features = ["archive-zip", "compression-zip-deflate", "rustls"] }
