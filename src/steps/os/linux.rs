@@ -431,7 +431,11 @@ fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
 
         let is_nala = apt.ends_with("nala");
         if !is_nala {
-            ctx.run_type().execute(sudo).arg(&apt).arg("update").status_checked()?;
+            ctx.run_type()
+                .execute(sudo)
+                .arg(&apt)
+                .arg("update")
+                .status_checked_with_codes(&[0, 100])?;
         }
 
         let mut command = ctx.run_type().execute(sudo);
