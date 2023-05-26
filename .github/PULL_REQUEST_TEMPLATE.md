@@ -1,6 +1,7 @@
 ## Standards checklist:
 
 - [ ] The PR title is descriptive.
+- [ ] I have read `CONTRIBUTING.md`
 - [ ] The code compiles (`cargo build`)
 - [ ] The code passes rustfmt (`cargo fmt`)
 - [ ] The code passes clippy (`cargo clippy`)
