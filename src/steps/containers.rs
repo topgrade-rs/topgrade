@@ -24,7 +24,7 @@ const NONEXISTENT_REPO: &str = "repository does not exist";
 struct Container {
     /// `Repository` and `Tag`
     ///
-    /// format: `Repository:Tag`, e.g., `fedora:latest`.
+    /// format: `Repository:Tag`, e.g., `nixos/nix:latest`.
     repo_tag: String,
     /// Platform
     ///
@@ -41,7 +41,7 @@ impl Container {
 
 impl Display for Container {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        // e.g., "`fedora/latest` for `linux/amd64`"
+        // e.g., "`fedora:latest` for `linux/amd64`"
         write!(f, "`{}` for `{}`", self.repo_tag, self.platform)
     }
 }
@@ -54,7 +54,7 @@ fn list_containers(crt: &Path) -> Result<Vec<Container>> {
         crt.display()
     );
     let output = Command::new(crt)
-        .args(["image", "ls", "--format", "{{.Repository}}:{{.Tag}}/{{.ID}}"])
+        .args(["image", "ls", "--format", "{{.Repository}}:{{.Tag}} {{.ID}}"])
         .output_checked_with_utf8(|_| Ok(()))?;
 
     let mut retval = vec![];
@@ -78,8 +78,8 @@ fn list_containers(crt: &Path) -> Result<Vec<Container>> {
 
         debug!("Using container '{}'", line);
 
-        // line is of format: `Repository:Tag/ImageID`, e.g., `fedora:latest/be300d2b6d94`.
-        let split_res = line.split('/').collect::<Vec<&str>>();
+        // line is of format: `Repository:Tag ImageID`, e.g., `nixos/nix:latest d80fea9c32b4`
+        let split_res = line.split(' ').collect::<Vec<&str>>();
         assert_eq!(split_res.len(), 2);
         let (repo_tag, image_id) = (split_res[0], split_res[1]);
 
