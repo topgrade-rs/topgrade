@@ -54,13 +54,13 @@ fn run() -> Result<()> {
 
     if let Some(shell) = opt.gen_completion {
         let cmd = &mut CommandLineArgs::command();
-        clap_complete::generate(shell, cmd, clap::crate_name!(), &mut std::io::stdout());
+        clap_complete::generate(shell, cmd, clap::crate_name!(), &mut io::stdout());
         return Ok(());
     }
 
     if opt.gen_manpage {
         let man = clap_mangen::Man::new(CommandLineArgs::command());
-        man.render(&mut std::io::stdout())?;
+        man.render(&mut io::stdout())?;
         return Ok(());
     }
 
@@ -79,14 +79,14 @@ fn run() -> Result<()> {
     };
 
     if opt.show_config_reference() {
-        print!("{}", crate::config::EXAMPLE_CONFIG);
+        print!("{}", config::EXAMPLE_CONFIG);
         return Ok(());
     }
 
     let config = Config::load(opt)?;
-    terminal::set_title(config.set_title());
-    terminal::display_time(config.display_time());
-    terminal::set_desktop_notifications(config.notify_each_step());
+    set_title(config.set_title());
+    display_time(config.display_time());
+    set_desktop_notifications(config.notify_each_step());
 
     debug!("Version: {}", crate_version!());
     debug!("OS: {}", env!("TARGET"));
@@ -166,7 +166,7 @@ fn run() -> Result<()> {
     if let Some(topgrades) = config.remote_topgrades() {
         for remote_topgrade in topgrades.iter().filter(|t| config.should_execute_remote(t)) {
             runner.execute(Step::Remotes, format!("Remote ({remote_topgrade})"), || {
-                remote::ssh::ssh_step(&ctx, remote_topgrade)
+                ssh::ssh_step(&ctx, remote_topgrade)
             })?;
         }
     }
@@ -513,7 +513,7 @@ fn run() -> Result<()> {
     let failed = post_command_failed || runner.report().data().iter().any(|(_, result)| result.failed());
 
     if !config.skip_notify() {
-        terminal::notify_desktop(
+        notify_desktop(
             format!(
                 "Topgrade finished {}",
                 if failed { "with errors" } else { "successfully" }

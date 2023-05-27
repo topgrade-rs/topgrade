@@ -3,7 +3,6 @@ use std::ffi::{OsStr, OsString};
 use std::path::Path;
 use std::process::{Child, Command, ExitStatus, Output};
 
-use color_eyre::eyre;
 use color_eyre::eyre::Result;
 use tracing::debug;
 
@@ -238,7 +237,7 @@ impl CommandExt for Executor {
     // TODO: It might be nice to make `output_checked_with` return something that has a
     // variant for wet/dry runs.
 
-    fn output_checked_with(&mut self, succeeded: impl Fn(&Output) -> Result<(), ()>) -> eyre::Result<Output> {
+    fn output_checked_with(&mut self, succeeded: impl Fn(&Output) -> Result<(), ()>) -> Result<Output> {
         match self {
             Executor::Wet(c) => c.output_checked_with(succeeded),
             Executor::Dry(c) => {
@@ -248,7 +247,7 @@ impl CommandExt for Executor {
         }
     }
 
-    fn status_checked_with(&mut self, succeeded: impl Fn(ExitStatus) -> Result<(), ()>) -> eyre::Result<()> {
+    fn status_checked_with(&mut self, succeeded: impl Fn(ExitStatus) -> Result<(), ()>) -> Result<()> {
         match self {
             Executor::Wet(c) => c.status_checked_with(succeeded),
             Executor::Dry(c) => {
@@ -258,7 +257,7 @@ impl CommandExt for Executor {
         }
     }
 
-    fn spawn_checked(&mut self) -> eyre::Result<Self::Child> {
+    fn spawn_checked(&mut self) -> Result<Self::Child> {
         self.spawn()
     }
 }
