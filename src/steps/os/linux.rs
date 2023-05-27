@@ -498,7 +498,7 @@ fn upgrade_solus(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-pub fn update_am(ctx: &ExecutionContext) -> Result<()> {
+pub fn run_am(ctx: &ExecutionContext) -> Result<()> {
     let am = require("am")?;
     if let Some(sudo) = ctx.sudo() {
         ctx.run_type().execute(sudo).arg(am).arg("-u").status_checked()?;
@@ -722,7 +722,7 @@ pub fn run_fwupdmgr(ctx: &ExecutionContext) -> Result<()> {
     updmgr.status_checked_with_codes(&[2])
 }
 
-pub fn flatpak_update(ctx: &ExecutionContext) -> Result<()> {
+pub fn run_flatpak(ctx: &ExecutionContext) -> Result<()> {
     let flatpak = require("flatpak")?;
     let sudo = require_option(ctx.sudo().as_ref(), String::from("sudo is not installed"))?;
     let cleanup = ctx.config().cleanup();
