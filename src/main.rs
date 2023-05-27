@@ -154,10 +154,14 @@ fn run() -> Result<()> {
     let should_run_powershell = powershell.profile().is_some() && config.should_run(Step::Powershell);
 
     #[cfg(windows)]
-    runner.execute(Step::Wsl, "WSL", || windows::run_wsl_topgrade(&ctx))?;
-
-    #[cfg(windows)]
-    runner.execute(Step::WslUpdate, "WSL", || windows::update_wsl(&ctx))?;
+    {
+        runner.execute(Step::Wsl, "WSL", || windows::run_wsl_topgrade(&ctx))?;
+        runner.execute(Step::WslUpdate, "WSL", || windows::update_wsl(&ctx))?;
+        runner.execute(Step::Chocolatey, "Chocolatey", || windows::run_chocolatey(&ctx))?;
+        runner.execute(Step::Scoop, "Scoop", || windows::run_scoop(config.cleanup(), &ctx))?;
+        runner.execute(Step::Winget, "Winget", || windows::run_winget(&ctx))?;
+        runner.execute(Step::System, "Windows update", || windows::windows_update(&ctx))?;
+    }
 
     if let Some(topgrades) = config.remote_topgrades() {
         for remote_topgrade in topgrades.iter().filter(|t| config.should_execute_remote(t)) {
@@ -190,13 +194,6 @@ fn run() -> Result<()> {
         runner.execute(Step::BrewFormula, "Brew", || {
             unix::run_brew_formula(&ctx, unix::BrewVariant::Path)
         })?;
-    }
-
-    #[cfg(windows)]
-    {
-        runner.execute(Step::Chocolatey, "Chocolatey", || windows::run_chocolatey(&ctx))?;
-        runner.execute(Step::Scoop, "Scoop", || windows::run_scoop(config.cleanup(), &ctx))?;
-        runner.execute(Step::Winget, "Winget", || windows::run_winget(&ctx))?;
     }
 
     #[cfg(target_os = "macos")]
@@ -235,15 +232,25 @@ fn run() -> Result<()> {
     }
 
     #[cfg(target_os = "dragonfly")]
-    runner.execute(Step::Pkg, "DragonFly BSD Packages", || {
-        dragonfly::upgrade_packages(&ctx)
-    })?;
+    {
+        runner.execute(Step::Pkg, "DragonFly BSD Packages", || {
+            dragonfly::upgrade_packages(&ctx)
+        })?;
+        dragonfly::audit_packages(ctx.sudo().as_ref()).ok();
+    }
 
     #[cfg(target_os = "freebsd")]
-    runner.execute(Step::Pkg, "FreeBSD Packages", || freebsd::upgrade_packages(&ctx))?;
+    {
+        runner.execute(Step::Pkg, "FreeBSD Packages", || freebsd::upgrade_packages(&ctx))?;
+        runner.execute(Step::System, "FreeBSD Upgrade", || freebsd::upgrade_freebsd(&ctx))?;
+        freebsd::audit_packages(ctx.sudo().as_ref()).ok();
+    }
 
     #[cfg(target_os = "openbsd")]
-    runner.execute(Step::Pkg, "OpenBSD Packages", || openbsd::upgrade_packages(&ctx))?;
+    {
+        runner.execute(Step::Pkg, "OpenBSD Packages", || openbsd::upgrade_packages(&ctx))?;
+        runner.execute(Step::System, "OpenBSD Upgrade", || openbsd::upgrade_openbsd(&ctx))?;
+    }
 
     #[cfg(target_os = "android")]
     runner.execute(Step::Pkg, "Termux Packages", || android::upgrade_packages(&ctx))?;
@@ -412,11 +419,11 @@ fn run() -> Result<()> {
 
     #[cfg(target_os = "linux")]
     {
-        runner.execute(Step::AM, "am", || linux::update_am(&ctx))?;
+        runner.execute(Step::AM, "am", || linux::run_am(&ctx))?;
         runner.execute(Step::AppMan, "appman", || linux::run_appman(&ctx))?;
         runner.execute(Step::DebGet, "deb-get", || linux::run_deb_get(&ctx))?;
         runner.execute(Step::Toolbx, "toolbx", || toolbx::run_toolbx(&ctx))?;
-        runner.execute(Step::Flatpak, "Flatpak", || linux::flatpak_update(&ctx))?;
+        runner.execute(Step::Flatpak, "Flatpak", || linux::run_flatpak(&ctx))?;
         runner.execute(Step::Snap, "snap", || linux::run_snap(&ctx))?;
         runner.execute(Step::Pacstall, "pacstall", || linux::run_pacstall(&ctx))?;
         runner.execute(Step::Pacdef, "pacdef", || linux::run_pacdef(&ctx))?;
@@ -449,15 +456,6 @@ fn run() -> Result<()> {
         runner.execute(Step::System, "System upgrade", || macos::upgrade_macos(&ctx))?;
     }
 
-    #[cfg(target_os = "freebsd")]
-    runner.execute(Step::System, "FreeBSD Upgrade", || freebsd::upgrade_freebsd(&ctx))?;
-
-    #[cfg(target_os = "openbsd")]
-    runner.execute(Step::System, "OpenBSD Upgrade", || openbsd::upgrade_openbsd(&ctx))?;
-
-    #[cfg(windows)]
-    runner.execute(Step::System, "Windows update", || windows::windows_update(&ctx))?;
-
     if config.should_run(Step::Vagrant) {
         if let Ok(boxes) = vagrant::collect_boxes(&ctx) {
             for vagrant_box in boxes {
@@ -482,12 +480,6 @@ fn run() -> Result<()> {
                 distribution.show_summary();
             }
         }
-
-        #[cfg(target_os = "freebsd")]
-        freebsd::audit_packages(ctx.sudo().as_ref()).ok();
-
-        #[cfg(target_os = "dragonfly")]
-        dragonfly::audit_packages(ctx.sudo().as_ref()).ok();
     }
 
     let mut post_command_failed = false;
