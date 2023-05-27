@@ -2,10 +2,7 @@ use std::fs;
 use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 use std::process::Command;
-use std::{
-    env::{self, var},
-    path::Path,
-};
+use std::{env::var, path::Path};
 
 use crate::command::CommandExt;
 use crate::{Step, HOME_DIR};
@@ -229,7 +226,7 @@ pub fn run_fundle(ctx: &ExecutionContext) -> Result<()> {
 pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
     let gdbus = require("gdbus")?;
     require_option(
-        env::var("XDG_CURRENT_DESKTOP").ok().filter(|p| p.contains("GNOME")),
+        var("XDG_CURRENT_DESKTOP").ok().filter(|p| p.contains("GNOME")),
         "Desktop doest not appear to be gnome".to_string(),
     )?;
     let output = Command::new("gdbus")
@@ -407,7 +404,7 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
 
     run_type.execute(nix_channel).arg("--update").status_checked()?;
 
-    if std::path::Path::new(&manifest_json_path).exists() {
+    if Path::new(&manifest_json_path).exists() {
         run_type
             .execute(&nix)
             .arg("profile")
@@ -466,7 +463,7 @@ pub fn run_pearl(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_sdkman(cleanup: bool, ctx: &ExecutionContext) -> Result<()> {
     let bash = require("bash")?;
 
-    let sdkman_init_path = env::var("SDKMAN_DIR")
+    let sdkman_init_path = var("SDKMAN_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| HOME_DIR.join(".sdkman"))
         .join("bin")
@@ -476,7 +473,7 @@ pub fn run_sdkman(cleanup: bool, ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("SDKMAN!");
 
-    let sdkman_config_path = env::var("SDKMAN_DIR")
+    let sdkman_config_path = var("SDKMAN_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| HOME_DIR.join(".sdkman"))
         .join("etc")

@@ -40,7 +40,7 @@ pub enum Distribution {
 }
 
 impl Distribution {
-    fn parse_os_release(os_release: &ini::Ini) -> Result<Self> {
+    fn parse_os_release(os_release: &Ini) -> Result<Self> {
         let section = os_release.general_section();
         let id = section.get("ID");
         let variant: Option<Vec<&str>> = section.get("VARIANT").map(|s| s.split_whitespace().collect());
@@ -51,14 +51,14 @@ impl Distribution {
             Some("centos") | Some("rhel") | Some("ol") => Distribution::CentOS,
             Some("clear-linux-os") => Distribution::ClearLinux,
             Some("fedora") | Some("nobara") => {
-                if let Some(variant) = variant {
+                return if let Some(variant) = variant {
                     if variant.contains(&"Silverblue") {
-                        return Ok(Distribution::FedoraSilverblue);
+                        Ok(Distribution::FedoraSilverblue)
                     } else {
-                        return Ok(Distribution::Fedora);
-                    };
+                        Ok(Distribution::Fedora)
+                    }
                 } else {
-                    return Ok(Distribution::Fedora);
+                    Ok(Distribution::Fedora)
                 }
             }
 
@@ -81,11 +81,11 @@ impl Distribution {
                         return Ok(Distribution::CentOS);
                     } else if id_like.contains(&"suse") {
                         let id_variant = id.unwrap_or_default();
-                        if id_variant.contains("tumbleweed") {
-                            return Ok(Distribution::OpenSuseTumbleweed);
+                        return if id_variant.contains("tumbleweed") {
+                            Ok(Distribution::OpenSuseTumbleweed)
                         } else {
-                            return Ok(Distribution::Suse);
-                        }
+                            Ok(Distribution::Suse)
+                        };
                     } else if id_like.contains(&"arch") || id_like.contains(&"archlinux") {
                         return Ok(Distribution::Arch);
                     } else if id_like.contains(&"alpine") {
