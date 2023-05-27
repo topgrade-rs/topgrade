@@ -1,0 +1,8 @@
+PRETTY_NAME="Deepin 20.9"
+NAME="Deepin"
+VERSION_ID="20.9"
+VERSION="20.9"
+VERSION_CODENAME="apricot"
+ID=Deepin
+HOME_URL="https://www.deepin.org/"
+BUG_REPORT_URL="https://bbs.deepin.org/"

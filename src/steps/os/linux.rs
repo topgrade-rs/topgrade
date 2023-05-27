@@ -63,7 +63,7 @@ impl Distribution {
             }
 
             Some("void") => Distribution::Void,
-            Some("debian") | Some("pureos") => Distribution::Debian,
+            Some("debian") | Some("pureos") | Some("Deepin") => Distribution::Debian,
             Some("arch") | Some("anarchy") | Some("manjaro-arm") | Some("garuda") | Some("artix") => Distribution::Arch,
             Some("solus") => Distribution::Solus,
             Some("gentoo") => Distribution::Gentoo,
@@ -1010,5 +1010,10 @@ mod tests {
     #[test]
     fn test_pureos() {
         test_template(include_str!("os_release/pureos"), Distribution::Debian);
+    }
+
+    #[test]
+    fn test_deepin() {
+        test_template(include_str!("os_release/deepin"), Distribution::Debian);
     }
 }
