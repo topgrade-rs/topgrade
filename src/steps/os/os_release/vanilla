@@ -1,0 +1,12 @@
+PRETTY_NAME="VanillaOS 22.10 all"
+NAME="VanillaOS"
+VERSION_ID="22.10"
+VERSION="22.10 all"
+VERSION_CODENAME="kinetic"
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://github.com/vanilla-os"
+SUPPORT_URL="https://github.com/vanilla-os"
+BUG_REPORT_URL="https://github.com/vanilla-os"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME="kinetic"

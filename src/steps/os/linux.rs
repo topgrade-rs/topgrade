@@ -32,6 +32,7 @@ pub enum Distribution {
     PCLinuxOS,
     Suse,
     SuseMicro,
+    Vanilla,
     Void,
     Solus,
     Exherbo,
@@ -43,6 +44,7 @@ impl Distribution {
     fn parse_os_release(os_release: &Ini) -> Result<Self> {
         let section = os_release.general_section();
         let id = section.get("ID");
+        let name = section.get("NAME");
         let variant: Option<Vec<&str>> = section.get("VARIANT").map(|s| s.split_whitespace().collect());
         let id_like: Option<Vec<&str>> = section.get("ID_LIKE").map(|s| s.split_whitespace().collect());
 
@@ -74,6 +76,11 @@ impl Distribution {
             Some("openmandriva") => Distribution::OpenMandriva,
             Some("pclinuxos") => Distribution::PCLinuxOS,
             _ => {
+                if let Some(name) = name {
+                    if name.contains("Vanilla") {
+                        return Ok(Distribution::Vanilla);
+                    }
+                }
                 if let Some(id_like) = id_like {
                     if id_like.contains(&"debian") || id_like.contains(&"ubuntu") {
                         return Ok(Distribution::Debian);
@@ -127,6 +134,7 @@ impl Distribution {
             Distribution::Suse => upgrade_suse(ctx),
             Distribution::SuseMicro => upgrade_suse_micro(ctx),
             Distribution::OpenSuseTumbleweed => upgrade_opensuse_tumbleweed(ctx),
+            Distribution::Vanilla => upgrade_vanilla(ctx),
             Distribution::Void => upgrade_void(ctx),
             Distribution::Solus => upgrade_solus(ctx),
             Distribution::Exherbo => upgrade_exherbo(ctx),
@@ -339,6 +347,26 @@ fn upgrade_pclinuxos(ctx: &ExecutionContext) -> Result<()> {
     } else {
         print_warning("No sudo detected. Skipping system upgrade");
     }
+
+    Ok(())
+}
+
+fn upgrade_vanilla(ctx: &ExecutionContext) -> Result<()> {
+    let apx = require("apx")?;
+
+    let mut update = ctx.run_type().execute(&apx);
+    update.args(["update", "--all"]);
+    if ctx.config().yes(Step::System) {
+        update.arg("-y");
+    }
+    update.status_checked()?;
+
+    let mut upgrade = ctx.run_type().execute(&apx);
+    update.args(["upgrade", "--all"]);
+    if ctx.config().yes(Step::System) {
+        upgrade.arg("-y");
+    }
+    upgrade.status_checked()?;
 
     Ok(())
 }
@@ -1005,5 +1033,10 @@ mod tests {
     #[test]
     fn test_deepin() {
         test_template(include_str!("os_release/deepin"), Distribution::Debian);
+    }
+
+    #[test]
+    fn test_vanilla() {
+        test_template(include_str!("os_release/vanilla"), Distribution::Vanilla);
     }
 }
