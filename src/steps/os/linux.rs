@@ -64,7 +64,7 @@ impl Distribution {
 
             Some("void") => Distribution::Void,
             Some("debian") | Some("pureos") | Some("Deepin") => Distribution::Debian,
-            Some("arch") | Some("anarchy") | Some("manjaro-arm") | Some("garuda") | Some("artix") => Distribution::Arch,
+            Some("arch") | Some("manjaro-arm") | Some("garuda") | Some("artix") => Distribution::Arch,
             Some("solus") => Distribution::Solus,
             Some("gentoo") => Distribution::Gentoo,
             Some("exherbo") => Distribution::Exherbo,
@@ -948,11 +948,6 @@ mod tests {
     }
 
     #[test]
-    fn test_antergos() {
-        test_template(include_str!("os_release/antergos"), Distribution::Arch);
-    }
-
-    #[test]
     fn test_manjaro() {
         test_template(include_str!("os_release/manjaro"), Distribution::Arch);
     }
@@ -960,11 +955,6 @@ mod tests {
     #[test]
     fn test_manjaro_arm() {
         test_template(include_str!("os_release/manjaro-arm"), Distribution::Arch);
-    }
-
-    #[test]
-    fn test_anarchy() {
-        test_template(include_str!("os_release/anarchy"), Distribution::Arch);
     }
 
     #[test]
