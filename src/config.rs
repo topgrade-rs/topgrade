@@ -243,6 +243,7 @@ pub struct Python {
     enable_pip_review: Option<bool>,
     enable_pip_review_local: Option<bool>,
     enable_pipupgrade: Option<bool>,
+    pipupgrade_arguments: Option<String>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1461,6 +1462,13 @@ impl Config {
             .as_ref()
             .and_then(|python| python.enable_pipupgrade)
             .unwrap_or(false);
+    }
+    pub fn pipupgrade_arguments(&self) -> &str {
+        self.config_file
+            .python
+            .as_ref()
+            .and_then(|s| s.pipupgrade_arguments.as_deref())
+            .unwrap_or("")
     }
     pub fn enable_pip_review(&self) -> bool {
         return self
