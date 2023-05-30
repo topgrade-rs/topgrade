@@ -611,7 +611,7 @@ impl ConfigFile {
 
         // To parse [include] sections in the order as they are written,
         // we split the file and parse each part as a separate file
-        let regex_match_include = Regex::new(r"\[include]").expect("Failed to compile regex");
+        let regex_match_include = Regex::new(r"^\s*\[include]").expect("Failed to compile regex");
         let contents_split = regex_match_include.split_inclusive_left(contents_non_split.as_str());
 
         for contents in contents_split {
