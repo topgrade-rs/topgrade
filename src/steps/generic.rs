@@ -444,17 +444,19 @@ pub fn run_pipupgrade_update(ctx: &ExecutionContext) -> Result<()> {
     let pipupgrade = require("pipupgrade")?;
 
     print_separator("Pipupgrade");
-    if !ctx.config().enable_pip_review() {
+    if !ctx.config().enable_pipupgrade() {
         print_warning(
             "Pipupgrade is disabled by default. Enable it by setting enable_pipupgrade=true in the configuration.",
         );
         return Err(SkipStep(String::from("Pipupgrade is disabled by default")).into());
     }
-    ctx.run_type().execute(pipupgrade).status_checked()?;
+    ctx.run_type()
+        .execute(pipupgrade)
+        .args(ctx.config().pipupgrade_arguments().split_whitespace())
+        .status_checked()?;
 
     Ok(())
 }
-
 pub fn run_stack_update(ctx: &ExecutionContext) -> Result<()> {
     if require("ghcup").is_ok() {
         // `ghcup` is present and probably(?) being used to install `stack`.
