@@ -84,6 +84,19 @@ In `topgrade`'s term, package manager is called `step`. To add a new `step` to
 
    Congrats, you just added a new `step`:)
 
+## Modification to the confiuration entries
+
+If your PR has the configuration options 
+(in [`src/config.rs`](https://github.com/topgrade-rs/topgrade/blob/master/src/config.rs)) 
+modified:
+
+1. Adding new options
+2. Changing the existing options
+
+Be sure to apply your changes to
+[`config.example.toml`](https://github.com/topgrade-rs/topgrade/blob/master/config.example.toml),
+and have some basic documentations guiding user how to use these options.
+
 ## Before you submit your PR
 
 Make sure your patch passes the following tests on your host:
