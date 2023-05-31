@@ -528,13 +528,18 @@ fn upgrade_solus(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_am(ctx: &ExecutionContext) -> Result<()> {
     let am = require("am")?;
-    if let Some(sudo) = ctx.sudo() {
-        ctx.run_type().execute(sudo).arg(am).arg("-u").status_checked()?;
+
+    print_separator("AM");
+
+    let mut am = ctx.run_type().execute(am);
+
+    if ctx.config().yes(Step::AM) {
+        am.arg("-U");
     } else {
-        print_warning("No sudo detected. Skipping AM Step");
+        am.arg("-u");
     }
 
-    Ok(())
+    am.status_checked()
 }
 
 pub fn run_appman(ctx: &ExecutionContext) -> Result<()> {
