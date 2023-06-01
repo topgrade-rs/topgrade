@@ -21,7 +21,7 @@ In `topgrade`'s term, package manager is called `step`. To add a new `step` to
        // ...
 
        // Your new step here!
-       // You may want it to be sorted alphabetically becauses that looks great:)
+       // You may want it to be sorted alphabetically because that looks great:)
        Xxx,
    }
    ```
@@ -54,7 +54,8 @@ In `topgrade`'s term, package manager is called `step`. To add a new `step` to
    Such a update function would be conventionally named `run_xxx()`, where `xxx`
    is the name of the new step, and it should take a argument of type 
    `&ExecutionContext`, this is adequate for most cases unless some extra stuff is
-   needed (e.g., [you need to cleanup after update](https://github.com/topgrade-rs/topgrade/blob/cb7adc8ced8a77addf2cb051d18bba9f202ab866/src/steps/os/windows.rs#L56)).
+   needed (You can find some examples where extra arguments are needed 
+   [here](https://github.com/topgrade-rs/topgrade/blob/7e48c5dedcfd5d0124bb9f39079a03e27ed23886/src/main.rs#L201-L219)).
 
    Update function would usually do 3 things:
    1. Check if the step is installed
@@ -84,7 +85,7 @@ In `topgrade`'s term, package manager is called `step`. To add a new `step` to
 
    Congrats, you just added a new `step`:)
 
-## Modification to the confiuration entries
+## Modification to the configuration entries
 
 If your PR has the configuration options 
 (in [`src/config.rs`](https://github.com/topgrade-rs/topgrade/blob/master/src/config.rs)) 
@@ -115,7 +116,7 @@ Don't worry about other platforms, we have most of them covered in our CI.
 1. Locale
 
    Some `step` respects locale, which means their output can be in language other
-   then English, we should not do check on it.
+   than English, we should not do check on it.
 
    For example, one may want to check if a tool works by doing this:
 
