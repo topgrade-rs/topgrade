@@ -53,7 +53,7 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
-pub fn run_scoop(cleanup: bool, ctx: &ExecutionContext) -> Result<()> {
+pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
     let scoop = require("scoop")?;
 
     print_separator("Scoop");
@@ -61,7 +61,7 @@ pub fn run_scoop(cleanup: bool, ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(&scoop).args(["update"]).status_checked()?;
     ctx.run_type().execute(&scoop).args(["update", "*"]).status_checked()?;
 
-    if cleanup {
+    if ctx.config().cleanup() {
         ctx.run_type().execute(&scoop).args(["cleanup", "*"]).status_checked()?;
     }
 

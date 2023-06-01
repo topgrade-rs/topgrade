@@ -104,12 +104,15 @@ fn run() -> Result<()> {
 
     let git = git::Git::new();
     let mut git_repos = git::Repositories::new(&git);
+    let powershell = powershell::Powershell::new();
+    let should_run_powershell = powershell.profile().is_some() && config.should_run(Step::Powershell);
+    let emacs = emacs::Emacs::new();
+    #[cfg(target_os = "linux")]
+    let distribution = linux::Distribution::detect();
 
     let sudo = config.sudo_command().map_or_else(sudo::Sudo::detect, sudo::Sudo::new);
     let run_type = executor::RunType::new(config.dry_run());
-
     let ctx = execution_context::ExecutionContext::new(run_type, sudo, &git, &config);
-
     let mut runner = runner::Runner::new(&ctx);
 
     #[cfg(feature = "self-update")]
@@ -150,19 +153,6 @@ fn run() -> Result<()> {
         }
     }
 
-    let powershell = powershell::Powershell::new();
-    let should_run_powershell = powershell.profile().is_some() && config.should_run(Step::Powershell);
-
-    #[cfg(windows)]
-    {
-        runner.execute(Step::Wsl, "WSL", || windows::run_wsl_topgrade(&ctx))?;
-        runner.execute(Step::WslUpdate, "WSL", || windows::update_wsl(&ctx))?;
-        runner.execute(Step::Chocolatey, "Chocolatey", || windows::run_chocolatey(&ctx))?;
-        runner.execute(Step::Scoop, "Scoop", || windows::run_scoop(config.cleanup(), &ctx))?;
-        runner.execute(Step::Winget, "Winget", || windows::run_winget(&ctx))?;
-        runner.execute(Step::System, "Windows update", || windows::windows_update(&ctx))?;
-    }
-
     if let Some(topgrades) = config.remote_topgrades() {
         for remote_topgrade in topgrades.iter().filter(|t| config.should_execute_remote(t)) {
             runner.execute(Step::Remotes, format!("Remote ({remote_topgrade})"), || {
@@ -171,16 +161,22 @@ fn run() -> Result<()> {
         }
     }
 
-    #[cfg(target_os = "linux")]
-    // NOTE: Due to breaking `nu` updates, `packer.nu` needs to be updated before `nu` get updated
-    // by other package managers.
-    runner.execute(Step::Shell, "packer.nu", || linux::run_packer_nu(&ctx))?;
-
-    #[cfg(target_os = "linux")]
-    let distribution = linux::Distribution::detect();
-
-    #[cfg(target_os = r#"linux"#)]
+    #[cfg(windows)]
     {
+        runner.execute(Step::Wsl, "WSL", || windows::run_wsl_topgrade(&ctx))?;
+        runner.execute(Step::WslUpdate, "WSL", || windows::update_wsl(&ctx))?;
+        runner.execute(Step::Chocolatey, "Chocolatey", || windows::run_chocolatey(&ctx))?;
+        runner.execute(Step::Scoop, "Scoop", || windows::run_scoop(&ctx))?;
+        runner.execute(Step::Winget, "Winget", || windows::run_winget(&ctx))?;
+        runner.execute(Step::System, "Windows update", || windows::windows_update(&ctx))?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        // NOTE: Due to breaking `nu` updates, `packer.nu` needs to be updated before `nu` get updated
+        // by other package managers.
+        runner.execute(Step::Shell, "packer.nu", || linux::run_packer_nu(&ctx))?;
+
         match &distribution {
             Ok(distribution) => {
                 runner.execute(Step::System, "System update", || distribution.upgrade(&ctx))?;
@@ -194,6 +190,21 @@ fn run() -> Result<()> {
         runner.execute(Step::BrewFormula, "Brew", || {
             unix::run_brew_formula(&ctx, unix::BrewVariant::Path)
         })?;
+
+        runner.execute(Step::AM, "am", || linux::run_am(&ctx))?;
+        runner.execute(Step::AppMan, "appman", || linux::run_appman(&ctx))?;
+        runner.execute(Step::DebGet, "deb-get", || linux::run_deb_get(&ctx))?;
+        runner.execute(Step::Toolbx, "toolbx", || toolbx::run_toolbx(&ctx))?;
+        runner.execute(Step::Flatpak, "Flatpak", || linux::run_flatpak(&ctx))?;
+        runner.execute(Step::Snap, "snap", || linux::run_snap(&ctx))?;
+        runner.execute(Step::Pacstall, "pacstall", || linux::run_pacstall(&ctx))?;
+        runner.execute(Step::Pacdef, "pacdef", || linux::run_pacdef(&ctx))?;
+        runner.execute(Step::Protonup, "protonup", || linux::run_protonup_update(&ctx))?;
+        runner.execute(Step::Distrobox, "distrobox", || linux::run_distrobox_update(&ctx))?;
+        runner.execute(Step::DkpPacman, "dkp-pacman", || linux::run_dkp_pacman_update(&ctx))?;
+        runner.execute(Step::System, "pihole", || linux::run_pihole_update(&ctx))?;
+        runner.execute(Step::Firmware, "Firmware upgrades", || linux::run_fwupdmgr(&ctx))?;
+        runner.execute(Step::Restarts, "Restarts", || linux::run_needrestart(&ctx))?;
     }
 
     #[cfg(target_os = "macos")]
@@ -217,18 +228,9 @@ fn run() -> Result<()> {
             unix::run_brew_cask(&ctx, unix::BrewVariant::Path)
         })?;
         runner.execute(Step::Macports, "MacPorts", || macos::run_macports(&ctx))?;
-    }
-
-    #[cfg(unix)]
-    {
-        runner.execute(Step::Yadm, "yadm", || unix::run_yadm(&ctx))?;
-        runner.execute(Step::Nix, "nix", || unix::run_nix(&ctx))?;
-        runner.execute(Step::Guix, "guix", || unix::run_guix(&ctx))?;
-
-        runner.execute(Step::HomeManager, "home-manager", || unix::run_home_manager(&ctx))?;
-        runner.execute(Step::Asdf, "asdf", || unix::run_asdf(&ctx))?;
-        runner.execute(Step::Pkgin, "pkgin", || unix::run_pkgin(&ctx))?;
-        runner.execute(Step::Bun, "bun", || unix::run_bun(&ctx))?;
+        runner.execute(Step::Sparkle, "Sparkle", || macos::run_sparkle(&ctx))?;
+        runner.execute(Step::Mas, "App Store", || macos::run_mas(&ctx))?;
+        runner.execute(Step::System, "System upgrade", || macos::upgrade_macos(&ctx))?;
     }
 
     #[cfg(target_os = "dragonfly")]
@@ -236,14 +238,14 @@ fn run() -> Result<()> {
         runner.execute(Step::Pkg, "DragonFly BSD Packages", || {
             dragonfly::upgrade_packages(&ctx)
         })?;
-        dragonfly::audit_packages(ctx.sudo().as_ref()).ok();
+        dragonfly::audit_packages(&ctx)?;
     }
 
     #[cfg(target_os = "freebsd")]
     {
         runner.execute(Step::Pkg, "FreeBSD Packages", || freebsd::upgrade_packages(&ctx))?;
         runner.execute(Step::System, "FreeBSD Upgrade", || freebsd::upgrade_freebsd(&ctx))?;
-        freebsd::audit_packages(ctx.sudo().as_ref()).ok();
+        freebsd::audit_packages(&ctx)?;
     }
 
     #[cfg(target_os = "openbsd")]
@@ -253,9 +255,115 @@ fn run() -> Result<()> {
     }
 
     #[cfg(target_os = "android")]
-    runner.execute(Step::Pkg, "Termux Packages", || android::upgrade_packages(&ctx))?;
+    {
+        runner.execute(Step::Pkg, "Termux Packages", || android::upgrade_packages(&ctx))?;
+    }
 
-    let emacs = emacs::Emacs::new();
+    #[cfg(unix)]
+    {
+        runner.execute(Step::Yadm, "yadm", || unix::run_yadm(&ctx))?;
+        runner.execute(Step::Nix, "nix", || unix::run_nix(&ctx))?;
+        runner.execute(Step::Guix, "guix", || unix::run_guix(&ctx))?;
+        runner.execute(Step::HomeManager, "home-manager", || unix::run_home_manager(&ctx))?;
+        runner.execute(Step::Asdf, "asdf", || unix::run_asdf(&ctx))?;
+        runner.execute(Step::Pkgin, "pkgin", || unix::run_pkgin(&ctx))?;
+        runner.execute(Step::Bun, "bun", || unix::run_bun(&ctx))?;
+        runner.execute(Step::Shell, "zr", || zsh::run_zr(&ctx))?;
+        runner.execute(Step::Shell, "antibody", || zsh::run_antibody(&ctx))?;
+        runner.execute(Step::Shell, "antidote", || zsh::run_antidote(&ctx))?;
+        runner.execute(Step::Shell, "antigen", || zsh::run_antigen(&ctx))?;
+        runner.execute(Step::Shell, "zgenom", || zsh::run_zgenom(&ctx))?;
+        runner.execute(Step::Shell, "zplug", || zsh::run_zplug(&ctx))?;
+        runner.execute(Step::Shell, "zinit", || zsh::run_zinit(&ctx))?;
+        runner.execute(Step::Shell, "zi", || zsh::run_zi(&ctx))?;
+        runner.execute(Step::Shell, "zim", || zsh::run_zim(&ctx))?;
+        runner.execute(Step::Shell, "oh-my-zsh", || zsh::run_oh_my_zsh(&ctx))?;
+        runner.execute(Step::Shell, "oh-my-bash", || unix::run_oh_my_bash(&ctx))?;
+        runner.execute(Step::Shell, "fisher", || unix::run_fisher(&ctx))?;
+        runner.execute(Step::Shell, "bash-it", || unix::run_bashit(&ctx))?;
+        runner.execute(Step::Shell, "oh-my-fish", || unix::run_oh_my_fish(&ctx))?;
+        runner.execute(Step::Shell, "fish-plug", || unix::run_fish_plug(&ctx))?;
+        runner.execute(Step::Shell, "fundle", || unix::run_fundle(&ctx))?;
+        runner.execute(Step::Tmux, "tmux", || tmux::run_tpm(&ctx))?;
+        runner.execute(Step::Tldr, "TLDR", || unix::run_tldr(&ctx))?;
+        runner.execute(Step::Pearl, "pearl", || unix::run_pearl(&ctx))?;
+        #[cfg(not(any(target_os = "macos", target_os = "android")))]
+        runner.execute(Step::GnomeShellExtensions, "Gnome Shell Extensions", || {
+            unix::upgrade_gnome_extensions(&ctx)
+        })?;
+        runner.execute(Step::Sdkman, "SDKMAN!", || unix::run_sdkman(&ctx))?;
+        runner.execute(Step::Rcm, "rcm", || unix::run_rcm(&ctx))?;
+        runner.execute(Step::Maza, "maza", || unix::run_maza(&ctx))?;
+    }
+
+    #[cfg(not(any(
+        target_os = "freebsd",
+        target_os = "openbsd",
+        target_os = "netbsd",
+        target_os = "dragonfly"
+    )))]
+    {
+        runner.execute(Step::Atom, "apm", || generic::run_apm(&ctx))?;
+    }
+
+    // The following update function should be executed on all OSes.
+    runner.execute(Step::Fossil, "fossil", || generic::run_fossil(&ctx))?;
+    runner.execute(Step::Rustup, "rustup", || generic::run_rustup(&ctx))?;
+    runner.execute(Step::Juliaup, "juliaup", || generic::run_juliaup(&ctx))?;
+    runner.execute(Step::Dotnet, ".NET", || generic::run_dotnet_upgrade(&ctx))?;
+    runner.execute(Step::Choosenim, "choosenim", || generic::run_choosenim(&ctx))?;
+    runner.execute(Step::Cargo, "cargo", || generic::run_cargo_update(&ctx))?;
+    runner.execute(Step::Flutter, "Flutter", || generic::run_flutter_upgrade(&ctx))?;
+    runner.execute(Step::Go, "go-global-update", || go::run_go_global_update(&ctx))?;
+    runner.execute(Step::Go, "gup", || go::run_go_gup(&ctx))?;
+    runner.execute(Step::Emacs, "Emacs", || emacs.upgrade(&ctx))?;
+    runner.execute(Step::Opam, "opam", || generic::run_opam_update(&ctx))?;
+    runner.execute(Step::Vcpkg, "vcpkg", || generic::run_vcpkg_update(&ctx))?;
+    runner.execute(Step::Pipx, "pipx", || generic::run_pipx_update(&ctx))?;
+    runner.execute(Step::Conda, "conda", || generic::run_conda_update(&ctx))?;
+    runner.execute(Step::Mamba, "mamba", || generic::run_mamba_update(&ctx))?;
+    runner.execute(Step::Pip3, "pip3", || generic::run_pip3_update(&ctx))?;
+    runner.execute(Step::PipReview, "pip-review", || generic::run_pip_review_update(&ctx))?;
+    runner.execute(Step::PipReviewLocal, "pip-review (local)", || {
+        generic::run_pip_review_local_update(&ctx)
+    })?;
+    runner.execute(Step::Pipupgrade, "pipupgrade", || generic::run_pipupgrade_update(&ctx))?;
+    runner.execute(Step::Ghcup, "ghcup", || generic::run_ghcup_update(&ctx))?;
+    runner.execute(Step::Stack, "stack", || generic::run_stack_update(&ctx))?;
+    runner.execute(Step::Tlmgr, "tlmgr", || generic::run_tlmgr_update(&ctx))?;
+    runner.execute(Step::Myrepos, "myrepos", || generic::run_myrepos_update(&ctx))?;
+    runner.execute(Step::Chezmoi, "chezmoi", || generic::run_chezmoi_update(&ctx))?;
+    runner.execute(Step::Jetpack, "jetpack", || generic::run_jetpack(&ctx))?;
+    runner.execute(Step::Vim, "vim", || vim::upgrade_vim(&ctx))?;
+    runner.execute(Step::Vim, "Neovim", || vim::upgrade_neovim(&ctx))?;
+    runner.execute(Step::Vim, "The Ultimate vimrc", || vim::upgrade_ultimate_vimrc(&ctx))?;
+    runner.execute(Step::Vim, "voom", || vim::run_voom(&ctx))?;
+    runner.execute(Step::Kakoune, "Kakoune", || kakoune::upgrade_kak_plug(&ctx))?;
+    runner.execute(Step::Helix, "helix", || generic::run_helix_grammars(&ctx))?;
+    runner.execute(Step::Node, "npm", || node::run_npm_upgrade(&ctx))?;
+    runner.execute(Step::Yarn, "yarn", || node::run_yarn_upgrade(&ctx))?;
+    runner.execute(Step::Pnpm, "pnpm", || node::run_pnpm_upgrade(&ctx))?;
+    runner.execute(Step::Containers, "Containers", || containers::run_containers(&ctx))?;
+    runner.execute(Step::Deno, "deno", || node::deno_upgrade(&ctx))?;
+    runner.execute(Step::Composer, "composer", || generic::run_composer_update(&ctx))?;
+    runner.execute(Step::Krew, "krew", || generic::run_krew_upgrade(&ctx))?;
+    runner.execute(Step::Helm, "helm", || generic::run_helm_repo_update(&ctx))?;
+    runner.execute(Step::Gem, "gem", || generic::run_gem(&ctx))?;
+    runner.execute(Step::RubyGems, "rubygems", || generic::run_rubygems(&ctx))?;
+    runner.execute(Step::Julia, "julia", || generic::update_julia_packages(&ctx))?;
+    runner.execute(Step::Haxelib, "haxelib", || generic::run_haxelib_update(&ctx))?;
+    runner.execute(Step::Sheldon, "sheldon", || generic::run_sheldon(&ctx))?;
+    runner.execute(Step::Stew, "stew", || generic::run_stew(&ctx))?;
+    runner.execute(Step::Rtcl, "rtcl", || generic::run_rtcl(&ctx))?;
+    runner.execute(Step::Bin, "bin", || generic::bin_update(&ctx))?;
+    runner.execute(Step::Gcloud, "gcloud", || generic::run_gcloud_components_update(&ctx))?;
+    runner.execute(Step::Micro, "micro", || generic::run_micro(&ctx))?;
+    runner.execute(Step::Raco, "raco", || generic::run_raco_update(&ctx))?;
+    runner.execute(Step::Spicetify, "spicetify", || generic::spicetify_upgrade(&ctx))?;
+    runner.execute(Step::GithubCliExtensions, "GitHub CLI Extensions", || {
+        generic::run_ghcli_extensions_upgrade(&ctx)
+    })?;
+
     if config.use_predefined_git_repos() {
         if config.should_run(Step::Emacs) {
             if !emacs.is_doom() {
@@ -323,115 +431,6 @@ fn run() -> Result<()> {
         })?;
     }
 
-    #[cfg(unix)]
-    {
-        runner.execute(Step::Shell, "zr", || zsh::run_zr(&ctx))?;
-        runner.execute(Step::Shell, "antibody", || zsh::run_antibody(&ctx))?;
-        runner.execute(Step::Shell, "antidote", || zsh::run_antidote(&ctx))?;
-        runner.execute(Step::Shell, "antigen", || zsh::run_antigen(&ctx))?;
-        runner.execute(Step::Shell, "zgenom", || zsh::run_zgenom(&ctx))?;
-        runner.execute(Step::Shell, "zplug", || zsh::run_zplug(&ctx))?;
-        runner.execute(Step::Shell, "zinit", || zsh::run_zinit(&ctx))?;
-        runner.execute(Step::Shell, "zi", || zsh::run_zi(&ctx))?;
-        runner.execute(Step::Shell, "zim", || zsh::run_zim(&ctx))?;
-        runner.execute(Step::Shell, "oh-my-zsh", || zsh::run_oh_my_zsh(&ctx))?;
-        runner.execute(Step::Shell, "oh-my-bash", || unix::run_oh_my_bash(&ctx))?;
-        runner.execute(Step::Shell, "fisher", || unix::run_fisher(&ctx))?;
-        runner.execute(Step::Shell, "bash-it", || unix::run_bashit(&ctx))?;
-        runner.execute(Step::Shell, "oh-my-fish", || unix::run_oh_my_fish(&ctx))?;
-        runner.execute(Step::Shell, "fish-plug", || unix::run_fish_plug(&ctx))?;
-        runner.execute(Step::Shell, "fundle", || unix::run_fundle(&ctx))?;
-        runner.execute(Step::Tmux, "tmux", || tmux::run_tpm(&ctx))?;
-        runner.execute(Step::Tldr, "TLDR", || unix::run_tldr(&ctx))?;
-        runner.execute(Step::Pearl, "pearl", || unix::run_pearl(&ctx))?;
-        #[cfg(not(any(target_os = "macos", target_os = "android")))]
-        runner.execute(Step::GnomeShellExtensions, "Gnome Shell Extensions", || {
-            unix::upgrade_gnome_extensions(&ctx)
-        })?;
-        runner.execute(Step::Sdkman, "SDKMAN!", || unix::run_sdkman(config.cleanup(), &ctx))?;
-        runner.execute(Step::Rcm, "rcm", || unix::run_rcm(&ctx))?;
-        runner.execute(Step::Maza, "maza", || unix::run_maza(&ctx))?;
-    }
-
-    #[cfg(not(any(
-        target_os = "freebsd",
-        target_os = "openbsd",
-        target_os = "netbsd",
-        target_os = "dragonfly"
-    )))]
-    runner.execute(Step::Atom, "apm", || generic::run_apm(&ctx))?;
-    runner.execute(Step::Fossil, "fossil", || generic::run_fossil(&ctx))?;
-    runner.execute(Step::Rustup, "rustup", || generic::run_rustup(&ctx))?;
-    runner.execute(Step::Juliaup, "juliaup", || generic::run_juliaup(&ctx))?;
-    runner.execute(Step::Dotnet, ".NET", || generic::run_dotnet_upgrade(&ctx))?;
-    runner.execute(Step::Choosenim, "choosenim", || generic::run_choosenim(&ctx))?;
-    runner.execute(Step::Cargo, "cargo", || generic::run_cargo_update(&ctx))?;
-    runner.execute(Step::Flutter, "Flutter", || generic::run_flutter_upgrade(&ctx))?;
-    runner.execute(Step::Go, "go-global-update", || go::run_go_global_update(&ctx))?;
-    runner.execute(Step::Go, "gup", || go::run_go_gup(&ctx))?;
-    runner.execute(Step::Emacs, "Emacs", || emacs.upgrade(&ctx))?;
-    runner.execute(Step::Opam, "opam", || generic::run_opam_update(&ctx))?;
-    runner.execute(Step::Vcpkg, "vcpkg", || generic::run_vcpkg_update(&ctx))?;
-    runner.execute(Step::Pipx, "pipx", || generic::run_pipx_update(&ctx))?;
-    runner.execute(Step::Conda, "conda", || generic::run_conda_update(&ctx))?;
-    runner.execute(Step::Mamba, "mamba", || generic::run_mamba_update(&ctx))?;
-    runner.execute(Step::Pip3, "pip3", || generic::run_pip3_update(&ctx))?;
-    runner.execute(Step::PipReview, "pip-review", || generic::run_pip_review_update(&ctx))?;
-    runner.execute(Step::PipReviewLocal, "pip-review (local)", || {
-        generic::run_pip_review_local_update(&ctx)
-    })?;
-    runner.execute(Step::Pipupgrade, "pipupgrade", || generic::run_pipupgrade_update(&ctx))?;
-    runner.execute(Step::Ghcup, "ghcup", || generic::run_ghcup_update(&ctx))?;
-    runner.execute(Step::Stack, "stack", || generic::run_stack_update(&ctx))?;
-    runner.execute(Step::Tlmgr, "tlmgr", || generic::run_tlmgr_update(&ctx))?;
-    runner.execute(Step::Myrepos, "myrepos", || generic::run_myrepos_update(&ctx))?;
-    runner.execute(Step::Chezmoi, "chezmoi", || generic::run_chezmoi_update(&ctx))?;
-    runner.execute(Step::Jetpack, "jetpack", || generic::run_jetpack(&ctx))?;
-    runner.execute(Step::Vim, "vim", || vim::upgrade_vim(&ctx))?;
-    runner.execute(Step::Vim, "Neovim", || vim::upgrade_neovim(&ctx))?;
-    runner.execute(Step::Vim, "The Ultimate vimrc", || vim::upgrade_ultimate_vimrc(&ctx))?;
-    runner.execute(Step::Vim, "voom", || vim::run_voom(&ctx))?;
-    runner.execute(Step::Kakoune, "Kakoune", || kakoune::upgrade_kak_plug(&ctx))?;
-    runner.execute(Step::Helix, "helix", || generic::run_helix_grammars(&ctx))?;
-    runner.execute(Step::Node, "npm", || node::run_npm_upgrade(&ctx))?;
-    runner.execute(Step::Yarn, "yarn", || node::run_yarn_upgrade(&ctx))?;
-    runner.execute(Step::Pnpm, "pnpm", || node::run_pnpm_upgrade(&ctx))?;
-    runner.execute(Step::Containers, "Containers", || containers::run_containers(&ctx))?;
-    runner.execute(Step::Deno, "deno", || node::deno_upgrade(&ctx))?;
-    runner.execute(Step::Composer, "composer", || generic::run_composer_update(&ctx))?;
-    runner.execute(Step::Krew, "krew", || generic::run_krew_upgrade(&ctx))?;
-    runner.execute(Step::Helm, "helm", || generic::run_helm_repo_update(&ctx))?;
-    runner.execute(Step::Gem, "gem", || generic::run_gem(&ctx))?;
-    runner.execute(Step::RubyGems, "rubygems", || generic::run_rubygems(&ctx))?;
-    runner.execute(Step::Julia, "julia", || generic::update_julia_packages(&ctx))?;
-    runner.execute(Step::Haxelib, "haxelib", || generic::run_haxelib_update(&ctx))?;
-    runner.execute(Step::Sheldon, "sheldon", || generic::run_sheldon(&ctx))?;
-    runner.execute(Step::Stew, "stew", || generic::run_stew(&ctx))?;
-    runner.execute(Step::Rtcl, "rtcl", || generic::run_rtcl(&ctx))?;
-    runner.execute(Step::Bin, "bin", || generic::bin_update(&ctx))?;
-    runner.execute(Step::Gcloud, "gcloud", || generic::run_gcloud_components_update(&ctx))?;
-    runner.execute(Step::Micro, "micro", || generic::run_micro(&ctx))?;
-    runner.execute(Step::Raco, "raco", || generic::run_raco_update(&ctx))?;
-    runner.execute(Step::Spicetify, "spicetify", || generic::spicetify_upgrade(&ctx))?;
-    runner.execute(Step::GithubCliExtensions, "GitHub CLI Extensions", || {
-        generic::run_ghcli_extensions_upgrade(&ctx)
-    })?;
-
-    #[cfg(target_os = "linux")]
-    {
-        runner.execute(Step::AM, "am", || linux::run_am(&ctx))?;
-        runner.execute(Step::AppMan, "appman", || linux::run_appman(&ctx))?;
-        runner.execute(Step::DebGet, "deb-get", || linux::run_deb_get(&ctx))?;
-        runner.execute(Step::Toolbx, "toolbx", || toolbx::run_toolbx(&ctx))?;
-        runner.execute(Step::Flatpak, "Flatpak", || linux::run_flatpak(&ctx))?;
-        runner.execute(Step::Snap, "snap", || linux::run_snap(&ctx))?;
-        runner.execute(Step::Pacstall, "pacstall", || linux::run_pacstall(&ctx))?;
-        runner.execute(Step::Pacdef, "pacdef", || linux::run_pacdef(&ctx))?;
-        runner.execute(Step::Protonup, "protonup", || linux::run_protonup_update(&ctx))?;
-        runner.execute(Step::Distrobox, "distrobox", || linux::run_distrobox_update(&ctx))?;
-        runner.execute(Step::DkpPacman, "dkp-pacman", || linux::run_dkp_pacman_update(&ctx))?;
-    }
-
     if let Some(commands) = config.commands() {
         for (name, command) in commands {
             if config.should_run_custom_command(name) {
@@ -440,20 +439,6 @@ fn run() -> Result<()> {
                 })?;
             }
         }
-    }
-
-    #[cfg(target_os = "linux")]
-    {
-        runner.execute(Step::System, "pihole", || linux::run_pihole_update(&ctx))?;
-        runner.execute(Step::Firmware, "Firmware upgrades", || linux::run_fwupdmgr(&ctx))?;
-        runner.execute(Step::Restarts, "Restarts", || linux::run_needrestart(&ctx))?;
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        runner.execute(Step::Sparkle, "Sparkle", || macos::run_sparkle(&ctx))?;
-        runner.execute(Step::Mas, "App Store", || macos::run_mas(&ctx))?;
-        runner.execute(Step::System, "System upgrade", || macos::upgrade_macos(&ctx))?;
     }
 
     if config.should_run(Step::Vagrant) {
@@ -559,7 +544,7 @@ fn main() {
     }
 }
 
-pub fn install_tracing(filter_directives: &str) -> Result<()> {
+fn install_tracing(filter_directives: &str) -> Result<()> {
     use tracing_subscriber::fmt;
     use tracing_subscriber::fmt::format::FmtSpan;
     use tracing_subscriber::layer::SubscriberExt;
