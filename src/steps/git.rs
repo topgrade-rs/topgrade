@@ -178,15 +178,21 @@ impl Git {
         None
     }
     pub fn multi_pull_step(&self, repositories: &Repositories, ctx: &ExecutionContext) -> Result<()> {
+        // Warn the user about the bad patterns.
+        //
+        // NOTE: this should be executed **before** skipping the Git step or the
+        // user won't receive this warning in the cases where all the paths configured
+        // are bad patterns.
+        repositories
+            .bad_patterns
+            .iter()
+            .for_each(|pattern| print_warning(format!("Path {pattern} did not contain any git repositories")));
+
         if repositories.repositories.is_empty() {
             return Err(SkipStep(String::from("No repositories to pull")).into());
         }
 
         print_separator("Git repositories");
-        repositories
-            .bad_patterns
-            .iter()
-            .for_each(|pattern| print_warning(format!("Path {pattern} did not contain any git repositories")));
         self.multi_pull(repositories, ctx)
     }
 
