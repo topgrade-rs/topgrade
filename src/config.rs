@@ -198,8 +198,8 @@ pub enum Step {
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Include {
-    #[merge(strategy = merge::vec::append)]
-    paths: Vec<String>,
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    paths: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -611,7 +611,7 @@ impl ConfigFile {
 
         // To parse [include] sections in the order as they are written,
         // we split the file and parse each part as a separate file
-        let regex_match_include = Regex::new(r"\[include]").expect("Failed to compile regex");
+        let regex_match_include = Regex::new(r"^\s*\[include]").expect("Failed to compile regex");
         let contents_split = regex_match_include.split_inclusive_left(contents_non_split.as_str());
 
         for contents in contents_split {
@@ -622,25 +622,29 @@ impl ConfigFile {
 
             if let Some(includes) = &config_file_include_only.include {
                 // Parses the [include] section present in the slice
-                for include in includes.paths.iter().rev() {
-                    let include_path = shellexpand::tilde::<&str>(&include.as_ref()).into_owned();
-                    let include_path = PathBuf::from(include_path);
-                    let include_contents = match fs::read_to_string(&include_path) {
-                        Ok(c) => c,
-                        Err(e) => {
-                            tracing::error!("Unable to read {}: {}", include_path.display(), e);
-                            continue;
-                        }
-                    };
-                    match toml::from_str::<Self>(&include_contents) {
-                        Ok(include_parsed) => result.merge(include_parsed),
-                        Err(e) => {
-                            tracing::error!("Failed to deserialize {}: {}", include_path.display(), e);
-                            continue;
-                        }
-                    };
+                if let Some(ref paths) = includes.paths {
+                    for include in paths.iter().rev() {
+                        let include_path = shellexpand::tilde::<&str>(&include.as_ref()).into_owned();
+                        let include_path = PathBuf::from(include_path);
+                        let include_contents = match fs::read_to_string(&include_path) {
+                            Ok(c) => c,
+                            Err(e) => {
+                                tracing::error!("Unable to read {}: {}", include_path.display(), e);
+                                continue;
+                            }
+                        };
+                        match toml::from_str::<Self>(&include_contents) {
+                            Ok(include_parsed) => result.merge(include_parsed),
+                            Err(e) => {
+                                tracing::error!("Failed to deserialize {}: {}", include_path.display(), e);
+                                continue;
+                            }
+                        };
 
-                    debug!("Configuration include found: {}", include_path.display());
+                        debug!("Configuration include found: {}", include_path.display());
+                    }
+                } else {
+                    debug!("No include paths found in {}", config_path.display());
                 }
             }
 

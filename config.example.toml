@@ -1,7 +1,7 @@
 # Include any additional configuration file(s)
 # [include] sections are processed in the order you write them
 # Files in $CONFIG_DIR/topgrade/topgrade.d/ are automatically included at the beginning of this file
-[include]
+#[include]
 #paths = ["/etc/topgrade.toml"]
 
 [misc]
