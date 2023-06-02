@@ -602,6 +602,12 @@ impl ConfigFile {
             path
         };
 
+        if config_path == PathBuf::default() {
+            // Here we expect topgrade.d and consequently result is not empty.
+            // If empty, Self:: ensure() would have created the default config.
+            return Ok(result);
+        }
+
         let mut contents_non_split = fs::read_to_string(&config_path).map_err(|e| {
             tracing::error!("Unable to read {}", config_path.display());
             e
