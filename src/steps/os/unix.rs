@@ -460,7 +460,7 @@ pub fn run_pearl(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(pearl).arg("update").status_checked()
 }
 
-pub fn run_sdkman(cleanup: bool, ctx: &ExecutionContext) -> Result<()> {
+pub fn run_sdkman(ctx: &ExecutionContext) -> Result<()> {
     let bash = require("bash")?;
 
     let sdkman_init_path = var("SDKMAN_DIR")
@@ -506,7 +506,7 @@ pub fn run_sdkman(cleanup: bool, ctx: &ExecutionContext) -> Result<()> {
         .args(["-c", cmd_upgrade.as_str()])
         .status_checked()?;
 
-    if cleanup {
+    if ctx.config().cleanup() {
         let cmd_flush_archives = format!("source {} && sdk flush archives", &sdkman_init_path);
         ctx.run_type()
             .execute(&bash)

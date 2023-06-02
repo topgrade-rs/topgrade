@@ -1,6 +1,5 @@
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
-use crate::sudo::Sudo;
 use crate::terminal::print_separator;
 use crate::utils::require_option;
 use color_eyre::eyre::Result;
@@ -14,8 +13,8 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
-pub fn audit_packages(sudo: Option<&Sudo>) -> Result<()> {
-    if let Some(sudo) = sudo {
+pub fn audit_packages(ctx: &ExecutionContext) -> Result<()> {
+    if let Some(sudo) = ctx.sudo() {
         println!();
         Command::new(sudo)
             .args(["/usr/local/sbin/pkg", "audit", "-Fr"])
