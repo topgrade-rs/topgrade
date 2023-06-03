@@ -774,3 +774,11 @@ pub fn run_stew(ctx: &ExecutionContext) -> Result<()> {
     print_separator("stew");
     ctx.run_type().execute(stew).args(["upgrade", "--all"]).status_checked()
 }
+
+pub fn run_bob(ctx: &ExecutionContext) -> Result<()> {
+    let bob = require("bob")?;
+
+    print_separator("Bob");
+
+    ctx.run_type().execute(bob).args(["update", "--all"]).status_checked()
+}

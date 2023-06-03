@@ -103,6 +103,7 @@ pub enum Step {
     Asdf,
     Atom,
     Bin,
+    Bob,
     BrewCask,
     BrewFormula,
     Bun,
