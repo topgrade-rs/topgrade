@@ -457,6 +457,7 @@ fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
             })
             .unwrap_or_else(|| PathBuf::from("apt-get"));
 
+        let is_mist = apt.ends_with("mist");
         let is_nala = apt.ends_with("nala");
         if !is_nala {
             ctx.run_type()
@@ -468,7 +469,7 @@ fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
 
         let mut command = ctx.run_type().execute(sudo);
         command.arg(&apt);
-        if is_nala {
+        if is_nala || is_mist {
             command.arg("upgrade");
         } else {
             command.arg("dist-upgrade");
