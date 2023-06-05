@@ -439,25 +439,37 @@ fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
-    if let Some(sudo) = &ctx.sudo() {
-        let apt = which("apt-fast")
-            .or_else(|| {
-                if which("mist").is_some() {
-                    Some(PathBuf::from("mist"))
-                } else {
-                    None
-                }
-            })
-            .or_else(|| {
-                if Path::new("/usr/bin/nala").exists() {
-                    Some(Path::new("/usr/bin/nala").to_path_buf())
-                } else {
-                    None
-                }
-            })
-            .unwrap_or_else(|| PathBuf::from("apt-get"));
+    let apt = which("apt-fast")
+        .or_else(|| {
+            if which("mist").is_some() {
+                Some(PathBuf::from("mist"))
+            } else {
+                None
+            }
+        })
+        .or_else(|| {
+            if Path::new("/usr/bin/nala").exists() {
+                Some(Path::new("/usr/bin/nala").to_path_buf())
+            } else {
+                None
+            }
+        })
+        .unwrap_or_else(|| PathBuf::from("apt-get"));
 
-        let is_nala = apt.ends_with("nala");
+    let is_mist = apt.ends_with("mist");
+    let is_nala = apt.ends_with("nala");
+
+    // MIST does not require `sudo`
+    if is_mist {
+        ctx.run_type().execute(&apt).arg("update").status_checked()?;
+        ctx.run_type().execute(&apt).arg("upgrade").status_checked()?;
+
+        // Simply return as MIST does not have `clean` and `autoremove`
+        // subcommands, neither the `-y` option (for now maybe?).
+        return Ok(());
+    }
+
+    if let Some(sudo) = &ctx.sudo() {
         if !is_nala {
             ctx.run_type()
                 .execute(sudo)
