@@ -18,9 +18,7 @@ use crate::executor::Executor;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use crate::executor::RunType;
 use crate::terminal::print_separator;
-#[cfg(not(any(target_os = "android", target_os = "macos")))]
-use crate::utils::require_option;
-use crate::utils::{require, PathExt};
+use crate::utils::{require, require_option, PathExt, REQUIRE_SUDO};
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 const INTEL_BREW: &str = "/usr/local/bin/brew";
@@ -173,17 +171,18 @@ pub fn run_oh_my_fish(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_pkgin(ctx: &ExecutionContext) -> Result<()> {
     let pkgin = require("pkgin")?;
+    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
 
     print_separator("Pkgin");
 
-    let mut command = ctx.run_type().execute(ctx.sudo().as_ref().unwrap());
+    let mut command = ctx.run_type().execute(sudo);
     command.arg(&pkgin).arg("update");
     if ctx.config().yes(Step::Pkgin) {
         command.arg("-y");
     }
     command.status_checked()?;
 
-    let mut command = ctx.run_type().execute(ctx.sudo().as_ref().unwrap());
+    let mut command = ctx.run_type().execute(sudo);
     command.arg(&pkgin).arg("upgrade");
     if ctx.config().yes(Step::Pkgin) {
         command.arg("-y");

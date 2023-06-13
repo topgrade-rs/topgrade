@@ -10,10 +10,6 @@ pub enum TopgradeError {
     #[error("`{0}` failed: {1}")]
     ProcessFailedWithOutput(String, ExitStatus, String),
 
-    #[error("Sudo is required for this step")]
-    #[allow(dead_code)]
-    SudoRequired,
-
     #[error("Unknown Linux Distribution")]
     #[cfg(target_os = "linux")]
     UnknownLinuxDistribution,

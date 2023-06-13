@@ -213,3 +213,7 @@ pub mod merge_strategies {
         }
     }
 }
+
+// Skip causes
+// TODO: Put them in a better place when we have more of them
+pub const REQUIRE_SUDO: &str = "Require sudo or counterpart but not found, skip";
