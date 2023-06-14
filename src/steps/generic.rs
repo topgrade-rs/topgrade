@@ -15,7 +15,7 @@ use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
 use crate::terminal::{print_separator, shell};
-use crate::utils::{self, require, require_option, which, PathExt, REQUIRE_SUDO};
+use crate::utils::{self, check_is_python_2_or_shim, require, require_option, which, PathExt, REQUIRE_SUDO};
 use crate::Step;
 use crate::HOME_DIR;
 use crate::{
@@ -368,7 +368,18 @@ pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
-    let python3 = require("python3")?;
+    let py = require("python").and_then(check_is_python_2_or_shim);
+    let py3 = require("python3").and_then(check_is_python_2_or_shim);
+
+    let python3 = match (py, py3) {
+        // prefer `python` if it is available and is a valid Python 3.
+        (Ok(py), _) => py,
+        (Err(_), Ok(py3)) => py3,
+        (Err(py_err), Err(py3_err)) => {
+            return Err(SkipStep(format!("Skip due to following reasons: {} {}", py_err, py3_err)).into());
+        }
+    };
+
     Command::new(&python3)
         .args(["-m", "pip"])
         .output_checked_utf8()
