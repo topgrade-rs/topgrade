@@ -154,9 +154,6 @@ pub fn hostname() -> Result<String> {
 
 #[cfg(target_family = "windows")]
 pub fn hostname() -> Result<String> {
-    use crate::command::CommandExt;
-    use std::process::Command;
-
     Command::new("hostname")
         .output_checked_utf8()
         .map_err(|err| SkipStep(format!("Failed to get hostname: {err}")).into())
