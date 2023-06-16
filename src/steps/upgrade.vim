@@ -1,12 +1,12 @@
 " AstroUpdate calls a plugin manager - Lazy as of this writing. So we check for it before
 " others. Add to init.lua:
 " updater = {
-"   auto_quit = true,
 "   skip_prompts = true,
 " },
 if exists(":AstroUpdate")
    echo "AstroUpdate"
    AstroUpdate
+   quitall
 endif
 
 if exists(":NeoBundleUpdate")
