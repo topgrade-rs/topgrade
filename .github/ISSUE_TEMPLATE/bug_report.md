@@ -2,32 +2,79 @@
 name: Bug report
 about: Topgrade is misbehaving
 title: ''
-labels: ''
+labels: 'bug'
 assignees: ''
 
 ---
 
-<!-- If you're here to report about a "No asset found" error, please make sure that an hour has been passed since the last release was made. -->
+<!--
+Thanks for taking the time to fill out this bug report! 
+Please make sure to 
+[search for existing issues](https://github.com/topgrade-rs/topgrade/issues) 
+before filing a new one!
 
-## What did you expect to happen?
+Questions labeled with `Optional` can be skipped.
+-->
 
+<!-- 
+If you're here to report about a "No asset found" error, please make sure that 
+an hour has been passed since the last release was made. 
+-->
 
-## What actually happened?
+## Erroneous Behavior
+<!-- 
+What actually happened?
+-->
 
+## Expected Behavior
+<!-- 
+Describe the expected behavior
+-->
+
+## Steps to reproduce
+<!-- 
+A minimal example to reproduce the issue
+-->
+
+## Possible Cause (Optional)
+<!-- 
+If you know the possible cause of the issue, please tell us.
+-->
+
+## Problem persists without calling from topgrade
+<!-- 
+Execute the erroneous command directly to see if the problem persists
+-->
+- [ ] Yes
+
+## Configuration file (Optional)
+<!-- 
+Paste your configuration file inside the code block if you think this issue is 
+related to configuration.
+-->
+
+```toml
+
+```
 
 ## Additional Details
-- Which operating system or Linux distribution are you using?
-- How did you install Topgrade?
-- Which version are you running? <!-- Check with `topgrade -V` -->
+- Operation System/Version
+  <!-- For example, Fedora Linux 38 -->
 
-<!--
-Run `topgrade --dry-run` to see which commands Topgrade is running.
-If the command seems wrong and you know why please tell us so.
-If the command seems fine try to run it yourself and tell us if you got a different result from Topgrade.
+- Installation
+  <!-- 
+  How did you install topgrade: build from repo / crates.io (cargo install topgrade) 
+  / package manager (which one) / other (describe)
+  -->
+
+- Topgrade version (`topgrade -V`)
+
+## Verbose Output (`topgrade -v`)
+<!-- 
+Paste the verbose output into the pre-tags
 -->
 
 <details>
-<!-- Paste the output of the problematic command with `-v` into the pre-tags -->
 <pre>
 
 </pre>
