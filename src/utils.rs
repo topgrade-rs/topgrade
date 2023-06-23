@@ -2,10 +2,12 @@ use std::env;
 use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use color_eyre::eyre::Result;
 use tracing::{debug, error};
 
+use crate::command::CommandExt;
 use crate::error::SkipStep;
 
 pub trait PathExt
@@ -152,9 +154,6 @@ pub fn hostname() -> Result<String> {
 
 #[cfg(target_family = "windows")]
 pub fn hostname() -> Result<String> {
-    use crate::command::CommandExt;
-    use std::process::Command;
-
     Command::new("hostname")
         .output_checked_utf8()
         .map_err(|err| SkipStep(format!("Failed to get hostname: {err}")).into())
@@ -217,3 +216,38 @@ pub mod merge_strategies {
 // Skip causes
 // TODO: Put them in a better place when we have more of them
 pub const REQUIRE_SUDO: &str = "Require sudo or counterpart but not found, skip";
+
+/// Return `Err(SkipStep)` if `python` is a Python 2 or shim.
+///
+/// # Shim
+/// On Windows, if you install `python` through `winget`, an actual `python`
+/// is installed as well as a `python3` shim. Shim is invokable, but when you
+/// execute it, the Microsoft App Store will be launched instead of a Python
+/// shell.
+///
+/// We do this check through `python -V`, a shim will just give `Python` with
+/// no version number.
+pub fn check_is_python_2_or_shim(python: PathBuf) -> Result<PathBuf> {
+    let output = Command::new(&python).arg("-V").output_checked_utf8()?;
+    // "Python x.x.x\n"
+    let stdout = output.stdout;
+    // ["Python"] or ["Python", "x.x.x"], the newline char is trimmed.
+    let mut split = stdout.split_whitespace();
+
+    if let Some(version) = split.nth(1) {
+        let major_version = version
+            .split('.')
+            .next()
+            .expect("Should have a major version number")
+            .parse::<u32>()
+            .expect("Major version should be a valid number");
+        if major_version == 2 {
+            return Err(SkipStep(format!("{} is a Python 2, skip.", python.display())).into());
+        }
+    } else {
+        // No version number, is a shim
+        return Err(SkipStep(format!("{} is a Python shim, skip.", python.display())).into());
+    }
+
+    Ok(python)
+}
