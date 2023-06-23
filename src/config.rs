@@ -1515,3 +1515,16 @@ impl Config {
         self.opt.custom_commands.iter().any(|s| s == name)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::config::ConfigFile;
+
+    /// Test the default configuration in `config.example.toml` is valid.
+    #[test]
+    fn test_default_config() {
+        let str = include_str!("../config.example.toml");
+
+        assert!(toml::from_str::<ConfigFile>(str).is_ok());
+    }
+}
