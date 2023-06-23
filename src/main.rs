@@ -363,6 +363,7 @@ fn run() -> Result<()> {
     runner.execute(Step::GithubCliExtensions, "GitHub CLI Extensions", || {
         generic::run_ghcli_extensions_upgrade(&ctx)
     })?;
+    runner.execute(Step::Bob, "Bob", || generic::run_bob(&ctx))?;
 
     if config.use_predefined_git_repos() {
         if config.should_run(Step::Emacs) {
