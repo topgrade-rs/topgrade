@@ -2,7 +2,7 @@
 use crate::executor::RunType;
 use crate::git::Git;
 use crate::sudo::Sudo;
-use crate::utils::require_option;
+use crate::utils::{require_option, REQUIRE_SUDO};
 use crate::{config::Config, executor::Executor};
 use color_eyre::eyre::Result;
 use std::path::Path;
@@ -31,7 +31,7 @@ impl<'a> ExecutionContext<'a> {
     }
 
     pub fn execute_elevated(&self, command: &Path, interactive: bool) -> Result<Executor> {
-        let sudo = require_option(self.sudo.clone(), "Sudo is required for this operation".into())?;
+        let sudo = require_option(self.sudo.as_ref(), REQUIRE_SUDO.to_string())?;
         Ok(sudo.execute_elevated(self, command, interactive))
     }
 

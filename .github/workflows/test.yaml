@@ -57,3 +57,10 @@ jobs:
           # token: ${{ secrets.CODECOV_TOKEN }}
           files: ./lcov.info
           fail_ci_if_error: true
+      - name: Test creation of config file
+        run: |
+          CONFIG_PATH=~/.config/topgrade.toml;
+          if [ -f "$CONFIG_PATH" ]; then rm $CONFIG_PATH; fi
+          cargo build; 
+          ./target/debug/topgrade --dry-run --only system;
+          stat $CONFIG_PATH;

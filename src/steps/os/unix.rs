@@ -2,10 +2,7 @@ use std::fs;
 use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 use std::process::Command;
-use std::{
-    env::{self, var},
-    path::Path,
-};
+use std::{env::var, path::Path};
 
 use crate::command::CommandExt;
 use crate::{Step, HOME_DIR};
@@ -21,9 +18,7 @@ use crate::executor::Executor;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use crate::executor::RunType;
 use crate::terminal::print_separator;
-#[cfg(not(any(target_os = "android", target_os = "macos")))]
-use crate::utils::require_option;
-use crate::utils::{require, PathExt};
+use crate::utils::{require, require_option, PathExt, REQUIRE_SUDO};
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 const INTEL_BREW: &str = "/usr/local/bin/brew";
@@ -176,17 +171,18 @@ pub fn run_oh_my_fish(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_pkgin(ctx: &ExecutionContext) -> Result<()> {
     let pkgin = require("pkgin")?;
+    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
 
     print_separator("Pkgin");
 
-    let mut command = ctx.run_type().execute(ctx.sudo().as_ref().unwrap());
+    let mut command = ctx.run_type().execute(sudo);
     command.arg(&pkgin).arg("update");
     if ctx.config().yes(Step::Pkgin) {
         command.arg("-y");
     }
     command.status_checked()?;
 
-    let mut command = ctx.run_type().execute(ctx.sudo().as_ref().unwrap());
+    let mut command = ctx.run_type().execute(sudo);
     command.arg(&pkgin).arg("upgrade");
     if ctx.config().yes(Step::Pkgin) {
         command.arg("-y");
@@ -229,7 +225,7 @@ pub fn run_fundle(ctx: &ExecutionContext) -> Result<()> {
 pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
     let gdbus = require("gdbus")?;
     require_option(
-        env::var("XDG_CURRENT_DESKTOP").ok().filter(|p| p.contains("GNOME")),
+        var("XDG_CURRENT_DESKTOP").ok().filter(|p| p.contains("GNOME")),
         "Desktop doest not appear to be gnome".to_string(),
     )?;
     let output = Command::new("gdbus")
@@ -407,7 +403,7 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
 
     run_type.execute(nix_channel).arg("--update").status_checked()?;
 
-    if std::path::Path::new(&manifest_json_path).exists() {
+    if Path::new(&manifest_json_path).exists() {
         run_type
             .execute(&nix)
             .arg("profile")
@@ -463,10 +459,10 @@ pub fn run_pearl(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(pearl).arg("update").status_checked()
 }
 
-pub fn run_sdkman(cleanup: bool, ctx: &ExecutionContext) -> Result<()> {
+pub fn run_sdkman(ctx: &ExecutionContext) -> Result<()> {
     let bash = require("bash")?;
 
-    let sdkman_init_path = env::var("SDKMAN_DIR")
+    let sdkman_init_path = var("SDKMAN_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| HOME_DIR.join(".sdkman"))
         .join("bin")
@@ -476,7 +472,7 @@ pub fn run_sdkman(cleanup: bool, ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("SDKMAN!");
 
-    let sdkman_config_path = env::var("SDKMAN_DIR")
+    let sdkman_config_path = var("SDKMAN_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|_| HOME_DIR.join(".sdkman"))
         .join("etc")
@@ -509,7 +505,7 @@ pub fn run_sdkman(cleanup: bool, ctx: &ExecutionContext) -> Result<()> {
         .args(["-c", cmd_upgrade.as_str()])
         .status_checked()?;
 
-    if cleanup {
+    if ctx.config().cleanup() {
         let cmd_flush_archives = format!("source {} && sdk flush archives", &sdkman_init_path);
         ctx.run_type()
             .execute(&bash)

@@ -15,7 +15,7 @@ use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
 use crate::terminal::{print_separator, shell};
-use crate::utils::{self, require, require_option, which, PathExt};
+use crate::utils::{self, check_is_python_2_or_shim, require, require_option, which, PathExt, REQUIRE_SUDO};
 use crate::Step;
 use crate::HOME_DIR;
 use crate::{
@@ -28,7 +28,7 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
         .map(PathBuf::from)
         .unwrap_or_else(|| HOME_DIR.join(".cargo"))
         .require()?;
-    utils::require("cargo").or_else(|_| {
+    require("cargo").or_else(|_| {
         require_option(
             cargo_dir.join("bin/cargo").if_exists(),
             String::from("No cargo detected"),
@@ -42,7 +42,7 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     }
 
     print_separator("Cargo");
-    let cargo_update = utils::require("cargo-install-update")
+    let cargo_update = require("cargo-install-update")
         .ok()
         .or_else(|| cargo_dir.join("bin/cargo-install-update").if_exists());
     let cargo_update = match cargo_update {
@@ -60,7 +60,7 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()?;
 
     if ctx.config().cleanup() {
-        let cargo_cache = utils::require("cargo-cache")
+        let cargo_cache = require("cargo-cache")
             .ok()
             .or_else(|| cargo_dir.join("bin/cargo-cache").if_exists());
         match cargo_cache {
@@ -78,14 +78,14 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_flutter_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let flutter = utils::require("flutter")?;
+    let flutter = require("flutter")?;
 
     print_separator("Flutter");
     ctx.run_type().execute(flutter).arg("upgrade").status_checked()
 }
 
 pub fn run_gem(ctx: &ExecutionContext) -> Result<()> {
-    let gem = utils::require("gem")?;
+    let gem = require("gem")?;
     HOME_DIR.join(".gem").require()?;
 
     print_separator("Gems");
@@ -112,8 +112,9 @@ pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
             .execute(gem)
             .args(["update", "--system"])
             .status_checked()?;
-    } else if let Some(sudo) = &ctx.sudo() {
-        if !std::path::Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
+    } else {
+        let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+        if !Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
             ctx.run_type()
                 .execute(sudo)
                 .arg("-EH")
@@ -121,14 +122,13 @@ pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
                 .args(["update", "--system"])
                 .status_checked()?;
         }
-    } else {
-        print_warning("No sudo detected. Skipping system upgrade");
     }
+
     Ok(())
 }
 
 pub fn run_haxelib_update(ctx: &ExecutionContext) -> Result<()> {
-    let haxelib = utils::require("haxelib")?;
+    let haxelib = require("haxelib")?;
 
     let haxelib_dir =
         PathBuf::from(std::str::from_utf8(&Command::new(&haxelib).arg("config").output_checked()?.stdout)?.trim())
@@ -142,9 +142,8 @@ pub fn run_haxelib_update(ctx: &ExecutionContext) -> Result<()> {
     let mut command = if directory_writable {
         ctx.run_type().execute(&haxelib)
     } else {
-        let mut c = ctx
-            .run_type()
-            .execute(ctx.sudo().as_ref().ok_or(TopgradeError::SudoRequired)?);
+        let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+        let mut c = ctx.run_type().execute(sudo);
         c.arg(&haxelib);
         c
     };
@@ -153,7 +152,7 @@ pub fn run_haxelib_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_sheldon(ctx: &ExecutionContext) -> Result<()> {
-    let sheldon = utils::require("sheldon")?;
+    let sheldon = require("sheldon")?;
 
     print_separator("Sheldon");
 
@@ -164,7 +163,7 @@ pub fn run_sheldon(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_fossil(ctx: &ExecutionContext) -> Result<()> {
-    let fossil = utils::require("fossil")?;
+    let fossil = require("fossil")?;
 
     print_separator("Fossil");
 
@@ -172,7 +171,7 @@ pub fn run_fossil(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_micro(ctx: &ExecutionContext) -> Result<()> {
-    let micro = utils::require("micro")?;
+    let micro = require("micro")?;
 
     print_separator("micro");
 
@@ -198,7 +197,7 @@ pub fn run_micro(ctx: &ExecutionContext) -> Result<()> {
     target_os = "dragonfly"
 )))]
 pub fn run_apm(ctx: &ExecutionContext) -> Result<()> {
-    let apm = utils::require("apm")?;
+    let apm = require("apm")?;
 
     print_separator("Atom Package Manager");
 
@@ -209,14 +208,14 @@ pub fn run_apm(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
-    let rustup = utils::require("rustup")?;
+    let rustup = require("rustup")?;
 
     print_separator("rustup");
     ctx.run_type().execute(rustup).arg("update").status_checked()
 }
 
 pub fn run_juliaup(ctx: &ExecutionContext) -> Result<()> {
-    let juliaup = utils::require("juliaup")?;
+    let juliaup = require("juliaup")?;
 
     print_separator("juliaup");
 
@@ -231,7 +230,7 @@ pub fn run_juliaup(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_choosenim(ctx: &ExecutionContext) -> Result<()> {
-    let choosenim = utils::require("choosenim")?;
+    let choosenim = require("choosenim")?;
 
     print_separator("choosenim");
     let run_type = ctx.run_type();
@@ -241,7 +240,7 @@ pub fn run_choosenim(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_krew_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let krew = utils::require("kubectl-krew")?;
+    let krew = require("kubectl-krew")?;
 
     print_separator("Krew");
 
@@ -249,7 +248,7 @@ pub fn run_krew_upgrade(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_gcloud_components_update(ctx: &ExecutionContext) -> Result<()> {
-    let gcloud = utils::require("gcloud")?;
+    let gcloud = require("gcloud")?;
 
     if gcloud.starts_with("/snap") {
         Ok(())
@@ -264,7 +263,7 @@ pub fn run_gcloud_components_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_jetpack(ctx: &ExecutionContext) -> Result<()> {
-    let jetpack = utils::require("jetpack")?;
+    let jetpack = require("jetpack")?;
 
     print_separator("Jetpack");
 
@@ -275,7 +274,7 @@ pub fn run_jetpack(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_rtcl(ctx: &ExecutionContext) -> Result<()> {
-    let rupdate = utils::require("rupdate")?;
+    let rupdate = require("rupdate")?;
 
     print_separator("rtcl");
 
@@ -283,7 +282,7 @@ pub fn run_rtcl(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_opam_update(ctx: &ExecutionContext) -> Result<()> {
-    let opam = utils::require("opam")?;
+    let opam = require("opam")?;
 
     print_separator("OCaml Package Manager");
 
@@ -298,7 +297,7 @@ pub fn run_opam_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
-    let vcpkg = utils::require("vcpkg")?;
+    let vcpkg = require("vcpkg")?;
     print_separator("vcpkg");
 
     #[cfg(unix)]
@@ -310,9 +309,8 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
     let mut command = if is_root_install {
         ctx.run_type().execute(&vcpkg)
     } else {
-        let mut c = ctx
-            .run_type()
-            .execute(ctx.sudo().as_ref().ok_or(TopgradeError::SudoRequired)?);
+        let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+        let mut c = ctx.run_type().execute(sudo);
         c.arg(&vcpkg);
         c
     };
@@ -321,14 +319,14 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
-    let pipx = utils::require("pipx")?;
+    let pipx = require("pipx")?;
     print_separator("pipx");
 
     ctx.run_type().execute(pipx).arg("upgrade-all").status_checked()
 }
 
 pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
-    let conda = utils::require("conda")?;
+    let conda = require("conda")?;
 
     let output = Command::new("conda")
         .args(["config", "--show", "auto_activate_base"])
@@ -349,7 +347,7 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
-    let mamba = utils::require("mamba")?;
+    let mamba = require("mamba")?;
 
     let output = Command::new("mamba")
         .args(["config", "--show", "auto_activate_base"])
@@ -370,7 +368,18 @@ pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
-    let python3 = utils::require("python3")?;
+    let py = require("python").and_then(check_is_python_2_or_shim);
+    let py3 = require("python3").and_then(check_is_python_2_or_shim);
+
+    let python3 = match (py, py3) {
+        // prefer `python` if it is available and is a valid Python 3.
+        (Ok(py), _) => py,
+        (Err(_), Ok(py3)) => py3,
+        (Err(py_err), Err(py3_err)) => {
+            return Err(SkipStep(format!("Skip due to following reasons: {} {}", py_err, py3_err)).into());
+        }
+    };
+
     Command::new(&python3)
         .args(["-m", "pip"])
         .output_checked_utf8()
@@ -392,7 +401,7 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
         })?;
 
     print_separator("pip3");
-    if std::env::var("VIRTUAL_ENV").is_ok() {
+    if env::var("VIRTUAL_ENV").is_ok() {
         print_warning("This step is will be skipped when running inside a virtual environment");
         return Err(SkipStep("Does not run inside a virtual environment".to_string()).into());
     }
@@ -444,33 +453,35 @@ pub fn run_pipupgrade_update(ctx: &ExecutionContext) -> Result<()> {
     let pipupgrade = require("pipupgrade")?;
 
     print_separator("Pipupgrade");
-    if !ctx.config().enable_pip_review() {
+    if !ctx.config().enable_pipupgrade() {
         print_warning(
             "Pipupgrade is disabled by default. Enable it by setting enable_pipupgrade=true in the configuration.",
         );
         return Err(SkipStep(String::from("Pipupgrade is disabled by default")).into());
     }
-    ctx.run_type().execute(pipupgrade).status_checked()?;
+    ctx.run_type()
+        .execute(pipupgrade)
+        .args(ctx.config().pipupgrade_arguments().split_whitespace())
+        .status_checked()?;
 
     Ok(())
 }
-
 pub fn run_stack_update(ctx: &ExecutionContext) -> Result<()> {
-    if utils::require("ghcup").is_ok() {
+    if require("ghcup").is_ok() {
         // `ghcup` is present and probably(?) being used to install `stack`.
         // Don't upgrade `stack`, let `ghcup` handle it. Per `ghcup install stack`:
         // !!! Additionally, you should upgrade stack only through ghcup and not use 'stack upgrade' !!!
         return Ok(());
     }
 
-    let stack = utils::require("stack")?;
+    let stack = require("stack")?;
     print_separator("stack");
 
     ctx.run_type().execute(stack).arg("upgrade").status_checked()
 }
 
 pub fn run_ghcup_update(ctx: &ExecutionContext) -> Result<()> {
-    let ghcup = utils::require("ghcup")?;
+    let ghcup = require("ghcup")?;
     print_separator("ghcup");
 
     ctx.run_type().execute(ghcup).arg("upgrade").status_checked()
@@ -485,8 +496,8 @@ pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
         }
     }
 
-    let tlmgr = utils::require("tlmgr")?;
-    let kpsewhich = utils::require("kpsewhich")?;
+    let tlmgr = require("tlmgr")?;
+    let kpsewhich = require("kpsewhich")?;
     let tlmgr_directory = {
         let mut d = PathBuf::from(
             &Command::new(kpsewhich)
@@ -508,9 +519,8 @@ pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
     let mut command = if directory_writable {
         ctx.run_type().execute(&tlmgr)
     } else {
-        let mut c = ctx
-            .run_type()
-            .execute(ctx.sudo().as_ref().ok_or(TopgradeError::SudoRequired)?);
+        let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+        let mut c = ctx.run_type().execute(sudo);
         c.arg(&tlmgr);
         c
     };
@@ -520,7 +530,7 @@ pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_chezmoi_update(ctx: &ExecutionContext) -> Result<()> {
-    let chezmoi = utils::require("chezmoi")?;
+    let chezmoi = require("chezmoi")?;
     HOME_DIR.join(".local/share/chezmoi").require()?;
 
     print_separator("chezmoi");
@@ -529,7 +539,7 @@ pub fn run_chezmoi_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_myrepos_update(ctx: &ExecutionContext) -> Result<()> {
-    let myrepos = utils::require("mr")?;
+    let myrepos = require("mr")?;
     HOME_DIR.join(".mrconfig").require()?;
 
     print_separator("myrepos");
@@ -562,7 +572,7 @@ pub fn run_custom_command(name: &str, command: &str, ctx: &ExecutionContext) -> 
 }
 
 pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
-    let composer = utils::require("composer")?;
+    let composer = require("composer")?;
     let composer_home = Command::new(&composer)
         .args(["global", "config", "--absolute", "--quiet", "home"])
         .output_checked_utf8()
@@ -590,8 +600,9 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
                 };
 
                 if has_update {
+                    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
                     ctx.run_type()
-                        .execute(ctx.sudo().as_ref().unwrap())
+                        .execute(sudo)
                         .arg(&composer)
                         .arg("self-update")
                         .status_checked()?;
@@ -607,7 +618,7 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
         let output: Utf8Output = output.try_into()?;
         print!("{}\n{}", output.stdout, output.stderr);
         if output.stdout.contains("valet") || output.stderr.contains("valet") {
-            if let Some(valet) = utils::which("valet") {
+            if let Some(valet) = which("valet") {
                 ctx.run_type().execute(valet).arg("install").status_checked()?;
             }
         }
@@ -617,7 +628,7 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let dotnet = utils::require("dotnet")?;
+    let dotnet = require("dotnet")?;
 
     // Skip when the `dotnet tool list` subcommand fails.
     // (This is expected when a dotnet runtime is installed but no SDK.)
@@ -670,18 +681,19 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
-    utils::require("helix")?;
+    require("helix")?;
 
     print_separator("Helix");
 
+    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
     ctx.run_type()
-        .execute(ctx.sudo().as_ref().ok_or(TopgradeError::SudoRequired)?)
+        .execute(sudo)
         .args(["helix", "--grammar", "fetch"])
         .status_checked()
         .with_context(|| "Failed to download helix grammars!")?;
 
     ctx.run_type()
-        .execute(ctx.sudo().as_ref().ok_or(TopgradeError::SudoRequired)?)
+        .execute(sudo)
         .args(["helix", "--grammar", "build"])
         .status_checked()
         .with_context(|| "Failed to build helix grammars!")?;
@@ -690,7 +702,7 @@ pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_raco_update(ctx: &ExecutionContext) -> Result<()> {
-    let raco = utils::require("raco")?;
+    let raco = require("raco")?;
 
     print_separator("Racket Package Manager");
 
@@ -701,21 +713,21 @@ pub fn run_raco_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn bin_update(ctx: &ExecutionContext) -> Result<()> {
-    let bin = utils::require("bin")?;
+    let bin = require("bin")?;
 
     print_separator("Bin");
     ctx.run_type().execute(bin).arg("update").status_checked()
 }
 
 pub fn spicetify_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let spicetify = utils::require("spicetify")?;
+    let spicetify = require("spicetify")?;
 
     print_separator("Spicetify");
     ctx.run_type().execute(spicetify).arg("upgrade").status_checked()
 }
 
 pub fn run_ghcli_extensions_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let gh = utils::require("gh")?;
+    let gh = require("gh")?;
     let result = Command::new(&gh).args(["extensions", "list"]).output_checked_utf8();
     if result.is_err() {
         debug!("GH result {:?}", result);
@@ -730,7 +742,7 @@ pub fn run_ghcli_extensions_upgrade(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn update_julia_packages(ctx: &ExecutionContext) -> Result<()> {
-    let julia = utils::require("julia")?;
+    let julia = require("julia")?;
 
     print_separator("Julia Packages");
 
@@ -741,7 +753,7 @@ pub fn update_julia_packages(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_helm_repo_update(ctx: &ExecutionContext) -> Result<()> {
-    let helm = utils::require("helm")?;
+    let helm = require("helm")?;
 
     print_separator("Helm");
 
@@ -771,4 +783,12 @@ pub fn run_stew(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("stew");
     ctx.run_type().execute(stew).args(["upgrade", "--all"]).status_checked()
+}
+
+pub fn run_bob(ctx: &ExecutionContext) -> Result<()> {
+    let bob = require("bob")?;
+
+    print_separator("Bob");
+
+    ctx.run_type().execute(bob).args(["update", "--all"]).status_checked()
 }

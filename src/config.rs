@@ -103,6 +103,7 @@ pub enum Step {
     Asdf,
     Atom,
     Bin,
+    Bob,
     BrewCask,
     BrewFormula,
     Bun,
@@ -198,8 +199,8 @@ pub enum Step {
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Include {
-    #[merge(strategy = merge::vec::append)]
-    paths: Vec<String>,
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    paths: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -243,6 +244,7 @@ pub struct Python {
     enable_pip_review: Option<bool>,
     enable_pip_review_local: Option<bool>,
     enable_pipupgrade: Option<bool>,
+    pipupgrade_arguments: Option<String>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -530,6 +532,7 @@ impl ConfigFile {
 
         // If no config file exists, create a default one in the config directory
         if !res.0.exists() && res.1.is_empty() {
+            res.0 = possible_config_paths[0].clone();
             debug!("No configuration exists");
             write(&res.0, EXAMPLE_CONFIG).map_err(|e| {
                 debug!(
@@ -600,6 +603,12 @@ impl ConfigFile {
             path
         };
 
+        if config_path == PathBuf::default() {
+            // Here we expect topgrade.d and consequently result is not empty.
+            // If empty, Self:: ensure() would have created the default config.
+            return Ok(result);
+        }
+
         let mut contents_non_split = fs::read_to_string(&config_path).map_err(|e| {
             tracing::error!("Unable to read {}", config_path.display());
             e
@@ -609,7 +618,7 @@ impl ConfigFile {
 
         // To parse [include] sections in the order as they are written,
         // we split the file and parse each part as a separate file
-        let regex_match_include = Regex::new(r"\[include]").expect("Failed to compile regex");
+        let regex_match_include = Regex::new(r"^\s*\[include]").expect("Failed to compile regex");
         let contents_split = regex_match_include.split_inclusive_left(contents_non_split.as_str());
 
         for contents in contents_split {
@@ -620,25 +629,29 @@ impl ConfigFile {
 
             if let Some(includes) = &config_file_include_only.include {
                 // Parses the [include] section present in the slice
-                for include in includes.paths.iter().rev() {
-                    let include_path = shellexpand::tilde::<&str>(&include.as_ref()).into_owned();
-                    let include_path = PathBuf::from(include_path);
-                    let include_contents = match fs::read_to_string(&include_path) {
-                        Ok(c) => c,
-                        Err(e) => {
-                            tracing::error!("Unable to read {}: {}", include_path.display(), e);
-                            continue;
-                        }
-                    };
-                    match toml::from_str::<Self>(&include_contents) {
-                        Ok(include_parsed) => result.merge(include_parsed),
-                        Err(e) => {
-                            tracing::error!("Failed to deserialize {}: {}", include_path.display(), e);
-                            continue;
-                        }
-                    };
+                if let Some(ref paths) = includes.paths {
+                    for include in paths.iter().rev() {
+                        let include_path = shellexpand::tilde::<&str>(&include.as_ref()).into_owned();
+                        let include_path = PathBuf::from(include_path);
+                        let include_contents = match fs::read_to_string(&include_path) {
+                            Ok(c) => c,
+                            Err(e) => {
+                                tracing::error!("Unable to read {}: {}", include_path.display(), e);
+                                continue;
+                            }
+                        };
+                        match toml::from_str::<Self>(&include_contents) {
+                            Ok(include_parsed) => result.merge(include_parsed),
+                            Err(e) => {
+                                tracing::error!("Failed to deserialize {}: {}", include_path.display(), e);
+                                continue;
+                            }
+                        };
 
-                    debug!("Configuration include found: {}", include_path.display());
+                        debug!("Configuration include found: {}", include_path.display());
+                    }
+                } else {
+                    debug!("No include paths found in {}", config_path.display());
                 }
             }
 
@@ -1462,6 +1475,13 @@ impl Config {
             .and_then(|python| python.enable_pipupgrade)
             .unwrap_or(false);
     }
+    pub fn pipupgrade_arguments(&self) -> &str {
+        self.config_file
+            .python
+            .as_ref()
+            .and_then(|s| s.pipupgrade_arguments.as_deref())
+            .unwrap_or("")
+    }
     pub fn enable_pip_review(&self) -> bool {
         return self
             .config_file
@@ -1493,5 +1513,18 @@ impl Config {
         }
 
         self.opt.custom_commands.iter().any(|s| s == name)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::config::ConfigFile;
+
+    /// Test the default configuration in `config.example.toml` is valid.
+    #[test]
+    fn test_default_config() {
+        let str = include_str!("../config.example.toml");
+
+        assert!(toml::from_str::<ConfigFile>(str).is_ok());
     }
 }
