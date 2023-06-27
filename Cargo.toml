@@ -5,7 +5,7 @@ categories = ["os"]
 keywords = ["upgrade", "update"]
 license = "GPL-3.0"
 repository = "https://github.com/topgrade-rs/topgrade"
-version = "11.0.2"
+version = "12.0.0"
 authors = ["Roey Darwish Dror <roey.ghost@gmail.com>", "Thomas Schönauer <t.schoenauer@hgs-wt.at>"]
 exclude = ["doc/screenshot.gif"]
 edition = "2021"
@@ -47,9 +47,9 @@ shell-words = "~1.1"
 color-eyre = "~0.6"
 tracing = { version = "~0.1", features = ["attributes", "log"] }
 tracing-subscriber = { version = "~0.3", features = ["env-filter", "time"] }
-merge = "0.1.0"
-regex-split = "0.1.0"
-notify-rust = "4.8.0"
+merge = "~0.1"
+regex-split = "~0.1"
+notify-rust = "~4.8"
 
 [package.metadata.generate-rpm]
 assets = [{source = "target/release/topgrade", dest="/usr/bin/topgrade"}]
