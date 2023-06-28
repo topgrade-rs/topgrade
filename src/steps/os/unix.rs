@@ -155,7 +155,7 @@ pub fn run_oh_my_bash(ctx: &ExecutionContext) -> Result<()> {
     print_separator("oh-my-bash");
 
     let mut update_script = oh_my_bash;
-    update_script.push_str("tools/upgrade.sh");
+    update_script.push_str("/tools/upgrade.sh");
 
     ctx.run_type().execute("bash").arg(update_script).status_checked()
 }
