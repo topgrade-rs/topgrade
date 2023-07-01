@@ -370,6 +370,8 @@ pub struct Vim {
 pub struct Misc {
     pre_sudo: Option<bool>,
 
+    sudo_command: Option<SudoKind>,
+
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     git_repos: Option<Vec<String>>,
 
@@ -439,8 +441,6 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     misc: Option<Misc>,
-
-    sudo_command: Option<SudoKind>,
 
     #[merge(strategy = crate::utils::merge_strategies::commands_merge_opt)]
     pre_commands: Option<Commands>,
@@ -1389,7 +1389,7 @@ impl Config {
     }
 
     pub fn sudo_command(&self) -> Option<SudoKind> {
-        self.config_file.sudo_command
+        self.config_file.misc.as_ref().and_then(|misc| misc.sudo_command)
     }
 
     /// If `true`, `sudo` should be called after `pre_commands` in order to elevate at the
