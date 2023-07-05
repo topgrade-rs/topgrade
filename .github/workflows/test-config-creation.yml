@@ -1,0 +1,21 @@
+name: Test Configuration File Creation
+
+on:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+
+jobs:
+  TestConfig:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - run: |
+          CONFIG_PATH=~/.config/topgrade.toml;
+          if [ -f "$CONFIG_PATH" ]; then rm $CONFIG_PATH; fi
+          cargo build; 
+          ./target/debug/topgrade --dry-run --only system;
+          stat $CONFIG_PATH;
