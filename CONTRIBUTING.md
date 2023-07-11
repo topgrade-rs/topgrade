@@ -1,16 +1,19 @@
 ## Contributing to `topgrade`
 
-Thank you for your interest in contributing to `topgrade`! We welcome and encourage
-contributions of all kinds, such as:
+Thank you for your interest in contributing to `topgrade`! 
+We welcome and encourage contributions of all kinds, such as:
 
 1. Issue reports or feature requests
 2. Documentation improvements
 3. Code (PR or PR Review)
 
+Please follow the [Karma Runner guidelines](http://karma-runner.github.io/6.2/dev/git-commit-msg.html)
+for commit messages.
+
 ## Adding a new `step`
 
-In `topgrade`'s term, package manager is called `step`. To add a new `step` to
-`topgrade`: 
+In `topgrade`'s term, package manager is called `step`.
+To add a new `step` to `topgrade`: 
 
 1. Add a new variant to 
    [`enum Step`](https://github.com/topgrade-rs/topgrade/blob/cb7adc8ced8a77addf2cb051d18bba9f202ab866/src/config.rs#L100)
