@@ -33,7 +33,7 @@
 # List of remote machines with Topgrade installed on them
 #remote_topgrades = ["toothless", "pi", "parnas"]
 
-# Arguments to pass tp SSH when upgrading remote systems
+# Arguments to pass to SSH when upgrading remote systems
 #ssh_arguments = "-o ConnectTimeout=2"
 
 # Path to Topgrade executable on remote machines
