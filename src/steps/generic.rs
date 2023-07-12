@@ -339,7 +339,7 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Conda");
 
     let mut command = ctx.run_type().execute(conda);
-    command.args(["update", "--all"]);
+    command.args(["update", "--all", "-n", "base"]);
     if ctx.config().yes(Step::Conda) {
         command.arg("--yes");
     }
@@ -360,7 +360,7 @@ pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Mamba");
 
     let mut command = ctx.run_type().execute(mamba);
-    command.args(["update", "--all"]);
+    command.args(["update", "--all", "-n", "base"]);
     if ctx.config().yes(Step::Mamba) {
         command.arg("--yes");
     }
