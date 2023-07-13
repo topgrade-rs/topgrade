@@ -180,6 +180,7 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
         let output = Command::new("zsh")
             .args([
                 "-c",
+                // ` > /dev/null` is used in case the user's zshrc will have some stdout output.
                 format!("source {} > /dev/null && echo $ZSH", zshrc_path.display()).as_str(),
             ])
             .output_checked_utf8()?;
