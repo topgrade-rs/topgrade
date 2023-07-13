@@ -5,6 +5,7 @@ use crate::sudo::Sudo;
 use crate::utils::{require_option, REQUIRE_SUDO};
 use crate::{config::Config, executor::Executor};
 use color_eyre::eyre::Result;
+use std::env::var;
 use std::path::Path;
 use std::sync::Mutex;
 
@@ -17,16 +18,20 @@ pub struct ExecutionContext<'a> {
     /// This is used in `./steps/remote/ssh.rs`, where we want to run `topgrade` in a new
     /// tmux window for each remote.
     tmux_session: Mutex<Option<String>>,
+    /// True if topgrade is running under ssh.
+    under_ssh: bool,
 }
 
 impl<'a> ExecutionContext<'a> {
     pub fn new(run_type: RunType, sudo: Option<Sudo>, git: &'a Git, config: &'a Config) -> Self {
+        let under_ssh = var("SSH_CLIENT").is_ok() || var("SSH_TTY").is_ok();
         Self {
             run_type,
             sudo,
             git,
             config,
             tmux_session: Mutex::new(None),
+            under_ssh,
         }
     }
 
@@ -49,6 +54,10 @@ impl<'a> ExecutionContext<'a> {
 
     pub fn config(&self) -> &Config {
         self.config
+    }
+
+    pub fn under_ssh(&self) -> bool {
+        self.under_ssh
     }
 
     pub fn set_tmux_session(&self, session_name: String) {

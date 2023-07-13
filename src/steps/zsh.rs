@@ -165,6 +165,27 @@ pub fn run_zim(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
     require("zsh")?;
+
+    // When updating `oh-my-zsh` on a remote machine through topgrade, the
+    // following processes will be created:
+    //
+    // SSH -> ZSH -> ZSH ($SHELL) -> topgrade -> ZSH
+    //
+    // The first ZSH process, won't source zshrc (as it is a login shell),
+    // and thus it won't have the ZSH environment variable, as a result, the
+    // children processes won't get it either, so we source the zshrc and set
+    // the ZSH variable for topgrade here.
+    if ctx.under_ssh() {
+        let zshrc_path = zshrc().require()?;
+        let output = Command::new("zsh")
+            .args([
+                "-c",
+                format!("source {} > /dev/null && echo $ZSH", zshrc_path.display()).as_str(),
+            ])
+            .output_checked_utf8()?;
+        env::set_var("ZSH", output.stdout.trim());
+    }
+
     let oh_my_zsh = env::var("ZSH")
         .map(PathBuf::from)
         // default to `~/.oh-my-zsh`
