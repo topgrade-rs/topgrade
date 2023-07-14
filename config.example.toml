@@ -57,31 +57,27 @@
 # Whether to self update (this is ignored if the binary has been built without self update support, available also via setting the environment variable TOPGRADE_NO_SELF_UPGRADE)
 #no_self_update = true
 
-[git]
-#max_concurrency = 5
-# Additional git repositories to pull
-#repos = [
-#    "~/src/*/",
-#    "~/.config/something"
-#]
-
-# Don't pull the predefined git repos
-#pull_predefined = false
-
-# Arguments to pass Git when pulling Repositories
-#arguments = "--rebase --autostash"
-
-[composer]
-#self_update = true
-
 # Commands to run before anything
 [pre_commands]
+#"Emacs Snapshot" = "rm -rf ~/.emacs.d/elpa.bak && cp -rl ~/.emacs.d/elpa ~/.emacs.d/elpa.bak"
+
+# Commands to run after anything
+[post_commands]
 #"Emacs Snapshot" = "rm -rf ~/.emacs.d/elpa.bak && cp -rl ~/.emacs.d/elpa ~/.emacs.d/elpa.bak"
 
 # Custom commands
 [commands]
 #"Python Environment" = "~/dev/.env/bin/pip install -i https://pypi.python.org/simple -U --upgrade-strategy eager jupyter"
 #"Custom command using interactive shell (unix)" = "-i vim_upgrade"
+
+[python]
+#enable_pip_review = true                         ###disabled by default
+#enable_pip_review_local = true                   ###disabled by default
+#enable_pipupgrade = true                         ###disabled by default
+#pipupgrade_arguments = "-y -u --pip-path pip"    ###disabled by default
+
+[composer]
+#self_update = true
 
 [brew]
 #greedy_cask = true
@@ -109,11 +105,19 @@
 #rpm_ostree = false
 #nix_arguments = "--flake"
 
-[python]
-#enable_pip_review = true                         ###disabled by default
-#enable_pip_review_local = true                   ###disabled by default
-#enable_pipupgrade = true                         ###disabled by default
-#pipupgrade_arguments = "-y -u --pip-path pip"    ###disabled by default
+[git]
+#max_concurrency = 5
+# Additional git repositories to pull
+#repos = [
+#    "~/src/*/",
+#    "~/.config/something"
+#]
+
+# Don't pull the predefined git repos
+#pull_predefined = false
+
+# Arguments to pass Git when pulling Repositories
+#arguments = "--rebase --autostash"
 
 [windows]
 # Manually select Windows updates
@@ -131,9 +135,27 @@
 # Use sudo if the NPM directory isn't owned by the current user
 #use_sudo = true
 
+[yarn]
+# Run `yarn global upgrade` with `sudo`
+#use_sudo = true
+
+[vim]
+# For `vim-plug`, execute `PlugUpdate!` instead of `PlugUpdate`
+#force_plug_update = true
+
 [firmware]
 # Offer to update firmware; if false just check for and display available updates
 #upgrade = true
+
+[vagrant]
+# Vagrant directories
+#directories = []
+
+# power on vagrant boxes if needed
+#power_on = true
+
+# Always suspend vagrant boxes instead of powering off
+#always_suspend = true
 
 [flatpak]
 # Use sudo for updating the system-wide installation
