@@ -720,7 +720,8 @@ pub fn bin_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn spicetify_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let spicetify = require("spicetify")?;
+    // As of 04-07-2023 NixOS packages Spicetify with the `spicetify-cli` binary name
+    let spicetify = require("spicetify").or(require("spicetify-cli"))?;
 
     print_separator("Spicetify");
     ctx.run_type().execute(spicetify).arg("upgrade").status_checked()
