@@ -10,6 +10,7 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     print_separator("DragonFly BSD Packages");
     ctx.execute(sudo)
         .args(["/usr/local/sbin/pkg", "upgrade"])
+        .arg(if ctx.config().yes(Step::System) { "-y" } else { "" })
         .status_checked()
 }
 
