@@ -34,6 +34,7 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 - Void Linux: [XBPS](https://voidlinux.org/packages/?arch=x86_64&q=topgrade)
 - macOS: [Homebrew](https://formulae.brew.sh/formula/topgrade) or [MacPorts](https://ports.macports.org/port/topgrade/)
 - Windows: [Scoop](https://github.com/ScoopInstaller/Main/blob/master/bucket/topgrade.json)
+- PyPi: [pip](https://pypi.org/project/topgrade/)
 
 Other systems users can either use `cargo install` or the compiled binaries from the release page.
 The compiled binaries contain a self-upgrading feature.
