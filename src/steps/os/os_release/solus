@@ -1,0 +1,11 @@
+NAME="Solus"
+VERSION="4.4"
+ID="solus"
+VERSION_CODENAME=harmony
+VERSION_ID="4.4"
+PRETTY_NAME="Solus 4.4 Harmony"
+ANSI_COLOR="1;34"
+HOME_URL="https://getsol.us"
+SUPPORT_URL="https://help.getsol.us/docs/user/contributing/getting-involved"
+BUG_REPORT_URL="https://dev.getsol.us/"
+LOGO="distributor-logo-solus"
