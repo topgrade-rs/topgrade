@@ -52,6 +52,8 @@ pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
             topgrade_path,
             "--only",
             "system",
+            "--no-self-update",
+            "--skip-notify",
         ];
         if ctx.config().yes(Step::Toolbx) {
             args.push("--yes");
