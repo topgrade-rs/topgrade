@@ -549,6 +549,11 @@ pub fn run_pacdef(ctx: &ExecutionContext) -> Result<()> {
         ctx.run_type()
             .execute(&pacdef)
             .args(["package", "sync"])
+            .arg(if ctx.config().yes(Step::System) {
+                "--noconfirm"
+            } else {
+                ""
+            })
             .status_checked()?;
 
         println!();
