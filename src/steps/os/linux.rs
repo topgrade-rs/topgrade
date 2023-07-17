@@ -1014,4 +1014,9 @@ mod tests {
     fn test_vanilla() {
         test_template(include_str!("os_release/vanilla"), Distribution::Vanilla);
     }
+
+    #[test]
+    fn test_solus() {
+        test_template(include_str!("os_release/solus"), Distribution::Solus);
+    }
 }
