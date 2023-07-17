@@ -256,6 +256,7 @@ fn upgrade_suse(ctx: &ExecutionContext) -> Result<()> {
         } else {
             "update"
         })
+        .arg(if ctx.config().yes(Step::System) { "-y" } else { "" })
         .status_checked()?;
 
     Ok(())
@@ -272,6 +273,7 @@ fn upgrade_opensuse_tumbleweed(ctx: &ExecutionContext) -> Result<()> {
         .execute(sudo)
         .arg("zypper")
         .arg("dist-upgrade")
+        .arg(if ctx.config().yes(Step::System) { "-y" } else { "" })
         .status_checked()?;
 
     Ok(())
@@ -281,7 +283,9 @@ fn upgrade_suse_micro(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
     ctx.run_type()
         .execute(sudo)
-        .args(["transactional-update", "dup"])
+        .arg("transactional-update")
+        .arg(if ctx.config().yes(Step::System) { "-n" } else { "" })
+        .arg("dup")
         .status_checked()?;
 
     Ok(())
@@ -325,6 +329,7 @@ fn upgrade_pclinuxos(ctx: &ExecutionContext) -> Result<()> {
         .execute(sudo)
         .arg(&which("apt-get").unwrap())
         .arg("dist-upgrade")
+        .arg(if ctx.config().yes(Step::System) { "-y" } else { "" })
         .status_checked()?;
 
     Ok(())
@@ -499,7 +504,9 @@ fn upgrade_solus(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
     ctx.run_type()
         .execute(sudo)
-        .args(["eopkg", "upgrade"])
+        .arg("eopkg")
+        .arg(if ctx.config().yes(Step::System) { "-y" } else { "" })
+        .arg("upgrade")
         .status_checked()?;
 
     Ok(())
@@ -542,6 +549,11 @@ pub fn run_pacdef(ctx: &ExecutionContext) -> Result<()> {
         ctx.run_type()
             .execute(&pacdef)
             .args(["package", "sync"])
+            .arg(if ctx.config().yes(Step::System) {
+                "--noconfirm"
+            } else {
+                ""
+            })
             .status_checked()?;
 
         println!();
@@ -550,7 +562,15 @@ pub fn run_pacdef(ctx: &ExecutionContext) -> Result<()> {
             .args(["package", "review"])
             .status_checked()?;
     } else {
-        ctx.run_type().execute(&pacdef).arg("sync").status_checked()?;
+        ctx.run_type()
+            .execute(&pacdef)
+            .arg("sync")
+            .arg(if ctx.config().yes(Step::System) {
+                "--noconfirm"
+            } else {
+                ""
+            })
+            .status_checked()?;
 
         println!();
         ctx.run_type().execute(&pacdef).arg("review").status_checked()?;
@@ -599,6 +619,11 @@ fn upgrade_clearlinux(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type()
         .execute(sudo)
         .args(["swupd", "update"])
+        .arg(if ctx.config().yes(Step::System) {
+            "--assume=yes"
+        } else {
+            ""
+        })
         .status_checked()?;
 
     Ok(())
