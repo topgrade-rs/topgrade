@@ -57,6 +57,9 @@
 # Whether to self update (this is ignored if the binary has been built without self update support, available also via setting the environment variable TOPGRADE_NO_SELF_UPGRADE)
 #no_self_update = true
 
+# Extra Home Manager arguments
+#home_manager_arguments = "--flake"
+
 # Commands to run before anything
 [pre_commands]
 #"Emacs Snapshot" = "rm -rf ~/.emacs.d/elpa.bak && cp -rl ~/.emacs.d/elpa ~/.emacs.d/elpa.bak"

@@ -430,6 +430,8 @@ pub struct Misc {
     only: Option<Vec<Step>>,
 
     no_self_update: Option<bool>,
+
+    home_manager_arguments: Option<String>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1273,6 +1275,14 @@ impl Config {
             .linux
             .as_ref()
             .and_then(|linux| linux.nix_arguments.as_deref())
+    }
+
+    /// Extra Home Manager arguments
+    pub fn home_manager(&self) -> Option<&str> {
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.home_manager_arguments.as_deref())
     }
 
     /// Distrobox use root

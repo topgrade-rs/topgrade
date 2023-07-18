@@ -442,7 +442,15 @@ pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
     let home_manager = require("home-manager")?;
 
     print_separator("home-manager");
-    ctx.run_type().execute(home_manager).arg("switch").status_checked()
+
+    let mut cmd = ctx.run_type().execute(home_manager);
+    cmd.arg("switch");
+
+    if let Some(extra_args) = ctx.config().home_manager() {
+        cmd.arg(extra_args);
+    }
+
+    cmd.status_checked()
 }
 
 pub fn run_tldr(ctx: &ExecutionContext) -> Result<()> {
