@@ -70,7 +70,7 @@ pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
     if !is_wsl_installed()? {
-        return Err(SkipStep(format!("WSL not installed")).into());
+        return Err(SkipStep("WSL not installed".to_string()).into());
     }
 
     let wsl = require("wsl")?;
@@ -144,7 +144,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
 
 pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     if !is_wsl_installed()? {
-        return Err(SkipStep(format!("WSL not installed")).into());
+        return Err(SkipStep("WSL not installed".to_string()).into());
     }
 
     let wsl = require("wsl")?;
