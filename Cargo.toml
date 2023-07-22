@@ -63,7 +63,7 @@ depends = "$auto,git"
 [target.'cfg(unix)'.dependencies]
 libc = "~0.2"
 nix = "~0.24"
-rust-ini = "~0.18"
+rust-ini = "~0.19"
 self_update_crate = { version = "~0.30", default-features = false, optional = true, package = "self_update", features = ["archive-tar", "compression-flate2", "rustls"] }
 
 [target.'cfg(windows)'.dependencies]
