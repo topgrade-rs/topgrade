@@ -114,10 +114,14 @@ impl Distribution {
         if PathBuf::from(OS_RELEASE_PATH).exists() {
             let os_release = Ini::load_from_file(OS_RELEASE_PATH)?;
 
+            if os_release.general_section().is_empty() {
+                return Err(TopgradeError::EmptyOSReleaseFile.into());
+            }
+
             return Self::parse_os_release(&os_release);
         }
 
-        Err(TopgradeError::UnknownLinuxDistribution.into())
+        Err(TopgradeError::EmptyOSReleaseFile.into())
     }
 
     pub fn upgrade(self, ctx: &ExecutionContext) -> Result<()> {
