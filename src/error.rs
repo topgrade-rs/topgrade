@@ -14,7 +14,7 @@ pub enum TopgradeError {
     #[cfg(target_os = "linux")]
     UnknownLinuxDistribution,
 
-    #[error("File \"/etc/os-release\" do not exist or is empty")]
+    #[error("File \"/etc/os-release\" does not exist or is empty")]
     #[cfg(target_os = "linux")]
     EmptyOSReleaseFile,
 
