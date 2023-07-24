@@ -351,6 +351,9 @@ pub struct Linux {
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     emerge_update_flags: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    home_manager_arguments: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1273,6 +1276,14 @@ impl Config {
             .linux
             .as_ref()
             .and_then(|linux| linux.nix_arguments.as_deref())
+    }
+
+    /// Extra Home Manager arguments
+    pub fn home_manager(&self) -> Option<&Vec<String>> {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|misc| misc.home_manager_arguments.as_ref())
     }
 
     /// Distrobox use root
