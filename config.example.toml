@@ -58,7 +58,7 @@
 #no_self_update = true
 
 # Extra Home Manager arguments
-#home_manager_arguments = "--flake"
+#home_manager_arguments = ["--flake", "file"]
 
 # Commands to run before anything
 [pre_commands]

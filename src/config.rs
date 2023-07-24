@@ -351,6 +351,9 @@ pub struct Linux {
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     emerge_update_flags: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    home_manager_arguments: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -430,8 +433,6 @@ pub struct Misc {
     only: Option<Vec<Step>>,
 
     no_self_update: Option<bool>,
-
-    home_manager_arguments: Option<String>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1278,11 +1279,11 @@ impl Config {
     }
 
     /// Extra Home Manager arguments
-    pub fn home_manager(&self) -> Option<&str> {
+    pub fn home_manager(&self) -> Option<&Vec<String>> {
         self.config_file
-            .misc
+            .linux
             .as_ref()
-            .and_then(|misc| misc.home_manager_arguments.as_deref())
+            .and_then(|misc| misc.home_manager_arguments.as_ref())
     }
 
     /// Distrobox use root

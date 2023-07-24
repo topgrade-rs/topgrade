@@ -447,7 +447,7 @@ pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
     cmd.arg("switch");
 
     if let Some(extra_args) = ctx.config().home_manager() {
-        cmd.arg(extra_args);
+        cmd.args(extra_args);
     }
 
     cmd.status_checked()
