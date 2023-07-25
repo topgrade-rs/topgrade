@@ -9,7 +9,7 @@ use tracing::debug;
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::terminal::{print_separator, print_warning};
-use crate::utils::require;
+use crate::utils::{require, which};
 use crate::{error::SkipStep, steps::git::Repositories};
 use crate::{powershell, Step};
 
@@ -69,6 +69,10 @@ pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
+    if !is_wsl_installed()? {
+        return Err(SkipStep("WSL not installed".to_string()).into());
+    }
+
     let wsl = require("wsl")?;
 
     print_separator("Update WSL");
@@ -85,6 +89,30 @@ pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
     }
     wsl_command.status_checked()?;
     Ok(())
+}
+
+/// Detect if WSL is installed or not.
+///
+/// For WSL, we cannot simply check if command `wsl` is installed as on newer
+/// versions of Windows (since windows 10 version 2004), this commmand is
+/// installed by default.
+///
+/// If the command is installed and the user hasn't installed any Linux distros
+/// on it, command `wsl -l` would print a help message and exit with failure, we
+/// use this to check whether WSL is install or not.
+fn is_wsl_installed() -> Result<bool> {
+    if let Some(wsl) = which("wsl") {
+        // Don't use `output_checked` as an execution failure log is not wanted
+        #[allow(clippy::disallowed_methods)]
+        let output = Command::new(wsl).arg("-l").output()?;
+        let status = output.status;
+
+        if status.success() {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
 }
 
 fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
@@ -115,6 +143,10 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
 }
 
 pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
+    if !is_wsl_installed()? {
+        return Err(SkipStep("WSL not installed".to_string()).into());
+    }
+
     let wsl = require("wsl")?;
     let wsl_distributions = get_wsl_distributions(&wsl)?;
     let mut ran = false;
