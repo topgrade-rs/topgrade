@@ -252,16 +252,18 @@ fn upgrade_suse(ctx: &ExecutionContext) -> Result<()> {
         .args(["zypper", "refresh"])
         .status_checked()?;
 
-    ctx.run_type()
-        .execute(sudo)
-        .arg("zypper")
-        .arg(if ctx.config().suse_dup() {
-            "dist-upgrade"
-        } else {
-            "update"
-        })
-        .arg(if ctx.config().yes(Step::System) { "-y" } else { "" })
-        .status_checked()?;
+    let mut cmd = ctx.run_type().execute(sudo);
+    cmd.arg("zypper");
+    cmd.arg(if ctx.config().suse_dup() {
+        "dist-upgrade"
+    } else {
+        "update"
+    });
+    if ctx.config().yes(Step::System) {
+        cmd.arg("-y");
+    }
+
+    cmd.status_checked()?;
 
     Ok(())
 }
@@ -273,24 +275,26 @@ fn upgrade_opensuse_tumbleweed(ctx: &ExecutionContext) -> Result<()> {
         .args(["zypper", "refresh"])
         .status_checked()?;
 
-    ctx.run_type()
-        .execute(sudo)
-        .arg("zypper")
-        .arg("dist-upgrade")
-        .arg(if ctx.config().yes(Step::System) { "-y" } else { "" })
-        .status_checked()?;
+    let mut cmd = ctx.run_type().execute(sudo);
+    cmd.args(["zypper", "dist-upgrade"]);
+    if ctx.config().yes(Step::System) {
+        cmd.arg("-y");
+    }
+
+    cmd.status_checked()?;
 
     Ok(())
 }
 
 fn upgrade_suse_micro(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
-    ctx.run_type()
-        .execute(sudo)
-        .arg("transactional-update")
-        .arg(if ctx.config().yes(Step::System) { "-n" } else { "" })
-        .arg("dup")
-        .status_checked()?;
+    let mut cmd = ctx.run_type().execute(sudo);
+    cmd.arg("transactional-update");
+    if ctx.config().yes(Step::System) {
+        cmd.arg("-n");
+    }
+
+    cmd.arg("dup").status_checked()?;
 
     Ok(())
 }
@@ -329,12 +333,13 @@ fn upgrade_pclinuxos(ctx: &ExecutionContext) -> Result<()> {
 
     command_update.status_checked()?;
 
-    ctx.run_type()
-        .execute(sudo)
-        .arg(&which("apt-get").unwrap())
-        .arg("dist-upgrade")
-        .arg(if ctx.config().yes(Step::System) { "-y" } else { "" })
-        .status_checked()?;
+    let mut cmd = ctx.run_type().execute(sudo);
+    cmd.arg(&which("apt-get").unwrap());
+    cmd.arg("dist-upgrade");
+    if ctx.config().yes(Step::System) {
+        cmd.arg("-y");
+    }
+    cmd.status_checked()?;
 
     Ok(())
 }
@@ -506,12 +511,12 @@ pub fn run_deb_get(ctx: &ExecutionContext) -> Result<()> {
 
 fn upgrade_solus(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
-    ctx.run_type()
-        .execute(sudo)
-        .arg("eopkg")
-        .arg(if ctx.config().yes(Step::System) { "-y" } else { "" })
-        .arg("upgrade")
-        .status_checked()?;
+    let mut cmd = ctx.run_type().execute(sudo);
+    cmd.arg("eopkg");
+    if ctx.config().yes(Step::System) {
+        cmd.arg("-y");
+    }
+    cmd.arg("upgrade").status_checked()?;
 
     Ok(())
 }
@@ -550,15 +555,12 @@ pub fn run_pacdef(ctx: &ExecutionContext) -> Result<()> {
     let new_version = string.contains("version: 1");
 
     if new_version {
-        ctx.run_type()
-            .execute(&pacdef)
-            .args(["package", "sync"])
-            .arg(if ctx.config().yes(Step::System) {
-                "--noconfirm"
-            } else {
-                ""
-            })
-            .status_checked()?;
+        let mut cmd = ctx.run_type().execute(&pacdef);
+        cmd.args(["package", "sync"]);
+        if ctx.config().yes(Step::System) {
+            cmd.arg("--noconfirm");
+        }
+        cmd.status_checked()?;
 
         println!();
         ctx.run_type()
@@ -566,15 +568,13 @@ pub fn run_pacdef(ctx: &ExecutionContext) -> Result<()> {
             .args(["package", "review"])
             .status_checked()?;
     } else {
-        ctx.run_type()
-            .execute(&pacdef)
-            .arg("sync")
-            .arg(if ctx.config().yes(Step::System) {
-                "--noconfirm"
-            } else {
-                ""
-            })
-            .status_checked()?;
+        let mut cmd = ctx.run_type().execute(&pacdef);
+        cmd.arg("sync");
+        if ctx.config().yes(Step::System) {
+            cmd.arg("--noconfirm");
+        }
+
+        cmd.status_checked()?;
 
         println!();
         ctx.run_type().execute(&pacdef).arg("review").status_checked()?;
@@ -620,15 +620,12 @@ pub fn run_packer_nu(ctx: &ExecutionContext) -> Result<()> {
 
 fn upgrade_clearlinux(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
-    ctx.run_type()
-        .execute(sudo)
-        .args(["swupd", "update"])
-        .arg(if ctx.config().yes(Step::System) {
-            "--assume=yes"
-        } else {
-            ""
-        })
-        .status_checked()?;
+    let mut cmd = ctx.run_type().execute(sudo);
+    cmd.args(["swupd", "update"]);
+    if ctx.config().yes(Step::System) {
+        cmd.arg("--assume=yes");
+    }
+    cmd.status_checked()?;
 
     Ok(())
 }

@@ -8,10 +8,12 @@ use std::process::Command;
 pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
     print_separator("DragonFly BSD Packages");
-    ctx.execute(sudo)
-        .args(["/usr/local/sbin/pkg", "upgrade"])
-        .arg(if ctx.config().yes(Step::System) { "-y" } else { "" })
-        .status_checked()
+    let mut cmd = ctx.execute(sudo);
+    cmd.args(["/usr/local/sbin/pkg", "upgrade"]);
+    if ctx.config().yes(Step::System) {
+        cmd.arg("-y");
+    }
+    cmd.status_checked()
 }
 
 pub fn audit_packages(ctx: &ExecutionContext) -> Result<()> {
