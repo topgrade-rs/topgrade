@@ -188,7 +188,10 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
                 .as_str(),
             ])
             .output_checked_utf8()?;
-        env::set_var("ZSH", output.stdout.trim());
+        let zsh_env = output.stdout.trim();
+        if !zsh_env.is_empty() {
+            env::set_var("ZSH", zsh_env);
+        }
     }
 
     let oh_my_zsh = env::var("ZSH")
