@@ -46,6 +46,18 @@ If you know the possible cause of the issue, please tell us.
 Execute the erroneous command directly to see if the problem persists
 -->
 - [ ] Yes
+- [ ] No
+
+## Did you run topgrade through `Remote Execution`
+
+- [ ] Yes
+- [ ] No
+
+If yes, does the issue still occur when you run topgrade directlly in your
+remote host
+
+- [ ] Yes
+- [ ] No
 
 ## Configuration file (Optional)
 <!-- 
