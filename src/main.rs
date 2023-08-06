@@ -187,15 +187,10 @@ fn run() -> Result<()> {
         }
         runner.execute(Step::ConfigUpdate, "config-update", || linux::run_config_update(&ctx))?;
 
-        runner.execute(Step::BrewFormula, "Brew", || {
-            unix::run_brew_formula(&ctx, unix::BrewVariant::Path)
-        })?;
-
         runner.execute(Step::AM, "am", || linux::run_am(&ctx))?;
         runner.execute(Step::AppMan, "appman", || linux::run_appman(&ctx))?;
         runner.execute(Step::DebGet, "deb-get", || linux::run_deb_get(&ctx))?;
         runner.execute(Step::Toolbx, "toolbx", || toolbx::run_toolbx(&ctx))?;
-        runner.execute(Step::Flatpak, "Flatpak", || linux::run_flatpak(&ctx))?;
         runner.execute(Step::Snap, "snap", || linux::run_snap(&ctx))?;
         runner.execute(Step::Pacstall, "pacstall", || linux::run_pacstall(&ctx))?;
         runner.execute(Step::Pacdef, "pacdef", || linux::run_pacdef(&ctx))?;
@@ -205,6 +200,11 @@ fn run() -> Result<()> {
         runner.execute(Step::System, "pihole", || linux::run_pihole_update(&ctx))?;
         runner.execute(Step::Firmware, "Firmware upgrades", || linux::run_fwupdmgr(&ctx))?;
         runner.execute(Step::Restarts, "Restarts", || linux::run_needrestart(&ctx))?;
+
+        runner.execute(Step::Flatpak, "Flatpak", || linux::run_flatpak(&ctx))?;
+        runner.execute(Step::BrewFormula, "Brew", || {
+            unix::run_brew_formula(&ctx, unix::BrewVariant::Path)
+        })?;
     }
 
     #[cfg(target_os = "macos")]
