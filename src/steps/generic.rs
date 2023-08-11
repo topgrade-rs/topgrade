@@ -318,6 +318,26 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
     command.args(["upgrade", "--no-dry-run"]).status_checked()
 }
 
+pub fn run_vscode_extensions_upgrade(ctx: &ExecutionContext) -> Result<()> {
+    let vscode = require("code")?;
+    print_separator("Visual Studio Code");
+
+    let extensions = Command::new(&vscode)
+        .arg("--list-extensions")
+        .output_checked_utf8()?
+        .stdout;
+
+    for extension in extensions.split_whitespace() {
+        ctx.run_type()
+            .execute(&vscode)
+            .args(["--force", "--install-extension", extension])
+            .status_checked()
+            .with_context(|| format!("Failed to update Visual Studio Code extension {extension}"))?;
+    }
+
+    Ok(())
+}
+
 pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
     let pipx = require("pipx")?;
     print_separator("pipx");

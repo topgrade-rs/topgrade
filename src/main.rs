@@ -320,6 +320,9 @@ fn run() -> Result<()> {
     runner.execute(Step::Opam, "opam", || generic::run_opam_update(&ctx))?;
     runner.execute(Step::Vcpkg, "vcpkg", || generic::run_vcpkg_update(&ctx))?;
     runner.execute(Step::Pipx, "pipx", || generic::run_pipx_update(&ctx))?;
+    runner.execute(Step::Vscode, "Visual Studio Code extensions", || {
+        generic::run_vscode_extensions_upgrade(&ctx)
+    })?;
     runner.execute(Step::Conda, "conda", || generic::run_conda_update(&ctx))?;
     runner.execute(Step::Mamba, "mamba", || generic::run_mamba_update(&ctx))?;
     runner.execute(Step::Pip3, "pip3", || generic::run_pip3_update(&ctx))?;
