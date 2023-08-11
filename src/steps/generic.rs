@@ -320,7 +320,7 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_vscode_extensions_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let vscode = require("code")?;
-    print_separator("Visual Studio Code");
+    print_separator("Visual Studio Code extensions");
 
     let extensions = Command::new(&vscode)
         .arg("--list-extensions")
