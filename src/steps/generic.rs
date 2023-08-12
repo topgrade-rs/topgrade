@@ -327,12 +327,13 @@ pub fn run_vscode_extensions_upgrade(ctx: &ExecutionContext) -> Result<()> {
         .output_checked_utf8()?
         .stdout;
 
-    for extension in extensions.split_whitespace() {
-        ctx.run_type()
-            .execute(&vscode)
-            .args(["--force", "--install-extension", extension])
-            .status_checked()
-            .with_context(|| format!("Failed to update Visual Studio Code extension {extension}"))?;
+    if !extensions.is_empty() {
+        let mut command_args = vec!["--force"];
+        for extension in extensions.split_whitespace() {
+            command_args.extend(["--install-extension", extension]);
+        }
+
+        ctx.run_type().execute(&vscode).args(command_args).status_checked()?;
     }
 
     Ok(())
