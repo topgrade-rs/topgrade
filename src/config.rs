@@ -145,6 +145,7 @@ pub enum Step {
     Krew,
     Macports,
     Mamba,
+    Miktex,
     Mas,
     Maza,
     Micro,

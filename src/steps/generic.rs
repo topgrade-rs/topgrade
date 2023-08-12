@@ -367,6 +367,16 @@ pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
     command.status_checked()
 }
 
+pub fn run_miktex_packages_update(ctx: &ExecutionContext) -> Result<()> {
+    let miktex = require("miktex")?;
+    print_separator("miktex");
+
+    ctx.run_type()
+        .execute(miktex)
+        .args(["packages", "update"])
+        .status_checked()
+}
+
 pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
     let py = require("python").and_then(check_is_python_2_or_shim);
     let py3 = require("python3").and_then(check_is_python_2_or_shim);
