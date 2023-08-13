@@ -322,11 +322,14 @@ pub fn run_vscode_extensions_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let vscode = require("code")?;
     print_separator("Visual Studio Code extensions");
 
+    // Vscode does not have CLI command to upgrade all extensions (see https://github.com/microsoft/vscode/issues/56578)
+    // Instead we get the list of installed extensions with `code --list-extensions` command (obtain a line-return separated list of installed extensions)
     let extensions = Command::new(&vscode)
         .arg("--list-extensions")
         .output_checked_utf8()?
         .stdout;
 
+    // Then we construct the upgrade command: `code --force --install-extension [ext0] --install-extension [ext1] ... --install-extension [extN]`
     if !extensions.is_empty() {
         let mut command_args = vec!["--force"];
         for extension in extensions.split_whitespace() {
