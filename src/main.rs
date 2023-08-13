@@ -205,6 +205,7 @@ fn run() -> Result<()> {
         runner.execute(Step::BrewFormula, "Brew", || {
             unix::run_brew_formula(&ctx, unix::BrewVariant::Path)
         })?;
+        runner.execute(Step::Lure, "LURE", || linux::run_lure_update(&ctx))?;
     }
 
     #[cfg(target_os = "macos")]
