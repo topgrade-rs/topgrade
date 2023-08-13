@@ -322,6 +322,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Pipx, "pipx", || generic::run_pipx_update(&ctx))?;
     runner.execute(Step::Conda, "conda", || generic::run_conda_update(&ctx))?;
     runner.execute(Step::Mamba, "mamba", || generic::run_mamba_update(&ctx))?;
+    runner.execute(Step::Miktex, "miktex", || generic::run_miktex_packages_update(&ctx))?;
     runner.execute(Step::Pip3, "pip3", || generic::run_pip3_update(&ctx))?;
     runner.execute(Step::PipReview, "pip-review", || generic::run_pip_review_update(&ctx))?;
     runner.execute(Step::PipReviewLocal, "pip-review (local)", || {
