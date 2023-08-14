@@ -190,6 +190,7 @@ pub enum Step {
     Vagrant,
     Vcpkg,
     Vim,
+    Vscode,
     Winget,
     Wsl,
     WslUpdate,
