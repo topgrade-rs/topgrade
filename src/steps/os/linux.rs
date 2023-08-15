@@ -913,6 +913,22 @@ pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+pub fn run_lure_update(ctx: &ExecutionContext) -> Result<()> {
+    let lure = require("lure")?;
+
+    print_separator("LURE");
+
+    let mut exe = ctx.run_type().execute(lure);
+
+    if ctx.config().yes(Step::Lure) {
+        exe.args(["-i=false", "up"]);
+    } else {
+        exe.arg("up");
+    }
+
+    exe.status_checked()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

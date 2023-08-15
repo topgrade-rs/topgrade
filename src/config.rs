@@ -143,6 +143,7 @@ pub enum Step {
     Kakoune,
     Helix,
     Krew,
+    Lure,
     Macports,
     Mamba,
     Miktex,
