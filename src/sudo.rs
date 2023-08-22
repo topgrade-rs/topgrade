@@ -26,10 +26,10 @@ impl Sudo {
     pub fn detect() -> Option<Self> {
         which("doas")
             .map(|p| (p, SudoKind::Doas))
-            .or_else(|| which("please").map(|p| (p, SudoKind::Please)))
             .or_else(|| which("sudo").map(|p| (p, SudoKind::Sudo)))
             .or_else(|| which("gsudo").map(|p| (p, SudoKind::Gsudo)))
             .or_else(|| which("pkexec").map(|p| (p, SudoKind::Pkexec)))
+            .or_else(|| which("please").map(|p| (p, SudoKind::Please)))
             .map(|(path, kind)| Self { path, kind })
     }
 
@@ -55,12 +55,6 @@ impl Sudo {
                 // See: https://man.openbsd.org/doas
                 cmd.arg("echo");
             }
-            SudoKind::Please => {
-                // From `man please`
-                //   -w, --warm
-                //   Warm the access token and exit.
-                cmd.arg("-w");
-            }
             SudoKind::Sudo => {
                 // From `man sudo` on macOS:
                 //   -v, --validate
@@ -84,6 +78,12 @@ impl Sudo {
                 //
                 // See: https://linux.die.net/man/1/pkexec
                 cmd.arg("echo");
+            }
+            SudoKind::Please => {
+                // From `man please`
+                //   -w, --warm
+                //   Warm the access token and exit.
+                cmd.arg("-w");
             }
         }
         cmd.status_checked().wrap_err("Failed to elevate permissions")
@@ -112,10 +112,10 @@ impl Sudo {
 #[strum(serialize_all = "lowercase")]
 pub enum SudoKind {
     Doas,
-    Please,
     Sudo,
     Gsudo,
     Pkexec,
+    Please,
 }
 
 impl AsRef<OsStr> for Sudo {
