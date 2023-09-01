@@ -7,7 +7,7 @@ on:
 name: CI
 
 env:
-  RUST_VER: '1.71.0'
+  RUST_VER: '1.72.0'
   CROSS_VER: '0.2.5'
   CARGO_NET_RETRY: 3
 
