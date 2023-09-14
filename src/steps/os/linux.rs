@@ -61,7 +61,7 @@ impl Distribution {
                     }
                 } else {
                     Ok(Distribution::Fedora)
-                }
+                };
             }
 
             Some("void") => Distribution::Void,
@@ -317,6 +317,7 @@ fn upgrade_openmandriva(ctx: &ExecutionContext) -> Result<()> {
 
     Ok(())
 }
+
 fn upgrade_pclinuxos(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
     let mut command_update = ctx.run_type().execute(sudo);
@@ -708,14 +709,52 @@ fn upgrade_neon(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+/// `needrestart` should be skipped if:
+///
+/// 1. This is a redhat-based distribution
+/// 2. This is a debian-based distribution and it is using `nala` as the `apt`
+///    alternative
+fn should_skip_needrestart() -> Result<()> {
+    let distribution = Distribution::detect()?;
+    let msg = "needrestart will be ran by the package manager";
+
+    if distribution.redhat_based() {
+        return Err(SkipStep(String::from(msg)).into());
+    }
+
+    if matches!(distribution, Distribution::Debian) {
+        let apt = which("apt-fast")
+            .or_else(|| {
+                if which("mist").is_some() {
+                    Some(PathBuf::from("mist"))
+                } else {
+                    None
+                }
+            })
+            .or_else(|| {
+                if Path::new("/usr/bin/nala").exists() {
+                    Some(Path::new("/usr/bin/nala").to_path_buf())
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_else(|| PathBuf::from("apt-get"));
+
+        let is_nala = apt.ends_with("nala");
+
+        if is_nala {
+            return Err(SkipStep(String::from(msg)).into());
+        }
+    }
+
+    Ok(())
+}
+
 pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
     let needrestart = require("needrestart")?;
-    let distribution = Distribution::detect()?;
 
-    if distribution.redhat_based() {
-        return Err(SkipStep(String::from("needrestart will be ran by the package manager")).into());
-    }
+    should_skip_needrestart()?;
 
     print_separator("Check for needed restarts");
 
