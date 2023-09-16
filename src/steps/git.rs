@@ -3,6 +3,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 
+use color_eyre::eyre::Context;
 use color_eyre::eyre::{eyre, Result};
 use console::style;
 use futures::stream::{iter, FuturesUnordered};
@@ -33,10 +34,12 @@ pub struct Repositories<'a> {
     bad_patterns: Vec<String>,
 }
 
+#[track_caller]
 fn output_checked_utf8(output: Output) -> Result<()> {
     if !(output.status.success()) {
-        let stderr = String::from_utf8(output.stderr).unwrap();
-        Err(eyre!(stderr))
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stderr = stderr.trim();
+        Err(eyre!("{stderr}"))
     } else {
         Ok(())
     }
@@ -66,11 +69,12 @@ async fn pull_repository(repo: String, git: &Path, ctx: &ExecutionContext<'_>) -
         .stdin(Stdio::null())
         .output()
         .await?;
-    let result = output_checked_utf8(pull_output).and_then(|_| output_checked_utf8(submodule_output));
+    let result = output_checked_utf8(pull_output)
+        .and_then(|_| output_checked_utf8(submodule_output))
+        .wrap_err_with(|| format!("Failed to pull {repo}"));
 
-    if let Err(message) = &result {
+    if result.is_err() {
         println!("{} pulling {}", style("Failed").red().bold(), &repo);
-        print!("{message}");
     } else {
         let after_revision = get_head_revision(git, &repo);
 
