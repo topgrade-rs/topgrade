@@ -436,6 +436,8 @@ pub struct Misc {
     only: Option<Vec<Step>>,
 
     no_self_update: Option<bool>,
+
+    log_filters: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -831,14 +833,6 @@ impl CommandLineArgs {
 
     pub fn env_variables(&self) -> &Vec<String> {
         &self.env
-    }
-
-    pub fn tracing_filter_directives(&self) -> String {
-        if self.verbose {
-            "debug".into()
-        } else {
-            self.log_filter.clone()
-        }
     }
 }
 
@@ -1388,6 +1382,19 @@ impl Config {
 
     pub fn verbose(&self) -> bool {
         self.opt.verbose
+    }
+
+    pub fn tracing_filter_directives(&self) -> String {
+        let mut ret = String::new();
+        if let Some(directives) = self.config_file.misc.as_ref().and_then(|m| m.log_filters.as_ref()) {
+            ret.push_str(&directives.join(","));
+        }
+        ret.push(',');
+        ret.push_str(&self.opt.log_filter);
+        if self.verbose() {
+            ret.push_str(",debug");
+        }
+        ret
     }
 
     pub fn show_skipped(&self) -> bool {

@@ -60,6 +60,11 @@
 # Extra Home Manager arguments
 #home_manager_arguments = ["--flake", "file"]
 
+# Extra tracing filter directives
+# These are prepended to the `--log-filter` argument
+# See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
+#log_filters = ["topgrade::command=debug", "warn"]
+
 # Commands to run before anything
 [pre_commands]
 #"Emacs Snapshot" = "rm -rf ~/.emacs.d/elpa.bak && cp -rl ~/.emacs.d/elpa ~/.emacs.d/elpa.bak"
