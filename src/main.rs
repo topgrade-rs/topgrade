@@ -47,7 +47,7 @@ pub static XDG_DIRS: Lazy<Xdg> = Lazy::new(|| Xdg::new().expect("No home directo
 pub static WINDOWS_DIRS: Lazy<Windows> = Lazy::new(|| Windows::new().expect("No home directory"));
 
 fn run() -> Result<()> {
-    color_eyre::install()?;
+    install_color_eyre()?;
     ctrlc::set_handler();
 
     let opt = CommandLineArgs::parse();
@@ -571,4 +571,20 @@ fn install_tracing(filter_directives: &str) -> Result<()> {
     registry.with(env_filter).with(fmt_layer).init();
 
     Ok(())
+}
+
+fn install_color_eyre() -> Result<()> {
+    color_eyre::config::HookBuilder::new()
+        // Don't display the backtrace reminder by default:
+        //   Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+        //   Run with RUST_BACKTRACE=full to include source snippets.
+        // Backtraces can be enabled with the `--backtrace` switch or the `RUST_BACKTRACE`
+        // environment variable (documented in the `--help` output).
+        .display_env_section(false)
+        // Don't display location information by default:
+        //   Location:
+        //      src/steps.rs:92
+        // Location information is displayed in the backtrace, but usually isn't needed anyways.
+        .display_location_section(false)
+        .install()
 }
