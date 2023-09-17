@@ -64,8 +64,6 @@ fn run() -> Result<()> {
         return Ok(());
     }
 
-    install_tracing(&opt.tracing_filter_directives())?;
-
     for env in opt.env_variables() {
         let mut splitted = env.split('=');
         let var = splitted.next().unwrap();
@@ -84,6 +82,7 @@ fn run() -> Result<()> {
     }
 
     let config = Config::load(opt)?;
+    install_tracing(&config.tracing_filter_directives())?;
     set_title(config.set_title());
     display_time(config.display_time());
     set_desktop_notifications(config.notify_each_step());
