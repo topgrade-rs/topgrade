@@ -11,6 +11,8 @@ use home;
 use ini::Ini;
 use tracing::debug;
 
+#[cfg(target_os = "linux")]
+use super::linux::Distribution;
 use crate::error::SkipStep;
 use crate::execution_context::ExecutionContext;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -363,23 +365,22 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     debug!("nix profile: {:?}", profile_path);
     let manifest_json_path = profile_path.join("manifest.json");
 
-    let output = Command::new(&nix_env).args(["--query", "nix"]).output_checked_utf8();
-    debug!("nix-env output: {:?}", output);
-    let should_self_upgrade = output.is_ok();
+    // Should we attempt to upgrade Nix with `nix upgrade-nix`?
+    #[allow(unused_mut)]
+    let mut should_self_upgrade = cfg!(target_os = "macos");
+
+    #[cfg(target_os = "linux")]
+    {
+        // We can't use `nix upgrade-nix` on NixOS.
+        if let Ok(Distribution::NixOS) = Distribution::detect() {
+            should_self_upgrade = false;
+        }
+    }
 
     print_separator("Nix");
 
     let multi_user = fs::metadata(&nix)?.uid() == 0;
     debug!("Multi user nix: {}", multi_user);
-
-    #[cfg(target_os = "linux")]
-    {
-        use super::linux::Distribution;
-
-        if let Ok(Distribution::NixOS) = Distribution::detect() {
-            return Err(SkipStep(String::from("Nix on NixOS must be upgraded via nixos-rebuild switch")).into());
-        }
-    }
 
     #[cfg(target_os = "macos")]
     {
@@ -393,11 +394,20 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
 
     let run_type = ctx.run_type();
 
+    let nix_args = ["--extra-experimental-features", "nix-command"];
+
     if should_self_upgrade {
         if multi_user {
-            ctx.execute_elevated(&nix, true)?.arg("upgrade-nix").status_checked()?;
+            ctx.execute_elevated(&nix, true)?
+                .args(nix_args)
+                .arg("upgrade-nix")
+                .status_checked()?;
         } else {
-            run_type.execute(&nix).arg("upgrade-nix").status_checked()?;
+            run_type
+                .execute(&nix)
+                .args(nix_args)
+                .arg("upgrade-nix")
+                .status_checked()?;
         }
     }
 
@@ -406,12 +416,14 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     if Path::new(&manifest_json_path).exists() {
         run_type
             .execute(&nix)
+            .args(nix_args)
             .arg("profile")
             .arg("upgrade")
             .arg(".*")
+            .arg("--verbose")
             .status_checked()
     } else {
-        run_type.execute(&nix_env).arg("--upgrade").status_checked()
+        run_type.execute(nix_env).arg("--upgrade").status_checked()
     }
 }
 

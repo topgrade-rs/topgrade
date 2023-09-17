@@ -170,7 +170,7 @@ impl Git {
                 }
             }
             Err(e) => match e.kind() {
-                io::ErrorKind::NotFound => debug!("{} does not exists", path.as_ref().display()),
+                io::ErrorKind::NotFound => debug!("{} does not exist", path.as_ref().display()),
                 _ => error!("Error looking for {}: {}", path.as_ref().display(), e),
             },
         }

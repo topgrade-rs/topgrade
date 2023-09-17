@@ -417,7 +417,7 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
     Command::new(&python3)
         .args(["-m", "pip"])
         .output_checked_utf8()
-        .map_err(|_| SkipStep("pip does not exists".to_string()))?;
+        .map_err(|_| SkipStep("pip does not exist".to_string()))?;
 
     let check_externally_managed = "import sysconfig; from os import path; print('Y') if path.isfile(path.join(sysconfig.get_path('stdlib'), 'EXTERNALLY-MANAGED')) else print('N')";
     Command::new(&python3)
