@@ -578,13 +578,10 @@ fn install_color_eyre() -> Result<()> {
         // Don't display the backtrace reminder by default:
         //   Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
         //   Run with RUST_BACKTRACE=full to include source snippets.
-        // Backtraces can be enabled with the `--backtrace` switch or the `RUST_BACKTRACE`
-        // environment variable (documented in the `--help` output).
         .display_env_section(false)
-        // Don't display location information by default:
+        // Display location information by default:
         //   Location:
         //      src/steps.rs:92
-        // Location information is displayed in the backtrace, but usually isn't needed anyways.
-        .display_location_section(false)
+        .display_location_section(true)
         .install()
 }
