@@ -181,10 +181,17 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
             .args([
                 "-c",
                 // ` > /dev/null` is used in case the user's zshrc will have some stdout output.
-                format!("source {} > /dev/null && echo $ZSH", zshrc_path.display()).as_str(),
+                format!(
+                    "source {} > /dev/null && export -p | grep ZSH > /dev/null && echo $ZSH",
+                    zshrc_path.display()
+                )
+                .as_str(),
             ])
             .output_checked_utf8()?;
-        env::set_var("ZSH", output.stdout.trim());
+        let zsh_env = output.stdout.trim();
+        if !zsh_env.is_empty() {
+            env::set_var("ZSH", zsh_env);
+        }
     }
 
     let oh_my_zsh = env::var("ZSH")
