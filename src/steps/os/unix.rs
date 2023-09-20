@@ -423,7 +423,12 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
             .arg("--verbose")
             .status_checked()
     } else {
-        run_type.execute(nix_env).arg("--upgrade").status_checked()
+        let mut command = run_type.execute(nix_env);
+        command.arg("--upgrade");
+        if let Some(args) = ctx.config().nix_env_arguments() {
+            command.args(args.split_whitespace());
+        };
+        command.status_checked()
     }
 }
 

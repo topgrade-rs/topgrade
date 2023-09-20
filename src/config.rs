@@ -342,6 +342,9 @@ pub struct Linux {
     nix_arguments: Option<String>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
+    nix_env_arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     apt_arguments: Option<String>,
 
     enable_tlmgr: Option<bool>,
@@ -1273,6 +1276,14 @@ impl Config {
             .linux
             .as_ref()
             .and_then(|linux| linux.nix_arguments.as_deref())
+    }
+
+    /// Extra nix-env arguments
+    pub fn nix_env_arguments(&self) -> Option<&str> {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|linux| linux.nix_env_arguments.as_deref())
     }
 
     /// Extra Home Manager arguments
