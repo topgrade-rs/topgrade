@@ -112,6 +112,7 @@
 #suse_dup = false
 #rpm_ostree = false
 #nix_arguments = "--flake"
+#nix_env_arguments = "--prebuilt-only"
 
 [git]
 #max_concurrency = 5
