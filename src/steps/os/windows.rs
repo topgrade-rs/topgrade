@@ -155,7 +155,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     // ```rust
     // command.arg("-v");
     // ```
-    // 
+    //
     // appends the next argument like so:
     // > `C:\WINDOWS\system32\wsl.EXE -d Ubuntu bash -c 'TOPGRADE_PREFIX=Ubuntu exec /bin/topgrade' -v`
     // which means `-v` isn't passed to `topgrade`.
