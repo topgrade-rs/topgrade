@@ -143,17 +143,22 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     //
     // ```rust
     // command
-    //  .args(["bash", "-c"])
-    //  .arg(format!("exec {topgrade}"));
+    //  .args(["-d", dist, "bash", "-c"])
+    //  .arg(format!("TOPGRADE_PREFIX={dist} exec {topgrade}"));
     // ```
     //
     // creates a command string like:
-    //  `bash -c 'exec /bin/topgrade'`
-    // and using `command.args(...).arg("topgrade").arg("-v")`
-    // on that again creates
-    //  `bash -c 'exec /bin/topgrade' -v`
-    // which means `-v` isn't passed to `topgrade`.
+    // > `C:\WINDOWS\system32\wsl.EXE -d Ubuntu bash -c 'TOPGRADE_PREFIX=Ubuntu exec /bin/topgrade'`
+    //
+    // Adding the following:
+    //
+    // ```rust
+    // command.arg("-v");
     // ```
+    // 
+    // appends the next argument like so:
+    // > `C:\WINDOWS\system32\wsl.EXE -d Ubuntu bash -c 'TOPGRADE_PREFIX=Ubuntu exec /bin/topgrade' -v`
+    // which means `-v` isn't passed to `topgrade`.
     let mut args = String::new();
     if ctx.config().verbose() {
         args.push_str("-v");
