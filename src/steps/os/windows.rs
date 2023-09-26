@@ -128,12 +128,45 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     let topgrade = Command::new(wsl)
         .args(["-d", dist, "bash", "-lc", "which topgrade"])
         .output_checked_utf8()
-        .map_err(|_| SkipStep(String::from("Could not find Topgrade installed in WSL")))?;
+        .map_err(|_| SkipStep(String::from("Could not find Topgrade installed in WSL")))?
+        .stdout // The normal output from `which topgrade` appends a newline, so we trim it here.
+        .trim_end()
+        .to_owned();
 
     let mut command = ctx.run_type().execute(wsl);
+
+    // The `arg` method automatically quotes its arguments.
+    // This means we can't append additional arguments to `topgrade` in WSL
+    // by calling `arg` successively.
+    //
+    // For example:
+    //
+    // ```rust
+    // command
+    //  .args(["-d", dist, "bash", "-c"])
+    //  .arg(format!("TOPGRADE_PREFIX={dist} exec {topgrade}"));
+    // ```
+    //
+    // creates a command string like:
+    // > `C:\WINDOWS\system32\wsl.EXE -d Ubuntu bash -c 'TOPGRADE_PREFIX=Ubuntu exec /bin/topgrade'`
+    //
+    // Adding the following:
+    //
+    // ```rust
+    // command.arg("-v");
+    // ```
+    //
+    // appends the next argument like so:
+    // > `C:\WINDOWS\system32\wsl.EXE -d Ubuntu bash -c 'TOPGRADE_PREFIX=Ubuntu exec /bin/topgrade' -v`
+    // which means `-v` isn't passed to `topgrade`.
+    let mut args = String::new();
+    if ctx.config().verbose() {
+        args.push_str("-v");
+    }
+
     command
         .args(["-d", dist, "bash", "-c"])
-        .arg(format!("TOPGRADE_PREFIX={dist} exec {topgrade}"));
+        .arg(format!("TOPGRADE_PREFIX={dist} exec {topgrade} {args}"));
 
     if ctx.config().yes(Step::Wsl) {
         command.arg("-y");
