@@ -879,7 +879,12 @@ pub fn run_protonup_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("protonup");
 
-    ctx.run_type().execute(protonup).status_checked()?;
+    let mut cmd = ctx.run_type().execute(protonup);
+    if ctx.config().yes(Step::Protonup) {
+        cmd.arg("--yes");
+    }
+    cmd.status_checked()?;
+
     Ok(())
 }
 
