@@ -89,6 +89,39 @@ impl Sudo {
         cmd.status_checked().wrap_err("Failed to elevate permissions")
     }
 
+    /// Clear the cached credential.
+    pub fn clear_credential(&self, ctx: &ExecutionContext) -> Result<()> {
+        print_separator("Sudo - Clear Cached Credential");
+        let mut cmd = ctx.run_type().execute(self);
+        match self.kind {
+            SudoKind::Doas => {
+                // From man page https://man.archlinux.org/man/doas.1.en
+                //
+                // -L: Clear any persisted authentications from previous invocations,
+                //     then immediately exit. No command is executed.
+                cmd.arg("-L");
+            }
+            SudoKind::Sudo => {
+                // From its man page:
+                //
+                // -k: When used without a command, invalidates the user's cached
+                //     credentials for the current session.
+                cmd.arg("-k");
+            }
+            SudoKind::Gsudo => {
+                // From https://gerardog.github.io/gsudo/docs/credentials-cache
+                cmd.arg("-k");
+            }
+            SudoKind::Pkexec => {
+                return Ok(());
+            }
+            SudoKind::Please => {
+                return Ok(());
+            }
+        }
+        cmd.status_checked()
+    }
+
     /// Execute a command with `sudo`.
     pub fn execute_elevated(&self, ctx: &ExecutionContext, command: &Path, interactive: bool) -> Executor {
         let mut cmd = ctx.run_type().execute(self);
