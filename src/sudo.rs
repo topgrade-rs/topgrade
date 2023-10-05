@@ -90,6 +90,8 @@ impl Sudo {
     }
 
     /// Clear the cached credential.
+    ///
+    /// No-op if the underlying sudo does not support this feature.
     pub fn clear_credential(&self, ctx: &ExecutionContext) -> Result<()> {
         print_separator("Sudo - Clear Cached Credential");
         let mut cmd = ctx.run_type().execute(self);
