@@ -277,7 +277,7 @@ impl Aura {
 
 impl ArchPackageManager for Aura {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
-        let sudo = which("sudo").unwrap_or_else(PathBuf::new);
+        let sudo = which("sudo").unwrap_or_default();
         let mut aur_update = ctx.run_type().execute(&sudo);
 
         if sudo.ends_with("sudo") {
