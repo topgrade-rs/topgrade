@@ -458,8 +458,10 @@ fn run() -> Result<()> {
     runner.execute(Step::Vagrant, "Vagrant boxes", || vagrant::upgrade_vagrant_boxes(&ctx))?;
 
     // Clear the cached credential after executing all the steps
-    if let Some(sudo) = ctx.sudo() {
-        sudo.clear_credential(&ctx)?;
+    if config.pre_sudo() {
+        if let Some(sudo) = ctx.sudo() {
+            sudo.clear_credential(&ctx)?;
+        }
     }
 
     if !runner.report().data().is_empty() {

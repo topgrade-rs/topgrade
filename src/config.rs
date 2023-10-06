@@ -1424,8 +1424,7 @@ impl Config {
         self.config_file.misc.as_ref().and_then(|misc| misc.sudo_command)
     }
 
-    /// If `true`, `sudo` should be called after `pre_commands` in order to elevate at the
-    /// start of the session (and not in the middle).
+    /// If `true`, `sudo` would be called before everything to cache the credential.
     pub fn pre_sudo(&self) -> bool {
         self.config_file
             .misc
