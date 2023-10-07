@@ -20,6 +20,7 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
 pub fn audit_packages(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
     println!();
+    #[allow(clippy::disallowed_methods)]
     if !Command::new(sudo)
         .args(["/usr/local/sbin/pkg", "audit", "-Fr"])
         .status()?
