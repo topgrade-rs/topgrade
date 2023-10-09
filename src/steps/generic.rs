@@ -289,7 +289,7 @@ pub fn run_opam_update(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(&opam).arg("update").status_checked()?;
 
     let mut command = ctx.run_type().execute(&opam);
-    command.args(["upgrade"]);
+    command.arg("upgrade");
     if ctx.config().yes(Step::Opam) {
         command.arg("--yes");
     }
