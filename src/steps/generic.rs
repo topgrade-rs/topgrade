@@ -287,7 +287,13 @@ pub fn run_opam_update(ctx: &ExecutionContext) -> Result<()> {
     print_separator("OCaml Package Manager");
 
     ctx.run_type().execute(&opam).arg("update").status_checked()?;
-    ctx.run_type().execute(&opam).arg("upgrade").status_checked()?;
+
+    let mut command = ctx.run_type().execute(&opam);
+    command.arg("upgrade");
+    if ctx.config().yes(Step::Opam) {
+        command.arg("--yes");
+    }
+    command.status_checked()?;
 
     if ctx.config().cleanup() {
         ctx.run_type().execute(&opam).arg("clean").status_checked()?;
