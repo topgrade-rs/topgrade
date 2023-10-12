@@ -676,6 +676,10 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
         .run_type()
         .execute(&dotnet)
         .args(["tool", "list", "--global"])
+        // dotnet will print a greeting message on its first run, from this question:
+        // https://stackoverflow.com/q/70493706/14092446
+        // Setting `DOTNET_NOLOGO` to `true` should disable it
+        .env("DOTNET_NOLOGO", "true")
         .output_checked_utf8()
     {
         Ok(output) => output,
