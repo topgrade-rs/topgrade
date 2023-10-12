@@ -915,7 +915,7 @@ impl Config {
         get_deprecated_moved_opt!(&self.config_file.misc, git_repos, &self.config_file.git, repos)
     }
 
-    /// The list of additional git repositories to pull.
+    /// Whether custom repositories should also be pushed.
     pub fn git_should_push_custom_repos(&self) -> bool {
         match &self.config_file.git {
             Some(g) => g.push_custom_repos.unwrap_or(false),
@@ -1031,7 +1031,7 @@ impl Config {
             .and_then(|misc| misc.ssh_arguments.as_ref())
     }
 
-    /// Extra Git arguments
+    /// Extra Git arguments for when pushing
     pub fn push_git_arguments(&self) -> &Option<String> {
         get_deprecated_moved_opt!(
             &self.config_file.misc,
@@ -1040,7 +1040,7 @@ impl Config {
             push_arguments
         )
     }
-    /// Extra Git arguments
+    /// Extra Git arguments for when pulling
     pub fn pull_git_arguments(&self) -> &Option<String> {
         get_deprecated_moved_opt!(
             &self.config_file.misc,
