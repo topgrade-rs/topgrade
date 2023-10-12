@@ -373,35 +373,35 @@ fn run() -> Result<()> {
         if config.should_run(Step::Emacs) {
             if !emacs.is_doom() {
                 if let Some(directory) = emacs.directory() {
-                    git_repos.insert_if_repo(directory);
+                    git_repos.insert_if_repo(directory, false);
                 }
             }
-            git_repos.insert_if_repo(HOME_DIR.join(".doom.d"));
+            git_repos.insert_if_repo(HOME_DIR.join(".doom.d"), false);
         }
 
         if config.should_run(Step::Vim) {
-            git_repos.insert_if_repo(HOME_DIR.join(".vim"));
-            git_repos.insert_if_repo(HOME_DIR.join(".config/nvim"));
+            git_repos.insert_if_repo(HOME_DIR.join(".vim"), false);
+            git_repos.insert_if_repo(HOME_DIR.join(".config/nvim"), false);
         }
 
-        git_repos.insert_if_repo(HOME_DIR.join(".ideavimrc"));
-        git_repos.insert_if_repo(HOME_DIR.join(".intellimacs"));
+        git_repos.insert_if_repo(HOME_DIR.join(".ideavimrc"), false);
+        git_repos.insert_if_repo(HOME_DIR.join(".intellimacs"), false);
 
         if config.should_run(Step::Rcm) {
-            git_repos.insert_if_repo(HOME_DIR.join(".dotfiles"));
+            git_repos.insert_if_repo(HOME_DIR.join(".dotfiles"), false);
         }
 
         #[cfg(unix)]
         {
-            git_repos.insert_if_repo(zsh::zshrc());
+            git_repos.insert_if_repo(zsh::zshrc(), false);
             if config.should_run(Step::Tmux) {
-                git_repos.insert_if_repo(HOME_DIR.join(".tmux"));
+                git_repos.insert_if_repo(HOME_DIR.join(".tmux"), false);
             }
-            git_repos.insert_if_repo(HOME_DIR.join(".config/fish"));
-            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("openbox"));
-            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("bspwm"));
-            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("i3"));
-            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("sway"));
+            git_repos.insert_if_repo(HOME_DIR.join(".config/fish"), false);
+            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("openbox"), false);
+            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("bspwm"), false);
+            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("i3"), false);
+            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("sway"), false);
         }
 
         #[cfg(windows)]
@@ -409,24 +409,25 @@ fn run() -> Result<()> {
             WINDOWS_DIRS
                 .cache_dir()
                 .join("Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"),
+            false,
         );
 
         #[cfg(windows)]
         windows::insert_startup_scripts(&mut git_repos).ok();
 
         if let Some(profile) = powershell.profile() {
-            git_repos.insert_if_repo(profile);
+            git_repos.insert_if_repo(profile, false);
         }
     }
 
     if config.should_run(Step::GitRepos) {
         if let Some(custom_git_repos) = config.git_repos() {
             for git_repo in custom_git_repos {
-                git_repos.glob_insert(git_repo);
+                git_repos.glob_insert(git_repo, config.git_should_push_custom_repos());
             }
         }
         runner.execute(Step::GitRepos, "Git repositories", || {
-            git.multi_pull_step(&git_repos, &ctx)
+            git.multi_repo_step(&git_repos, &ctx)
         })?;
     }
 

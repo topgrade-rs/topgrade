@@ -212,12 +212,17 @@ pub struct Git {
     max_concurrency: Option<usize>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
-    arguments: Option<String>,
+    pull_arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
+    push_arguments: Option<String>,
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     repos: Option<Vec<String>>,
 
     pull_predefined: Option<bool>,
+
+    push_custom_repos: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -910,6 +915,14 @@ impl Config {
         get_deprecated_moved_opt!(&self.config_file.misc, git_repos, &self.config_file.git, repos)
     }
 
+    /// The list of additional git repositories to pull.
+    pub fn git_should_push_custom_repos(&self) -> bool {
+        match &self.config_file.git {
+            Some(g) => g.push_custom_repos.unwrap_or(false),
+            None => false,
+        }
+    }
+
     /// Tell whether the specified step should run.
     ///
     /// If the step appears either in the `--disable` command line argument
@@ -1019,8 +1032,22 @@ impl Config {
     }
 
     /// Extra Git arguments
-    pub fn git_arguments(&self) -> &Option<String> {
-        get_deprecated_moved_opt!(&self.config_file.misc, git_arguments, &self.config_file.git, arguments)
+    pub fn push_git_arguments(&self) -> &Option<String> {
+        get_deprecated_moved_opt!(
+            &self.config_file.misc,
+            git_arguments,
+            &self.config_file.git,
+            push_arguments
+        )
+    }
+    /// Extra Git arguments
+    pub fn pull_git_arguments(&self) -> &Option<String> {
+        get_deprecated_moved_opt!(
+            &self.config_file.misc,
+            git_arguments,
+            &self.config_file.git,
+            pull_arguments
+        )
     }
 
     /// Extra Tmux arguments
