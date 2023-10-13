@@ -62,7 +62,7 @@ async fn push_repository(repo: String, git: &Path, ctx: &ExecutionContext<'_>) -
 
     let output = command.output().await?;
     let result = match output.status.success() {
-        true => Ok(output.stdout),
+        true => Ok(()),
         false => Err(format!("Failed to push {repo}")),
     };
 
@@ -223,7 +223,7 @@ impl Git {
             .iter()
             .for_each(|pattern| print_warning(format!("Path {pattern} did not contain any git repositories")));
 
-        if repositories.pull_repositories.is_empty() && repositories.push_repositories.is_empty() {
+        if repositories.is_empty() {
             return Err(SkipStep(String::from("No repositories to pull or push")).into());
         }
 
@@ -241,7 +241,7 @@ impl Git {
             repositories
                 .pull_repositories
                 .iter()
-                .for_each(|repo| println!("Would push {}", &repo));
+                .for_each(|repo| println!("Would pull {}", &repo));
 
             return Ok(());
         }
