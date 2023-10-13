@@ -912,7 +912,7 @@ impl Config {
         &self.config_file.commands
     }
 
-    /// The list of git repositories to pull and pull.
+    /// The list of git repositories to push and pull.
     pub fn git_repos(&self) -> &Option<Vec<String>> {
         get_deprecated_moved_opt!(&self.config_file.misc, git_repos, &self.config_file.git, repos)
     }
