@@ -912,7 +912,7 @@ impl Config {
         &self.config_file.commands
     }
 
-    /// The list of additional git repositories to pull.
+    /// The list of git repositories to pull and pull.
     pub fn git_repos(&self) -> &Option<Vec<String>> {
         get_deprecated_moved_opt!(&self.config_file.misc, git_repos, &self.config_file.git, repos)
     }
@@ -923,7 +923,7 @@ impl Config {
             .as_ref()
             .and_then(|git| git.pull_only_repos.as_ref())
     }
-    /// The list of additional git repositories to pull.
+    /// The list of git repositories to push.
     pub fn git_push_only_repos(&self) -> Option<&Vec<String>> {
         self.config_file
             .git
