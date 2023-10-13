@@ -391,6 +391,7 @@ impl<'a> Repositories<'a> {
         self.pull_repositories.is_empty() && self.push_repositories.is_empty()
     }
 
+    #[cfg(unix)]
     pub fn remove(&mut self, path: &str) {
         let _removed = self.pull_repositories.remove(path);
         let _removed = self.push_repositories.remove(path);
