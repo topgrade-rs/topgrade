@@ -116,7 +116,7 @@
 
 [git]
 #max_concurrency = 5
-# Additional git repositories to push and pull 
+# Git repositories that you want to pull and push
 #repos = [
 #    "~/src/*/",
 #    "~/.config/something"
