@@ -116,10 +116,21 @@
 
 [git]
 #max_concurrency = 5
-# Additional git repositories to pull
+# Additional git repositories to push and pull 
 #repos = [
 #    "~/src/*/",
 #    "~/.config/something"
+#]
+
+# Repositories that you only want to pull
+#pull_only_repos = [
+#    "~/.config/something_else"
+#]
+
+# Repositories that you only want to push
+#push_only_repos = [
+#    "~/src/*/",
+#    "~/.config/something_third"
 #]
 
 # Don't pull the predefined git repos
@@ -127,9 +138,6 @@
 
 # Arguments to pass Git when pulling repositories
 #pull_arguments = "--rebase --autostash"
-
-# Also push custom repositories
-#push_custom_repos = true
 
 # Arguments to pass Git when pushing repositories
 #push_arguments = "--all"

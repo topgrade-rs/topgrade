@@ -27,6 +27,12 @@ pub struct Git {
     git: Option<PathBuf>,
 }
 
+#[derive(Clone, Copy)]
+pub enum GitAction {
+    Push,
+    Pull,
+}
+
 pub struct Repositories<'a> {
     git: &'a Git,
     pull_repositories: HashSet<String>,
@@ -334,19 +340,20 @@ impl<'a> Repositories<'a> {
         }
     }
 
-    pub fn insert_if_repo<P: AsRef<Path>>(&mut self, path: P, push: bool) -> bool {
+    pub fn insert_if_repo<P: AsRef<Path>>(&mut self, path: P, action: GitAction) -> bool {
         if let Some(repo) = self.git.get_repo_root(path) {
-            if push {
-                self.push_repositories.insert(repo.clone());
-            }
-            self.pull_repositories.insert(repo);
+            match action {
+                GitAction::Push => self.push_repositories.insert(repo),
+                GitAction::Pull => self.pull_repositories.insert(repo),
+            };
+
             true
         } else {
             false
         }
     }
 
-    pub fn glob_insert(&mut self, pattern: &str, push: bool) {
+    pub fn glob_insert(&mut self, pattern: &str, action: GitAction) {
         if let Ok(glob) = glob_with(pattern, self.glob_match_options) {
             let mut last_git_repo: Option<PathBuf> = None;
             for entry in glob {
@@ -362,7 +369,7 @@ impl<'a> Repositories<'a> {
                                 continue;
                             }
                         }
-                        if self.insert_if_repo(&path, push) {
+                        if self.insert_if_repo(&path, action) {
                             last_git_repo = Some(path);
                         }
                     }

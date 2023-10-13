@@ -219,10 +219,12 @@ pub struct Git {
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     repos: Option<Vec<String>>,
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    pull_only_repos: Option<Vec<String>>,
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    push_only_repos: Option<Vec<String>>,
 
     pull_predefined: Option<bool>,
-
-    push_custom_repos: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -914,13 +916,18 @@ impl Config {
     pub fn git_repos(&self) -> &Option<Vec<String>> {
         get_deprecated_moved_opt!(&self.config_file.misc, git_repos, &self.config_file.git, repos)
     }
-
-    /// Whether custom repositories should also be pushed.
-    pub fn git_should_push_custom_repos(&self) -> bool {
-        match &self.config_file.git {
-            Some(g) => g.push_custom_repos.unwrap_or(false),
-            None => false,
-        }
+    /// The list of additional git repositories to pull.
+    pub fn git_pull_only_repos(&self) -> &Option<Vec<String>> {
+        get_deprecated_moved_opt!(
+            &self.config_file.misc,
+            git_repos,
+            &self.config_file.git,
+            pull_only_repos
+        )
+    }
+    /// The list of additional git repositories to pull.
+    pub fn git_push_only_repos(&self) -> &Option<Vec<String>> {
+        get_deprecated_moved_opt!(&self.config_file.misc, git_repos, &self.config_file.git, repos)
     }
 
     /// Tell whether the specified step should run.
