@@ -14,7 +14,7 @@ use tracing::{debug, error};
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
-use crate::terminal::{print_separator, shell};
+use crate::terminal::{print_separator, shell, print_info};
 use crate::utils::{self, check_is_python_2_or_shim, require, require_option, which, PathExt, REQUIRE_SUDO};
 use crate::Step;
 use crate::HOME_DIR;
@@ -712,13 +712,94 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(".NET");
 
-    for package in packages {
-        let package_name = package.split_whitespace().next().unwrap();
-        ctx.run_type()
+    let installed_packages = packages.map(|l| {
+        let mut iter = l.split_whitespace();
+        let name = iter.next();
+        let version = iter.next();
+        (name.unwrap_or(""), version.unwrap_or(""))
+    }).filter(|(name, _)| !name.is_empty());
+
+    let mut packages: Vec<(&str, &str, &str, bool)> = vec![];
+
+    for (name, version) in installed_packages {
+        let s_output = match ctx.run_type()
             .execute(&dotnet)
-            .args(["tool", "update", package_name, "--global"])
-            .status_checked()
-            .with_context(|| format!("Failed to update .NET package {package_name}"))?;
+            .args(["tool", "search", name])
+            // dotnet will print a greeting message on its first run, from this question:
+            // https://stackoverflow.com/q/70493706/14092446
+            // Setting `DOTNET_NOLOGO` to `true` should disable it
+            .env("DOTNET_NOLOGO", "true")
+            .output_checked_utf8() {
+                Ok(s_output) => Some(s_output),
+                Err(_) => None,
+            };
+        
+        if let Some(s_output) = s_output {
+            let mut search_packages = s_output
+            .stdout
+            .lines()
+            // Skip the header:
+            //
+            // Package ID            Latest Version      Authors               Downloads      Verified
+            // ---------------------------------------------------------------------------------------
+            //
+            // One thing to note is that .NET SDK respect locale, which means this
+            // header can be printed in languages other than English, do NOT use it
+            // to do any check.
+            .skip(2)
+            .filter(|line| !line.is_empty())
+            .peekable();
+
+            if search_packages.peek().is_none() {
+                packages.push((name, version, version, false));
+            } else {
+                let search_packages = search_packages.map(|l| {
+                    let mut iter = l.split_whitespace();
+                    let name = iter.next();
+                    let version = iter.next();
+                    (name.unwrap_or(""), version.unwrap_or(""))
+                }).filter(|(name, _)| !name.is_empty());
+
+                let mut found = false;
+
+                for (search_name, mut lastest_version) in search_packages {
+                    if search_name == name {
+                        found = true;
+                        
+                        if lastest_version.is_empty() {
+                            lastest_version = version;
+                        }
+
+                        packages.push((name, version, lastest_version, version != lastest_version));
+                        break;
+                    }
+                }
+
+                if !found {
+                    packages.push((name, version, version, false));
+                }
+            }
+        } else {
+            packages.push((name, version, version, false));
+        }
+    }
+
+    print_info("Package\tInstalled\tLatest\tNeeds update");
+
+    for (name, installed, latest, update) in packages.clone() {
+        print_info(format!("{}\t{}\t{}\t{}", name, installed, latest, update))
+    }
+
+    print_info("");
+
+    for (name, _, latest, update) in packages {
+        if update {
+            ctx.run_type()
+                .execute(&dotnet)
+                .args(["tool", "update", name, "--global", "--version", latest])
+                .status_checked()
+                .with_context(|| format!("Failed to update .NET package {name}"))?;
+        }
     }
 
     Ok(())
