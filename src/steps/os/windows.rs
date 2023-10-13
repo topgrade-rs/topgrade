@@ -8,6 +8,7 @@ use tracing::debug;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
+use crate::steps::git::GitAction;
 use crate::terminal::{print_separator, print_warning};
 use crate::utils::{require, which};
 use crate::{error::SkipStep, steps::git::Repositories};
@@ -239,7 +240,7 @@ pub fn insert_startup_scripts(git_repos: &mut Repositories) -> Result<()> {
             if let Ok(lnk) = parselnk::Lnk::try_from(Path::new(&path)) {
                 debug!("Startup link: {:?}", lnk);
                 if let Some(path) = lnk.relative_path() {
-                    git_repos.insert_if_repo(&startup_dir.join(path));
+                    git_repos.insert_if_repo(&startup_dir.join(path), GitAction::Pull);
                 }
             }
         }
