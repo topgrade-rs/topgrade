@@ -17,6 +17,8 @@ use etcetera::base_strategy::{BaseStrategy, Xdg};
 use once_cell::sync::Lazy;
 use tracing::debug;
 
+use crate::steps::git::GitAction;
+
 use self::config::{CommandLineArgs, Config, Step};
 use self::error::StepFailed;
 #[cfg(all(windows, feature = "self-update"))]
@@ -373,35 +375,35 @@ fn run() -> Result<()> {
         if config.should_run(Step::Emacs) {
             if !emacs.is_doom() {
                 if let Some(directory) = emacs.directory() {
-                    git_repos.insert_if_repo(directory);
+                    git_repos.insert_if_repo(directory, GitAction::Pull);
                 }
             }
-            git_repos.insert_if_repo(HOME_DIR.join(".doom.d"));
+            git_repos.insert_if_repo(HOME_DIR.join(".doom.d"), GitAction::Pull);
         }
 
         if config.should_run(Step::Vim) {
-            git_repos.insert_if_repo(HOME_DIR.join(".vim"));
-            git_repos.insert_if_repo(HOME_DIR.join(".config/nvim"));
+            git_repos.insert_if_repo(HOME_DIR.join(".vim"), GitAction::Pull);
+            git_repos.insert_if_repo(HOME_DIR.join(".config/nvim"), GitAction::Pull);
         }
 
-        git_repos.insert_if_repo(HOME_DIR.join(".ideavimrc"));
-        git_repos.insert_if_repo(HOME_DIR.join(".intellimacs"));
+        git_repos.insert_if_repo(HOME_DIR.join(".ideavimrc"), GitAction::Pull);
+        git_repos.insert_if_repo(HOME_DIR.join(".intellimacs"), GitAction::Pull);
 
         if config.should_run(Step::Rcm) {
-            git_repos.insert_if_repo(HOME_DIR.join(".dotfiles"));
+            git_repos.insert_if_repo(HOME_DIR.join(".dotfiles"), GitAction::Pull);
         }
 
         #[cfg(unix)]
         {
-            git_repos.insert_if_repo(zsh::zshrc());
+            git_repos.insert_if_repo(zsh::zshrc(), GitAction::Pull);
             if config.should_run(Step::Tmux) {
-                git_repos.insert_if_repo(HOME_DIR.join(".tmux"));
+                git_repos.insert_if_repo(HOME_DIR.join(".tmux"), GitAction::Pull);
             }
-            git_repos.insert_if_repo(HOME_DIR.join(".config/fish"));
-            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("openbox"));
-            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("bspwm"));
-            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("i3"));
-            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("sway"));
+            git_repos.insert_if_repo(HOME_DIR.join(".config/fish"), GitAction::Pull);
+            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("openbox"), GitAction::Pull);
+            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("bspwm"), GitAction::Pull);
+            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("i3"), GitAction::Pull);
+            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("sway"), GitAction::Pull);
         }
 
         #[cfg(windows)]
@@ -409,24 +411,39 @@ fn run() -> Result<()> {
             WINDOWS_DIRS
                 .cache_dir()
                 .join("Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"),
+            GitAction::Pull,
         );
 
         #[cfg(windows)]
         windows::insert_startup_scripts(&mut git_repos).ok();
 
         if let Some(profile) = powershell.profile() {
-            git_repos.insert_if_repo(profile);
+            git_repos.insert_if_repo(profile, GitAction::Pull);
         }
     }
 
     if config.should_run(Step::GitRepos) {
         if let Some(custom_git_repos) = config.git_repos() {
             for git_repo in custom_git_repos {
-                git_repos.glob_insert(git_repo);
+                git_repos.glob_insert(git_repo, GitAction::Pull);
+                git_repos.glob_insert(git_repo, GitAction::Push);
             }
         }
+
+        if let Some(git_pull_only_repos) = config.git_pull_only_repos() {
+            for git_repo in git_pull_only_repos {
+                git_repos.glob_insert(git_repo, GitAction::Pull);
+            }
+        }
+
+        if let Some(git_push_only_repos) = config.git_push_only_repos() {
+            for git_repo in git_push_only_repos {
+                git_repos.glob_insert(git_repo, GitAction::Push);
+            }
+        }
+
         runner.execute(Step::GitRepos, "Git repositories", || {
-            git.multi_pull_step(&git_repos, &ctx)
+            git.multi_repo_step(&git_repos, &ctx)
         })?;
     }
 

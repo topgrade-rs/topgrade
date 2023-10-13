@@ -227,7 +227,7 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
 
     for entry in WalkDir::new(custom_dir).max_depth(2) {
         let entry = entry?;
-        custom_repos.insert_if_repo(entry.path());
+        custom_repos.insert_if_repo(entry.path(), crate::steps::git::GitAction::Pull);
     }
 
     custom_repos.remove(&oh_my_zsh.to_string_lossy());
