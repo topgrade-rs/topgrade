@@ -927,7 +927,12 @@ impl Config {
     }
     /// The list of additional git repositories to pull.
     pub fn git_push_only_repos(&self) -> &Option<Vec<String>> {
-        get_deprecated_moved_opt!(&self.config_file.misc, git_repos, &self.config_file.git, repos)
+        get_deprecated_moved_opt!(
+            &self.config_file.misc,
+            git_repos,
+            &self.config_file.git,
+            push_only_repos
+        )
     }
 
     /// Tell whether the specified step should run.
