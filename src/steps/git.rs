@@ -234,8 +234,8 @@ impl Git {
         }
 
         print_separator("Git repositories");
-        self.multi_push(repositories, ctx)?;
         self.multi_pull(repositories, ctx)?;
+        self.multi_push(repositories, ctx)?;
 
         Ok(())
     }
