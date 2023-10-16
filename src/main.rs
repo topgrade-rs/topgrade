@@ -116,6 +116,12 @@ fn run() -> Result<()> {
     let ctx = execution_context::ExecutionContext::new(run_type, sudo, &git, &config);
     let mut runner = runner::Runner::new(&ctx);
 
+    if config.pre_sudo() {
+        if let Some(sudo) = ctx.sudo() {
+            sudo.elevate(&ctx)?;
+        }
+    }
+
     #[cfg(feature = "self-update")]
     {
         let config_self_upgrade = env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() && !config.no_self_update();
@@ -145,12 +151,6 @@ fn run() -> Result<()> {
     if let Some(commands) = config.pre_commands() {
         for (name, command) in commands {
             generic::run_custom_command(name, command, &ctx)?;
-        }
-    }
-
-    if config.pre_sudo() {
-        if let Some(sudo) = ctx.sudo() {
-            sudo.elevate(&ctx)?;
         }
     }
 
@@ -473,6 +473,13 @@ fn run() -> Result<()> {
         }
     }
     runner.execute(Step::Vagrant, "Vagrant boxes", || vagrant::upgrade_vagrant_boxes(&ctx))?;
+
+    // Clear the cached credential after executing all the steps
+    if config.pre_sudo() {
+        if let Some(sudo) = ctx.sudo() {
+            sudo.clear_credential(&ctx)?;
+        }
+    }
 
     if !runner.report().data().is_empty() {
         print_separator("Summary");
