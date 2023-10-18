@@ -340,11 +340,6 @@ pub struct Misc {
     sudo_command: Option<SudoKind>,
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
-    git_repos: Option<Vec<String>>,
-
-    predefined_git_repos: Option<bool>,
-
-    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     disable: Option<Vec<Step>>,
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
@@ -359,9 +354,6 @@ pub struct Misc {
     ssh_arguments: Option<String>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
-    git_arguments: Option<String>,
-
-    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     tmux_arguments: Option<String>,
 
     set_title: Option<bool>,
@@ -370,15 +362,6 @@ pub struct Misc {
 
     assume_yes: Option<bool>,
 
-    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
-    yay_arguments: Option<String>,
-
-    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
-    aura_aur_arguments: Option<String>,
-
-    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
-    aura_pacman_arguments: Option<String>,
-
     no_retry: Option<bool>,
 
     run_in_tmux: Option<bool>,
@@ -386,8 +369,6 @@ pub struct Misc {
     cleanup: Option<bool>,
 
     notify_each_step: Option<bool>,
-
-    accept_all_windows_updates: Option<bool>,
 
     skip_notify: Option<bool>,
 
