@@ -108,7 +108,7 @@ fn run() -> Result<()> {
     debug!("OS: {}", env!("TARGET"));
     debug!("{:?}", std::env::args());
     debug!("Binary path: {:?}", std::env::current_exe());
-    debug!("Self Update: {:?}", cfg!(feature = "self-update"));
+    debug!("self-update Feature Enabled: {:?}", cfg!(feature = "self-update"));
     debug!("Configuration: {:?}", config);
 
     if config.run_in_tmux() && env::var("TOPGRADE_INSIDE_TMUX").is_err() {
@@ -132,22 +132,15 @@ fn run() -> Result<()> {
     let ctx = execution_context::ExecutionContext::new(run_type, sudo, &git, &config);
     let mut runner = runner::Runner::new(&ctx);
 
+    // Self-Update step, this will execute only if:
+    // 1. the `self-update` feature is enabled
+    // 2. it is not disabled from configuration (env var/CLI opt/file)
     #[cfg(feature = "self-update")]
     {
-        let config_self_upgrade = env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() && !config.no_self_update();
+        let should_self_update = env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() && !config.no_self_update();
 
-        if !run_type.dry() && config_self_upgrade {
-            let result = self_update::self_update();
-
-            if let Err(e) = &result {
-                #[cfg(windows)]
-                {
-                    if e.downcast_ref::<Upgraded>().is_some() {
-                        return result;
-                    }
-                }
-                print_warning(format!("Self update error: {e}"));
-            }
+        if should_self_update {
+            runner.execute(Step::SelfUpdate, "Self Update", || self_update::self_update(&ctx))?;
         }
     }
 
