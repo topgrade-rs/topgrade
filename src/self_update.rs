@@ -3,6 +3,7 @@ use std::env;
 use std::os::unix::process::CommandExt as _;
 use std::process::Command;
 
+use crate::config::Step;
 use color_eyre::eyre::{bail, Result};
 use self_update_crate::backends::github::Update;
 use self_update_crate::update::UpdateStatus;
@@ -20,6 +21,7 @@ pub fn self_update(ctx: &ExecutionContext) -> Result<()> {
         println!("Would self-update");
         Ok(())
     } else {
+        let assume_yes = ctx.config().yes(Step::SelfUpdate);
         let current_exe = env::current_exe();
 
         let target = self_update_crate::get_target();
@@ -31,7 +33,7 @@ pub fn self_update(ctx: &ExecutionContext) -> Result<()> {
             .show_output(true)
             .show_download_progress(true)
             .current_version(self_update_crate::cargo_crate_version!())
-            .no_confirm(true)
+            .no_confirm(assume_yes)
             .build()?
             .update_extended()?;
 
