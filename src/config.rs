@@ -42,57 +42,6 @@ macro_rules! str_value {
     };
 }
 
-macro_rules! check_deprecated {
-    ($config:expr, $old:ident, $section:ident, $new:ident) => {
-        if $config.$old.is_some() {
-            println!(concat!(
-                "'",
-                stringify!($old),
-                "' configuration option is deprecated. Rename it to '",
-                stringify!($new),
-                "' and put it under the section [",
-                stringify!($section),
-                "]",
-            ));
-        }
-    };
-}
-
-/// Get a deprecated option moved from a section to another
-macro_rules! get_deprecated_moved_opt {
-    ($old_section:expr, $old:ident, $new_section:expr, $new:ident) => {{
-        if let Some(old_section) = &$old_section {
-            if old_section.$old.is_some() {
-                return &old_section.$old;
-            }
-        }
-
-        if let Some(new_section) = &$new_section {
-            return &new_section.$new;
-        }
-
-        return &None;
-    }};
-}
-
-macro_rules! get_deprecated_moved_or_default_to {
-    ($old_section:expr, $old:ident, $new_section:expr, $new:ident, $default_ret:ident) => {{
-        if let Some(old_section) = &$old_section {
-            if let Some(old) = old_section.$old {
-                return old;
-            }
-        }
-
-        if let Some(new_section) = &$new_section {
-            if let Some(new) = new_section.$new {
-                return new;
-            }
-        }
-
-        return $default_ret;
-    }};
-}
-
 pub type Commands = BTreeMap<String, String>;
 
 #[derive(ArgEnum, EnumString, EnumVariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
@@ -909,14 +858,6 @@ impl Config {
             ConfigFile::default()
         };
 
-        if let Some(misc) = &config_file.misc {
-            check_deprecated!(misc, git_arguments, git, arguments);
-            check_deprecated!(misc, git_repos, git, repos);
-            check_deprecated!(misc, predefined_git_repos, git, pull_predefined);
-            check_deprecated!(misc, yay_arguments, linux, yay_arguments);
-            check_deprecated!(misc, accept_all_windows_updates, windows, accept_all_updates);
-        }
-
         let allowed_steps = Self::allowed_steps(&opt, &config_file);
 
         Ok(Self {
@@ -947,8 +888,8 @@ impl Config {
     }
 
     /// The list of git repositories to push and pull.
-    pub fn git_repos(&self) -> &Option<Vec<String>> {
-        get_deprecated_moved_opt!(&self.config_file.misc, git_repos, &self.config_file.git, repos)
+    pub fn git_repos(&self) -> Option<&Vec<String>> {
+        self.config_file.git.as_ref().and_then(|git| git.repos.as_ref())
     }
     /// The list of additional git repositories to pull.
     pub fn git_pull_only_repos(&self) -> Option<&Vec<String>> {
@@ -1158,13 +1099,11 @@ impl Config {
 
     /// Whether to accept all Windows updates
     pub fn accept_all_windows_updates(&self) -> bool {
-        get_deprecated_moved_or_default_to!(
-            &self.config_file.misc,
-            accept_all_windows_updates,
-            &self.config_file.windows,
-            accept_all_updates,
-            true
-        )
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|windows| windows.accept_all_updates)
+            .unwrap_or(true)
     }
 
     /// Whether to self rename the Topgrade executable during the run
@@ -1447,13 +1386,12 @@ impl Config {
 
     pub fn use_predefined_git_repos(&self) -> bool {
         !self.opt.disable_predefined_git_repos
-            && get_deprecated_moved_or_default_to!(
-                &self.config_file.misc,
-                predefined_git_repos,
-                &self.config_file.git,
-                pull_predefined,
-                true
-            )
+            && self
+                .config_file
+                .git
+                .as_ref()
+                .and_then(|git| git.pull_predefined)
+                .unwrap_or(true)
     }
 
     pub fn verbose(&self) -> bool {
