@@ -127,6 +127,7 @@ pub enum Step {
     Rustup,
     Scoop,
     Sdkman,
+    SelfUpdate,
     Sheldon,
     Shell,
     Snap,
