@@ -8,7 +8,7 @@
   <a href="https://aur.archlinux.org/packages/topgrade"><img alt="AUR" src="https://img.shields.io/aur/version/topgrade.svg"></a>
   <a href="https://formulae.brew.sh/formula/topgrade"><img alt="Homebrew" src="https://img.shields.io/homebrew/v/topgrade.svg"></a>
 
-  <img alt="Demo" src="doc/topgrade_demo.gif" width="550px">
+  <img alt="Demo" src="doc/topgrade_demo.gif">
 </div>
 
 
