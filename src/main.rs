@@ -26,6 +26,8 @@ use self::error::Upgraded;
 use self::steps::{remote::*, *};
 use self::terminal::*;
 
+use self::utils::{install_color_eyre, install_tracing, update_tracing};
+
 mod command;
 mod config;
 mod ctrlc;
@@ -53,6 +55,18 @@ fn run() -> Result<()> {
     ctrlc::set_handler();
 
     let opt = CommandLineArgs::parse();
+    // Set up the logger with the filter directives from:
+    //     1. CLI option `--log-filter`
+    //     2. `debug` if the `--verbose` option is present
+    // We do this because we need our logger to work while loading the
+    // configuration file.
+    //
+    // When the configuration file is loaded, update the logger with the full
+    // filter directives.
+    //
+    // For more info, see the comments in `CommandLineArgs::tracing_filter_directives()`
+    // and `Config::tracing_filter_directives()`.
+    let reload_handle = install_tracing(&opt.tracing_filter_directives())?;
 
     if let Some(shell) = opt.gen_completion {
         let cmd = &mut CommandLineArgs::command();
@@ -84,7 +98,8 @@ fn run() -> Result<()> {
     }
 
     let config = Config::load(opt)?;
-    install_tracing(&config.tracing_filter_directives())?;
+    // Update the logger with the full filter directives.
+    update_tracing(&reload_handle, &config.tracing_filter_directives())?;
     set_title(config.set_title());
     display_time(config.display_time());
     set_desktop_notifications(config.notify_each_step());
@@ -93,7 +108,8 @@ fn run() -> Result<()> {
     debug!("OS: {}", env!("TARGET"));
     debug!("{:?}", std::env::args());
     debug!("Binary path: {:?}", std::env::current_exe());
-    debug!("Self Update: {:?}", cfg!(feature = "self-update"));
+    debug!("self-update Feature Enabled: {:?}", cfg!(feature = "self-update"));
+    debug!("Configuration: {:?}", config);
 
     if config.run_in_tmux() && env::var("TOPGRADE_INSIDE_TMUX").is_err() {
         #[cfg(unix)]
@@ -116,22 +132,15 @@ fn run() -> Result<()> {
     let ctx = execution_context::ExecutionContext::new(run_type, sudo, &git, &config);
     let mut runner = runner::Runner::new(&ctx);
 
+    // Self-Update step, this will execute only if:
+    // 1. the `self-update` feature is enabled
+    // 2. it is not disabled from configuration (env var/CLI opt/file)
     #[cfg(feature = "self-update")]
     {
-        let config_self_upgrade = env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() && !config.no_self_update();
+        let should_self_update = env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() && !config.no_self_update();
 
-        if !run_type.dry() && config_self_upgrade {
-            let result = self_update::self_update();
-
-            if let Err(e) = &result {
-                #[cfg(windows)]
-                {
-                    if e.downcast_ref::<Upgraded>().is_some() {
-                        return result;
-                    }
-                }
-                print_warning(format!("Self update error: {e}"));
-            }
+        if should_self_update {
+            runner.execute(Step::SelfUpdate, "Self Update", || self_update::self_update(&ctx))?;
         }
     }
 
@@ -564,40 +573,4 @@ fn main() {
             exit(1);
         }
     }
-}
-
-fn install_tracing(filter_directives: &str) -> Result<()> {
-    use tracing_subscriber::fmt;
-    use tracing_subscriber::fmt::format::FmtSpan;
-    use tracing_subscriber::layer::SubscriberExt;
-    use tracing_subscriber::util::SubscriberInitExt;
-    use tracing_subscriber::EnvFilter;
-
-    let env_filter = EnvFilter::try_new(filter_directives)
-        .or_else(|_| EnvFilter::try_from_default_env())
-        .or_else(|_| EnvFilter::try_new("info"))?;
-
-    let fmt_layer = fmt::layer()
-        .with_target(false)
-        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
-        .without_time();
-
-    let registry = tracing_subscriber::registry();
-
-    registry.with(env_filter).with(fmt_layer).init();
-
-    Ok(())
-}
-
-fn install_color_eyre() -> Result<()> {
-    color_eyre::config::HookBuilder::new()
-        // Don't display the backtrace reminder by default:
-        //   Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
-        //   Run with RUST_BACKTRACE=full to include source snippets.
-        .display_env_section(false)
-        // Display location information by default:
-        //   Location:
-        //      src/steps.rs:92
-        .display_location_section(true)
-        .install()
 }

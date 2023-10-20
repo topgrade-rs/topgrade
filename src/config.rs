@@ -17,16 +17,18 @@ use regex::Regex;
 use regex_split::RegexSplit;
 use serde::Deserialize;
 use strum::{EnumIter, EnumString, EnumVariantNames, IntoEnumIterator};
-use tracing::debug;
 use which_crate::which;
 
+use super::utils::{editor, hostname};
 use crate::command::CommandExt;
 use crate::sudo::SudoKind;
 use crate::utils::string_prepend_str;
-
-use super::utils::{editor, hostname};
+use tracing::{debug, error};
 
 pub static EXAMPLE_CONFIG: &str = include_str!("../config.example.toml");
+
+/// Topgrade's default log level.
+pub const DEFAULT_LOG_LEVEL: &str = "warn";
 
 #[allow(unused_macros)]
 macro_rules! str_value {
@@ -38,57 +40,6 @@ macro_rules! str_value {
                 .and_then(|section| section.$value.as_deref())
         }
     };
-}
-
-macro_rules! check_deprecated {
-    ($config:expr, $old:ident, $section:ident, $new:ident) => {
-        if $config.$old.is_some() {
-            println!(concat!(
-                "'",
-                stringify!($old),
-                "' configuration option is deprecated. Rename it to '",
-                stringify!($new),
-                "' and put it under the section [",
-                stringify!($section),
-                "]",
-            ));
-        }
-    };
-}
-
-/// Get a deprecated option moved from a section to another
-macro_rules! get_deprecated_moved_opt {
-    ($old_section:expr, $old:ident, $new_section:expr, $new:ident) => {{
-        if let Some(old_section) = &$old_section {
-            if old_section.$old.is_some() {
-                return &old_section.$old;
-            }
-        }
-
-        if let Some(new_section) = &$new_section {
-            return &new_section.$new;
-        }
-
-        return &None;
-    }};
-}
-
-macro_rules! get_deprecated_moved_or_default_to {
-    ($old_section:expr, $old:ident, $new_section:expr, $new:ident, $default_ret:ident) => {{
-        if let Some(old_section) = &$old_section {
-            if let Some(old) = old_section.$old {
-                return old;
-            }
-        }
-
-        if let Some(new_section) = &$new_section {
-            if let Some(new) = new_section.$new {
-                return new;
-            }
-        }
-
-        return $default_ret;
-    }};
 }
 
 pub type Commands = BTreeMap<String, String>;
@@ -176,6 +127,7 @@ pub enum Step {
     Rustup,
     Scoop,
     Sdkman,
+    SelfUpdate,
     Sheldon,
     Shell,
     Snap,
@@ -389,11 +341,6 @@ pub struct Misc {
     sudo_command: Option<SudoKind>,
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
-    git_repos: Option<Vec<String>>,
-
-    predefined_git_repos: Option<bool>,
-
-    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     disable: Option<Vec<Step>>,
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
@@ -408,9 +355,6 @@ pub struct Misc {
     ssh_arguments: Option<String>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
-    git_arguments: Option<String>,
-
-    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     tmux_arguments: Option<String>,
 
     set_title: Option<bool>,
@@ -419,15 +363,6 @@ pub struct Misc {
 
     assume_yes: Option<bool>,
 
-    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
-    yay_arguments: Option<String>,
-
-    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
-    aura_aur_arguments: Option<String>,
-
-    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
-    aura_pacman_arguments: Option<String>,
-
     no_retry: Option<bool>,
 
     run_in_tmux: Option<bool>,
@@ -435,8 +370,6 @@ pub struct Misc {
     cleanup: Option<bool>,
 
     notify_each_step: Option<bool>,
-
-    accept_all_windows_updates: Option<bool>,
 
     skip_notify: Option<bool>,
 
@@ -607,11 +540,11 @@ impl ConfigFile {
             */
             for include in dir_include {
                 let include_contents = fs::read_to_string(&include).map_err(|e| {
-                    tracing::error!("Unable to read {}", include.display());
+                    error!("Unable to read {}", include.display());
                     e
                 })?;
                 let include_contents_parsed = toml::from_str(include_contents.as_str()).map_err(|e| {
-                    tracing::error!("Failed to deserialize {}", include.display());
+                    error!("Failed to deserialize {}", include.display());
                     e
                 })?;
 
@@ -628,7 +561,7 @@ impl ConfigFile {
         }
 
         let mut contents_non_split = fs::read_to_string(&config_path).map_err(|e| {
-            tracing::error!("Unable to read {}", config_path.display());
+            error!("Unable to read {}", config_path.display());
             e
         })?;
 
@@ -641,7 +574,7 @@ impl ConfigFile {
 
         for contents in contents_split {
             let config_file_include_only: ConfigFileIncludeOnly = toml::from_str(contents).map_err(|e| {
-                tracing::error!("Failed to deserialize an include section of {}", config_path.display());
+                error!("Failed to deserialize an include section of {}", config_path.display());
                 e
             })?;
 
@@ -654,38 +587,24 @@ impl ConfigFile {
                         let include_contents = match fs::read_to_string(&include_path) {
                             Ok(c) => c,
                             Err(e) => {
-                                tracing::error!("Unable to read {}: {}", include_path.display(), e);
+                                error!("Unable to read {}: {}", include_path.display(), e);
                                 continue;
                             }
                         };
                         match toml::from_str::<Self>(&include_contents) {
                             Ok(include_parsed) => result.merge(include_parsed),
                             Err(e) => {
-                                tracing::error!("Failed to deserialize {}: {}", include_path.display(), e);
+                                error!("Failed to deserialize {}: {}", include_path.display(), e);
                                 continue;
                             }
                         };
-
-                        debug!("Configuration include found: {}", include_path.display());
                     }
-                } else {
-                    debug!("No include paths found in {}", config_path.display());
                 }
             }
 
             match toml::from_str::<Self>(contents) {
                 Ok(contents) => result.merge(contents),
-                Err(e) => tracing::error!("Failed to deserialize {}: {}", config_path.display(), e),
-            }
-        }
-
-        if let Some(misc) = &mut result.misc {
-            if let Some(ref mut paths) = &mut misc.git_repos {
-                for path in paths.iter_mut() {
-                    let expanded = shellexpand::tilde::<&str>(&path.as_ref()).into_owned();
-                    debug!("Path {} expanded to {}", path, expanded);
-                    *path = expanded;
-                }
+                Err(e) => error!("Failed to deserialize {}: {}", config_path.display(), e),
             }
         }
 
@@ -712,8 +631,6 @@ impl ConfigFile {
                 *path = expanded;
             }
         }
-
-        debug!("Loaded configuration: {:?}", result);
 
         Ok(result)
     }
@@ -832,7 +749,7 @@ pub struct CommandLineArgs {
     /// Tracing filter directives.
     ///
     /// See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/struct.EnvFilter.html
-    #[clap(long, default_value = "warn")]
+    #[clap(long, default_value = DEFAULT_LOG_LEVEL)]
     pub log_filter: String,
 
     /// Print completion script for the given shell and exit
@@ -860,6 +777,27 @@ impl CommandLineArgs {
     pub fn env_variables(&self) -> &Vec<String> {
         &self.env
     }
+
+    /// In Topgrade, filter directives come from 3 places:
+    ///     1. CLI option `--log-filter`
+    ///     2. Config file
+    ///     3. `debug` if the `--verbose` option is present
+    ///
+    /// Before loading the configuration file, we need our logger to work, so this
+    /// function will return directives coming from part 1 and 2.
+    ///
+    ///
+    /// When the configuration file is loaded, `Config::tracing_filter_directives()`
+    /// will return all the 3 parts.
+    pub fn tracing_filter_directives(&self) -> String {
+        let mut ret = self.log_filter.clone();
+        if self.verbose {
+            ret.push(',');
+            ret.push_str("debug");
+        }
+
+        ret
+    }
 }
 
 /// Represents the application configuration
@@ -867,6 +805,7 @@ impl CommandLineArgs {
 /// The struct holds the loaded configuration file, as well as the arguments parsed from the command line.
 /// Its provided methods decide the appropriate options based on combining the configuration file and the
 /// command line arguments.
+#[derive(Debug)]
 pub struct Config {
     opt: CommandLineArgs,
     config_file: ConfigFile,
@@ -883,21 +822,13 @@ impl Config {
             ConfigFile::read(opt.config.clone()).unwrap_or_else(|e| {
                 // Inform the user about errors when loading the configuration,
                 // but fallback to the default config to at least attempt to do something
-                tracing::error!("failed to load configuration: {}", e);
+                error!("failed to load configuration: {}", e);
                 ConfigFile::default()
             })
         } else {
             debug!("Configuration directory {} does not exist", config_directory.display());
             ConfigFile::default()
         };
-
-        if let Some(misc) = &config_file.misc {
-            check_deprecated!(misc, git_arguments, git, arguments);
-            check_deprecated!(misc, git_repos, git, repos);
-            check_deprecated!(misc, predefined_git_repos, git, pull_predefined);
-            check_deprecated!(misc, yay_arguments, linux, yay_arguments);
-            check_deprecated!(misc, accept_all_windows_updates, windows, accept_all_updates);
-        }
 
         let allowed_steps = Self::allowed_steps(&opt, &config_file);
 
@@ -929,8 +860,8 @@ impl Config {
     }
 
     /// The list of git repositories to push and pull.
-    pub fn git_repos(&self) -> &Option<Vec<String>> {
-        get_deprecated_moved_opt!(&self.config_file.misc, git_repos, &self.config_file.git, repos)
+    pub fn git_repos(&self) -> Option<&Vec<String>> {
+        self.config_file.git.as_ref().and_then(|git| git.repos.as_ref())
     }
     /// The list of additional git repositories to pull.
     pub fn git_pull_only_repos(&self) -> Option<&Vec<String>> {
@@ -1140,13 +1071,11 @@ impl Config {
 
     /// Whether to accept all Windows updates
     pub fn accept_all_windows_updates(&self) -> bool {
-        get_deprecated_moved_or_default_to!(
-            &self.config_file.misc,
-            accept_all_windows_updates,
-            &self.config_file.windows,
-            accept_all_updates,
-            true
-        )
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|windows| windows.accept_all_updates)
+            .unwrap_or(true)
     }
 
     /// Whether to self rename the Topgrade executable during the run
@@ -1429,19 +1358,26 @@ impl Config {
 
     pub fn use_predefined_git_repos(&self) -> bool {
         !self.opt.disable_predefined_git_repos
-            && get_deprecated_moved_or_default_to!(
-                &self.config_file.misc,
-                predefined_git_repos,
-                &self.config_file.git,
-                pull_predefined,
-                true
-            )
+            && self
+                .config_file
+                .git
+                .as_ref()
+                .and_then(|git| git.pull_predefined)
+                .unwrap_or(true)
     }
 
     pub fn verbose(&self) -> bool {
         self.opt.verbose
     }
 
+    /// After loading the config file, filter directives consist of 3 parts:
+    ///
+    ///     1. directives from the configuration file
+    ///     2. directives from the CLI options `--log-filter`
+    ///     3. `debug`, which would be enabled if the `--verbose` option is present
+    ///
+    /// Previous directive will be overwritten if a directive with the same target
+    /// appear later.
     pub fn tracing_filter_directives(&self) -> String {
         let mut ret = String::new();
         if let Some(directives) = self.config_file.misc.as_ref().and_then(|m| m.log_filters.as_ref()) {

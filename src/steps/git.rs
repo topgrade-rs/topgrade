@@ -33,6 +33,7 @@ pub enum GitAction {
     Pull,
 }
 
+#[derive(Debug)]
 pub struct Repositories<'a> {
     git: &'a Git,
     pull_repositories: HashSet<String>,
@@ -234,8 +235,8 @@ impl Git {
         }
 
         print_separator("Git repositories");
-        self.multi_push(repositories, ctx)?;
         self.multi_pull(repositories, ctx)?;
+        self.multi_push(repositories, ctx)?;
 
         Ok(())
     }
@@ -387,14 +388,27 @@ impl<'a> Repositories<'a> {
         }
     }
 
+    /// Return true if `pull_repos` and `push_repos` are both empty.
     pub fn is_empty(&self) -> bool {
         self.pull_repositories.is_empty() && self.push_repositories.is_empty()
     }
 
+    // The following 2 functions are `#[cfg(unix)]` because they are only used in
+    // the `oh-my-zsh` step, which is UNIX-only.
+
     #[cfg(unix)]
-    pub fn remove(&mut self, path: &str) {
+    /// Return true if `pull_repos` is empty.
+    pub fn pull_is_empty(&self) -> bool {
+        self.pull_repositories.is_empty()
+    }
+
+    #[cfg(unix)]
+    /// Remove `path` from `pull_repos`
+    ///
+    /// # Panic
+    /// Will panic if `path` is not in the `pull_repos` under a debug build.
+    pub fn remove_from_pull(&mut self, path: &str) {
         let _removed = self.pull_repositories.remove(path);
-        let _removed = self.push_repositories.remove(path);
         debug_assert!(_removed);
     }
 }
