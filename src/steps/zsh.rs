@@ -177,20 +177,27 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
     // the ZSH variable for topgrade here.
     if ctx.under_ssh() {
         let zshrc_path = zshrc().require()?;
-        let output = Command::new("zsh")
+        // `res_output` will be an `Err` if `ZSH` is not present (propagated by the `grep` command)
+        let res_output = Command::new("zsh")
             .args([
                 "-c",
                 // ` > /dev/null` is used in case the user's zshrc will have some stdout output.
                 format!(
-                    "source {} > /dev/null && export -p | grep ZSH > /dev/null && echo $ZSH",
+                    "source {} > /dev/null && export -p | grep -q ZSH && echo $ZSH",
                     zshrc_path.display()
                 )
                 .as_str(),
             ])
-            .output_checked_utf8()?;
-        let zsh_env = output.stdout.trim();
-        if !zsh_env.is_empty() {
-            env::set_var("ZSH", zsh_env);
+            .output_checked_utf8();
+
+        if let Ok(output) = res_output {
+            if output.status.success() {
+                // trim the newline char
+                let zsh_env = output.stdout.trim();
+                if !zsh_env.is_empty() {
+                    env::set_var("ZSH", zsh_env);
+                }
+            }
         }
     }
 
