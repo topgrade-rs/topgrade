@@ -187,8 +187,8 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
 
         let stdout = output.stdout;
 
+        let prefix = "export ZSH=";
         for line in stdout.lines() {
-            let prefix = "export ZSH=";
             if line.contains(prefix) {
                 let zsh_env = line.trim_start_matches(prefix);
                 debug!("Oh-my-zsh: under SSH, setting ZSH={}", zsh_env);
