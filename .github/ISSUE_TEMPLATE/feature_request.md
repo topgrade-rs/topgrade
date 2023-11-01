@@ -2,7 +2,7 @@
 name: Feature request
 about: Can you please support...?
 title: ''
-labels: ''
+labels: 'C-feature request'
 assignees: ''
 
 ---
