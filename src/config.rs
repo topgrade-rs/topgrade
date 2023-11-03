@@ -107,6 +107,7 @@ pub enum Step {
     BrewCask,
     BrewFormula,
     Bun,
+    BunPackages,
     Cargo,
     Chezmoi,
     Chocolatey,
