@@ -2,174 +2,239 @@
 # [include] sections are processed in the order you write them
 # Files in $CONFIG_DIR/topgrade.d/ are automatically included before this file
 [include]
-#paths = ["/etc/topgrade.toml"]
+# paths = ["/etc/topgrade.toml"]
+
 
 [misc]
-# Don't ask for confirmations
-#assume_yes = true
-
-# Disable specific steps - same options as the command line flag
-#disable = ["system", "emacs"]
-
-# Ignore failures for these steps
-#ignore_failures = ["powershell"]
-
-# Run specific steps - same options as the command line flag
-#only = ["system", "emacs"]
-
-# Do not ask to retry failed steps (default: false)
-#no_retry = true
-
-# Sudo command to be used
-#sudo_command = "sudo"
-
 # Run `sudo -v` to cache credentials at the start of the run
 # This avoids a blocking password prompt in the middle of an unattended run
-#pre_sudo = false
+# (default: false)
+# pre_sudo = false
 
-# Run inside tmux
-#run_in_tmux = true
+# Sudo command to be used
+# sudo_command = "sudo"
+
+# Disable specific steps - same options as the command line flag
+# disable = ["system", "emacs"]
+
+# Ignore failures for these steps
+# ignore_failures = ["powershell"]
 
 # List of remote machines with Topgrade installed on them
-#remote_topgrades = ["toothless", "pi", "parnas"]
-
-# Arguments to pass to SSH when upgrading remote systems
-#ssh_arguments = "-o ConnectTimeout=2"
+# remote_topgrades = ["toothless", "pi", "parnas"]
 
 # Path to Topgrade executable on remote machines
-#remote_topgrade_path = ".cargo/bin/topgrade"
+# remote_topgrade_path = ".cargo/bin/topgrade"
+
+# Arguments to pass to SSH when upgrading remote systems
+# ssh_arguments = "-o ConnectTimeout=2"
 
 # Arguments to pass tmux when pulling Repositories
-#tmux_arguments = "-S /var/tmux.sock"
+# tmux_arguments = "-S /var/tmux.sock"
 
-# Do not set the terminal title
-#set_title = false
+# Do not set the terminal title (dfault: true)
+# set_title = true
 
-# Display the time in step titles
+# Display the time in step titles (default: true)
 # display_time = true
 
-# Cleanup temporary or old files
-#cleanup = true
+# Don't ask for confirmations (no default value)
+# assume_yes = true
 
-# Skip sending a notification at the end of a run
-#skip_notify = true
+# Do not ask to retry failed steps (default: false)
+# no_retry = true
 
-# Whether to self update (this is ignored if the binary has been built without self update support, available also via setting the environment variable TOPGRADE_NO_SELF_UPGRADE)
-#no_self_update = true
+# Run inside tmux (default: false)
+# run_in_tmux = true
 
-# Extra Home Manager arguments
-#home_manager_arguments = ["--flake", "file"]
+# Cleanup temporary or old files (default: false)
+# cleanup = true
+
+# Send a notification for every step (default: false)
+# notify_each_step = false
+
+# Skip sending a notification at the end of a run (default: false)
+# skip_notify = true
+
+# The Bash-it branch to update (default: "stable")
+# bashit_branch = "stable"
+
+# Run specific steps - same options as the command line flag
+# only = ["system", "emacs"]
+
+# Whether to self update
+#
+# this will be ignored if the binary is built without self update support
+#
+# available also via setting the environment variable TOPGRADE_NO_SELF_UPGRADE)
+# no_self_update = true
 
 # Extra tracing filter directives
 # These are prepended to the `--log-filter` argument
 # See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
-#log_filters = ["topgrade::command=debug", "warn"]
+# log_filters = ["topgrade::command=debug", "warn"]
+
 
 # Commands to run before anything
 [pre_commands]
-#"Emacs Snapshot" = "rm -rf ~/.emacs.d/elpa.bak && cp -rl ~/.emacs.d/elpa ~/.emacs.d/elpa.bak"
+# "Emacs Snapshot" = "rm -rf ~/.emacs.d/elpa.bak && cp -rl ~/.emacs.d/elpa ~/.emacs.d/elpa.bak"
+
 
 # Commands to run after anything
 [post_commands]
-#"Emacs Snapshot" = "rm -rf ~/.emacs.d/elpa.bak && cp -rl ~/.emacs.d/elpa ~/.emacs.d/elpa.bak"
+# "Emacs Snapshot" = "rm -rf ~/.emacs.d/elpa.bak && cp -rl ~/.emacs.d/elpa ~/.emacs.d/elpa.bak"
+
 
 # Custom commands
 [commands]
-#"Python Environment" = "~/dev/.env/bin/pip install -i https://pypi.python.org/simple -U --upgrade-strategy eager jupyter"
-#"Custom command using interactive shell (unix)" = "-i vim_upgrade"
+# "Python Environment" = "~/dev/.env/bin/pip install -i https://pypi.python.org/simple -U --upgrade-strategy eager jupyter"
+# "Custom command using interactive shell (unix)" = "-i vim_upgrade"
+
 
 [python]
-#enable_pip_review = true                         ###disabled by default
-#enable_pip_review_local = true                   ###disabled by default
-#enable_pipupgrade = true                         ###disabled by default
-#pipupgrade_arguments = "-y -u --pip-path pip"    ###disabled by default
+# enable_pip_review = true                         ###disabled by default
+# enable_pip_review_local = true                   ###disabled by default
+# enable_pipupgrade = true                         ###disabled by default
+# pipupgrade_arguments = "-y -u --pip-path pip"    ###disabled by default
+
 
 [composer]
-#self_update = true
+# self_update = true
+
 
 [brew]
-#greedy_cask = true
-#autoremove = true
+# greedy_cask = true
+# autoremove = true
+
 
 [linux]
-# Arch Package Manager to use. Allowed values: autodetect, aura, garuda_update, pacman, pamac, paru, pikaur, trizen, yay.
-#arch_package_manager = "pacman"
+# Arch Package Manager to use.
+# Allowed values:
+#   autodetect, aura, garuda_update, pacman, pamac, paru, pikaur, trizen, yay
+# arch_package_manager = "pacman"
+
 # Arguments to pass yay (or paru) when updating packages
-#yay_arguments = "--nodevel"
+# yay_arguments = "--nodevel"
+
 # Arguments to pass dnf when updating packages
-#dnf_arguments = "--refresh"
-#aura_aur_arguments = "-kx"
-#aura_pacman_arguments = ""
-#garuda_update_arguments = ""
-#show_arch_news = true
-#trizen_arguments = "--devel"
-#pikaur_arguments = ""
-#pamac_arguments = "--no-devel"
-#enable_tlmgr = true
-#emerge_sync_flags = "-q"
-#emerge_update_flags = "-uDNa --with-bdeps=y world"
-#redhat_distro_sync = false
-#suse_dup = false
-#rpm_ostree = false
-#nix_arguments = "--flake"
-#nix_env_arguments = "--prebuilt-only"
+# dnf_arguments = "--refresh"
+
+# aura_aur_arguments = "-kx"
+
+# aura_pacman_arguments = ""
+# garuda_update_arguments = ""
+
+# show_arch_news = true
+
+# trizen_arguments = "--devel"
+
+# pikaur_arguments = ""
+
+# pamac_arguments = "--no-devel"
+
+# enable_tlmgr = true
+
+# emerge_sync_flags = "-q"
+
+# emerge_update_flags = "-uDNa --with-bdeps=y world"
+
+# redhat_distro_sync = false
+
+# suse_dup = false
+
+# rpm_ostree = false
+
+# nix_arguments = "--flake"
+
+# nix_env_arguments = "--prebuilt-only"
+
+# Extra Home Manager arguments
+# home_manager_arguments = ["--flake", "file"]
+
 
 [git]
-#max_concurrency = 5
-# Additional git repositories to pull
-#repos = [
-#    "~/src/*/",
-#    "~/.config/something"
-#]
+# max_concurrency = 5
+
+# Git repositories that you want to pull and push
+# repos = [
+#     "~/src/*/",
+#     "~/.config/something"
+# ]
+
+# Repositories that you only want to pull
+# pull_only_repos = [
+#     "~/.config/something_else"
+# ]
+
+# Repositories that you only want to push
+# push_only_repos = [
+#     "~/src/*/",
+#     "~/.config/something_third"
+# ]
 
 # Don't pull the predefined git repos
-#pull_predefined = false
+# pull_predefined = false
 
-# Arguments to pass Git when pulling Repositories
-#arguments = "--rebase --autostash"
+# Arguments to pass Git when pulling repositories
+# pull_arguments = "--rebase --autostash"
+
+# Arguments to pass Git when pushing repositories
+# push_arguments = "--all"
+
 
 [windows]
 # Manually select Windows updates
-#accept_all_updates = false
-#open_remotes_in_new_terminal = true
-#wsl_update_pre_release = true
-#wsl_update_use_web_download = true
+# accept_all_updates = false
+
+# open_remotes_in_new_terminal = true
+
+# wsl_update_pre_release = true
+
+# wsl_update_use_web_download = true
 
 # Causes Topgrade to rename itself during the run to allow package managers
 # to upgrade it. Use this only if you installed Topgrade by using a package
 # manager such as Scoop or Cargo
-#self_rename = true
+# self_rename = true
+
 
 [npm]
 # Use sudo if the NPM directory isn't owned by the current user
-#use_sudo = true
+# use_sudo = true
+
 
 [yarn]
 # Run `yarn global upgrade` with `sudo`
-#use_sudo = true
+# use_sudo = true
+
 
 [vim]
 # For `vim-plug`, execute `PlugUpdate!` instead of `PlugUpdate`
-#force_plug_update = true
+# force_plug_update = true
+
 
 [firmware]
 # Offer to update firmware; if false just check for and display available updates
-#upgrade = true
+# upgrade = true
+
 
 [vagrant]
 # Vagrant directories
-#directories = []
+# directories = []
 
 # power on vagrant boxes if needed
-#power_on = true
+# power_on = true
 
 # Always suspend vagrant boxes instead of powering off
-#always_suspend = true
+# always_suspend = true
+
 
 [flatpak]
 # Use sudo for updating the system-wide installation
-#use_sudo = true
+# use_sudo = true
+
 
 [distrobox]
-#use_root = false
-#containers = ["archlinux-latest"]
+# use_root = false
+
+# containers = ["archlinux-latest"]

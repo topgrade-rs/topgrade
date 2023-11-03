@@ -5,9 +5,17 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use color_eyre::eyre::Result;
+
 use tracing::{debug, error};
+use tracing_subscriber::fmt::format::FmtSpan;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::reload::{Handle, Layer};
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{fmt, Registry};
+use tracing_subscriber::{registry, EnvFilter};
 
 use crate::command::CommandExt;
+use crate::config::DEFAULT_LOG_LEVEL;
 use crate::error::SkipStep;
 
 pub trait PathExt
@@ -250,4 +258,50 @@ pub fn check_is_python_2_or_shim(python: PathBuf) -> Result<PathBuf> {
     }
 
     Ok(python)
+}
+
+/// Set up the tracing logger
+///
+/// # Return value
+/// A reload handle will be returned so that we can change the log level at
+/// runtime.
+pub fn install_tracing(filter_directives: &str) -> Result<Handle<EnvFilter, Registry>> {
+    let env_filter = EnvFilter::try_new(filter_directives)
+        .or_else(|_| EnvFilter::try_from_default_env())
+        .or_else(|_| EnvFilter::try_new(DEFAULT_LOG_LEVEL))?;
+
+    let fmt_layer = fmt::layer()
+        .with_target(false)
+        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
+        .without_time();
+
+    let (filter, reload_handle) = Layer::new(env_filter);
+
+    registry().with(filter).with(fmt_layer).init();
+
+    Ok(reload_handle)
+}
+
+/// Update the tracing logger with new `filter_directives`.
+pub fn update_tracing(reload_handle: &Handle<EnvFilter, Registry>, filter_directives: &str) -> Result<()> {
+    let new = EnvFilter::try_new(filter_directives)
+        .or_else(|_| EnvFilter::try_from_default_env())
+        .or_else(|_| EnvFilter::try_new(DEFAULT_LOG_LEVEL))?;
+    reload_handle.modify(|old| *old = new)?;
+
+    Ok(())
+}
+
+/// Set up the error handler crate
+pub fn install_color_eyre() -> Result<()> {
+    color_eyre::config::HookBuilder::new()
+        // Don't display the backtrace reminder by default:
+        //   Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+        //   Run with RUST_BACKTRACE=full to include source snippets.
+        .display_env_section(false)
+        // Display location information by default:
+        //   Location:
+        //      src/steps.rs:92
+        .display_location_section(true)
+        .install()
 }

@@ -10,6 +10,8 @@ use color_eyre::eyre::Context;
 
 use crate::error::TopgradeError;
 
+use tracing::debug;
+
 /// Like [`Output`], but UTF-8 decoded.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Utf8Output {
@@ -183,7 +185,7 @@ impl CommandExt for Command {
             let err = TopgradeError::ProcessFailedWithOutput(program, output.status, stderr.into_owned());
 
             let ret = Err(err).with_context(|| message);
-            tracing::debug!("Command failed: {ret:?}");
+            debug!("Command failed: {ret:?}");
             ret
         }
     }
@@ -203,7 +205,7 @@ impl CommandExt for Command {
             let (program, _) = get_program_and_args(self);
             let err = TopgradeError::ProcessFailed(program, status);
             let ret = Err(err).with_context(|| format!("Command failed: `{command}`"));
-            tracing::debug!("Command failed: {ret:?}");
+            debug!("Command failed: {ret:?}");
             ret
         }
     }
@@ -239,6 +241,6 @@ fn format_program_and_args(cmd: &Command) -> String {
 
 fn log(cmd: &Command) -> String {
     let command = format_program_and_args(cmd);
-    tracing::debug!("Executing command `{command}`");
+    debug!("Executing command `{command}`");
     command
 }
