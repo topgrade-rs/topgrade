@@ -32,7 +32,7 @@
 # Arguments to pass tmux when pulling Repositories
 # tmux_arguments = "-S /var/tmux.sock"
 
-# Do not set the terminal title (dfault: true)
+# Do not set the terminal title (default: true)
 # set_title = true
 
 # Display the time in step titles (default: true)
