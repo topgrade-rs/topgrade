@@ -42,14 +42,17 @@ The compiled binaries contain a self-upgrading feature.
 
 Just run `topgrade`.
 
-Visit the documentation at [topgrade-rs.github.io](https://topgrade-rs.github.io/) for more information.
-
-> **Warning**
-> Work in Progress
-
 ## Configuration 
 
 See `config.example.toml` for an example configuration file.
+
+## Migration and Breaking Changes
+
+Whenever there is a **breaking change**, the major version number will be bumped,
+and we will document these changes in the release note, please take a look at 
+it when updated to a major release.
+
+> Got a question? Feel free to open an issue or discussion!
 
 ### Configuration Path
 
