@@ -267,6 +267,7 @@ pub enum ArchPackageManager {
     Pikaur,
     Trizen,
     Yay,
+    Aurutils,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -277,6 +278,9 @@ pub struct Linux {
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     aura_aur_arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
+    aurutils_arguments: Option<String>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     aura_pacman_arguments: Option<String>,
@@ -1213,6 +1217,15 @@ impl Config {
             .as_ref()
             .and_then(|s| s.yay_arguments.as_deref())
             .unwrap_or("")
+    }
+
+    /// Extra yay arguments
+    pub fn aurutils_arguments(&self) -> &str {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|s| s.aurutils_arguments.as_deref())
+            .unwrap_or("--rebuild")
     }
 
     /// Extra aura arguments for AUR and pacman

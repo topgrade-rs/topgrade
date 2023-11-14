@@ -1,6 +1,7 @@
 use std::env::var_os;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use color_eyre::eyre;
 use color_eyre::eyre::Result;
@@ -101,6 +102,64 @@ impl GarudaUpdate {
         Some(Self {
             executable: which("garuda-update")?,
         })
+    }
+}
+
+pub struct Aurutils {
+    executable: PathBuf,
+    pacman: PathBuf,
+}
+
+impl Aurutils {
+    fn get(exec_name: &str, pacman: &Path) -> Option<Self> {
+        Some(Self {
+            executable: which(exec_name)?,
+            pacman: pacman.to_owned(),
+        })
+    }
+}
+
+impl ArchPackageManager for Aurutils {
+    fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
+        let mut command = Command::new("bash");
+
+        command.args([
+            "-c",
+            &format!(
+                "xargs -a <({:?} vercmp-devel | cut -d' ' -f1) aur sync -Scu {:?}",
+                &self.executable,
+                ctx.config().aurutils_arguments()
+            ),
+        ]);
+
+        // Set environment variables if necessary
+        command.env("PATH", get_execution_path());
+        command.status_checked()?;
+
+        let mut command = ctx.run_type().execute(&self.pacman);
+
+        command
+            .arg("-Syu")
+            .args(ctx.config().trizen_arguments().split_whitespace())
+            .env("PATH", get_execution_path());
+
+        if ctx.config().yes(Step::System) {
+            command.arg("--noconfirm");
+        }
+        command.status_checked()?;
+
+        if ctx.config().cleanup() {
+            let mut command = ctx.run_type().execute(&self.pacman);
+            command.arg("-Sc");
+            if ctx.config().yes(Step::System) {
+                command.arg("--noconfirm");
+            }
+            command.status_checked()?;
+        }
+
+        command.status_checked()?;
+
+        Ok(())
     }
 }
 
@@ -233,6 +292,7 @@ impl Pamac {
         })
     }
 }
+
 impl ArchPackageManager for Pamac {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
         let mut command = ctx.run_type().execute(&self.executable);
@@ -320,6 +380,7 @@ pub fn get_arch_package_manager(ctx: &ExecutionContext) -> Option<Box<dyn ArchPa
             .map(box_package_manager)
             .or_else(|| YayParu::get("paru", &pacman).map(box_package_manager))
             .or_else(|| YayParu::get("yay", &pacman).map(box_package_manager))
+            .or_else(|| Aurutils::get("aur", &pacman).map(box_package_manager))
             .or_else(|| Trizen::get().map(box_package_manager))
             .or_else(|| Pikaur::get().map(box_package_manager))
             .or_else(|| Pamac::get().map(box_package_manager))
@@ -329,6 +390,7 @@ pub fn get_arch_package_manager(ctx: &ExecutionContext) -> Option<Box<dyn ArchPa
         config::ArchPackageManager::Trizen => Trizen::get().map(box_package_manager),
         config::ArchPackageManager::Paru => YayParu::get("paru", &pacman).map(box_package_manager),
         config::ArchPackageManager::Yay => YayParu::get("yay", &pacman).map(box_package_manager),
+        config::ArchPackageManager::Aurutils => Aurutils::get("aur", &pacman).map(box_package_manager),
         config::ArchPackageManager::Pacman => Pacman::get(ctx).map(box_package_manager),
         config::ArchPackageManager::Pikaur => Pikaur::get().map(box_package_manager),
         config::ArchPackageManager::Pamac => Pamac::get().map(box_package_manager),
