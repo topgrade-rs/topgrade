@@ -239,7 +239,7 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
         println!("Pulling custom plugins and themes");
         ctx.git().multi_pull(&custom_repos, ctx)?;
     }
-
+    env::set_current_dir(&oh_my_zsh)?;
     ctx.run_type()
         .execute("zsh")
         .arg(&oh_my_zsh.join("tools/upgrade.sh"))
