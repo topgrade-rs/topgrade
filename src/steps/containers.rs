@@ -48,7 +48,9 @@ impl Display for Container {
 
 /// Returns a Vector of all containers, with Strings in the format
 /// "REGISTRY/[PATH/]CONTAINER_NAME:TAG"
-fn list_containers(crt: &Path) -> Result<Vec<Container>> {
+///
+/// Containers specified in `ignored_containers` will be filtered out.
+fn list_containers(crt: &Path, ignored_containers: Option<&Vec<String>>) -> Result<Vec<Container>> {
     debug!(
         "Querying '{} image ls --format \"{{{{.Repository}}}}:{{{{.Tag}}}}/{{{{.ID}}}}\"' for containers",
         crt.display()
@@ -83,6 +85,16 @@ fn list_containers(crt: &Path) -> Result<Vec<Container>> {
         assert_eq!(split_res.len(), 2);
         let (repo_tag, image_id) = (split_res[0], split_res[1]);
 
+        if let Some(ignored_containers) = ignored_containers {
+            if ignored_containers
+                .iter()
+                .any(|ignored_container| repo_tag.eq(ignored_container))
+            {
+                debug!("Skipping ignored container '{}'", line);
+                continue;
+            }
+        }
+
         debug!(
             "Querying '{} image inspect --format \"{{{{.Os}}}}/{{{{.Architecture}}}}\"' for container {}",
             crt.display(),
@@ -109,7 +121,8 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Containers");
     let mut success = true;
-    let containers = list_containers(&crt).context("Failed to list Docker containers")?;
+    let containers =
+        list_containers(&crt, ctx.config().containers_ignored_tags()).context("Failed to list Docker containers")?;
     debug!("Containers to inspect: {:?}", containers);
 
     for container in containers.iter() {
