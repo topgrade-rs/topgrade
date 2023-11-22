@@ -122,7 +122,10 @@ pub fn run_zinit(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zinit");
 
-    let cmd = format!("source {} && zinit self-update && zinit update --all -p", zshrc.display(),);
+    let cmd = format!(
+        "source {} && zinit self-update && zinit update --all -p",
+        zshrc.display(),
+    );
     ctx.run_type()
         .execute(zsh)
         .args(["-i", "-c", cmd.as_str()])
