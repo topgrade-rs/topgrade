@@ -560,6 +560,11 @@ pub fn run_bun_packages(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Bun Packages");
 
+    if !HOME_DIR.join(".bun/install/global/package.json").exists() {
+        println!("No global packages installed");
+        return Ok(());
+    }
+
     ctx.run_type().execute(bun).args(["-g", "update"]).status_checked()
 }
 
