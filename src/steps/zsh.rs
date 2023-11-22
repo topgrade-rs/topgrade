@@ -234,8 +234,8 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
         custom_repos.insert_if_repo(entry.path());
     }
 
-    custom_repos.remove_from_pull(&oh_my_zsh.to_string_lossy());
-    if !custom_repos.pull_is_empty() {
+    custom_repos.remove(&oh_my_zsh.to_string_lossy());
+    if !custom_repos.is_empty() {
         println!("Pulling custom plugins and themes");
         ctx.git().multi_pull(&custom_repos, ctx)?;
     }

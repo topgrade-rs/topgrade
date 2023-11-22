@@ -839,8 +839,8 @@ impl Config {
     }
 
     /// The list of additional git repositories to pull.
-    pub fn git_repos(&self) -> &Option<Vec<String>> {
-        get_deprecated_moved_opt!(&self.config_file.misc, git_repos, &self.config_file.git, repos)
+    pub fn git_repos(&self) -> Option<&Vec<String>> {
+        self.config_file.git.as_ref().and_then(|git| git.repos.as_ref())
     }
 
     /// Tell whether the specified step should run.
@@ -952,8 +952,8 @@ impl Config {
     }
 
     /// Extra Git arguments
-    pub fn git_arguments(&self) -> &Option<String> {
-        get_deprecated_moved_opt!(&self.config_file.misc, git_arguments, &self.config_file.git, arguments)
+    pub fn git_arguments(&self) -> Option<&String> {
+        self.config_file.git.as_ref().and_then(|git| git.arguments.as_ref())
     }
 
     /// Extra Tmux arguments
