@@ -119,6 +119,16 @@ pub fn string_prepend_str(string: &mut String, s: &str) {
     *string = new_string;
 }
 
+#[cfg(target_family = "unix")]
+pub fn hostname() -> Result<String> {
+    match nix::unistd::gethostname() {
+        Ok(os_str) => Ok(os_str
+            .into_string()
+            .map_err(|_| SkipStep("Failed to get a UTF-8 encoded hostname".into()))?),
+        Err(e) => Err(e.into()),
+    }
+}
+
 #[cfg(target_family = "windows")]
 pub fn hostname() -> Result<String> {
     Command::new("hostname")

@@ -22,7 +22,7 @@ use which_crate::which;
 use super::utils::editor;
 use crate::command::CommandExt;
 use crate::sudo::SudoKind;
-use crate::utils::string_prepend_str;
+use crate::utils::{hostname, string_prepend_str};
 use tracing::{debug, error};
 
 pub static EXAMPLE_CONFIG: &str = include_str!("../config.example.toml");
@@ -1414,7 +1414,7 @@ impl Config {
     str_value!(linux, emerge_update_flags);
 
     pub fn should_execute_remote(&self, remote: &str) -> bool {
-        if let Ok(hostname) = nix::unistd::gethostname() {
+        if let Ok(hostname) = hostname() {
             if remote == hostname {
                 return false;
             }
