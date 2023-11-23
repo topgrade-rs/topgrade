@@ -119,44 +119,13 @@ pub fn string_prepend_str(string: &mut String, s: &str) {
     *string = new_string;
 }
 
-/* sys-info-rs
- *
- * Copyright (c) 2015 Siyu Wang
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
 #[cfg(target_family = "unix")]
 pub fn hostname() -> Result<String> {
-    use std::ffi;
-    extern crate libc;
-
-    unsafe {
-        let buf_size = libc::sysconf(libc::_SC_HOST_NAME_MAX) as usize;
-        let mut buf = Vec::<u8>::with_capacity(buf_size + 1);
-
-        if libc::gethostname(buf.as_mut_ptr() as *mut libc::c_char, buf_size) < 0 {
-            return Err(SkipStep(format!("Failed to get hostname: {}", std::io::Error::last_os_error())).into());
-        }
-        let hostname_len = libc::strnlen(buf.as_ptr() as *const libc::c_char, buf_size);
-        buf.set_len(hostname_len);
-
-        Ok(ffi::CString::new(buf).unwrap().into_string().unwrap())
+    match nix::unistd::gethostname() {
+        Ok(os_str) => Ok(os_str
+            .into_string()
+            .map_err(|_| SkipStep("Failed to get a UTF-8 encoded hostname".into()))?),
+        Err(e) => Err(e.into()),
     }
 }
 
