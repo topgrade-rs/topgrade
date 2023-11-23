@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::{env, fs};
 
-use clap::{ArgEnum, Parser};
+use clap::{Parser, ValueEnum};
 use clap_complete::Shell;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
@@ -19,7 +19,7 @@ use serde::Deserialize;
 use strum::{EnumIter, EnumString, EnumVariantNames, IntoEnumIterator};
 use which_crate::which;
 
-use super::utils::{editor, hostname};
+use super::utils::editor;
 use crate::command::CommandExt;
 use crate::sudo::SudoKind;
 use crate::utils::string_prepend_str;
@@ -44,7 +44,7 @@ macro_rules! str_value {
 
 pub type Commands = BTreeMap<String, String>;
 
-#[derive(ArgEnum, EnumString, EnumVariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
+#[derive(ValueEnum, EnumString, EnumVariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
 #[clap(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
@@ -671,19 +671,19 @@ pub struct CommandLineArgs {
     no_retry: bool,
 
     /// Do not perform upgrades for the given steps
-    #[clap(long = "disable", value_name = "STEP", arg_enum, multiple_values = true)]
+    #[clap(long = "disable", value_name = "STEP", value_enum, num_args = 1..)]
     disable: Vec<Step>,
 
     /// Perform only the specified steps (experimental)
-    #[clap(long = "only", value_name = "STEP", arg_enum, multiple_values = true)]
+    #[clap(long = "only", value_name = "STEP", value_enum, num_args = 1..)]
     only: Vec<Step>,
 
     /// Run only specific custom commands
-    #[clap(long = "custom-commands", value_name = "NAME", multiple_values = true)]
+    #[clap(long = "custom-commands", value_name = "NAME", num_args = 1..)]
     custom_commands: Vec<String>,
 
     /// Set environment variables
-    #[clap(long = "env", value_name = "NAME=VALUE", multiple_values = true)]
+    #[clap(long = "env", value_name = "NAME=VALUE", num_args = 1..)]
     env: Vec<String>,
 
     /// Output debug logs. Alias for `--log-filter debug`.
@@ -699,13 +699,13 @@ pub struct CommandLineArgs {
     skip_notify: bool,
 
     /// Say yes to package manager's prompt
+    // TODO
     #[clap(
         short = 'y',
         long = "yes",
         value_name = "STEP",
-        arg_enum,
-        multiple_values = true,
-        min_values = 0
+        value_enum,
+        num_args = 0..,
     )]
     yes: Option<Vec<Step>>,
 
@@ -732,7 +732,7 @@ pub struct CommandLineArgs {
     pub log_filter: String,
 
     /// Print completion script for the given shell and exit
-    #[clap(long, arg_enum, hide = true)]
+    #[clap(long, value_enum, hide = true)]
     pub gen_completion: Option<Shell>,
 
     /// Print roff manpage and exit
@@ -1414,7 +1414,7 @@ impl Config {
     str_value!(linux, emerge_update_flags);
 
     pub fn should_execute_remote(&self, remote: &str) -> bool {
-        if let Ok(hostname) = hostname() {
+        if let Ok(hostname) = nix::unistd::gethostname() {
             if remote == hostname {
                 return false;
             }
