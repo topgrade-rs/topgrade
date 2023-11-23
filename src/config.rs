@@ -699,7 +699,6 @@ pub struct CommandLineArgs {
     skip_notify: bool,
 
     /// Say yes to package manager's prompt
-    // TODO
     #[clap(
         short = 'y',
         long = "yes",
