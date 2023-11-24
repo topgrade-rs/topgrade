@@ -161,6 +161,13 @@ pub struct Include {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct Containers {
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    ignored_containers: Option<Vec<String>>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 pub struct Git {
     max_concurrency: Option<usize>,
 
@@ -410,6 +417,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     git: Option<Git>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    containers: Option<Containers>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     windows: Option<Windows>,
@@ -840,6 +850,14 @@ impl Config {
     /// The list of additional git repositories to pull.
     pub fn git_repos(&self) -> Option<&Vec<String>> {
         self.config_file.git.as_ref().and_then(|git| git.repos.as_ref())
+    }
+
+    /// The list of docker/podman containers to ignore.
+    pub fn containers_ignored_tags(&self) -> Option<&Vec<String>> {
+        self.config_file
+            .containers
+            .as_ref()
+            .and_then(|containers| containers.ignored_containers.as_ref())
     }
 
     /// Tell whether the specified step should run.
