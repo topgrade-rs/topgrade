@@ -11,7 +11,6 @@ use clap::{Parser, ValueEnum};
 use clap_complete::Shell;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use etcetera::base_strategy::BaseStrategy;
 use merge::Merge;
 use regex::Regex;
 use regex_split::RegexSplit;
@@ -436,14 +435,6 @@ pub struct ConfigFile {
     distrobox: Option<Distrobox>,
 }
 
-fn config_directory() -> PathBuf {
-    #[cfg(unix)]
-    return crate::XDG_DIRS.config_dir();
-
-    #[cfg(windows)]
-    return crate::WINDOWS_DIRS.config_dir();
-}
-
 /// The only purpose of this struct is to deserialize only the `include` field of the config file.
 #[derive(Deserialize, Default, Debug)]
 struct ConfigFileIncludeOnly {
@@ -457,7 +448,7 @@ impl ConfigFile {
     fn ensure() -> Result<(PathBuf, Vec<PathBuf>)> {
         let mut res = (PathBuf::new(), Vec::new());
 
-        let config_directory = config_directory();
+        let config_directory = &crate::CONFIG_DIR;
 
         let possible_config_paths = vec![
             config_directory.join("topgrade.toml"),
@@ -795,7 +786,7 @@ impl Config {
     ///
     /// The function parses the command line arguments and reads the configuration file.
     pub fn load(opt: CommandLineArgs) -> Result<Self> {
-        let config_directory = config_directory();
+        let config_directory = &crate::CONFIG_DIR;
         let config_file = if config_directory.is_dir() {
             ConfigFile::read(opt.config.clone()).unwrap_or_else(|e| {
                 // Inform the user about errors when loading the configuration,

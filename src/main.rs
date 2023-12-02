@@ -11,9 +11,6 @@ use clap::{crate_version, Parser};
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use console::Key;
-#[cfg(windows)]
-use etcetera::base_strategy::Windows;
-use etcetera::base_strategy::{BaseStrategy, Xdg};
 use once_cell::sync::Lazy;
 use tracing::debug;
 
@@ -43,10 +40,12 @@ mod sudo;
 mod terminal;
 mod utils;
 
-pub static HOME_DIR: Lazy<PathBuf> = Lazy::new(|| home::home_dir().expect("No home directory"));
-pub static XDG_DIRS: Lazy<Xdg> = Lazy::new(|| Xdg::new().expect("No home directory"));
+pub(crate) static HOME_DIR: Lazy<PathBuf> = Lazy::new(|| dirs::home_dir().expect("No home directory"));
+pub(crate) static CONFIG_DIR: Lazy<PathBuf> = Lazy::new(|| dirs::config_dir().expect("No config directory"));
 #[cfg(windows)]
-pub static WINDOWS_DIRS: Lazy<Windows> = Lazy::new(|| Windows::new().expect("No home directory"));
+pub(crate) static CACHE_DIR: Lazy<PathBuf> = Lazy::new(|| dirs::cache_dir().expect("No config directory"));
+#[cfg(windows)]
+pub(crate) static DATA_DIR: Lazy<PathBuf> = Lazy::new(|| dirs::data_dir().expect("No config directory"));
 
 fn run() -> Result<()> {
     install_color_eyre()?;
@@ -408,18 +407,14 @@ fn run() -> Result<()> {
                 git_repos.insert_if_repo(HOME_DIR.join(".tmux"));
             }
             git_repos.insert_if_repo(HOME_DIR.join(".config/fish"));
-            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("openbox"));
-            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("bspwm"));
-            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("i3"));
-            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("sway"));
+            git_repos.insert_if_repo(CONFIG_DIR.join("openbox"));
+            git_repos.insert_if_repo(CONFIG_DIR.join("bspwm"));
+            git_repos.insert_if_repo(CONFIG_DIR.join("i3"));
+            git_repos.insert_if_repo(CONFIG_DIR.join("sway"));
         }
 
         #[cfg(windows)]
-        git_repos.insert_if_repo(
-            WINDOWS_DIRS
-                .cache_dir()
-                .join("Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"),
-        );
+        git_repos.insert_if_repo(CACHE_DIR.join("Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"));
 
         #[cfg(windows)]
         windows::insert_startup_scripts(&mut git_repos).ok();

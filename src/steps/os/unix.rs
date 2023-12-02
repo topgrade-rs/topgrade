@@ -7,7 +7,6 @@ use std::{env::var, path::Path};
 use crate::command::CommandExt;
 use crate::{Step, HOME_DIR};
 use color_eyre::eyre::Result;
-use home;
 use ini::Ini;
 use tracing::debug;
 

@@ -3,7 +3,6 @@ use std::env;
 use std::path::{Path, PathBuf};
 
 use color_eyre::eyre::Result;
-use etcetera::base_strategy::BaseStrategy;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
@@ -26,7 +25,7 @@ impl Emacs {
     fn directory_path() -> Option<PathBuf> {
         #[cfg(unix)]
         return {
-            let emacs_xdg_dir = crate::XDG_DIRS.config_dir().join("emacs").if_exists();
+            let emacs_xdg_dir = crate::CONFIG_DIR.join("emacs").if_exists();
             crate::HOME_DIR.join(".emacs.d").if_exists().or(emacs_xdg_dir)
         };
 
@@ -39,7 +38,7 @@ impl Emacs {
                     .if_exists()
                     .or_else(|| PathBuf::from(&home).join(".config\\emacs").if_exists())
             })
-            .or_else(|| crate::WINDOWS_DIRS.data_dir().join(".emacs.d").if_exists());
+            .or_else(|| crate::DATA_DIR.join(".emacs.d").if_exists());
     }
 
     pub fn new() -> Self {

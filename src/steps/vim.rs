@@ -2,7 +2,6 @@ use crate::command::CommandExt;
 use crate::error::{SkipStep, TopgradeError};
 use crate::HOME_DIR;
 use color_eyre::eyre::Result;
-use etcetera::base_strategy::BaseStrategy;
 
 use crate::executor::{Executor, ExecutorOutput};
 use crate::terminal::print_separator;
@@ -28,10 +27,10 @@ pub fn vimrc() -> Result<PathBuf> {
 
 fn nvimrc() -> Result<PathBuf> {
     #[cfg(unix)]
-    let base_dir = crate::XDG_DIRS.config_dir();
+    let base_dir = &crate::CONFIG_DIR;
 
     #[cfg(windows)]
-    let base_dir = crate::WINDOWS_DIRS.cache_dir();
+    let base_dir = &crate::CACHE_DIR;
 
     base_dir
         .join("nvim/init.vim")
