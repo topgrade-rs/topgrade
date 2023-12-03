@@ -17,6 +17,5 @@ jobs:
           CONFIG_PATH=~/.config/topgrade.toml;
           if [ -f "$CONFIG_PATH" ]; then rm $CONFIG_PATH; fi
           cargo build; 
-          # Yes for confirming the breaking changes, if this is a major release
-          yes | ./target/debug/topgrade --dry-run --only system;
+          ./target/debug/topgrade --dry-run --only system;
           stat $CONFIG_PATH;
