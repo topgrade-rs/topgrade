@@ -101,6 +101,19 @@ Be sure to apply your changes to
 [`config.example.toml`](https://github.com/topgrade-rs/topgrade/blob/master/config.example.toml),
 and have some basic documentations guiding user how to use these options.
 
+## Breaking changes
+
+If your PR introduces a breaking change, document it in `BREAKINGCHANGE_dev.md`,
+it should be written in Markdown and wrapped in 80, for example:
+
+```md
+1. The configuration location has been updated to x.
+
+2. The step x has been removed.
+
+3. ...
+```
+
 ## Before you submit your PR
 
 Make sure your patch passes the following tests on your host:

@@ -6,14 +6,17 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::time::Duration;
 
+use crate::breaking_changes::{first_run_of_major_release, print_breaking_changes, write_keep_file};
 use clap::CommandFactory;
 use clap::{crate_version, Parser};
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use console::Key;
+use etcetera::base_strategy::BaseStrategy;
 #[cfg(windows)]
 use etcetera::base_strategy::Windows;
-use etcetera::base_strategy::{BaseStrategy, Xdg};
+#[cfg(unix)]
+use etcetera::base_strategy::Xdg;
 use once_cell::sync::Lazy;
 use tracing::debug;
 
@@ -26,6 +29,7 @@ use self::terminal::*;
 
 use self::utils::{install_color_eyre, install_tracing, update_tracing};
 
+mod breaking_changes;
 mod command;
 mod config;
 mod ctrlc;
@@ -43,10 +47,11 @@ mod sudo;
 mod terminal;
 mod utils;
 
-pub static HOME_DIR: Lazy<PathBuf> = Lazy::new(|| home::home_dir().expect("No home directory"));
-pub static XDG_DIRS: Lazy<Xdg> = Lazy::new(|| Xdg::new().expect("No home directory"));
+pub(crate) static HOME_DIR: Lazy<PathBuf> = Lazy::new(|| home::home_dir().expect("No home directory"));
+#[cfg(unix)]
+pub(crate) static XDG_DIRS: Lazy<Xdg> = Lazy::new(|| Xdg::new().expect("No home directory"));
 #[cfg(windows)]
-pub static WINDOWS_DIRS: Lazy<Windows> = Lazy::new(|| Windows::new().expect("No home directory"));
+pub(crate) static WINDOWS_DIRS: Lazy<Windows> = Lazy::new(|| Windows::new().expect("No home directory"));
 
 fn run() -> Result<()> {
     install_color_eyre()?;
@@ -129,6 +134,18 @@ fn run() -> Result<()> {
     let run_type = executor::RunType::new(config.dry_run());
     let ctx = execution_context::ExecutionContext::new(run_type, sudo, &git, &config);
     let mut runner = runner::Runner::new(&ctx);
+
+    // If this is the first execution of a major release, inform user of breaking
+    // changes
+    if first_run_of_major_release()? {
+        print_breaking_changes();
+
+        if prompt_yesno("Confirmed?")? {
+            write_keep_file()?;
+        } else {
+            exit(1);
+        }
+    }
 
     // Self-Update step, this will execute only if:
     // 1. the `self-update` feature is enabled
