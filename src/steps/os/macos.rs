@@ -56,8 +56,14 @@ pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
         }
     }
 
-    let mut command = ctx.run_type().execute("softwareupdate");
-    command.args(["--install", "--all"]);
+    // We don't know what the proper command to use here cause the macOS man
+    // page is poor.
+    //
+    // man: https://keith.github.io/xcode-man-pages/softwareupdate.8.html
+    // issue: https://github.com/topgrade-rs/topgrade/issues/546
+    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO)?;
+    let mut command = ctx.run_type().execute(sudo);
+    command.args(["softwareupdate", "--install", "--all", "--restart"]);
 
     if should_ask {
         command.arg("--no-scan");
