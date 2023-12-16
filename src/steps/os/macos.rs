@@ -61,7 +61,7 @@ pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
     //
     // man: https://keith.github.io/xcode-man-pages/softwareupdate.8.html
     // issue: https://github.com/topgrade-rs/topgrade/issues/546
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO)?;
+    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
     let mut command = ctx.run_type().execute(sudo);
     command.args(["softwareupdate", "--install", "--all", "--restart"]);
 
