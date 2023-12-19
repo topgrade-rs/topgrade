@@ -283,7 +283,7 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
     variant.execute(run_type).arg("update").status_checked()?;
     variant
         .execute(run_type)
-        .args(["upgrade", "--ignore-pinned", "--formula"])
+        .args(["upgrade", "--formula"])
         .status_checked()?;
 
     if ctx.config().cleanup() {
