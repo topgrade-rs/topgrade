@@ -1,11 +1,15 @@
+use std::ffi::OsStr;
 use std::fs;
 use std::os::unix::fs::MetadataExt;
+use std::path::Component;
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env::var, path::Path};
 
 use crate::command::CommandExt;
 use crate::{Step, HOME_DIR};
+use color_eyre::eyre::eyre;
+use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use home;
 use ini::Ini;
@@ -365,22 +369,7 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     debug!("nix profile: {:?}", profile_path);
     let manifest_json_path = profile_path.join("manifest.json");
 
-    // Should we attempt to upgrade Nix with `nix upgrade-nix`?
-    #[allow(unused_mut)]
-    let mut should_self_upgrade = cfg!(target_os = "macos");
-
-    #[cfg(target_os = "linux")]
-    {
-        // We can't use `nix upgrade-nix` on NixOS.
-        if let Ok(Distribution::NixOS) = Distribution::detect() {
-            should_self_upgrade = false;
-        }
-    }
-
     print_separator("Nix");
-
-    let multi_user = fs::metadata(&nix)?.uid() == 0;
-    debug!("Multi user nix: {}", multi_user);
 
     #[cfg(target_os = "macos")]
     {
@@ -393,30 +382,12 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     }
 
     let run_type = ctx.run_type();
-
-    let nix_args = ["--extra-experimental-features", "nix-command"];
-
-    if should_self_upgrade {
-        if multi_user {
-            ctx.execute_elevated(&nix, true)?
-                .args(nix_args)
-                .arg("upgrade-nix")
-                .status_checked()?;
-        } else {
-            run_type
-                .execute(&nix)
-                .args(nix_args)
-                .arg("upgrade-nix")
-                .status_checked()?;
-        }
-    }
-
     run_type.execute(nix_channel).arg("--update").status_checked()?;
 
     if Path::new(&manifest_json_path).exists() {
         run_type
-            .execute(&nix)
-            .args(nix_args)
+            .execute(nix)
+            .args(nix_args())
             .arg("profile")
             .arg("upgrade")
             .arg(".*")
@@ -430,6 +401,123 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
         };
         command.status_checked()
     }
+}
+
+pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
+    let nix = require("nix")?;
+
+    // Should we attempt to upgrade Nix with `nix upgrade-nix`?
+    #[allow(unused_mut)]
+    let mut should_self_upgrade = cfg!(target_os = "macos");
+
+    #[cfg(target_os = "linux")]
+    {
+        // We can't use `nix upgrade-nix` on NixOS.
+        if let Ok(Distribution::NixOS) = Distribution::detect() {
+            should_self_upgrade = false;
+        }
+    }
+
+    if !should_self_upgrade {
+        return Err(SkipStep(String::from(
+            "`nix upgrade-nix` can only be used on macOS or non-NixOS Linux",
+        ))
+        .into());
+    }
+
+    if nix_profile_dir(&nix)?.is_none() {
+        return Err(SkipStep(String::from(
+            "`nix upgrade-nix` cannot be run when Nix is installed in a profile",
+        ))
+        .into());
+    }
+
+    print_separator("Nix (self-upgrade)");
+
+    let multi_user = fs::metadata(&nix)?.uid() == 0;
+    debug!("Multi user nix: {}", multi_user);
+
+    let nix_args = nix_args();
+    if multi_user {
+        ctx.execute_elevated(&nix, true)?
+            .args(nix_args)
+            .arg("upgrade-nix")
+            .status_checked()
+    } else {
+        ctx.run_type()
+            .execute(&nix)
+            .args(nix_args)
+            .arg("upgrade-nix")
+            .status_checked()
+    }
+}
+
+/// If we try to `nix upgrade-nix` but Nix is installed with `nix profile`, we'll get a `does not
+/// appear to be part of a Nix profile` error.
+///
+/// We duplicate some of the `nix` logic here to avoid this.
+/// See: <https://github.com/NixOS/nix/blob/f0180487a0e4c0091b46cb1469c44144f5400240/src/nix/upgrade-nix.cc#L102-L139>
+///
+/// See: <https://github.com/NixOS/nix/issues/5473>
+fn nix_profile_dir(nix: &Path) -> Result<Option<PathBuf>> {
+    // NOTE: `nix` uses the location of the `nix-env` binary for this but we're using the `nix`
+    // binary; should be the same.
+    let nix_bin_dir = nix.parent();
+    if nix_bin_dir.and_then(|p| p.file_name()) != Some(OsStr::new("bin")) {
+        debug!("Nix is not installed in a `bin` directory: {nix_bin_dir:?}");
+        return Ok(None);
+    }
+
+    let nix_dir = nix_bin_dir
+        .and_then(|bin_dir| bin_dir.parent())
+        .ok_or_else(|| eyre!("Unable to find Nix install directory from Nix binary {nix:?}"))?;
+
+    debug!("Found Nix in {nix_dir:?}");
+
+    let mut profile_dir = nix_dir.to_path_buf();
+    while profile_dir.is_symlink() {
+        profile_dir = profile_dir
+            .parent()
+            .ok_or_else(|| eyre!("Path has no parent: {profile_dir:?}"))?
+            .join(
+                profile_dir
+                    .read_link()
+                    .wrap_err_with(|| format!("Failed to read symlink {profile_dir:?}"))?,
+            );
+
+        // NOTE: `nix` uses a hand-rolled canonicalize function, Rust just uses `realpath`.
+        if profile_dir
+            .canonicalize()
+            .wrap_err_with(|| format!("Failed to canonicalize {profile_dir:?}"))?
+            .components()
+            .any(|component| component == Component::Normal(OsStr::new("profiles")))
+        {
+            break;
+        }
+    }
+
+    debug!("Found Nix profile {profile_dir:?}");
+
+    let user_env = profile_dir
+        .canonicalize()
+        .wrap_err_with(|| format!("Failed to canonicalize {profile_dir:?}"))?;
+
+    Ok(
+        if user_env
+            .file_name()
+            .and_then(|name| name.to_str())
+            .map(|name| name.ends_with("user-environment"))
+            .unwrap_or(false)
+        {
+            Some(profile_dir)
+        } else {
+            None
+        },
+    )
+}
+
+fn nix_args() -> [&'static str; 2] {
+    ["--extra-experimental-features", "nix-command"]
 }
 
 pub fn run_yadm(ctx: &ExecutionContext) -> Result<()> {
