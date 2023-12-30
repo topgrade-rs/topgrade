@@ -425,20 +425,53 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
         .output_checked_utf8()
         .map_err(|_| SkipStep("pip does not exist".to_string()))?;
 
-    let check_externally_managed = "import sysconfig; from os import path; print('Y') if path.isfile(path.join(sysconfig.get_path('stdlib'), 'EXTERNALLY-MANAGED')) else print('N')";
-    Command::new(&python3)
-        .args(["-c", check_externally_managed])
+    let check_extern_managed_script = "import sysconfig; from os import path; print('Y') if path.isfile(path.join(sysconfig.get_path('stdlib'), 'EXTERNALLY-MANAGED')) else print('N')";
+    let output = Command::new(&python3)
+        .args(["-c", check_extern_managed_script])
+        .output_checked_utf8()?;
+    let stdout = output.stdout.trim();
+    let extern_managed = match stdout {
+        "N" => false,
+        "Y" => true,
+        _ => unreachable!("unexpected output from `check_extern_managed_script`"),
+    };
+
+    let allow_break_sys_pkg = match Command::new(&python3)
+        .args(["-m", "pip", "config", "get", "global.break-system-packages"])
         .output_checked_utf8()
-        .map_err(|_| SkipStep("pip may be externally managed".to_string()))
-        .and_then(|output| match output.stdout.trim() {
-            "N" => Ok(()),
-            "Y" => Err(SkipStep("pip is externally managed".to_string())),
-            _ => {
-                print_warning("Unexpected output when checking EXTERNALLY-MANAGED");
-                print_warning(output.stdout.trim());
-                Err(SkipStep("pip may be externally managed".to_string()))
-            }
-        })?;
+    {
+        Ok(output) => {
+            let stdout = output.stdout.trim();
+            stdout
+                .parse::<bool>()
+                .expect("unexpected output that is not `true` or `false`")
+        }
+        // it can fail because this key may not be set
+        //
+        // ```sh
+        // $ pip --version
+        // pip 23.0.1 from /usr/lib/python3/dist-packages/pip (python 3.11)
+        //
+        // $ pip config get global.break-system-packages
+        // ERROR: No such key - global.break-system-packages
+        //
+        // $ echo $?
+        // 1
+        // ```
+        Err(_) => false,
+    };
+
+    debug!("pip3 externally managed: {} ", extern_managed);
+    debug!("pip3 global.break-system-packages: {}", allow_break_sys_pkg);
+
+    // Even though pip3 is externally managed, we should still update it if
+    // `global.break-system-packages` is true.
+    if extern_managed && !allow_break_sys_pkg {
+        return Err(SkipStep(
+            "Skip pip3 update as it is externally managed and global.break-system-packages is not true".to_string(),
+        )
+        .into());
+    }
 
     print_separator("pip3");
     if env::var("VIRTUAL_ENV").is_ok() {
