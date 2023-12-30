@@ -8,6 +8,7 @@ use std::{fs, io::Write};
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use semver::Version;
 use tempfile::tempfile_in;
 use tracing::{debug, error};
 
@@ -352,7 +353,20 @@ pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
     let pipx = require("pipx")?;
     print_separator("pipx");
 
-    ctx.run_type().execute(pipx).arg("upgrade-all").status_checked()
+    let mut command_args = vec!["upgrade-all"];
+
+    // pipx version 1.4.0 introduced a new command argument `pipx upgrade-all --quiet`
+    // (see https://pipx.pypa.io/stable/docs/#pipx-upgrade-all)
+    let version_str = Command::new("pipx")
+        .args(["--version"])
+        .output_checked_utf8()
+        .map(|s| s.stdout.trim().to_owned());
+    let version = Version::parse(&version_str?);
+    if matches!(version, Ok(version) if version >= Version::new(1, 4, 0)) {
+        command_args.push("--quiet")
+    }
+
+    ctx.run_type().execute(pipx).args(command_args).status_checked()
 }
 
 pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
