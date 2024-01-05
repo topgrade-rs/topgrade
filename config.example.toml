@@ -104,6 +104,7 @@
 
 [brew]
 # greedy_cask = true
+# greedy_latest = true
 # autoremove = true
 
 

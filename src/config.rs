@@ -252,6 +252,7 @@ pub struct Flatpak {
 #[serde(deny_unknown_fields)]
 pub struct Brew {
     greedy_cask: Option<bool>,
+    greedy_latest: Option<bool>,
     autoremove: Option<bool>,
 }
 
@@ -1083,6 +1084,15 @@ impl Config {
             .brew
             .as_ref()
             .and_then(|c| c.greedy_cask)
+            .unwrap_or(false)
+    }
+
+    /// Whether Brew cask should be greedy_latest
+    pub fn brew_greedy_latest(&self) -> bool {
+        self.config_file
+            .brew
+            .as_ref()
+            .and_then(|c| c.greedy_latest)
             .unwrap_or(false)
     }
 
