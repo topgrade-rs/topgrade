@@ -54,7 +54,7 @@ impl Distribution {
             Some("clear-linux-os") => Distribution::ClearLinux,
             Some("fedora") | Some("nobara") => {
                 return if let Some(variant) = variant {
-                    if variant.contains(&"Silverblue") {
+                    if variant.contains(&"Silverblue") || variant.contains(&"Kinoite") {
                         Ok(Distribution::FedoraSilverblue)
                     } else {
                         Ok(Distribution::Fedora)
@@ -1034,6 +1034,11 @@ mod tests {
     #[test]
     fn test_fedora() {
         test_template(include_str!("os_release/fedora"), Distribution::Fedora);
+    }
+
+    #[test]
+    fn test_fedora_kinoite() {
+        test_template(include_str!("os_release/fedorakinoite"), Distribution::FedoraSilverblue);
     }
 
     #[test]
