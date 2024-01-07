@@ -24,7 +24,7 @@ pub enum Distribution {
     CentOS,
     ClearLinux,
     Fedora,
-    FedoraSilverblue,
+    FedoraImmutable,
     Debian,
     Gentoo,
     OpenMandriva,
@@ -54,8 +54,12 @@ impl Distribution {
             Some("clear-linux-os") => Distribution::ClearLinux,
             Some("fedora") | Some("nobara") => {
                 return if let Some(variant) = variant {
-                    if variant.contains(&"Silverblue") || variant.contains(&"Kinoite") {
-                        Ok(Distribution::FedoraSilverblue)
+                    if variant.contains(&"Silverblue")
+                        || variant.contains(&"Kinoite")
+                        || variant.contains(&"Sericea")
+                        || variant.contains(&"Onyx")
+                    {
+                        Ok(Distribution::FedoraImmutable)
                     } else {
                         Ok(Distribution::Fedora)
                     }
@@ -131,7 +135,7 @@ impl Distribution {
             Distribution::Alpine => upgrade_alpine_linux(ctx),
             Distribution::Arch => archlinux::upgrade_arch_linux(ctx),
             Distribution::CentOS | Distribution::Fedora => upgrade_redhat(ctx),
-            Distribution::FedoraSilverblue => upgrade_fedora_silverblue(ctx),
+            Distribution::FedoraImmutable => upgrade_fedora_immutable(ctx),
             Distribution::ClearLinux => upgrade_clearlinux(ctx),
             Distribution::Debian => upgrade_debian(ctx),
             Distribution::Gentoo => upgrade_gentoo(ctx),
@@ -230,7 +234,7 @@ fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-fn upgrade_fedora_silverblue(ctx: &ExecutionContext) -> Result<()> {
+fn upgrade_fedora_immutable(ctx: &ExecutionContext) -> Result<()> {
     let ostree = require("rpm-ostree")?;
     let mut command = ctx.run_type().execute(ostree);
     command.arg("upgrade");
@@ -1037,8 +1041,14 @@ mod tests {
     }
 
     #[test]
-    fn test_fedora_kinoite() {
-        test_template(include_str!("os_release/fedorakinoite"), Distribution::FedoraSilverblue);
+    fn test_fedora_immutable() {
+        test_template(
+            include_str!("os_release/fedorasilverblue"),
+            Distribution::FedoraImmutable,
+        );
+        test_template(include_str!("os_release/fedorakinoite"), Distribution::FedoraImmutable);
+        test_template(include_str!("os_release/fedoraonyx"), Distribution::FedoraImmutable);
+        test_template(include_str!("os_release/fedorasericea"), Distribution::FedoraImmutable);
     }
 
     #[test]
