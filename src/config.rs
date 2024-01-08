@@ -53,6 +53,7 @@ pub enum Step {
     AppMan,
     Asdf,
     Atom,
+    Audit,
     Bin,
     Bob,
     BrewCask,

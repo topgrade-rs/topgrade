@@ -264,14 +264,14 @@ fn run() -> Result<()> {
         runner.execute(Step::Pkg, "DragonFly BSD Packages", || {
             dragonfly::upgrade_packages(&ctx)
         })?;
-        dragonfly::audit_packages(&ctx)?;
+        runner.execute(Step::Audit, "DragonFly Audit", || dragonfly::audit_packages(&ctx))?;
     }
 
     #[cfg(target_os = "freebsd")]
     {
         runner.execute(Step::Pkg, "FreeBSD Packages", || freebsd::upgrade_packages(&ctx))?;
         runner.execute(Step::System, "FreeBSD Upgrade", || freebsd::upgrade_freebsd(&ctx))?;
-        freebsd::audit_packages(&ctx)?;
+        runner.execute(Step::Audit, "FreeBSD Audit", || freebsd::audit_packages(&ctx))?;
     }
 
     #[cfg(target_os = "openbsd")]

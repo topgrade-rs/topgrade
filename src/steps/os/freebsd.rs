@@ -30,7 +30,9 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn audit_packages(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
-    println!();
+
+    print_separator("FreeBSD Audit");
+
     Command::new(sudo)
         .args(["/usr/sbin/pkg", "audit", "-Fr"])
         .status_checked()?;
