@@ -99,6 +99,8 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
     let xcodes = require("xcodes")?;
     print_separator("Xcodes");
 
+    let should_ask = !(ctx.config().yes(Step::System)) || (ctx.config().dry_run());
+
     let releases = ctx.run_type()
         .execute(&xcodes)
         .args(["update"])
@@ -135,9 +137,11 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
     }
 
     println!("New Xcode release detected: {}", &releases_filtered.last().cloned().unwrap_or_default());
-    let answer_install = prompt_yesno("Would you like to install it?")?;
-    if !answer_install {
-        return Ok(());
+    if should_ask {
+        let answer_install = prompt_yesno("Would you like to install it?")?;
+        if !answer_install {
+            return Ok(());
+        }
     }
 
     let _ = ctx.run_type()
@@ -154,7 +158,7 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
     let releases_new_installed: HashSet<_> = releases_new
         .lines().filter(|release| release.contains("(Installed)")).collect();
 
-    if releases_new_installed.len() == 2 {
+    if should_ask && releases_new_installed.len() == 2 {
         let answer_uninstall = prompt_yesno("Would you like to move the former Xcode release to the trash?")?;
         if answer_uninstall {
             let _ = ctx.run_type()
