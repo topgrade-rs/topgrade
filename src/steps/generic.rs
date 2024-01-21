@@ -15,7 +15,6 @@ use tracing::{debug, error};
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
-use crate::os::linux::is_wsl;
 use crate::terminal::{print_separator, shell};
 use crate::utils::{self, check_is_python_2_or_shim, require, require_option, which, PathExt, REQUIRE_SUDO};
 use crate::Step;
@@ -24,6 +23,18 @@ use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
     terminal::print_warning,
 };
+
+#[cfg(target_os = "linux")]
+pub fn is_wsl() -> Result<bool> {
+    let output = Command::new("uname").arg("-r").output_checked_utf8()?.stdout;
+    debug!("Uname output: {}", output);
+    Ok(output.contains("microsoft"))
+}
+
+#[cfg(not(target_os = "linux"))]
+pub fn is_wsl() -> Result<bool> {
+    Ok(false)
+}
 
 pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     let cargo_dir = env::var_os("CARGO_HOME")
