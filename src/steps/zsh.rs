@@ -180,7 +180,7 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
     // the ZSH variable for topgrade here.
     if ctx.under_ssh() {
         let res_env_zsh = Command::new("zsh")
-            .args(["-ic", "print -- ${ABC:?}"])
+            .args(["-ic", "print -- ${ZSH:?}"])
             .output_checked_utf8();
 
         if let Ok(output) = res_env_zsh {
