@@ -180,9 +180,12 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
     // the ZSH variable for topgrade here.
     if ctx.under_ssh() {
         let res_env_zsh = Command::new("zsh")
-            .args(["-ic", "print -- ${ZSH:?}"])
+            // don't remove the `-r` option as it can cause problems
+            // see https://github.com/topgrade-rs/topgrade/commit/2edeadfc1c914bf2d9a12cd24ee021f191107041#r137513092
+            .args(["-ic", "print -r -- ${ZSH:?}"])
             .output_checked_utf8();
 
+        // this command will fail if `ZSH` is not set
         if let Ok(output) = res_env_zsh {
             let env_zsh = output.stdout;
             debug!("Oh-my-zsh: under SSH, setting ZSH={}", env_zsh);
