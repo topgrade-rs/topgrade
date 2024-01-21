@@ -179,25 +179,14 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
     // children processes won't get it either, so we source the zshrc and set
     // the ZSH variable for topgrade here.
     if ctx.under_ssh() {
-        let zshrc_path = zshrc().require()?;
-        let output = Command::new("zsh")
-            .args([
-                "-c",
-                // ` > /dev/null` is used in case the user's zshrc will have some stdout output.
-                format!("source {} > /dev/null && export -p", zshrc_path.display()).as_str(),
-            ])
-            .output_checked_utf8()?;
+        let res_env_zsh = Command::new("zsh")
+            .args([ "-ic", "print -- ${ABC:?}"])
+            .output_checked_utf8();
 
-        let stdout = output.stdout;
-
-        let prefix = "export ZSH=";
-        for line in stdout.lines() {
-            if line.contains(prefix) {
-                let zsh_env = line.trim_start_matches(prefix);
-                debug!("Oh-my-zsh: under SSH, setting ZSH={}", zsh_env);
-                env::set_var("ZSH", zsh_env);
-                break;
-            }
+        if let Ok(output) = res_env_zsh {
+            let env_zsh = output.stdout;
+            debug!("Oh-my-zsh: under SSH, setting ZSH={}", env_zsh);
+            env::set_var("ZSH", env_zsh);
         }
     }
 
