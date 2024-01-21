@@ -189,10 +189,16 @@ fn update_bedrock(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-fn is_wsl() -> Result<bool> {
+#[cfg(target_os = "linux")]
+pub fn is_wsl() -> Result<bool> {
     let output = Command::new("uname").arg("-r").output_checked_utf8()?.stdout;
     debug!("Uname output: {}", output);
     Ok(output.contains("microsoft"))
+}
+
+#[cfg(not(target_os = "linux"))]
+pub fn is_wsl() -> Result<bool> {
+    Ok(false)
 }
 
 fn upgrade_alpine_linux(ctx: &ExecutionContext) -> Result<()> {
