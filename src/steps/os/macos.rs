@@ -4,9 +4,9 @@ use crate::terminal::{print_separator, prompt_yesno};
 use crate::utils::{require_option, REQUIRE_SUDO};
 use crate::{utils::require, Step};
 use color_eyre::eyre::Result;
+use std::collections::HashSet;
 use std::fs;
 use std::process::Command;
-use std::collections::HashSet;
 use tracing::debug;
 
 pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
@@ -99,44 +99,61 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
     let xcodes = require("xcodes")?;
     print_separator("Xcodes");
 
-    let should_ask = !(ctx.config().yes(Step::System)) || (ctx.config().dry_run());
+    let should_ask = !(ctx.config().yes(Step::Xcodes)) || ctx.config().dry_run();
 
-    let releases = ctx.run_type()
+    // `xcodes update` will update the list and display the list as an output.
+    let releases = ctx
+        .run_type()
         .execute(&xcodes)
         .args(["update"])
-        .output_checked_utf8()?.stdout;
+        .output_checked_utf8()?
+        .stdout;
 
     let releases_installed: Vec<String> = releases
-        .lines().filter(|release| release.contains("(Installed)")).map(String::from).collect();
-    
+        .lines()
+        .filter(|release| release.contains("(Installed)"))
+        .map(String::from)
+        .collect();
+
     if releases_installed.is_empty() {
         println!("No Xcode releases installed.");
         return Ok(());
     }
 
-    let (allow_gm, allow_beta, allow_regular) = 
-        releases_installed.iter().fold((false, false, false), 
-            |(gm, beta, regular), release| {(
-                gm || release.contains("GM"),
-                beta || release.contains("Beta"),
-                regular || !(release.contains("GM") || release.contains("Beta")),
-            )});
+    let (allow_gm, allow_beta, allow_regular) =
+        releases_installed
+            .iter()
+            .fold((false, false, false), |(gm, beta, regular), release| {
+                (
+                    gm || release.contains("GM"),
+                    beta || release.contains("Beta"),
+                    regular || !(release.contains("GM") || release.contains("Beta")),
+                )
+            });
 
-    let releases_filtered: Vec<String> = releases.lines()
+    let releases_filtered: Vec<String> = releases
+        .lines()
         .filter(|release| {
-            (allow_gm && release.contains("GM")) || 
-            (allow_beta && release.contains("Beta")) || 
-            (allow_regular && !release.contains("GM") && !release.contains("Beta"))
+            (allow_gm && release.contains("GM"))
+                || (allow_beta && release.contains("Beta"))
+                || (allow_regular && !release.contains("GM") && !release.contains("Beta"))
         })
         .map(String::from)
         .collect();
 
-    if !releases_filtered.last().map(|s| !s.contains("(Installed)")).unwrap_or(true) {
+    if !releases_filtered
+        .last()
+        .map(|s| !s.contains("(Installed)"))
+        .unwrap_or(true)
+    {
         println!("No new relevant Xcode releases.");
         return Ok(());
     }
 
-    println!("New Xcode release detected: {}", &releases_filtered.last().cloned().unwrap_or_default());
+    println!(
+        "New Xcode release detected: {}",
+        &releases_filtered.last().cloned().unwrap_or_default()
+    );
     if should_ask {
         let answer_install = prompt_yesno("Would you like to install it?")?;
         if !answer_install {
@@ -144,26 +161,34 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
         }
     }
 
-    let _ = ctx.run_type()
+    let _ = ctx
+        .run_type()
         .execute(&xcodes)
         .args(["install", &releases_filtered.last().cloned().unwrap_or_default()])
         .status_checked();
 
-    let releases_new = ctx.run_type()
+    let releases_new = ctx
+        .run_type()
         .execute(&xcodes)
         .args(["update"])
         .output_checked_utf8()?
         .stdout;
 
     let releases_new_installed: HashSet<_> = releases_new
-        .lines().filter(|release| release.contains("(Installed)")).collect();
+        .lines()
+        .filter(|release| release.contains("(Installed)"))
+        .collect();
 
     if should_ask && releases_new_installed.len() == 2 {
         let answer_uninstall = prompt_yesno("Would you like to move the former Xcode release to the trash?")?;
         if answer_uninstall {
-            let _ = ctx.run_type()
+            let _ = ctx
+                .run_type()
                 .execute(&xcodes)
-                .args(["uninstall", releases_new_installed.iter().next().cloned().unwrap_or_default()])
+                .args([
+                    "uninstall",
+                    releases_new_installed.iter().next().cloned().unwrap_or_default(),
+                ])
                 .status_checked();
         }
     }
