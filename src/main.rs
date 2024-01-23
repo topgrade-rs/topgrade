@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::time::Duration;
 
-use crate::breaking_changes::{first_run_of_major_release, print_breaking_changes, write_keep_file};
+use crate::breaking_changes::{first_run_of_major_release, print_breaking_changes, should_skip, write_keep_file};
 use clap::CommandFactory;
 use clap::{crate_version, Parser};
 use color_eyre::eyre::Context;
@@ -135,9 +135,13 @@ fn run() -> Result<()> {
     let ctx = execution_context::ExecutionContext::new(run_type, sudo, &git, &config);
     let mut runner = runner::Runner::new(&ctx);
 
-    // If this is the first execution of a major release, inform user of breaking
-    // changes
-    if first_run_of_major_release()? {
+    // If
+    //
+    // 1. the breaking changes notification shouldnot be skipped
+    // 2. this is the first execution of a major release
+    //
+    // inform user of breaking changes
+    if !should_skip() && first_run_of_major_release()? {
         print_breaking_changes();
 
         if prompt_yesno("Confirmed?")? {

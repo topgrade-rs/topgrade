@@ -17,5 +17,5 @@ jobs:
           CONFIG_PATH=~/.config/topgrade.toml;
           if [ -f "$CONFIG_PATH" ]; then rm $CONFIG_PATH; fi
           cargo build; 
-          ./target/debug/topgrade --dry-run --only system;
+          TOPGRADE_SKIP_BRKC_NOTIFY=true ./target/debug/topgrade --dry-run --only system;
           stat $CONFIG_PATH;

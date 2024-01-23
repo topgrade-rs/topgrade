@@ -12,6 +12,7 @@ use crate::XDG_DIRS;
 use color_eyre::eyre::Result;
 use etcetera::base_strategy::BaseStrategy;
 use std::{
+    env::var,
     fs::{read_to_string, OpenOptions},
     io::Write,
     path::PathBuf,
@@ -87,6 +88,16 @@ fn data_dir() -> PathBuf {
 fn keep_file_path() -> PathBuf {
     let keep_file = "topgrade_keep";
     data_dir().join(keep_file)
+}
+
+/// If environment variable `TOPGRADE_SKIP_BRKC_NOTIFY` is set to `true`, then
+/// we won't notify the user of the breaking changes.
+pub(crate) fn should_skip() -> bool {
+    if let Ok(var) = var("TOPGRADE_SKIP_BRKC_NOTIFY") {
+        return var.as_str() == "true";
+    }
+
+    false
 }
 
 /// True if this is the first execution of a major release.
