@@ -29,7 +29,8 @@ jobs:
       if: steps.cache.outputs.cache-hit != 'true'
       run: brew install-bundler-gems
     - name: Bump formulae
-      uses: Homebrew/actions/bump-formulae@master
+      uses: Homebrew/actions/bump-packages@master
+      continue-on-error: true
       with:
         # Custom GitHub access token with only the 'public_repo' scope enabled
         token: ${{secrets.HOMEBREW_ACCESS_TOKEN}}
