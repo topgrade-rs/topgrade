@@ -2,11 +2,13 @@
 
 1. Open a PR that:
    
-   > [Example PR](https://github.com/topgrade-rs/topgrade/pull/652)
-
-   > If there are breaking changes, the major version number should be increased.
+   > Here is an [Example PR](https://github.com/topgrade-rs/topgrade/pull/652) 
+   > that you can refer to.
 
    1. bumps the version number.
+
+      > If there are breaking changes, the major version number should be increased.
+
    2. Overwrite [`BREAKINGCHANGES`][breaking_changes] with 
       [`BREAKINGCHANGES_dev`][breaking_changes_dev], and create a new dev file:
 
