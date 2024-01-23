@@ -38,6 +38,7 @@ pub enum Distribution {
     Exherbo,
     NixOS,
     KDENeon,
+    Nobara,
 }
 
 impl Distribution {
@@ -52,7 +53,7 @@ impl Distribution {
             Some("alpine") => Distribution::Alpine,
             Some("centos") | Some("rhel") | Some("ol") => Distribution::CentOS,
             Some("clear-linux-os") => Distribution::ClearLinux,
-            Some("fedora") | Some("nobara") => {
+            Some("fedora") => {
                 return if let Some(variant) = variant {
                     if variant.contains(&"Silverblue")
                         || variant.contains(&"Kinoite")
@@ -66,8 +67,9 @@ impl Distribution {
                 } else {
                     Ok(Distribution::Fedora)
                 };
-            }
+            },
 
+            Some("nobara") => Distribution::Nobara,
             Some("void") => Distribution::Void,
             Some("debian") | Some("pureos") | Some("Deepin") => Distribution::Debian,
             Some("arch") | Some("manjaro-arm") | Some("garuda") | Some("artix") => Distribution::Arch,
@@ -151,6 +153,7 @@ impl Distribution {
             Distribution::Bedrock => update_bedrock(ctx),
             Distribution::OpenMandriva => upgrade_openmandriva(ctx),
             Distribution::PCLinuxOS => upgrade_pclinuxos(ctx),
+            Distribution::Nobara => upgrade_nobara(ctx),
         }
     }
 
@@ -231,6 +234,39 @@ fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
     }
 
     command.status_checked()?;
+    Ok(())
+}
+
+fn upgrade_nobara(ctx: &ExecutionContext) -> Result<()> {
+    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let pkg_manager = which("dnf").unwrap_or_else(|| Path::new("yum").to_path_buf());
+
+    let mut update_command = ctx.run_type().execute(sudo);
+    update_command.arg(&pkg_manager).arg("update");
+    // See https://nobaraproject.org/docs/upgrade-troubleshooting/how-do-i-update-the-system/
+    update_command.args(
+        ["rpmfusion-nonfree-release", "rpmfusion-free-release", "fedora-repos", "nobara-repos"]
+    );
+    update_command.arg("--refresh").status_checked()?;
+
+    let mut upgrade_command = ctx.run_type().execute(sudo);
+    upgrade_command
+        .arg(&pkg_manager)
+        .arg(if ctx.config().redhat_distro_sync() {
+            "distro-sync"
+        } else {
+            "upgrade"
+        });
+
+    if let Some(args) = ctx.config().dnf_arguments() {
+        upgrade_command.args(args.split_whitespace());
+    }
+
+    if ctx.config().yes(Step::System) {
+        upgrade_command.arg("-y");
+    }
+
+    upgrade_command.status_checked()?;
     Ok(())
 }
 
