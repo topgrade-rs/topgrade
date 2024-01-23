@@ -35,14 +35,14 @@
 
 5. Attaching binaries
 
-   You don't need to do this as our CI will automatically do this for you, 
+   You don't need to do this as our CI will automatically do it for you, 
    binaries for Linux, macOS and Windows will be created and attached.
 
    And the CI will publish the new binary to:
 
    1. AUR
    2. PyPi
-   3. Homebrew (seems that it is not working correctly)
+   3. Homebrew (seems that this is not working correctly)
 
 6. Manually release it to Crates.io
    
