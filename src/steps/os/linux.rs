@@ -67,7 +67,7 @@ impl Distribution {
                 } else {
                     Ok(Distribution::Fedora)
                 };
-            },
+            }
 
             Some("nobara") => Distribution::Nobara,
             Some("void") => Distribution::Void,
@@ -244,9 +244,12 @@ fn upgrade_nobara(ctx: &ExecutionContext) -> Result<()> {
     let mut update_command = ctx.run_type().execute(sudo);
     update_command.arg(&pkg_manager).arg("update");
     // See https://nobaraproject.org/docs/upgrade-troubleshooting/how-do-i-update-the-system/
-    update_command.args(
-        ["rpmfusion-nonfree-release", "rpmfusion-free-release", "fedora-repos", "nobara-repos"]
-    );
+    update_command.args([
+        "rpmfusion-nonfree-release",
+        "rpmfusion-free-release",
+        "fedora-repos",
+        "nobara-repos",
+    ]);
     update_command.arg("--refresh").status_checked()?;
 
     let mut upgrade_command = ctx.run_type().execute(sudo);
