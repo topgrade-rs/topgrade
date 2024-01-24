@@ -1159,4 +1159,9 @@ mod tests {
     fn test_solus() {
         test_template(include_str!("os_release/solus"), Distribution::Solus);
     }
+
+    #[test]
+    fn test_nobara() {
+        test_template(include_str!("os_release/nobara"), Distribution::Nobara);
+    }
 }
