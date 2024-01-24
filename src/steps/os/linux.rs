@@ -239,10 +239,16 @@ fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
 
 fn upgrade_nobara(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
-    let pkg_manager = which("dnf").unwrap_or_else(|| Path::new("yum").to_path_buf());
+    let pkg_manager = require("dnf")?;
 
     let mut update_command = ctx.run_type().execute(sudo);
-    update_command.arg(&pkg_manager).arg("update");
+    update_command.arg(&pkg_manager);
+
+    if ctx.config().yes(Step::System) {
+        update_command.arg("-y");
+    }
+
+    update_command.arg("update");
     // See https://nobaraproject.org/docs/upgrade-troubleshooting/how-do-i-update-the-system/
     update_command.args([
         "rpmfusion-nonfree-release",
@@ -254,20 +260,14 @@ fn upgrade_nobara(ctx: &ExecutionContext) -> Result<()> {
 
     let mut upgrade_command = ctx.run_type().execute(sudo);
     upgrade_command
-        .arg(&pkg_manager)
-        .arg(if ctx.config().redhat_distro_sync() {
-            "distro-sync"
-        } else {
-            "upgrade"
-        });
-
-    if let Some(args) = ctx.config().dnf_arguments() {
-        upgrade_command.args(args.split_whitespace());
-    }
+        .arg(&pkg_manager);
 
     if ctx.config().yes(Step::System) {
         upgrade_command.arg("-y");
     }
+
+    upgrade_command
+        .arg("distro-sync");
 
     upgrade_command.status_checked()?;
     Ok(())
