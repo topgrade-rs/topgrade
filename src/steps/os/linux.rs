@@ -8,6 +8,7 @@ use tracing::{debug, warn};
 use crate::command::CommandExt;
 use crate::error::{SkipStep, TopgradeError};
 use crate::execution_context::ExecutionContext;
+use crate::steps::generic::is_wsl;
 use crate::steps::os::archlinux;
 use crate::terminal::print_separator;
 use crate::utils::{require, require_option, which, PathExt, REQUIRE_SUDO};
@@ -187,12 +188,6 @@ fn update_bedrock(ctx: &ExecutionContext) -> Result<()> {
     }
 
     Ok(())
-}
-
-fn is_wsl() -> Result<bool> {
-    let output = Command::new("uname").arg("-r").output_checked_utf8()?.stdout;
-    debug!("Uname output: {}", output);
-    Ok(output.contains("microsoft"))
 }
 
 fn upgrade_alpine_linux(ctx: &ExecutionContext) -> Result<()> {
