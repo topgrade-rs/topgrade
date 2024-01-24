@@ -259,15 +259,13 @@ fn upgrade_nobara(ctx: &ExecutionContext) -> Result<()> {
     update_command.arg("--refresh").status_checked()?;
 
     let mut upgrade_command = ctx.run_type().execute(sudo);
-    upgrade_command
-        .arg(&pkg_manager);
+    upgrade_command.arg(&pkg_manager);
 
     if ctx.config().yes(Step::System) {
         upgrade_command.arg("-y");
     }
 
-    upgrade_command
-        .arg("distro-sync");
+    upgrade_command.arg("distro-sync");
 
     upgrade_command.status_checked()?;
     Ok(())
