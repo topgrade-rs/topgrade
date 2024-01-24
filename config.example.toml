@@ -153,6 +153,7 @@
 
 
 [git]
+# How many repos to pull at max in parallel
 # max_concurrency = 5
 
 # Additional git repositories to pull
@@ -166,6 +167,7 @@
 
 # Arguments to pass Git when pulling Repositories
 # arguments = "--rebase --autostash"
+
 
 [windows]
 # Manually select Windows updates
