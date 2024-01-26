@@ -165,6 +165,7 @@ pub struct Include {
 pub struct Containers {
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     ignored_containers: Option<Vec<String>>,
+    ignored_prefixes: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -853,6 +854,13 @@ impl Config {
         self.config_file.git.as_ref().and_then(|git| git.repos.as_ref())
     }
 
+    /// The list of docker/podman container prefixes to ignore.
+    pub fn containers_ignored_prefixes(&self) -> Option<&Vec<String>> {
+        self.config_file
+            .containers
+            .as_ref()
+            .and_then(|containers| containers.ignored_prefixes.as_ref())
+    }
     /// The list of docker/podman containers to ignore.
     pub fn containers_ignored_tags(&self) -> Option<&Vec<String>> {
         self.config_file

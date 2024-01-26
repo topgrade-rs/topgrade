@@ -230,3 +230,4 @@
 # containers = ["archlinux-latest"]
 [containers]
 # ignored_containers = ["ghcr.io/rancher-sandbox/rancher-desktop/rdx-proxy:latest"]
+# ingored_prefixes = ["rancher/"]
