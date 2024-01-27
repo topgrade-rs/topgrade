@@ -229,4 +229,5 @@
 
 # containers = ["archlinux-latest"]
 [containers]
-# ignored_containers = ["ghcr.io/rancher-sandbox/rancher-desktop/rdx-proxy:latest"]
+# Specify the containers to ignore while updating (Wildcard supported)
+# ignored_containers = ["ghcr.io/rancher-sandbox/rancher-desktop/rdx-proxy:latest", "docker.io*"]
