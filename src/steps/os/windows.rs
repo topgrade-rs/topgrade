@@ -8,7 +8,7 @@ use tracing::debug;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
-use crate::terminal::{print_separator, print_warning};
+use crate::terminal::print_separator;
 use crate::utils::{require, which};
 use crate::{error::SkipStep, steps::git::Repositories};
 use crate::{powershell, Step};
@@ -40,7 +40,7 @@ pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
     let winget = require("winget")?;
 
-    print_separator("winget"); 
+    print_separator("winget");
 
     ctx.run_type()
         .execute(winget)
