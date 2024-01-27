@@ -40,12 +40,7 @@ pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
     let winget = require("winget")?;
 
-    print_separator("winget");
-
-    if !ctx.config().enable_winget() {
-        print_warning("Winget is disabled by default. Enable it by setting enable_winget=true in the [windows] section in the configuration.");
-        return Err(SkipStep(String::from("Winget is disabled by default")).into());
-    }
+    print_separator("winget"); 
 
     ctx.run_type()
         .execute(winget)
