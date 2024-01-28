@@ -1445,7 +1445,6 @@ impl Config {
         true
     }
 
-    #[cfg(windows)]
     pub fn enable_pipupgrade(&self) -> bool {
         return self
             .config_file
