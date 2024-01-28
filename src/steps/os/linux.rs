@@ -1035,6 +1035,11 @@ mod tests {
     }
 
     #[test]
+    fn test_wolfi() {
+        test_template(include_str!("os_release/wolfi"), Distribution::Wolfi);
+    }
+
+    #[test]
     fn test_arch_linux() {
         test_template(include_str!("os_release/arch"), Distribution::Arch);
         test_template(include_str!("os_release/arch32"), Distribution::Arch);
