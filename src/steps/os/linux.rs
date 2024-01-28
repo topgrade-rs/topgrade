@@ -20,6 +20,7 @@ static OS_RELEASE_PATH: &str = "/etc/os-release";
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Distribution {
     Alpine,
+    Wolfi,
     Arch,
     Bedrock,
     CentOS,
@@ -52,6 +53,7 @@ impl Distribution {
 
         Ok(match id {
             Some("alpine") => Distribution::Alpine,
+            Some("wolfi") => Distribution::Wolfi,
             Some("centos") | Some("rhel") | Some("ol") => Distribution::CentOS,
             Some("clear-linux-os") => Distribution::ClearLinux,
             Some("fedora") => {
@@ -104,6 +106,8 @@ impl Distribution {
                         return Ok(Distribution::Arch);
                     } else if id_like.contains(&"alpine") {
                         return Ok(Distribution::Alpine);
+                    } else if id_like.contains(&"wolfi") {
+                        return Ok(Distribution::Wolfi);
                     } else if id_like.contains(&"fedora") {
                         return Ok(Distribution::Fedora);
                     }
@@ -136,6 +140,7 @@ impl Distribution {
 
         match self {
             Distribution::Alpine => upgrade_alpine_linux(ctx),
+            Distribution::Wolfi => upgrade_wolfi_linux(ctx),
             Distribution::Arch => archlinux::upgrade_arch_linux(ctx),
             Distribution::CentOS | Distribution::Fedora => upgrade_redhat(ctx),
             Distribution::FedoraImmutable => upgrade_fedora_immutable(ctx),
@@ -194,6 +199,14 @@ fn update_bedrock(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_alpine_linux(ctx: &ExecutionContext) -> Result<()> {
+    let apk = require("apk")?;
+    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+
+    ctx.run_type().execute(sudo).arg(&apk).arg("update").status_checked()?;
+    ctx.run_type().execute(sudo).arg(&apk).arg("upgrade").status_checked()
+}
+
+fn upgrade_wolfi_linux(ctx: &ExecutionContext) -> Result<()> {
     let apk = require("apk")?;
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
 
