@@ -211,7 +211,11 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
         print_separator("Windows Update");
         powershell.windows_update(ctx)
     } else {
-        Err(SkipStep("Consider installing PSWindowsUpdate as the use of Windows Update via usoclient is not supported.".to_string()).into())
+        Err(SkipStep(
+            "Consider installing PSWindowsUpdate as the use of Windows Update via usoclient is not supported."
+                .to_string(),
+        )
+        .into())
     }
 }
 
