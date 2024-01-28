@@ -61,6 +61,7 @@ pub enum Step {
     Bun,
     BunPackages,
     Cargo,
+    Certbot,
     Chezmoi,
     Chocolatey,
     Choosenim,

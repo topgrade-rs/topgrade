@@ -538,6 +538,7 @@ pub fn run_pip_review_update(ctx: &ExecutionContext) -> Result<()> {
 
     Ok(())
 }
+
 pub fn run_pip_review_local_update(ctx: &ExecutionContext) -> Result<()> {
     let pip_review = require("pip-review")?;
 
@@ -557,6 +558,7 @@ pub fn run_pip_review_local_update(ctx: &ExecutionContext) -> Result<()> {
 
     Ok(())
 }
+
 pub fn run_pipupgrade_update(ctx: &ExecutionContext) -> Result<()> {
     let pipupgrade = require("pipupgrade")?;
 
@@ -574,6 +576,7 @@ pub fn run_pipupgrade_update(ctx: &ExecutionContext) -> Result<()> {
 
     Ok(())
 }
+
 pub fn run_stack_update(ctx: &ExecutionContext) -> Result<()> {
     if require("ghcup").is_ok() {
         // `ghcup` is present and probably(?) being used to install `stack`.
@@ -755,7 +758,7 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
             return Err(SkipStep(String::from(
                 "Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK.",
             ))
-            .into())
+            .into());
         }
     };
 
@@ -904,4 +907,17 @@ pub fn run_bob(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Bob");
 
     ctx.run_type().execute(bob).args(["update", "--all"]).status_checked()
+}
+
+pub fn run_certbot(ctx: &ExecutionContext) -> Result<()> {
+    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let certbot = require("certbot")?;
+
+    print_separator("Certbot");
+
+    let mut cmd = ctx.run_type().execute(sudo);
+    cmd.arg(certbot);
+    cmd.arg("renew");
+
+    cmd.status_checked()
 }
