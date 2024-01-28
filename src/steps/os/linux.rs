@@ -106,8 +106,6 @@ impl Distribution {
                         return Ok(Distribution::Arch);
                     } else if id_like.contains(&"alpine") {
                         return Ok(Distribution::Alpine);
-                    } else if id_like.contains(&"wolfi") {
-                        return Ok(Distribution::Wolfi);
                     } else if id_like.contains(&"fedora") {
                         return Ok(Distribution::Fedora);
                     }
