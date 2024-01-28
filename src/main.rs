@@ -400,6 +400,7 @@ fn run() -> Result<()> {
         generic::run_ghcli_extensions_upgrade(&ctx)
     })?;
     runner.execute(Step::Bob, "Bob", || generic::run_bob(&ctx))?;
+    runner.execute(Step::Certbot, "Certbot", || generic::run_certbot(&ctx))?;
 
     if config.use_predefined_git_repos() {
         if config.should_run(Step::Emacs) {
