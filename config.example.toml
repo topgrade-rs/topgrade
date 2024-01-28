@@ -184,9 +184,6 @@
 # manager such as Scoop or Cargo
 # self_rename = true
 
-# Enable WinGet upgrade
-# enable_winget = true
-
 
 [npm]
 # Use sudo if the NPM directory isn't owned by the current user

@@ -198,7 +198,6 @@ pub struct Windows {
     accept_all_updates: Option<bool>,
     self_rename: Option<bool>,
     open_remotes_in_new_terminal: Option<bool>,
-    enable_winget: Option<bool>,
     wsl_update_pre_release: Option<bool>,
     wsl_update_use_web_download: Option<bool>,
 }
@@ -1447,15 +1446,6 @@ impl Config {
     }
 
     #[cfg(windows)]
-    pub fn enable_winget(&self) -> bool {
-        return self
-            .config_file
-            .windows
-            .as_ref()
-            .and_then(|w| w.enable_winget)
-            .unwrap_or(false);
-    }
-
     pub fn enable_pipupgrade(&self) -> bool {
         return self
             .config_file
