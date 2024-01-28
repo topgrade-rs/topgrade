@@ -13,8 +13,6 @@ use crate::utils::{require, which};
 use crate::{error::SkipStep, steps::git::Repositories};
 use crate::{powershell, Step};
 
-use os_info;
-
 pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
     let choco = require("choco")?;
     let yes = ctx.config().yes(Step::Chocolatey);
@@ -212,14 +210,6 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
     if powershell.supports_windows_update() {
         print_separator("Windows Update");
         return powershell.windows_update(ctx);
-    }
-
-    let info: os_info::Info = os_info::get();
-    let edition: String = info.edition().unwrap_or("Unknown").to_string();
-    if edition.contains("Windows 11") {
-        print_separator("Windows Update");
-        println!("Windows 11 does not support Windows Update via usoclient.exe. Consider installing PSWindowsUpdate");
-        return Ok(());
     }
 
     let usoclient = require("UsoClient")?;
