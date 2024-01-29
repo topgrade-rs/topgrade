@@ -111,7 +111,7 @@ impl Powershell {
                 "-NoProfile",
                 "-Command",
                 &format!(
-                    "Import-Module PSWindowsUpdate; Install-WindowsUpdate -MicrosoftUpdate {} -Verbose",
+                    "Start-Process powershell -Verb runAs -ArgumentList 'Import-Module PSWindowsUpdate; Install-WindowsUpdate -MicrosoftUpdate {} -Verbose'",
                     if ctx.config().accept_all_windows_updates() {
                         "-AcceptAll"
                     } else {
