@@ -209,18 +209,14 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
 
     if powershell.supports_windows_update() {
         print_separator("Windows Update");
-        return powershell.windows_update(ctx);
+        powershell.windows_update(ctx)
+    } else {
+        Err(SkipStep(
+            "Consider installing PSWindowsUpdate as the use of Windows Update via usoclient is not supported."
+                .to_string(),
+        )
+        .into())
     }
-
-    let usoclient = require("UsoClient")?;
-
-    print_separator("Windows Update");
-    println!("Running Windows Update. Check the control panel for progress.");
-    ctx.run_type()
-        .execute(&usoclient)
-        .arg("ScanInstallWait")
-        .status_checked()?;
-    ctx.run_type().execute(&usoclient).arg("StartInstall").status_checked()
 }
 
 pub fn reboot() -> Result<()> {
