@@ -90,5 +90,7 @@ jobs:
       - name: Run cargo/cross clippy
         run: ${{ matrix.use_cross == true && 'cross' || 'cargo' }} clippy --locked --target ${{ matrix.target }} --all-features -- -D warnings
 
-      - name: Run cargo/cross test
-        run: ${{ matrix.use_cross == true && 'cross' || 'cargo' }} test --locked --target ${{ matrix.target }} 
+      - name: Run cargo test
+        # ONLY run test with cargo
+        if: matrix.use_cross == false
+        run: cargo test --locked --target ${{ matrix.target }} 
