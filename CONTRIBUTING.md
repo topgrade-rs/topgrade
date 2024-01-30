@@ -104,7 +104,7 @@ and have some basic documentations guiding user how to use these options.
 ## Breaking changes
 
 If your PR introduces a breaking change, document it in [`BREAKINGCHANGES_dev.md`][bc_dev],
-it should be written in Markdown and wrapped in 80, for example:
+it should be written in Markdown and wrapped at 80, for example:
 
 ```md
 1. The configuration location has been updated to x.
