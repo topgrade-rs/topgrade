@@ -510,7 +510,7 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("pip3");
     if env::var("VIRTUAL_ENV").is_ok() {
-        print_warning("This step is will be skipped when running inside a virtual environment");
+        print_warning("This step is skipped when running inside a virtual environment");
         return Err(SkipStep("Does not run inside a virtual environment".to_string()).into());
     }
 
@@ -693,7 +693,7 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
 
     if !composer_home.is_descendant_of(&HOME_DIR) {
         return Err(SkipStep(format!(
-            "Composer directory {} isn't a decandent of the user's home directory",
+            "Composer directory {} isn't a descendant of the user's home directory",
             composer_home.display()
         ))
         .into());
