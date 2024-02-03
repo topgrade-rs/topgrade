@@ -8,7 +8,7 @@ use tracing::debug;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
-use crate::terminal::{print_separator, print_warning};
+use crate::terminal::print_separator;
 use crate::utils::{require, which};
 use crate::{error::SkipStep, steps::git::Repositories};
 use crate::{powershell, Step};
@@ -41,11 +41,6 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
     let winget = require("winget")?;
 
     print_separator("winget");
-
-    if !ctx.config().enable_winget() {
-        print_warning("Winget is disabled by default. Enable it by setting enable_winget=true in the [windows] section in the configuration.");
-        return Err(SkipStep(String::from("Winget is disabled by default")).into());
-    }
 
     ctx.run_type()
         .execute(winget)
