@@ -101,7 +101,6 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
 
     let should_ask = !(ctx.config().yes(Step::Xcodes) || ctx.config().dry_run());
 
-    // `xcodes update` will update the list and display the list as an output.
     let releases = ctx
         .run_type()
         .execute(&xcodes)
@@ -111,7 +110,7 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
 
     let releases_installed: Vec<String> = releases
         .lines()
-        .filter(|release| release.contains("(Installed)"))
+        .filter(|r| r.contains("(Installed)"))
         .map(String::from)
         .collect();
 
@@ -131,20 +130,20 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
                 )
             });
 
-    let releases_gm: Vec<String> = releases
+    let releases_gm = releases
         .lines()
         .filter(|&r| r.matches("GM").count() > 0)
-        .map(|r| r.to_string())
+        .map(String::from)
         .collect();
-    let releases_beta: Vec<String> = releases
+    let releases_beta = releases
         .lines()
         .filter(|&r| r.matches("Beta").count() > 0)
-        .map(|r| r.to_string())
+        .map(String::from)
         .collect();
-    let releases_regular: Vec<String> = releases
+    let releases_regular = releases
         .lines()
         .filter(|&r| r.matches("GM").count() == 0 && r.matches("Beta").count() == 0)
-        .map(|r| r.to_string())
+        .map(String::from)
         .collect();
 
     if installed_gm {
@@ -196,7 +195,7 @@ pub fn process_xcodes_releases(releases_filtered: Vec<String>, should_ask: bool,
     {
         println!(
             "New Xcode release detected: {}",
-            &releases_filtered.last().cloned().unwrap_or_default()
+            releases_filtered.last().cloned().unwrap_or_default()
         );
         if should_ask {
             let answer_install = prompt_yesno("Would you like to install it?")?;
@@ -207,6 +206,7 @@ pub fn process_xcodes_releases(releases_filtered: Vec<String>, should_ask: bool,
                     .args(["install", &releases_filtered.last().cloned().unwrap_or_default()])
                     .status_checked();
             }
+            println!();
         }
     }
 
