@@ -42,7 +42,7 @@ pub fn run_mas(ctx: &ExecutionContext) -> Result<()> {
 pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
     print_separator("macOS system update");
 
-    let should_ask = !(ctx.config().yes(Step::System)) || (ctx.config().dry_run());
+    let should_ask = !(ctx.config().yes(Step::System) || ctx.config().dry_run());
     if should_ask {
         println!("Finding available software");
         if system_update_available()? {

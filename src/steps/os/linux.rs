@@ -8,6 +8,7 @@ use tracing::{debug, warn};
 use crate::command::CommandExt;
 use crate::error::{SkipStep, TopgradeError};
 use crate::execution_context::ExecutionContext;
+use crate::steps::generic::is_wsl;
 use crate::steps::os::archlinux;
 use crate::terminal::print_separator;
 use crate::utils::{require, require_option, which, PathExt, REQUIRE_SUDO};
@@ -19,6 +20,7 @@ static OS_RELEASE_PATH: &str = "/etc/os-release";
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Distribution {
     Alpine,
+    Wolfi,
     Arch,
     Bedrock,
     CentOS,
@@ -38,6 +40,7 @@ pub enum Distribution {
     Exherbo,
     NixOS,
     KDENeon,
+    Nobara,
 }
 
 impl Distribution {
@@ -50,9 +53,10 @@ impl Distribution {
 
         Ok(match id {
             Some("alpine") => Distribution::Alpine,
+            Some("wolfi") => Distribution::Wolfi,
             Some("centos") | Some("rhel") | Some("ol") => Distribution::CentOS,
             Some("clear-linux-os") => Distribution::ClearLinux,
-            Some("fedora") | Some("nobara") => {
+            Some("fedora") => {
                 return if let Some(variant) = variant {
                     if variant.contains(&"Silverblue")
                         || variant.contains(&"Kinoite")
@@ -68,6 +72,7 @@ impl Distribution {
                 };
             }
 
+            Some("nobara") => Distribution::Nobara,
             Some("void") => Distribution::Void,
             Some("debian") | Some("pureos") | Some("Deepin") => Distribution::Debian,
             Some("arch") | Some("manjaro-arm") | Some("garuda") | Some("artix") => Distribution::Arch,
@@ -133,6 +138,7 @@ impl Distribution {
 
         match self {
             Distribution::Alpine => upgrade_alpine_linux(ctx),
+            Distribution::Wolfi => upgrade_wolfi_linux(ctx),
             Distribution::Arch => archlinux::upgrade_arch_linux(ctx),
             Distribution::CentOS | Distribution::Fedora => upgrade_redhat(ctx),
             Distribution::FedoraImmutable => upgrade_fedora_immutable(ctx),
@@ -151,6 +157,7 @@ impl Distribution {
             Distribution::Bedrock => update_bedrock(ctx),
             Distribution::OpenMandriva => upgrade_openmandriva(ctx),
             Distribution::PCLinuxOS => upgrade_pclinuxos(ctx),
+            Distribution::Nobara => upgrade_nobara(ctx),
         }
     }
 
@@ -189,13 +196,15 @@ fn update_bedrock(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-fn is_wsl() -> Result<bool> {
-    let output = Command::new("uname").arg("-r").output_checked_utf8()?.stdout;
-    debug!("Uname output: {}", output);
-    Ok(output.contains("microsoft"))
+fn upgrade_alpine_linux(ctx: &ExecutionContext) -> Result<()> {
+    let apk = require("apk")?;
+    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+
+    ctx.run_type().execute(sudo).arg(&apk).arg("update").status_checked()?;
+    ctx.run_type().execute(sudo).arg(&apk).arg("upgrade").status_checked()
 }
 
-fn upgrade_alpine_linux(ctx: &ExecutionContext) -> Result<()> {
+fn upgrade_wolfi_linux(ctx: &ExecutionContext) -> Result<()> {
     let apk = require("apk")?;
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
 
@@ -231,6 +240,40 @@ fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
     }
 
     command.status_checked()?;
+    Ok(())
+}
+
+fn upgrade_nobara(ctx: &ExecutionContext) -> Result<()> {
+    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let pkg_manager = require("dnf")?;
+
+    let mut update_command = ctx.run_type().execute(sudo);
+    update_command.arg(&pkg_manager);
+
+    if ctx.config().yes(Step::System) {
+        update_command.arg("-y");
+    }
+
+    update_command.arg("update");
+    // See https://nobaraproject.org/docs/upgrade-troubleshooting/how-do-i-update-the-system/
+    update_command.args([
+        "rpmfusion-nonfree-release",
+        "rpmfusion-free-release",
+        "fedora-repos",
+        "nobara-repos",
+    ]);
+    update_command.arg("--refresh").status_checked()?;
+
+    let mut upgrade_command = ctx.run_type().execute(sudo);
+    upgrade_command.arg(&pkg_manager);
+
+    if ctx.config().yes(Step::System) {
+        upgrade_command.arg("-y");
+    }
+
+    upgrade_command.arg("distro-sync");
+
+    upgrade_command.status_checked()?;
     Ok(())
 }
 
@@ -990,6 +1033,11 @@ mod tests {
     }
 
     #[test]
+    fn test_wolfi() {
+        test_template(include_str!("os_release/wolfi"), Distribution::Wolfi);
+    }
+
+    #[test]
     fn test_arch_linux() {
         test_template(include_str!("os_release/arch"), Distribution::Arch);
         test_template(include_str!("os_release/arch32"), Distribution::Arch);
@@ -1119,5 +1167,10 @@ mod tests {
     #[test]
     fn test_solus() {
         test_template(include_str!("os_release/solus"), Distribution::Solus);
+    }
+
+    #[test]
+    fn test_nobara() {
+        test_template(include_str!("os_release/nobara"), Distribution::Nobara);
     }
 }

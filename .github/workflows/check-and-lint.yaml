@@ -84,8 +84,13 @@ jobs:
         if: matrix.use_cross == true
         run: curl -fL --retry 3 https://github.com/cross-rs/cross/releases/download/v${{ env.CROSS_VER }}/cross-x86_64-unknown-linux-musl.tar.gz | tar vxz -C /usr/local/bin
 
-      - name: Run cargo check
+      - name: Run cargo/cross check
         run: ${{ matrix.use_cross == true && 'cross' || 'cargo' }} check --locked --target ${{ matrix.target }}
 
-      - name: Run cargo clippy
+      - name: Run cargo/cross clippy
         run: ${{ matrix.use_cross == true && 'cross' || 'cargo' }} clippy --locked --target ${{ matrix.target }} --all-features -- -D warnings
+
+      - name: Run cargo test
+        # ONLY run test with cargo
+        if: matrix.use_cross == false
+        run: cargo test --locked --target ${{ matrix.target }} 

@@ -24,6 +24,18 @@ use crate::{
     terminal::print_warning,
 };
 
+#[cfg(target_os = "linux")]
+pub fn is_wsl() -> Result<bool> {
+    let output = Command::new("uname").arg("-r").output_checked_utf8()?.stdout;
+    debug!("Uname output: {}", output);
+    Ok(output.contains("microsoft"))
+}
+
+#[cfg(not(target_os = "linux"))]
+pub fn is_wsl() -> Result<bool> {
+    Ok(false)
+}
+
 pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     let cargo_dir = env::var_os("CARGO_HOME")
         .map(PathBuf::from)
@@ -325,28 +337,37 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
     command.args(["upgrade", "--no-dry-run"]).status_checked()
 }
 
-pub fn run_vscode_extensions_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let vscode = require("code")?;
-    print_separator("Visual Studio Code extensions");
-
-    // Vscode does not have CLI command to upgrade all extensions (see https://github.com/microsoft/vscode/issues/56578)
-    // Instead we get the list of installed extensions with `code --list-extensions` command (obtain a line-return separated list of installed extensions)
-    let extensions = Command::new(&vscode)
-        .arg("--list-extensions")
-        .output_checked_utf8()?
-        .stdout;
-
-    // Then we construct the upgrade command: `code --force --install-extension [ext0] --install-extension [ext1] ... --install-extension [extN]`
-    if !extensions.is_empty() {
-        let mut command_args = vec!["--force"];
-        for extension in extensions.split_whitespace() {
-            command_args.extend(["--install-extension", extension]);
-        }
-
-        ctx.run_type().execute(&vscode).args(command_args).status_checked()?;
+pub fn run_vscode_extensions_update(ctx: &ExecutionContext) -> Result<()> {
+    // Calling vscode in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
+    if is_wsl()? {
+        return Err(SkipStep(String::from("Should not run in WSL")).into());
     }
 
-    Ok(())
+    let vscode = require("code")?;
+
+    // Vscode has update command only since 1.86 version ("january 2024" update), disable the update for prior versions
+    // Use command `code --version` which returns 3 lines: version, git commit, instruction set. We parse only the first one
+    let version: Result<Version> = match Command::new("code")
+        .arg("--version")
+        .output_checked_utf8()?
+        .stdout
+        .lines()
+        .next()
+    {
+        Some(item) => Version::parse(item).map_err(|err| err.into()),
+        _ => return Err(SkipStep(String::from("Cannot find vscode version")).into()),
+    };
+
+    if !matches!(version, Ok(version) if version >= Version::new(1, 86, 0)) {
+        return Err(SkipStep(String::from("Too old vscode version to have update extensions command")).into());
+    }
+
+    print_separator("Visual Studio Code extensions");
+
+    ctx.run_type()
+        .execute(vscode)
+        .arg("--update-extensions")
+        .status_checked()
 }
 
 pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
@@ -489,7 +510,7 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("pip3");
     if env::var("VIRTUAL_ENV").is_ok() {
-        print_warning("This step is will be skipped when running inside a virtual environment");
+        print_warning("This step is skipped when running inside a virtual environment");
         return Err(SkipStep("Does not run inside a virtual environment".to_string()).into());
     }
 
@@ -517,6 +538,7 @@ pub fn run_pip_review_update(ctx: &ExecutionContext) -> Result<()> {
 
     Ok(())
 }
+
 pub fn run_pip_review_local_update(ctx: &ExecutionContext) -> Result<()> {
     let pip_review = require("pip-review")?;
 
@@ -536,6 +558,7 @@ pub fn run_pip_review_local_update(ctx: &ExecutionContext) -> Result<()> {
 
     Ok(())
 }
+
 pub fn run_pipupgrade_update(ctx: &ExecutionContext) -> Result<()> {
     let pipupgrade = require("pipupgrade")?;
 
@@ -553,6 +576,7 @@ pub fn run_pipupgrade_update(ctx: &ExecutionContext) -> Result<()> {
 
     Ok(())
 }
+
 pub fn run_stack_update(ctx: &ExecutionContext) -> Result<()> {
     if require("ghcup").is_ok() {
         // `ghcup` is present and probably(?) being used to install `stack`.
@@ -669,7 +693,7 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
 
     if !composer_home.is_descendant_of(&HOME_DIR) {
         return Err(SkipStep(format!(
-            "Composer directory {} isn't a decandent of the user's home directory",
+            "Composer directory {} isn't a descendant of the user's home directory",
             composer_home.display()
         ))
         .into());
@@ -734,7 +758,7 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
             return Err(SkipStep(String::from(
                 "Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK.",
             ))
-            .into())
+            .into());
         }
     };
 
@@ -883,4 +907,17 @@ pub fn run_bob(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Bob");
 
     ctx.run_type().execute(bob).args(["update", "--all"]).status_checked()
+}
+
+pub fn run_certbot(ctx: &ExecutionContext) -> Result<()> {
+    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let certbot = require("certbot")?;
+
+    print_separator("Certbot");
+
+    let mut cmd = ctx.run_type().execute(sudo);
+    cmd.arg(certbot);
+    cmd.arg("renew");
+
+    cmd.status_checked()
 }

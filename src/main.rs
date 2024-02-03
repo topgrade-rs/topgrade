@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::time::Duration;
 
-use crate::breaking_changes::{first_run_of_major_release, print_breaking_changes, write_keep_file};
+use crate::breaking_changes::{first_run_of_major_release, print_breaking_changes, should_skip, write_keep_file};
 use clap::CommandFactory;
 use clap::{crate_version, Parser};
 use color_eyre::eyre::Context;
@@ -135,9 +135,13 @@ fn run() -> Result<()> {
     let ctx = execution_context::ExecutionContext::new(run_type, sudo, &git, &config);
     let mut runner = runner::Runner::new(&ctx);
 
-    // If this is the first execution of a major release, inform user of breaking
-    // changes
-    if first_run_of_major_release()? {
+    // If
+    //
+    // 1. the breaking changes notification shouldnot be skipped
+    // 2. this is the first execution of a major release
+    //
+    // inform user of breaking changes
+    if !should_skip() && first_run_of_major_release()? {
         print_breaking_changes();
 
         if prompt_yesno("Confirmed?")? {
@@ -350,7 +354,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Vcpkg, "vcpkg", || generic::run_vcpkg_update(&ctx))?;
     runner.execute(Step::Pipx, "pipx", || generic::run_pipx_update(&ctx))?;
     runner.execute(Step::Vscode, "Visual Studio Code extensions", || {
-        generic::run_vscode_extensions_upgrade(&ctx)
+        generic::run_vscode_extensions_update(&ctx)
     })?;
     runner.execute(Step::Conda, "conda", || generic::run_conda_update(&ctx))?;
     runner.execute(Step::Mamba, "mamba", || generic::run_mamba_update(&ctx))?;
@@ -397,6 +401,7 @@ fn run() -> Result<()> {
         generic::run_ghcli_extensions_upgrade(&ctx)
     })?;
     runner.execute(Step::Bob, "Bob", || generic::run_bob(&ctx))?;
+    runner.execute(Step::Certbot, "Certbot", || generic::run_certbot(&ctx))?;
 
     if config.use_predefined_git_repos() {
         if config.should_run(Step::Emacs) {

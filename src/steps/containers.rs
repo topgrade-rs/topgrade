@@ -6,6 +6,7 @@ use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use tracing::{debug, error, warn};
+use wildmatch::WildMatch;
 
 use crate::command::CommandExt;
 use crate::error::{self, TopgradeError};
@@ -51,6 +52,13 @@ impl Display for Container {
 ///
 /// Containers specified in `ignored_containers` will be filtered out.
 fn list_containers(crt: &Path, ignored_containers: Option<&Vec<String>>) -> Result<Vec<Container>> {
+    let ignored_containers = ignored_containers.map(|patterns| {
+        patterns
+            .iter()
+            .map(|pattern| WildMatch::new(pattern))
+            .collect::<Vec<WildMatch>>()
+    });
+
     debug!(
         "Querying '{} image ls --format \"{{{{.Repository}}}}:{{{{.Tag}}}}/{{{{.ID}}}}\"' for containers",
         crt.display()
@@ -85,11 +93,8 @@ fn list_containers(crt: &Path, ignored_containers: Option<&Vec<String>>) -> Resu
         assert_eq!(split_res.len(), 2);
         let (repo_tag, image_id) = (split_res[0], split_res[1]);
 
-        if let Some(ignored_containers) = ignored_containers {
-            if ignored_containers
-                .iter()
-                .any(|ignored_container| repo_tag.eq(ignored_container))
-            {
+        if let Some(ref ignored_containers) = ignored_containers {
+            if ignored_containers.iter().any(|pattern| pattern.matches(repo_tag)) {
                 debug!("Skipping ignored container '{}'", line);
                 continue;
             }

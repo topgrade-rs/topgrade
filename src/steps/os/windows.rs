@@ -8,7 +8,7 @@ use tracing::debug;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
-use crate::terminal::{print_separator, print_warning};
+use crate::terminal::print_separator;
 use crate::utils::{require, which};
 use crate::{error::SkipStep, steps::git::Repositories};
 use crate::{powershell, Step};
@@ -41,11 +41,6 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
     let winget = require("winget")?;
 
     print_separator("winget");
-
-    if !ctx.config().enable_winget() {
-        print_warning("Winget is disabled by default. Enable it by setting enable_winget=true in the [windows] section in the configuration.");
-        return Err(SkipStep(String::from("Winget is disabled by default")).into());
-    }
 
     ctx.run_type()
         .execute(winget)
@@ -209,18 +204,14 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
 
     if powershell.supports_windows_update() {
         print_separator("Windows Update");
-        return powershell.windows_update(ctx);
+        powershell.windows_update(ctx)
+    } else {
+        Err(SkipStep(
+            "Consider installing PSWindowsUpdate as the use of Windows Update via usoclient is not supported."
+                .to_string(),
+        )
+        .into())
     }
-
-    let usoclient = require("UsoClient")?;
-
-    print_separator("Windows Update");
-    println!("Running Windows Update. Check the control panel for progress.");
-    ctx.run_type()
-        .execute(&usoclient)
-        .arg("ScanInstallWait")
-        .status_checked()?;
-    ctx.run_type().execute(&usoclient).arg("StartInstall").status_checked()
 }
 
 pub fn reboot() -> Result<()> {
