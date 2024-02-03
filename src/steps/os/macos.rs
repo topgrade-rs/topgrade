@@ -99,7 +99,7 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
     let xcodes = require("xcodes")?;
     print_separator("Xcodes");
 
-    let should_ask = !(ctx.config().yes(Step::Xcodes)) || ctx.config().dry_run();
+    let should_ask = !(ctx.config().yes(Step::Xcodes) || ctx.config().dry_run());
 
     // `xcodes update` will update the list and display the list as an output.
     let releases = ctx
@@ -120,7 +120,7 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
         return Ok(());
     }
 
-    let (allow_gm, allow_beta, allow_regular) =
+    let (installed_gm, installed_beta, installed_regular) =
         releases_installed
             .iter()
             .fold((false, false, false), |(gm, beta, regular), release| {
@@ -131,46 +131,18 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
                 )
             });
 
-    let releases_filtered: Vec<String> = releases
-        .lines()
-        .filter(|release| {
-            (allow_gm && release.contains("GM"))
-                || (allow_beta && release.contains("Beta"))
-                || (allow_regular && !release.contains("GM") && !release.contains("Beta"))
-        })
-        .map(String::from)
-        .collect();
+    let releases_gm: Vec<String> = releases.lines().filter(|&r| r.matches("GM").count() > 0).map(|r| r.to_string()).collect();
+    let releases_beta: Vec<String> = releases.lines().filter(|&r| r.matches("Beta").count() > 0).map(|r| r.to_string()).collect();
+    let releases_regular: Vec<String> = releases.lines().filter(|&r| r.matches("GM").count() == 0 && r.matches("Beta").count() == 0).map(|r| r.to_string()).collect();
 
-    if !releases_filtered
-        .last()
-        .map(|s| !s.contains("(Installed)"))
-        .unwrap_or(true)
-    {
-        println!("No new relevant Xcode releases.");
-        return Ok(());
-    }
-
-    println!(
-        "New Xcode release detected: {}",
-        &releases_filtered.last().cloned().unwrap_or_default()
-    );
-    if should_ask {
-        let answer_install = prompt_yesno("Would you like to install it?")?;
-        if !answer_install {
-            return Ok(());
-        }
-    }
-
-    let _ = ctx
-        .run_type()
-        .execute(&xcodes)
-        .args(["install", &releases_filtered.last().cloned().unwrap_or_default()])
-        .status_checked();
+    if installed_gm { let _ = process_xcodes_releases(releases_gm, should_ask, ctx); }
+    if installed_beta { let _ = process_xcodes_releases(releases_beta, should_ask, ctx); }
+    if installed_regular { let _ = process_xcodes_releases(releases_regular, should_ask, ctx); }
 
     let releases_new = ctx
         .run_type()
         .execute(&xcodes)
-        .args(["update"])
+        .args(["list"])
         .output_checked_utf8()?
         .stdout;
 
@@ -190,6 +162,30 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
                     releases_new_installed.iter().next().cloned().unwrap_or_default(),
                 ])
                 .status_checked();
+        }
+    }
+
+    Ok(())
+}
+
+pub fn process_xcodes_releases(releases_filtered: Vec<String>, should_ask: bool, ctx: &ExecutionContext) -> Result<()> {
+    let xcodes = require("xcodes")?;
+
+    if releases_filtered
+        .last()
+        .map(|s| !s.contains("(Installed)"))
+        .unwrap_or(true)
+    {
+        println!("New Xcode release detected: {}", &releases_filtered.last().cloned().unwrap_or_default());
+        if should_ask {
+            let answer_install = prompt_yesno("Would you like to install it?")?;
+            if answer_install {
+                let _ = ctx
+                    .run_type()
+                    .execute(&xcodes)
+                    .args(["install", &releases_filtered.last().cloned().unwrap_or_default()])
+                    .status_checked();
+            }
         }
     }
 
