@@ -131,13 +131,31 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
                 )
             });
 
-    let releases_gm: Vec<String> = releases.lines().filter(|&r| r.matches("GM").count() > 0).map(|r| r.to_string()).collect();
-    let releases_beta: Vec<String> = releases.lines().filter(|&r| r.matches("Beta").count() > 0).map(|r| r.to_string()).collect();
-    let releases_regular: Vec<String> = releases.lines().filter(|&r| r.matches("GM").count() == 0 && r.matches("Beta").count() == 0).map(|r| r.to_string()).collect();
+    let releases_gm: Vec<String> = releases
+        .lines()
+        .filter(|&r| r.matches("GM").count() > 0)
+        .map(|r| r.to_string())
+        .collect();
+    let releases_beta: Vec<String> = releases
+        .lines()
+        .filter(|&r| r.matches("Beta").count() > 0)
+        .map(|r| r.to_string())
+        .collect();
+    let releases_regular: Vec<String> = releases
+        .lines()
+        .filter(|&r| r.matches("GM").count() == 0 && r.matches("Beta").count() == 0)
+        .map(|r| r.to_string())
+        .collect();
 
-    if installed_gm { let _ = process_xcodes_releases(releases_gm, should_ask, ctx); }
-    if installed_beta { let _ = process_xcodes_releases(releases_beta, should_ask, ctx); }
-    if installed_regular { let _ = process_xcodes_releases(releases_regular, should_ask, ctx); }
+    if installed_gm {
+        let _ = process_xcodes_releases(releases_gm, should_ask, ctx);
+    }
+    if installed_beta {
+        let _ = process_xcodes_releases(releases_beta, should_ask, ctx);
+    }
+    if installed_regular {
+        let _ = process_xcodes_releases(releases_regular, should_ask, ctx);
+    }
 
     let releases_new = ctx
         .run_type()
@@ -176,13 +194,16 @@ pub fn process_xcodes_releases(releases_filtered: Vec<String>, should_ask: bool,
         .map(|s| !s.contains("(Installed)"))
         .unwrap_or(true)
     {
-        println!("New Xcode release detected: {}", &releases_filtered.last().cloned().unwrap_or_default());
+        println!(
+            "New Xcode release detected: {}",
+            &releases_filtered.last().cloned().unwrap_or_default()
+        );
         if should_ask {
             let answer_install = prompt_yesno("Would you like to install it?")?;
             if answer_install {
                 let _ = ctx
                     .run_type()
-                    .execute(&xcodes)
+                    .execute(xcodes)
                     .args(["install", &releases_filtered.last().cloned().unwrap_or_default()])
                     .status_checked();
             }
