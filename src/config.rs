@@ -254,6 +254,7 @@ pub struct Flatpak {
 pub struct Brew {
     greedy_cask: Option<bool>,
     autoremove: Option<bool>,
+    fetch_head: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy)]
@@ -1093,6 +1094,15 @@ impl Config {
             .brew
             .as_ref()
             .and_then(|c| c.autoremove)
+            .unwrap_or(false)
+    }
+
+    /// Whether Brew should upgrade formulae built from the HEAD branch
+    pub fn brew_fetch_head(&self) -> bool {
+        self.config_file
+            .brew
+            .as_ref()
+            .and_then(|c| c.fetch_head)
             .unwrap_or(false)
     }
 
