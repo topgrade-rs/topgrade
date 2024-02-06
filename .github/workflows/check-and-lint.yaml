@@ -54,11 +54,11 @@ jobs:
             os: ubuntu-20.04
 
           - target: x86_64-apple-darwin
-            target_name: macOS
+            target_name: macOS-x86_64
             os: macos-13
 
           - target: aarch64-apple-darwin
-            target_name: macOS
+            target_name: macOS-aarch64
             os: macos-14
 
           - target: x86_64-unknown-netbsd
