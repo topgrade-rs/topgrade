@@ -106,6 +106,9 @@
 # greedy_cask = true
 # autoremove = true
 
+# Upgrade formulae built from the HEAD branch; `brew upgrade --fetch-HEAD`
+# fetch_head = true
+
 
 [linux]
 # Arch Package Manager to use.
