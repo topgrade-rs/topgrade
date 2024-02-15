@@ -21,7 +21,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: katyo/publish-crates@v1
+      - uses: katyo/publish-crates@v2
         with:
           dry-run: true
           check-repo: ${{ github.event_name == 'push' }}
