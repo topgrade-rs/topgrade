@@ -10,7 +10,7 @@ use crate::error::{SkipStep, TopgradeError};
 use crate::execution_context::ExecutionContext;
 use crate::steps::generic::is_wsl;
 use crate::steps::os::archlinux;
-use crate::terminal::print_separator;
+use crate::terminal::{print_separator, prompt_yesno};
 use crate::utils::{require, require_option, which, PathExt, REQUIRE_SUDO};
 use crate::{Step, HOME_DIR};
 
@@ -1018,6 +1018,46 @@ pub fn run_lure_update(ctx: &ExecutionContext) -> Result<()> {
     }
 
     exe.status_checked()
+}
+
+pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
+    let waydroid = require("waydroid")?;
+    let status = ctx.run_type().execute(&waydroid).arg("status").output_checked_utf8()?;
+    // example output of `waydroid status`:
+    //
+    // ```sh
+    // $ waydroid status
+    // Session:        RUNNING
+    // Container:      RUNNING
+    // Vendor type:    MAINLINE
+    // IP address:     192.168.240.112
+    // Session user:   w568w(1000)
+    // Wayland display:        wayland-0
+    // ```
+    //
+    // ```sh
+    // $ waydroid status
+    // Session:        STOPPED
+    // Vendor type:    MAINLINE
+    // ```
+    let session = status
+        .stdout
+        .lines()
+        .find(|line| line.contains("Session:"))
+        .expect("the output of `waydroid status` should contain `Session:`");
+    let is_container_running = session.contains("RUNNING");
+    let assume_yes = ctx.config().yes(Step::Waydroid);
+    if is_container_running && !assume_yes {
+        let update_allowed =
+            prompt_yesno("Going to execute `waydroid update`, which would STOP the running container, is this ok?")?;
+        if !update_allowed {
+            return Err(SkipStep("Skip the Waydroid step because the user don't want to proceed".to_string()).into());
+        }
+    }
+
+    print_separator("Waydroid");
+
+    ctx.run_type().execute(&waydroid).arg("upgrade").status_checked()
 }
 
 #[cfg(test)]
