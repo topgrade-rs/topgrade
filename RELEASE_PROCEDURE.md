@@ -43,6 +43,7 @@
    1. AUR
    2. PyPi
    3. Homebrew (seems that this is not working correctly)
+   4. Winget
 
 6. Manually release it to Crates.io
    
