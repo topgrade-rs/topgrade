@@ -235,6 +235,7 @@ fn run() -> Result<()> {
             unix::run_brew_formula(&ctx, unix::BrewVariant::Path)
         })?;
         runner.execute(Step::Lure, "LURE", || linux::run_lure_update(&ctx))?;
+        runner.execute(Step::Waydroid, "Waydroid", || linux::run_waydroid(&ctx))?;
     }
 
     #[cfg(target_os = "macos")]

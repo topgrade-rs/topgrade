@@ -147,6 +147,7 @@ pub enum Step {
     Vcpkg,
     Vim,
     Vscode,
+    Waydroid,
     Winget,
     Wsl,
     WslUpdate,
