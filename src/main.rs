@@ -261,6 +261,7 @@ fn run() -> Result<()> {
         runner.execute(Step::Sparkle, "Sparkle", || macos::run_sparkle(&ctx))?;
         runner.execute(Step::Mas, "App Store", || macos::run_mas(&ctx))?;
         runner.execute(Step::System, "System upgrade", || macos::upgrade_macos(&ctx))?;
+        runner.execute(Step::Msupdate, "msupdate", || macos::run_msupdate(&ctx))?;
     }
 
     #[cfg(target_os = "dragonfly")]

@@ -1,7 +1,7 @@
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::terminal::{print_separator, prompt_yesno};
-use crate::utils::{require_option, REQUIRE_SUDO};
+use crate::utils::{require_option, PathExt, REQUIRE_SUDO};
 use crate::{utils::require, Step};
 use color_eyre::eyre::Result;
 use std::fs;
@@ -92,4 +92,23 @@ pub fn run_sparkle(ctx: &ExecutionContext) -> Result<()> {
         }
     }
     Ok(())
+}
+
+pub fn run_msupdate(ctx: &ExecutionContext) -> Result<()> {
+    // Per the documentation
+    //
+    // https://learn.microsoft.com/en-us/deployoffice/mac/update-office-for-mac-using-msupdate
+    //
+    // The binary `msupate` is located at:
+    // `/Library/Application\ Support/Microsoft/MAU2.0/Microsoft\ AutoUpdate.app/Contents/MacOS/msupdate`
+    // and its parent directory is not in `$PATH`
+
+    let msupdate =
+        r#"/Library/Application\ Support/Microsoft/MAU2.0/Microsoft\ AutoUpdate.app/Contents/MacOS/msupdate"#
+            .require()?;
+
+    print_separator("msupdate");
+
+    // Download and install all available updates: ./msupdate --install
+    ctx.run_type().execute(msupdate).arg("--install").status_checked()
 }
