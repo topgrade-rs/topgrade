@@ -1059,7 +1059,7 @@ pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
         }
     }
     ctx.run_type()
-        .execute(&sudo)
+        .execute(sudo)
         .arg(&waydroid)
         .arg("upgrade")
         .status_checked()
