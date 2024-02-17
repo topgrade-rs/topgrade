@@ -333,6 +333,9 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
         if ctx.config().brew_cask_greedy() {
             brew_args.push("--greedy");
         }
+        if ctx.config().brew_greedy_latest() {
+            brew_args.push("--greedy-latest");
+        }
     }
 
     variant.execute(run_type).args(&brew_args).status_checked()?;
