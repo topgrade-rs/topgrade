@@ -103,9 +103,8 @@ pub fn run_msupdate(ctx: &ExecutionContext) -> Result<()> {
     // `/Library/Application\ Support/Microsoft/MAU2.0/Microsoft\ AutoUpdate.app/Contents/MacOS/msupdate`
     // and its parent directory is not in `$PATH`
 
-    let msupdate =
-        r#"/Library/Application\ Support/Microsoft/MAU2.0/Microsoft\ AutoUpdate.app/Contents/MacOS/msupdate"#
-            .require()?;
+    let msupdate = r#"/Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app/Contents/MacOS/msupdate"#
+        .require()?;
 
     print_separator("msupdate");
 
