@@ -1,4 +1,4 @@
-.vs
+.vs/
 /target
 /build
 **/*.rs.bk
