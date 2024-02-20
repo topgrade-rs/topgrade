@@ -10,7 +10,7 @@ use crate::error::{SkipStep, TopgradeError};
 use crate::execution_context::ExecutionContext;
 use crate::steps::generic::is_wsl;
 use crate::steps::os::archlinux;
-use crate::terminal::print_separator;
+use crate::terminal::{print_separator, prompt_yesno};
 use crate::utils::{require, require_option, which, PathExt, REQUIRE_SUDO};
 use crate::{Step, HOME_DIR};
 
@@ -20,6 +20,7 @@ static OS_RELEASE_PATH: &str = "/etc/os-release";
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Distribution {
     Alpine,
+    Wolfi,
     Arch,
     Bedrock,
     CentOS,
@@ -52,6 +53,7 @@ impl Distribution {
 
         Ok(match id {
             Some("alpine") => Distribution::Alpine,
+            Some("wolfi") => Distribution::Wolfi,
             Some("centos") | Some("rhel") | Some("ol") => Distribution::CentOS,
             Some("clear-linux-os") => Distribution::ClearLinux,
             Some("fedora") => {
@@ -136,6 +138,7 @@ impl Distribution {
 
         match self {
             Distribution::Alpine => upgrade_alpine_linux(ctx),
+            Distribution::Wolfi => upgrade_wolfi_linux(ctx),
             Distribution::Arch => archlinux::upgrade_arch_linux(ctx),
             Distribution::CentOS | Distribution::Fedora => upgrade_redhat(ctx),
             Distribution::FedoraImmutable => upgrade_fedora_immutable(ctx),
@@ -194,6 +197,14 @@ fn update_bedrock(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_alpine_linux(ctx: &ExecutionContext) -> Result<()> {
+    let apk = require("apk")?;
+    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+
+    ctx.run_type().execute(sudo).arg(&apk).arg("update").status_checked()?;
+    ctx.run_type().execute(sudo).arg(&apk).arg("upgrade").status_checked()
+}
+
+fn upgrade_wolfi_linux(ctx: &ExecutionContext) -> Result<()> {
     let apk = require("apk")?;
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
 
@@ -1009,6 +1020,51 @@ pub fn run_lure_update(ctx: &ExecutionContext) -> Result<()> {
     exe.status_checked()
 }
 
+pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
+    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let waydroid = require("waydroid")?;
+    let status = ctx.run_type().execute(&waydroid).arg("status").output_checked_utf8()?;
+    // example output of `waydroid status`:
+    //
+    // ```sh
+    // $ waydroid status
+    // Session:        RUNNING
+    // Container:      RUNNING
+    // Vendor type:    MAINLINE
+    // IP address:     192.168.240.112
+    // Session user:   w568w(1000)
+    // Wayland display:        wayland-0
+    // ```
+    //
+    // ```sh
+    // $ waydroid status
+    // Session:        STOPPED
+    // Vendor type:    MAINLINE
+    // ```
+    let session = status
+        .stdout
+        .lines()
+        .find(|line| line.contains("Session:"))
+        .expect("the output of `waydroid status` should contain `Session:`");
+    let is_container_running = session.contains("RUNNING");
+    let assume_yes = ctx.config().yes(Step::Waydroid);
+
+    print_separator("Waydroid");
+
+    if is_container_running && !assume_yes {
+        let update_allowed =
+            prompt_yesno("Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?")?;
+        if !update_allowed {
+            return Err(SkipStep("Skip the Waydroid step because the user don't want to proceed".to_string()).into());
+        }
+    }
+    ctx.run_type()
+        .execute(sudo)
+        .arg(&waydroid)
+        .arg("upgrade")
+        .status_checked()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1019,6 +1075,11 @@ mod tests {
             Distribution::parse_os_release(&os_release).unwrap(),
             expected_distribution
         );
+    }
+
+    #[test]
+    fn test_wolfi() {
+        test_template(include_str!("os_release/wolfi"), Distribution::Wolfi);
     }
 
     #[test]

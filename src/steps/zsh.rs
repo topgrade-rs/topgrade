@@ -12,6 +12,8 @@ use crate::git::Repositories;
 use crate::terminal::print_separator;
 use crate::utils::{require, PathExt};
 use crate::HOME_DIR;
+use crate::XDG_DIRS;
+use etcetera::base_strategy::BaseStrategy;
 
 pub fn run_zr(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
@@ -117,7 +119,7 @@ pub fn run_zinit(ctx: &ExecutionContext) -> Result<()> {
 
     env::var("ZINIT_HOME")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| HOME_DIR.join(".zinit"))
+        .unwrap_or_else(|_| XDG_DIRS.data_dir().join("zinit"))
         .require()?;
 
     print_separator("zinit");

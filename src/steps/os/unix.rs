@@ -285,10 +285,15 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
     let run_type = ctx.run_type();
 
     variant.execute(run_type).arg("update").status_checked()?;
-    variant
-        .execute(run_type)
-        .args(["upgrade", "--formula"])
-        .status_checked()?;
+
+    let mut command = variant.execute(run_type);
+    command.args(["upgrade", "--formula"]);
+
+    if ctx.config().brew_fetch_head() {
+        command.arg("--fetch-HEAD");
+    }
+
+    command.status_checked()?;
 
     if ctx.config().cleanup() {
         variant.execute(run_type).arg("cleanup").status_checked()?;
@@ -327,6 +332,9 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
         brew_args.extend(["upgrade", "--cask"]);
         if ctx.config().brew_cask_greedy() {
             brew_args.push("--greedy");
+        }
+        if ctx.config().brew_greedy_latest() {
+            brew_args.push("--greedy-latest");
         }
     }
 
