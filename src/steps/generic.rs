@@ -796,20 +796,19 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
-    require("helix")?;
+    let helix = require("helix")?;
 
     print_separator("Helix");
 
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
     ctx.run_type()
-        .execute(sudo)
-        .args(["helix", "--grammar", "fetch"])
+        .execute(&helix)
+        .args(["--grammar", "fetch"])
         .status_checked()
         .with_context(|| "Failed to download helix grammars!")?;
 
     ctx.run_type()
-        .execute(sudo)
-        .args(["helix", "--grammar", "build"])
+        .execute(&helix)
+        .args(["--grammar", "build"])
         .status_checked()
         .with_context(|| "Failed to build helix grammars!")?;
 
