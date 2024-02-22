@@ -796,7 +796,7 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
-    let helix = require("helix")?;
+    let helix = require("helix").or(require("hx"))?;
 
     print_separator("Helix");
 
