@@ -1,6 +1,6 @@
 on:
   workflow_run:
-    workflows: ["Build and test"]  # Name of the workflow in build-and-test.yml
+    workflows: ["build-and-test"]
     types:
       - completed
 
