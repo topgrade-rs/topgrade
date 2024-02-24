@@ -1,6 +1,6 @@
 on:
   workflow_run:
-    workflows: ["build-and-test"]
+    workflows: [Build and test]
     types:
       - completed
 
