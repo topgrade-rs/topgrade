@@ -41,9 +41,10 @@ jobs:
         run: rustup component add llvm-tools-preview
       - name: Build and test
         run: |
-          export RUSTFLAGS="-Cinstrument-coverage"
           cargo build --verbose
           LLVM_PROFILE_FILE="%p-%m.profraw" cargo test --verbose
+        env:
+          RUSTFLAGS: -Cinstrument-coverage
       - name: Generate lcov.info
         run: |
           grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
