@@ -46,7 +46,7 @@ jobs:
           LLVM_PROFILE_FILE="%p-%m.profraw" cargo test --verbose
       - name: Generate lcov.info
         run: |
-          ./grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+          grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4.0.1
         with:
