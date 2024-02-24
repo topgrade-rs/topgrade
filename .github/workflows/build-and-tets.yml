@@ -43,7 +43,7 @@ jobs:
         run: |
           export RUSTFLAGS="-Cinstrument-coverage"
           cargo build --verbose
-          LLVM_PROFILE_FILE="%p-%m.profraw" cargo test --verbose --jobs ${{ matrix.os }}
+          LLVM_PROFILE_FILE="%p-%m.profraw" cargo test --verbose
       - name: Generate lcov.info
         run: |
           ./grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
