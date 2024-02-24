@@ -1,8 +1,8 @@
 on:
-  pull_request:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: ["Build and test"]  # Name of the workflow in build-and-test.yml
+    types:
+      - completed
 
 env:
   CARGO_TERM_COLOR: always
