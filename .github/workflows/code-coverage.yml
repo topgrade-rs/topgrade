@@ -1,13 +1,13 @@
+name: Test with Code Coverage
+
 on:
-  workflow_run:
-    workflows: [Build and test]
-    types:
-      - completed
+  pull_request:
+  push:
+    branches:
+      - main
 
 env:
   CARGO_TERM_COLOR: always
-
-name: Test with Code Coverage
 
 jobs:
   test:
