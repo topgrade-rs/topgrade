@@ -16,7 +16,7 @@ use merge::Merge;
 use regex::Regex;
 use regex_split::RegexSplit;
 use serde::Deserialize;
-use strum::{EnumIter, EnumString, EnumVariantNames, IntoEnumIterator};
+use strum::{EnumIter, EnumString, IntoEnumIterator, VariantNames};
 use which_crate::which;
 
 use super::utils::editor;
@@ -44,7 +44,7 @@ macro_rules! str_value {
 
 pub type Commands = BTreeMap<String, String>;
 
-#[derive(ValueEnum, EnumString, EnumVariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
+#[derive(ValueEnum, EnumString, VariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
 #[clap(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
