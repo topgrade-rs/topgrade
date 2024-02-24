@@ -47,7 +47,8 @@ jobs:
       - name: Generate lcov.info
         run: |
           ./grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
-          - name: Upload coverage to Codecov
-          uses: codecov/codecov-action@v4
-          with:
-            file: lcov.info
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4.0.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: lcov.info
