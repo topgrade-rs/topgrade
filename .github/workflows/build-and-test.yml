@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        rust: [stable, beta, nightly]
+        rust: [stable, nightly]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -54,4 +54,4 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: lcov.info
-          
+          fail_ci_if_error: true
