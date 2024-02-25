@@ -34,7 +34,9 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
       - name: Install grcov
-        run: cargo install grcov
+        uses: taiki-e/install-action@v2
+        with:
+          tool: grcov
       - name: Add llvm-tools-preview
         run: rustup component add llvm-tools-preview
       - name: Build and test
