@@ -121,6 +121,7 @@ pub enum Step {
     Pnpm,
     Powershell,
     Protonup,
+    Pyenv,
     Raco,
     Rcm,
     Remotes,
