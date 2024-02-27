@@ -580,6 +580,25 @@ pub fn run_pearl(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(pearl).arg("update").status_checked()
 }
 
+pub fn run_pyenv(ctx: &ExecutionContext) -> Result<()> {
+    let pyenv = require("pyenv")?;
+    print_separator("pyenv");
+
+    let pyenv_dir = var("PYENV_ROOT")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| HOME_DIR.join(".pyenv"));
+
+    if !pyenv_dir.exists() {
+        return Err(SkipStep("Pyenv is installed, but $PYENV_ROOT is not set correctly".to_string()).into());
+    }
+
+    if !pyenv_dir.join(".git").exists() {
+        return Err(SkipStep("pyenv is not a git repository".to_string()).into());
+    }
+
+    ctx.run_type().execute(pyenv).arg("update").status_checked()
+}
+
 pub fn run_sdkman(ctx: &ExecutionContext) -> Result<()> {
     let bash = require("bash")?;
 
