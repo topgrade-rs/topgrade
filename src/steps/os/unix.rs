@@ -584,17 +584,14 @@ pub fn run_pyenv(ctx: &ExecutionContext) -> Result<()> {
     let pyenv = require("pyenv")?;
     print_separator("pyenv");
 
-    // get PYENV_ROOT
     let pyenv_dir = var("PYENV_ROOT")
         .map(PathBuf::from)
         .unwrap_or_else(|_| HOME_DIR.join(".pyenv"));
 
-    // if pyenv_dir does not exist, return
     if !pyenv_dir.exists() {
         return Err(SkipStep("Pyenv is installed, but $PYENV_ROOT is not set correctly".to_string()).into());
     }
 
-    // if pyenv_dir is not a git repo, return
     if !pyenv_dir.join(".git").exists() {
         return Err(SkipStep("pyenv is not a git repository".to_string()).into());
     }
