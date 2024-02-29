@@ -12,7 +12,7 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -21,7 +21,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: katyo/publish-crates@v1
+      - uses: katyo/publish-crates@v2
         with:
           dry-run: true
           check-repo: ${{ github.event_name == 'push' }}

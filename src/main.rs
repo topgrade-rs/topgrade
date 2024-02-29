@@ -235,6 +235,7 @@ fn run() -> Result<()> {
             unix::run_brew_formula(&ctx, unix::BrewVariant::Path)
         })?;
         runner.execute(Step::Lure, "LURE", || linux::run_lure_update(&ctx))?;
+        runner.execute(Step::Waydroid, "Waydroid", || linux::run_waydroid(&ctx))?;
     }
 
     #[cfg(target_os = "macos")]
@@ -324,6 +325,7 @@ fn run() -> Result<()> {
         runner.execute(Step::GnomeShellExtensions, "Gnome Shell Extensions", || {
             unix::upgrade_gnome_extensions(&ctx)
         })?;
+        runner.execute(Step::Pyenv, "pyenv", || unix::run_pyenv(&ctx))?;
         runner.execute(Step::Sdkman, "SDKMAN!", || unix::run_sdkman(&ctx))?;
         runner.execute(Step::Rcm, "rcm", || unix::run_rcm(&ctx))?;
         runner.execute(Step::Maza, "maza", || unix::run_maza(&ctx))?;

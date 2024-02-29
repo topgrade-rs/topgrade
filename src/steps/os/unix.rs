@@ -285,10 +285,15 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
     let run_type = ctx.run_type();
 
     variant.execute(run_type).arg("update").status_checked()?;
-    variant
-        .execute(run_type)
-        .args(["upgrade", "--formula"])
-        .status_checked()?;
+
+    let mut command = variant.execute(run_type);
+    command.args(["upgrade", "--formula"]);
+
+    if ctx.config().brew_fetch_head() {
+        command.arg("--fetch-HEAD");
+    }
+
+    command.status_checked()?;
 
     if ctx.config().cleanup() {
         variant.execute(run_type).arg("cleanup").status_checked()?;
@@ -327,6 +332,9 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
         brew_args.extend(["upgrade", "--cask"]);
         if ctx.config().brew_cask_greedy() {
             brew_args.push("--greedy");
+        }
+        if ctx.config().brew_greedy_latest() {
+            brew_args.push("--greedy-latest");
         }
     }
 
@@ -570,6 +578,25 @@ pub fn run_pearl(ctx: &ExecutionContext) -> Result<()> {
     print_separator("pearl");
 
     ctx.run_type().execute(pearl).arg("update").status_checked()
+}
+
+pub fn run_pyenv(ctx: &ExecutionContext) -> Result<()> {
+    let pyenv = require("pyenv")?;
+    print_separator("pyenv");
+
+    let pyenv_dir = var("PYENV_ROOT")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| HOME_DIR.join(".pyenv"));
+
+    if !pyenv_dir.exists() {
+        return Err(SkipStep("Pyenv is installed, but $PYENV_ROOT is not set correctly".to_string()).into());
+    }
+
+    if !pyenv_dir.join(".git").exists() {
+        return Err(SkipStep("pyenv is not a git repository".to_string()).into());
+    }
+
+    ctx.run_type().execute(pyenv).arg("update").status_checked()
 }
 
 pub fn run_sdkman(ctx: &ExecutionContext) -> Result<()> {

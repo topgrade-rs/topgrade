@@ -1,4 +1,20 @@
+# JetBrains IDEs
+.idea/
 
-/target
+# Visual Studio
+.vs/
+
+# Visual Studio Code
+.vscode/
+
+# Generic build outputs
 /build
+
+# Specific for some languages like Rust
+/target
+
+# LLVM profiling output
+*.profraw
+
+# Backup files for any .rs files in the project
 **/*.rs.bk

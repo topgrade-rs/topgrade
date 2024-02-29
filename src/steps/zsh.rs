@@ -12,6 +12,8 @@ use crate::git::Repositories;
 use crate::terminal::print_separator;
 use crate::utils::{require, PathExt};
 use crate::HOME_DIR;
+use crate::XDG_DIRS;
+use etcetera::base_strategy::BaseStrategy;
 
 pub fn run_zr(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
@@ -117,15 +119,12 @@ pub fn run_zinit(ctx: &ExecutionContext) -> Result<()> {
 
     env::var("ZINIT_HOME")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| HOME_DIR.join(".zinit"))
+        .unwrap_or_else(|_| XDG_DIRS.data_dir().join("zinit"))
         .require()?;
 
     print_separator("zinit");
 
-    let cmd = format!(
-        "source {} && zinit self-update && zinit update --all -p",
-        zshrc.display(),
-    );
+    let cmd = format!("source {} && zinit self-update && zinit update --all", zshrc.display());
     ctx.run_type()
         .execute(zsh)
         .args(["-i", "-c", cmd.as_str()])
@@ -140,7 +139,7 @@ pub fn run_zi(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zi");
 
-    let cmd = format!("source {} && zi self-update && zi update --all -p", zshrc.display(),);
+    let cmd = format!("source {} && zi self-update && zi update --all", zshrc.display());
     ctx.run_type().execute(zsh).args(["-i", "-c", &cmd]).status_checked()
 }
 

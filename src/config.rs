@@ -16,7 +16,7 @@ use merge::Merge;
 use regex::Regex;
 use regex_split::RegexSplit;
 use serde::Deserialize;
-use strum::{EnumIter, EnumString, EnumVariantNames, IntoEnumIterator};
+use strum::{EnumIter, EnumString, IntoEnumIterator, VariantNames};
 use which_crate::which;
 
 use super::utils::editor;
@@ -44,7 +44,7 @@ macro_rules! str_value {
 
 pub type Commands = BTreeMap<String, String>;
 
-#[derive(ValueEnum, EnumString, EnumVariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
+#[derive(ValueEnum, EnumString, VariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
 #[clap(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
@@ -121,6 +121,7 @@ pub enum Step {
     Pnpm,
     Powershell,
     Protonup,
+    Pyenv,
     Raco,
     Rcm,
     Remotes,
@@ -147,6 +148,7 @@ pub enum Step {
     Vcpkg,
     Vim,
     Vscode,
+    Waydroid,
     Winget,
     Wsl,
     WslUpdate,
@@ -254,7 +256,9 @@ pub struct Flatpak {
 #[serde(deny_unknown_fields)]
 pub struct Brew {
     greedy_cask: Option<bool>,
+    greedy_latest: Option<bool>,
     autoremove: Option<bool>,
+    fetch_head: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy)]
@@ -1088,12 +1092,30 @@ impl Config {
             .unwrap_or(false)
     }
 
+    /// Whether Brew cask should be greedy_latest
+    pub fn brew_greedy_latest(&self) -> bool {
+        self.config_file
+            .brew
+            .as_ref()
+            .and_then(|c| c.greedy_latest)
+            .unwrap_or(false)
+    }
+
     /// Whether Brew should autoremove
     pub fn brew_autoremove(&self) -> bool {
         self.config_file
             .brew
             .as_ref()
             .and_then(|c| c.autoremove)
+            .unwrap_or(false)
+    }
+
+    /// Whether Brew should upgrade formulae built from the HEAD branch
+    pub fn brew_fetch_head(&self) -> bool {
+        self.config_file
+            .brew
+            .as_ref()
+            .and_then(|c| c.fetch_head)
             .unwrap_or(false)
     }
 

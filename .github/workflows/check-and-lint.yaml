@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@master
@@ -54,8 +54,12 @@ jobs:
             os: ubuntu-20.04
 
           - target: x86_64-apple-darwin
-            target_name: macOS
-            os: macos-11
+            target_name: macOS-x86_64
+            os: macos-13
+
+          - target: aarch64-apple-darwin
+            target_name: macOS-aarch64
+            os: macos-14
 
           - target: x86_64-unknown-netbsd
             target_name: NetBSD
@@ -67,7 +71,7 @@ jobs:
             os: windows-2019
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@master
