@@ -259,6 +259,7 @@ fn run() -> Result<()> {
             unix::run_brew_cask(&ctx, unix::BrewVariant::Path)
         })?;
         runner.execute(Step::Macports, "MacPorts", || macos::run_macports(&ctx))?;
+        runner.execute(Step::Xcodes, "Xcodes", || macos::update_xcodes(&ctx))?;
         runner.execute(Step::Sparkle, "Sparkle", || macos::run_sparkle(&ctx))?;
         runner.execute(Step::Mas, "App Store", || macos::run_mas(&ctx))?;
         runner.execute(Step::System, "System upgrade", || macos::upgrade_macos(&ctx))?;

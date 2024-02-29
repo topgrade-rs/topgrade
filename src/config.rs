@@ -152,6 +152,7 @@ pub enum Step {
     Winget,
     Wsl,
     WslUpdate,
+    Xcodes,
     Yadm,
     Yarn,
 }
