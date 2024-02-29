@@ -147,13 +147,13 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
         .collect();
 
     if installed_gm {
-        let _ = process_xcodes_releases(releases_gm, should_ask, ctx);
+        process_xcodes_releases(releases_gm, should_ask, ctx)?;
     }
     if installed_beta {
-        let _ = process_xcodes_releases(releases_beta, should_ask, ctx);
+        process_xcodes_releases(releases_beta, should_ask, ctx)?;
     }
     if installed_regular {
-        let _ = process_xcodes_releases(releases_regular, should_ask, ctx);
+        process_xcodes_releases(releases_regular, should_ask, ctx)?;
     }
 
     let releases_new = ctx
@@ -163,22 +163,36 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
         .output_checked_utf8()?
         .stdout;
 
-    let releases_new_installed: HashSet<_> = releases_new
+    let releases_gm_new_installed: HashSet<_> = releases_new
         .lines()
-        .filter(|release| release.contains("(Installed)"))
+        .filter(|release| release.contains("(Installed)") && release.contains("GM"))
+        .collect();
+    let releases_beta_new_installed: HashSet<_> = releases_new
+        .lines()
+        .filter(|release| release.contains("(Installed)") && release.contains("Beta"))
+        .collect();
+    let releases_regular_new_installed: HashSet<_> = releases_new
+        .lines()
+        .filter(|release| release.contains("(Installed)") && !(release.contains("GM") || release.contains("Beta")))
         .collect();
 
-    if should_ask && releases_new_installed.len() == 2 {
-        let answer_uninstall = prompt_yesno("Would you like to move the former Xcode release to the trash?")?;
-        if answer_uninstall {
-            let _ = ctx
-                .run_type()
-                .execute(&xcodes)
-                .args([
-                    "uninstall",
-                    releases_new_installed.iter().next().cloned().unwrap_or_default(),
-                ])
-                .status_checked();
+    for releases_new_installed in [
+        releases_gm_new_installed,
+        releases_beta_new_installed,
+        releases_regular_new_installed,
+    ] {
+        if should_ask && releases_new_installed.len() == 2 {
+            let answer_uninstall = prompt_yesno("Would you like to move the former Xcode release to the trash?")?;
+            if answer_uninstall {
+                let _ = ctx
+                    .run_type()
+                    .execute(&xcodes)
+                    .args([
+                        "uninstall",
+                        releases_new_installed.iter().next().cloned().unwrap_or_default(),
+                    ])
+                    .status_checked();
+            }
         }
     }
 
@@ -192,6 +206,7 @@ pub fn process_xcodes_releases(releases_filtered: Vec<String>, should_ask: bool,
         .last()
         .map(|s| !s.contains("(Installed)"))
         .unwrap_or(true)
+        && !releases_filtered.is_empty()
     {
         println!(
             "New Xcode release detected: {}",
