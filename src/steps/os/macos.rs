@@ -124,15 +124,18 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
             .iter()
             .fold((false, false, false), |(gm, beta, regular), release| {
                 (
-                    gm || release.contains("GM"),
+                    gm || release.contains("GM") || release.contains("Release Candidate"),
                     beta || release.contains("Beta"),
-                    regular || !(release.contains("GM") || release.contains("Beta")),
+                    regular
+                        || !(release.contains("GM")
+                            || release.contains("Release Candidate")
+                            || release.contains("Beta")),
                 )
             });
 
     let releases_gm = releases
         .lines()
-        .filter(|&r| r.matches("GM").count() > 0)
+        .filter(|&r| r.matches("GM").count() > 0 || r.matches("Release Candidate").count() > 0)
         .map(String::from)
         .collect();
     let releases_beta = releases
@@ -142,7 +145,11 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
         .collect();
     let releases_regular = releases
         .lines()
-        .filter(|&r| r.matches("GM").count() == 0 && r.matches("Beta").count() == 0)
+        .filter(|&r| {
+            r.matches("GM").count() == 0
+                && r.matches("Release Candidate").count() == 0
+                && r.matches("Beta").count() == 0
+        })
         .map(String::from)
         .collect();
 
@@ -165,7 +172,9 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
 
     let releases_gm_new_installed: HashSet<_> = releases_new
         .lines()
-        .filter(|release| release.contains("(Installed)") && release.contains("GM"))
+        .filter(|release| {
+            release.contains("(Installed)") && (release.contains("GM") || release.contains("Release Candidate"))
+        })
         .collect();
     let releases_beta_new_installed: HashSet<_> = releases_new
         .lines()
@@ -173,7 +182,10 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
         .collect();
     let releases_regular_new_installed: HashSet<_> = releases_new
         .lines()
-        .filter(|release| release.contains("(Installed)") && !(release.contains("GM") || release.contains("Beta")))
+        .filter(|release| {
+            release.contains("(Installed)")
+                && !(release.contains("GM") || release.contains("Release Candidate") || release.contains("Beta"))
+        })
         .collect();
 
     for releases_new_installed in [
