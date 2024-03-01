@@ -374,7 +374,7 @@ pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
     let pipx = require("pipx")?;
     print_separator("pipx");
 
-    let mut command_args = vec!["upgrade-all"];
+    let mut command_args = vec!["upgrade-all", "--include-injected"];
 
     // pipx version 1.4.0 introduced a new command argument `pipx upgrade-all --quiet`
     // (see https://pipx.pypa.io/stable/docs/#pipx-upgrade-all)
