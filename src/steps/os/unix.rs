@@ -675,7 +675,11 @@ pub fn run_bun_packages(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Bun Packages");
 
-    if !HOME_DIR.join(".bun/install/global/package.json").exists() {
+    let bun_install_path: PathBuf = shellexpand::env("$BUN_INSTALL/install/global/package.json")
+        .map(|expanded_path| PathBuf::from(expanded_path.as_ref()))
+        .unwrap_or_else(|_| HOME_DIR.join(".bun/install/global/package.json"));
+
+    if !bun_install_path.exists() {
         println!("No global packages installed");
         return Ok(());
     }
