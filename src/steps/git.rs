@@ -25,6 +25,9 @@ use crate::XDG_DIRS;
 #[cfg(unix)]
 use etcetera::base_strategy::BaseStrategy;
 
+#[cfg(windows)]
+static WINDOWS_DIRS: Lazy<Windows> = Lazy::new(|| Windows::new().expect("No home directory"));
+
 pub fn run_git_pull(ctx: &ExecutionContext) -> Result<()> {
     let mut repos = RepoStep::try_new()?;
     let config = ctx.config();
