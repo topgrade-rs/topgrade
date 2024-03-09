@@ -122,8 +122,6 @@ fn run() -> Result<()> {
         }
     }
 
-    let git = git::Git::new();
-    let mut git_repos = git::Repositories::new(&git);
     let powershell = powershell::Powershell::new();
     let should_run_powershell = powershell.profile().is_some() && config.should_run(Step::Powershell);
     let emacs = emacs::Emacs::new();
@@ -132,7 +130,7 @@ fn run() -> Result<()> {
 
     let sudo = config.sudo_command().map_or_else(sudo::Sudo::detect, sudo::Sudo::new);
     let run_type = executor::RunType::new(config.dry_run());
-    let ctx = execution_context::ExecutionContext::new(run_type, sudo, &git, &config);
+    let ctx = execution_context::ExecutionContext::new(run_type, sudo, &config);
     let mut runner = runner::Runner::new(&ctx);
 
     // If
@@ -404,67 +402,7 @@ fn run() -> Result<()> {
     })?;
     runner.execute(Step::Bob, "Bob", || generic::run_bob(&ctx))?;
     runner.execute(Step::Certbot, "Certbot", || generic::run_certbot(&ctx))?;
-
-    if config.use_predefined_git_repos() {
-        if config.should_run(Step::Emacs) {
-            if !emacs.is_doom() {
-                if let Some(directory) = emacs.directory() {
-                    git_repos.insert_if_repo(directory);
-                }
-            }
-            git_repos.insert_if_repo(HOME_DIR.join(".doom.d"));
-        }
-
-        if config.should_run(Step::Vim) {
-            git_repos.insert_if_repo(HOME_DIR.join(".vim"));
-            git_repos.insert_if_repo(HOME_DIR.join(".config/nvim"));
-        }
-
-        git_repos.insert_if_repo(HOME_DIR.join(".ideavimrc"));
-        git_repos.insert_if_repo(HOME_DIR.join(".intellimacs"));
-
-        if config.should_run(Step::Rcm) {
-            git_repos.insert_if_repo(HOME_DIR.join(".dotfiles"));
-        }
-
-        #[cfg(unix)]
-        {
-            git_repos.insert_if_repo(zsh::zshrc());
-            if config.should_run(Step::Tmux) {
-                git_repos.insert_if_repo(HOME_DIR.join(".tmux"));
-            }
-            git_repos.insert_if_repo(HOME_DIR.join(".config/fish"));
-            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("openbox"));
-            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("bspwm"));
-            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("i3"));
-            git_repos.insert_if_repo(XDG_DIRS.config_dir().join("sway"));
-        }
-
-        #[cfg(windows)]
-        git_repos.insert_if_repo(
-            WINDOWS_DIRS
-                .cache_dir()
-                .join("Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"),
-        );
-
-        #[cfg(windows)]
-        windows::insert_startup_scripts(&mut git_repos).ok();
-
-        if let Some(profile) = powershell.profile() {
-            git_repos.insert_if_repo(profile);
-        }
-    }
-
-    if config.should_run(Step::GitRepos) {
-        if let Some(custom_git_repos) = config.git_repos() {
-            for git_repo in custom_git_repos {
-                git_repos.glob_insert(git_repo);
-            }
-        }
-        runner.execute(Step::GitRepos, "Git repositories", || {
-            git.multi_pull_step(&git_repos, &ctx)
-        })?;
-    }
+    runner.execute(Step::GitRepos, "Git Repositories", || git::run_git_pull(&ctx))?;
 
     if should_run_powershell {
         runner.execute(Step::Powershell, "Powershell Modules Update", || {
