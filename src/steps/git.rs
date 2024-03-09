@@ -18,7 +18,11 @@ use crate::execution_context::ExecutionContext;
 use crate::steps::emacs::Emacs;
 use crate::terminal::print_separator;
 use crate::utils::{require, PathExt};
-use crate::{error::SkipStep, terminal::print_warning, HOME_DIR, XDG_DIRS};
+use crate::{error::SkipStep, terminal::print_warning, HOME_DIR};
+
+#[cfg(unix)]
+use crate::XDG_DIRS;
+#[cfg(unix)]
 use etcetera::base_strategy::BaseStrategy;
 
 pub fn run_git_pull(ctx: &ExecutionContext) -> Result<()> {
@@ -72,13 +76,13 @@ pub fn run_git_pull(ctx: &ExecutionContext) -> Result<()> {
 
         #[cfg(windows)]
         {
-            git_repos.insert_if_repo(
+            repos.insert_if_repo(
                 WINDOWS_DIRS
                     .cache_dir()
                     .join("Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"),
             );
 
-            windows::insert_startup_scripts(&mut git_repos).ok();
+            super::os::windows::insert_startup_scripts(&mut repos).ok();
         }
     }
 
@@ -193,7 +197,8 @@ impl RepoStep {
                     .args(["rev-parse", "--show-toplevel"])
                     .output_checked_utf8()
                     .ok()
-                    .map(|output| PathBuf::from(output.stdout));
+                    // trim the last newline char
+                    .map(|output| PathBuf::from(output.stdout.trim()));
 
                 return output;
             }
@@ -220,12 +225,14 @@ impl RepoStep {
 
     /// Check if `repo` has a remote.
     fn has_remotes<P: AsRef<Path>>(&self, repo: P) -> Option<bool> {
-        Command::new(&self.git)
-            .stdin(Stdio::null())
+        let mut cmd = Command::new(&self.git);
+        cmd.stdin(Stdio::null())
             .current_dir(repo.as_ref())
-            .args(["remote", "show"])
-            .output_checked_utf8()
-            .map(|output| output.stdout.lines().count() > 0)
+            .args(["remote", "show"]);
+
+        let res = cmd.output_checked_utf8();
+
+        res.map(|output| output.stdout.lines().count() > 0)
             .map_err(|e| {
                 error!("Error getting remotes for {}: {}", repo.as_ref().display(), e);
                 e
@@ -243,7 +250,7 @@ impl RepoStep {
                         if let Some(last_git_repo) = &last_git_repo {
                             if path.is_descendant_of(last_git_repo) {
                                 debug!(
-                                    "Skipping {} because it's a decendant of last known repo {}",
+                                    "Skipping {} because it's a descendant of last known repo {}",
                                     path.display(),
                                     last_git_repo.display()
                                 );
@@ -269,9 +276,6 @@ impl RepoStep {
     }
 
     /// True if `self.repos` is empty.
-    ///
-    // `cfg(unix)` because it is only used in the oh-my-zsh step.
-    #[cfg(unix)]
     pub fn is_repos_empty(&self) -> bool {
         self.repos.is_empty()
     }
