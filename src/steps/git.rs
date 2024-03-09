@@ -19,11 +19,10 @@ use crate::steps::emacs::Emacs;
 use crate::terminal::print_separator;
 use crate::utils::{require, PathExt};
 use crate::{error::SkipStep, terminal::print_warning, HOME_DIR};
+use etcetera::base_strategy::BaseStrategy;
 
 #[cfg(unix)]
 use crate::XDG_DIRS;
-#[cfg(unix)]
-use etcetera::base_strategy::BaseStrategy;
 
 #[cfg(windows)]
 use crate::WINDOWS_DIRS;
