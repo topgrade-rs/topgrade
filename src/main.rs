@@ -51,6 +51,9 @@ pub(crate) static HOME_DIR: Lazy<PathBuf> = Lazy::new(|| home::home_dir().expect
 #[cfg(unix)]
 pub(crate) static XDG_DIRS: Lazy<Xdg> = Lazy::new(|| Xdg::new().expect("No home directory"));
 
+#[cfg(windows)]
+pub(crate) static WINDOWS_DIRS: Lazy<Windows> = Lazy::new(|| Windows::new().expect("No home directory"));
+
 fn run() -> Result<()> {
     install_color_eyre()?;
     ctrlc::set_handler();
