@@ -6,30 +6,120 @@ use std::process::{Command, Output, Stdio};
 use color_eyre::eyre::Context;
 use color_eyre::eyre::{eyre, Result};
 use console::style;
-use futures::stream::{iter, FuturesUnordered};
-use futures::StreamExt;
+use futures::stream::{iter, FuturesUnordered, StreamExt};
 use glob::{glob_with, MatchOptions};
 use tokio::process::Command as AsyncCommand;
 use tokio::runtime;
 use tracing::{debug, error};
 
 use crate::command::CommandExt;
+use crate::config::Step;
 use crate::execution_context::ExecutionContext;
+use crate::steps::emacs::Emacs;
 use crate::terminal::print_separator;
-use crate::utils::{which, PathExt};
-use crate::{error::SkipStep, terminal::print_warning};
+use crate::utils::{require, PathExt};
+use crate::{error::SkipStep, terminal::print_warning, HOME_DIR};
+use etcetera::base_strategy::BaseStrategy;
+
+#[cfg(unix)]
+use crate::XDG_DIRS;
+
+#[cfg(windows)]
+use crate::WINDOWS_DIRS;
+
+pub fn run_git_pull(ctx: &ExecutionContext) -> Result<()> {
+    let mut repos = RepoStep::try_new()?;
+    let config = ctx.config();
+
+    // handle built-in repos
+    if config.use_predefined_git_repos() {
+        // should be executed on all the platforms
+        {
+            if config.should_run(Step::Emacs) {
+                let emacs = Emacs::new();
+                if !emacs.is_doom() {
+                    if let Some(directory) = emacs.directory() {
+                        repos.insert_if_repo(directory);
+                    }
+                }
+                repos.insert_if_repo(HOME_DIR.join(".doom.d"));
+            }
+
+            if config.should_run(Step::Vim) {
+                repos.insert_if_repo(HOME_DIR.join(".vim"));
+                repos.insert_if_repo(HOME_DIR.join(".config/nvim"));
+            }
+
+            repos.insert_if_repo(HOME_DIR.join(".ideavimrc"));
+            repos.insert_if_repo(HOME_DIR.join(".intellimacs"));
+
+            if config.should_run(Step::Rcm) {
+                repos.insert_if_repo(HOME_DIR.join(".dotfiles"));
+            }
+
+            let powershell = crate::steps::powershell::Powershell::new();
+            if let Some(profile) = powershell.profile() {
+                repos.insert_if_repo(profile);
+            }
+        }
+
+        #[cfg(unix)]
+        {
+            repos.insert_if_repo(crate::steps::zsh::zshrc());
+            if config.should_run(Step::Tmux) {
+                repos.insert_if_repo(HOME_DIR.join(".tmux"));
+            }
+            repos.insert_if_repo(HOME_DIR.join(".config/fish"));
+            repos.insert_if_repo(XDG_DIRS.config_dir().join("openbox"));
+            repos.insert_if_repo(XDG_DIRS.config_dir().join("bspwm"));
+            repos.insert_if_repo(XDG_DIRS.config_dir().join("i3"));
+            repos.insert_if_repo(XDG_DIRS.config_dir().join("sway"));
+        }
+
+        #[cfg(windows)]
+        {
+            repos.insert_if_repo(
+                WINDOWS_DIRS
+                    .cache_dir()
+                    .join("Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"),
+            );
+
+            super::os::windows::insert_startup_scripts(&mut repos).ok();
+        }
+    }
+
+    // Handle user-defined repos
+    if let Some(custom_git_repos) = config.git_repos() {
+        for git_repo in custom_git_repos {
+            repos.glob_insert(git_repo);
+        }
+    }
+
+    // Warn the user about the bad patterns.
+    //
+    // NOTE: this should be executed **before** skipping the Git step or the
+    // user won't receive this warning in the cases where all the paths configured
+    // are bad patterns.
+    repos
+        .bad_patterns
+        .iter()
+        .for_each(|pattern| print_warning(format!("Path {pattern} did not contain any git repositories")));
+
+    if repos.is_repos_empty() {
+        return Err(SkipStep(String::from("No repositories to pull")).into());
+    }
+
+    print_separator("Git repositories");
+
+    repos.pull_repos(ctx)
+}
 
 #[cfg(windows)]
 static PATH_PREFIX: &str = "\\\\?\\";
 
-#[derive(Debug)]
-pub struct Git {
-    git: Option<PathBuf>,
-}
-
-pub struct Repositories<'a> {
-    git: &'a Git,
-    repositories: HashSet<String>,
+pub struct RepoStep {
+    git: PathBuf,
+    repos: HashSet<PathBuf>,
     glob_match_options: MatchOptions,
     bad_patterns: Vec<String>,
 }
@@ -45,100 +135,41 @@ fn output_checked_utf8(output: Output) -> Result<()> {
     }
 }
 
-async fn pull_repository(repo: String, git: &Path, ctx: &ExecutionContext<'_>) -> Result<()> {
-    let path = repo.to_string();
-    let before_revision = get_head_revision(git, &repo);
-
-    println!("{} {}", style("Pulling").cyan().bold(), path);
-
-    let mut command = AsyncCommand::new(git);
-
-    command
-        .stdin(Stdio::null())
-        .current_dir(&repo)
-        .args(["pull", "--ff-only"]);
-
-    if let Some(extra_arguments) = ctx.config().git_arguments() {
-        command.args(extra_arguments.split_whitespace());
-    }
-
-    let pull_output = command.output().await?;
-    let submodule_output = AsyncCommand::new(git)
-        .args(["submodule", "update", "--recursive"])
-        .current_dir(&repo)
-        .stdin(Stdio::null())
-        .output()
-        .await?;
-    let result = output_checked_utf8(pull_output)
-        .and_then(|_| output_checked_utf8(submodule_output))
-        .wrap_err_with(|| format!("Failed to pull {repo}"));
-
-    if result.is_err() {
-        println!("{} pulling {}", style("Failed").red().bold(), &repo);
-    } else {
-        let after_revision = get_head_revision(git, &repo);
-
-        match (&before_revision, &after_revision) {
-            (Some(before), Some(after)) if before != after => {
-                println!("{} {}:", style("Changed").yellow().bold(), &repo);
-
-                Command::new(git)
-                    .stdin(Stdio::null())
-                    .current_dir(&repo)
-                    .args([
-                        "--no-pager",
-                        "log",
-                        "--no-decorate",
-                        "--oneline",
-                        &format!("{before}..{after}"),
-                    ])
-                    .status_checked()?;
-                println!();
-            }
-            _ => {
-                println!("{} {}", style("Up-to-date").green().bold(), &repo);
-            }
-        }
-    }
-
-    result.map(|_| ())
-}
-
-fn get_head_revision(git: &Path, repo: &str) -> Option<String> {
+fn get_head_revision<P: AsRef<Path>>(git: &Path, repo: P) -> Option<String> {
     Command::new(git)
         .stdin(Stdio::null())
-        .current_dir(repo)
+        .current_dir(repo.as_ref())
         .args(["rev-parse", "HEAD"])
         .output_checked_utf8()
         .map(|output| output.stdout.trim().to_string())
         .map_err(|e| {
-            error!("Error getting revision for {}: {}", repo, e);
+            error!("Error getting revision for {}: {}", repo.as_ref().display(), e);
 
             e
         })
         .ok()
 }
 
-fn has_remotes(git: &Path, repo: &str) -> Option<bool> {
-    Command::new(git)
-        .stdin(Stdio::null())
-        .current_dir(repo)
-        .args(["remote", "show"])
-        .output_checked_utf8()
-        .map(|output| output.stdout.lines().count() > 0)
-        .map_err(|e| {
-            error!("Error getting remotes for {}: {}", repo, e);
-            e
-        })
-        .ok()
-}
+impl RepoStep {
+    /// Try to create a `RepoStep`, fail if `git` is not found.
+    pub fn try_new() -> Result<Self> {
+        let git = require("git")?;
+        let mut glob_match_options = MatchOptions::new();
 
-impl Git {
-    pub fn new() -> Self {
-        Self { git: which("git") }
+        if cfg!(windows) {
+            glob_match_options.case_sensitive = false;
+        }
+
+        Ok(Self {
+            git,
+            repos: HashSet::new(),
+            bad_patterns: Vec::new(),
+            glob_match_options,
+        })
     }
 
-    pub fn get_repo_root<P: AsRef<Path>>(&self, path: P) -> Option<String> {
+    /// Try to get the root of the repo specified in `path`.
+    pub fn get_repo_root<P: AsRef<Path>>(&self, path: P) -> Option<PathBuf> {
         match path.as_ref().canonicalize() {
             Ok(mut path) => {
                 debug_assert!(path.exists());
@@ -162,16 +193,16 @@ impl Git {
                     path_string
                 };
 
-                if let Some(git) = &self.git {
-                    let output = Command::new(git)
-                        .stdin(Stdio::null())
-                        .current_dir(path)
-                        .args(["rev-parse", "--show-toplevel"])
-                        .output_checked_utf8()
-                        .ok()
-                        .map(|output| output.stdout.trim().to_string());
-                    return output;
-                }
+                let output = Command::new(&self.git)
+                    .stdin(Stdio::null())
+                    .current_dir(path)
+                    .args(["rev-parse", "--show-toplevel"])
+                    .output_checked_utf8()
+                    .ok()
+                    // trim the last newline char
+                    .map(|output| PathBuf::from(output.stdout.trim()));
+
+                return output;
             }
             Err(e) => match e.kind() {
                 io::ErrorKind::NotFound => debug!("{} does not exist", path.as_ref().display()),
@@ -181,92 +212,37 @@ impl Git {
 
         None
     }
-    pub fn multi_pull_step(&self, repositories: &Repositories, ctx: &ExecutionContext) -> Result<()> {
-        // Warn the user about the bad patterns.
-        //
-        // NOTE: this should be executed **before** skipping the Git step or the
-        // user won't receive this warning in the cases where all the paths configured
-        // are bad patterns.
-        repositories
-            .bad_patterns
-            .iter()
-            .for_each(|pattern| print_warning(format!("Path {pattern} did not contain any git repositories")));
 
-        if repositories.repositories.is_empty() {
-            return Err(SkipStep(String::from("No repositories to pull")).into());
-        }
-
-        print_separator("Git repositories");
-        self.multi_pull(repositories, ctx)
-    }
-
-    pub fn multi_pull(&self, repositories: &Repositories, ctx: &ExecutionContext) -> Result<()> {
-        let git = self.git.as_ref().unwrap();
-
-        if ctx.run_type().dry() {
-            repositories
-                .repositories
-                .iter()
-                .for_each(|repo| println!("Would pull {}", &repo));
-
-            return Ok(());
-        }
-
-        let futures_iterator = repositories
-            .repositories
-            .iter()
-            .filter(|repo| match has_remotes(git, repo) {
-                Some(false) => {
-                    println!(
-                        "{} {} because it has no remotes",
-                        style("Skipping").yellow().bold(),
-                        repo
-                    );
-                    false
-                }
-                _ => true, // repo has remotes or command to check for remotes has failed. proceed to pull anyway.
-            })
-            .map(|repo| pull_repository(repo.clone(), git, ctx));
-
-        let stream_of_futures = if let Some(limit) = ctx.config().git_concurrency_limit() {
-            iter(futures_iterator).buffer_unordered(limit).boxed()
-        } else {
-            futures_iterator.collect::<FuturesUnordered<_>>().boxed()
-        };
-
-        let basic_rt = runtime::Runtime::new()?;
-        let results = basic_rt.block_on(async { stream_of_futures.collect::<Vec<Result<()>>>().await });
-
-        let error = results.into_iter().find(|r| r.is_err());
-        error.unwrap_or(Ok(()))
-    }
-}
-
-impl<'a> Repositories<'a> {
-    pub fn new(git: &'a Git) -> Self {
-        let mut glob_match_options = MatchOptions::new();
-
-        if cfg!(windows) {
-            glob_match_options.case_sensitive = false;
-        }
-
-        Self {
-            git,
-            repositories: HashSet::new(),
-            bad_patterns: Vec::new(),
-            glob_match_options,
-        }
-    }
-
+    /// Check if `path` is a git repo, if yes, add it to `self.repos`.
+    ///
+    /// Return the check result.
     pub fn insert_if_repo<P: AsRef<Path>>(&mut self, path: P) -> bool {
-        if let Some(repo) = self.git.get_repo_root(path) {
-            self.repositories.insert(repo);
+        if let Some(repo) = self.get_repo_root(path) {
+            self.repos.insert(repo);
             true
         } else {
             false
         }
     }
 
+    /// Check if `repo` has a remote.
+    fn has_remotes<P: AsRef<Path>>(&self, repo: P) -> Option<bool> {
+        let mut cmd = Command::new(&self.git);
+        cmd.stdin(Stdio::null())
+            .current_dir(repo.as_ref())
+            .args(["remote", "show"]);
+
+        let res = cmd.output_checked_utf8();
+
+        res.map(|output| output.stdout.lines().count() > 0)
+            .map_err(|e| {
+                error!("Error getting remotes for {}: {}", repo.as_ref().display(), e);
+                e
+            })
+            .ok()
+    }
+
+    /// Similar to `insert_if_repo`, with glob support.
     pub fn glob_insert(&mut self, pattern: &str) {
         if let Ok(glob) = glob_with(pattern, self.glob_match_options) {
             let mut last_git_repo: Option<PathBuf> = None;
@@ -276,7 +252,7 @@ impl<'a> Repositories<'a> {
                         if let Some(last_git_repo) = &last_git_repo {
                             if path.is_descendant_of(last_git_repo) {
                                 debug!(
-                                    "Skipping {} because it's a decendant of last known repo {}",
+                                    "Skipping {} because it's a descendant of last known repo {}",
                                     path.display(),
                                     last_git_repo.display()
                                 );
@@ -301,16 +277,119 @@ impl<'a> Repositories<'a> {
         }
     }
 
-    #[cfg(unix)]
-    pub fn is_empty(&self) -> bool {
-        self.repositories.is_empty()
+    /// True if `self.repos` is empty.
+    pub fn is_repos_empty(&self) -> bool {
+        self.repos.is_empty()
     }
 
-    // The following 2 functions are `#[cfg(unix)]` because they are only used in
-    // the `oh-my-zsh` step, which is UNIX-only.
+    /// Remove `path` from `self.repos`.
+    ///
+    // `cfg(unix)` because it is only used in the oh-my-zsh step.
     #[cfg(unix)]
-    pub fn remove(&mut self, path: &str) {
-        let _removed = self.repositories.remove(path);
+    pub fn remove<P: AsRef<Path>>(&mut self, path: P) {
+        let _removed = self.repos.remove(path.as_ref());
         debug_assert!(_removed);
+    }
+
+    /// Try to pull a repo.
+    async fn pull_repo<P: AsRef<Path>>(&self, ctx: &ExecutionContext<'_>, repo: P) -> Result<()> {
+        let before_revision = get_head_revision(&self.git, &repo);
+
+        println!("{} {}", style("Pulling").cyan().bold(), repo.as_ref().display());
+
+        let mut command = AsyncCommand::new(&self.git);
+
+        command
+            .stdin(Stdio::null())
+            .current_dir(&repo)
+            .args(["pull", "--ff-only"]);
+
+        if let Some(extra_arguments) = ctx.config().git_arguments() {
+            command.args(extra_arguments.split_whitespace());
+        }
+
+        let pull_output = command.output().await?;
+        let submodule_output = AsyncCommand::new(&self.git)
+            .args(["submodule", "update", "--recursive"])
+            .current_dir(&repo)
+            .stdin(Stdio::null())
+            .output()
+            .await?;
+        let result = output_checked_utf8(pull_output)
+            .and_then(|_| output_checked_utf8(submodule_output))
+            .wrap_err_with(|| format!("Failed to pull {}", repo.as_ref().display()));
+
+        if result.is_err() {
+            println!("{} pulling {}", style("Failed").red().bold(), repo.as_ref().display());
+        } else {
+            let after_revision = get_head_revision(&self.git, repo.as_ref());
+
+            match (&before_revision, &after_revision) {
+                (Some(before), Some(after)) if before != after => {
+                    println!("{} {}:", style("Changed").yellow().bold(), repo.as_ref().display());
+
+                    Command::new(&self.git)
+                        .stdin(Stdio::null())
+                        .current_dir(&repo)
+                        .args([
+                            "--no-pager",
+                            "log",
+                            "--no-decorate",
+                            "--oneline",
+                            &format!("{before}..{after}"),
+                        ])
+                        .status_checked()?;
+                    println!();
+                }
+                _ => {
+                    println!("{} {}", style("Up-to-date").green().bold(), repo.as_ref().display());
+                }
+            }
+        }
+
+        result.map(|_| ())
+    }
+
+    /// Pull the repositories specified in `self.repos`.
+    ///
+    /// # NOTE
+    /// This function will create an async runtime and do the real job so the
+    /// function itself is not async.
+    fn pull_repos(&self, ctx: &ExecutionContext) -> Result<()> {
+        if ctx.run_type().dry() {
+            self.repos
+                .iter()
+                .for_each(|repo| println!("Would pull {}", repo.display()));
+
+            return Ok(());
+        }
+
+        let futures_iterator = self
+            .repos
+            .iter()
+            .filter(|repo| match self.has_remotes(repo) {
+                Some(false) => {
+                    println!(
+                        "{} {} because it has no remotes",
+                        style("Skipping").yellow().bold(),
+                        repo.display()
+                    );
+                    false
+                }
+                _ => true, // repo has remotes or command to check for remotes has failed. proceed to pull anyway.
+            })
+            .map(|repo| self.pull_repo(ctx, repo));
+
+        let stream_of_futures = if let Some(limit) = ctx.config().git_concurrency_limit() {
+            iter(futures_iterator).buffer_unordered(limit).boxed()
+        } else {
+            futures_iterator.collect::<FuturesUnordered<_>>().boxed()
+        };
+
+        let basic_rt = runtime::Runtime::new()?;
+        let results = basic_rt.block_on(async { stream_of_futures.collect::<Vec<Result<()>>>().await });
+
+        let error = results.into_iter().find(|r| r.is_err());
+        error.unwrap_or(Ok(()))
     }
 }

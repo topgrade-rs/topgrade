@@ -8,7 +8,7 @@ use walkdir::WalkDir;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
-use crate::git::Repositories;
+use crate::git::RepoStep;
 use crate::terminal::print_separator;
 use crate::utils::{require, PathExt};
 use crate::HOME_DIR;
@@ -219,19 +219,14 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
 
     debug!("oh-my-zsh custom dir: {}", custom_dir.display());
 
-    let mut custom_repos = Repositories::new(ctx.git());
+    let mut custom_repos = RepoStep::try_new()?;
 
     for entry in WalkDir::new(custom_dir).max_depth(2) {
         let entry = entry?;
         custom_repos.insert_if_repo(entry.path());
     }
 
-    custom_repos.remove(&oh_my_zsh.to_string_lossy());
-    if !custom_repos.is_empty() {
-        println!("Pulling custom plugins and themes");
-        ctx.git().multi_pull(&custom_repos, ctx)?;
-    }
-
+    custom_repos.remove(&oh_my_zsh);
     ctx.run_type()
         .execute("zsh")
         .arg(&oh_my_zsh.join("tools/upgrade.sh"))

@@ -9,7 +9,7 @@ use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::terminal::print_separator;
 use crate::utils::{require, which};
-use crate::{error::SkipStep, steps::git::Repositories};
+use crate::{error::SkipStep, steps::git::RepoStep};
 use crate::{powershell, Step};
 
 pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
@@ -219,7 +219,7 @@ pub fn reboot() -> Result<()> {
     Command::new("shutdown").args(["/R", "/T", "0"]).status_checked()
 }
 
-pub fn insert_startup_scripts(git_repos: &mut Repositories) -> Result<()> {
+pub fn insert_startup_scripts(git_repos: &mut RepoStep) -> Result<()> {
     let startup_dir = crate::WINDOWS_DIRS
         .data_dir()
         .join("Microsoft\\Windows\\Start Menu\\Programs\\Startup");
