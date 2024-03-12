@@ -224,7 +224,18 @@ pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
     let rustup = require("rustup")?;
 
     print_separator("rustup");
-    ctx.run_type().execute(rustup).arg("update").status_checked()
+    ctx.run_type().execute(&rustup).arg("update").status_checked()
+}
+
+pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
+    let elan = require("elan")?;
+
+    print_separator("elan");
+    ctx.run_type()
+        .execute(&elan)
+        .args(["self", "update"])
+        .status_checked()?;
+    ctx.run_type().execute(&elan).arg("update").status_checked()
 }
 
 pub fn run_juliaup(ctx: &ExecutionContext) -> Result<()> {
