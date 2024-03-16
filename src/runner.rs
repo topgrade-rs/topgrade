@@ -34,6 +34,14 @@ impl<'a> Runner<'a> {
         let key = key.into();
         debug!("Step {:?}", key);
 
+        // alter the `func` to put it in a span
+        let func = || {
+            let span =
+                tracing::span!(parent: tracing::Span::none(), tracing::Level::TRACE, "step", step = ?step, key = %key);
+            let _guard = span.enter();
+            func()
+        };
+
         loop {
             match func() {
                 Ok(()) => {
