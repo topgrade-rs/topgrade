@@ -75,6 +75,7 @@ pub enum Step {
     Distrobox,
     DkpPacman,
     Dotnet,
+    Elan,
     Emacs,
     Firmware,
     Flatpak,

@@ -342,6 +342,7 @@ fn run() -> Result<()> {
 
     // The following update function should be executed on all OSes.
     runner.execute(Step::Fossil, "fossil", || generic::run_fossil(&ctx))?;
+    runner.execute(Step::Elan, "elan", || generic::run_elan(&ctx))?;
     runner.execute(Step::Rustup, "rustup", || generic::run_rustup(&ctx))?;
     runner.execute(Step::Juliaup, "juliaup", || generic::run_juliaup(&ctx))?;
     runner.execute(Step::Dotnet, ".NET", || generic::run_dotnet_upgrade(&ctx))?;
