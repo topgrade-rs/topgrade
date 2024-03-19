@@ -931,3 +931,12 @@ pub fn run_certbot(ctx: &ExecutionContext) -> Result<()> {
 
     cmd.status_checked()
 }
+
+/// Run `$ freshclam` to update ClamAV signature database
+///
+/// doc: https://docs.clamav.net/manual/Usage/SignatureManagement.html#freshclam
+pub fn run_freshclam(ctx: &ExecutionContext) -> Result<()> {
+    let freshclam = require("freshclam")?;
+    print_separator("Update ClamAV Database(FreshClam)");
+    ctx.run_type().execute(freshclam).status_checked()
+}

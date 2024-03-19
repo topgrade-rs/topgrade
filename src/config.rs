@@ -65,6 +65,7 @@ pub enum Step {
     Chezmoi,
     Chocolatey,
     Choosenim,
+    ClamAvDb,
     Composer,
     Conda,
     ConfigUpdate,

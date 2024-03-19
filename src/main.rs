@@ -405,6 +405,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Bob, "Bob", || generic::run_bob(&ctx))?;
     runner.execute(Step::Certbot, "Certbot", || generic::run_certbot(&ctx))?;
     runner.execute(Step::GitRepos, "Git Repositories", || git::run_git_pull(&ctx))?;
+    runner.execute(Step::ClamAvDb, "ClamAV Databases", || generic::run_freshclam(&ctx))?;
 
     if should_run_powershell {
         runner.execute(Step::Powershell, "Powershell Modules Update", || {
