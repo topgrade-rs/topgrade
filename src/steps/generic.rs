@@ -358,7 +358,7 @@ pub fn run_vscode_extensions_update(ctx: &ExecutionContext) -> Result<()> {
 
     // Vscode has update command only since 1.86 version ("january 2024" update), disable the update for prior versions
     // Use command `code --version` which returns 3 lines: version, git commit, instruction set. We parse only the first one
-    let version: Result<Version> = match Command::new("code")
+    let version: Result<Version> = match Command::new(&vscode)
         .arg("--version")
         .output_checked_utf8()?
         .stdout
@@ -389,7 +389,7 @@ pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
 
     // pipx version 1.4.0 introduced a new command argument `pipx upgrade-all --quiet`
     // (see https://pipx.pypa.io/stable/docs/#pipx-upgrade-all)
-    let version_str = Command::new("pipx")
+    let version_str = Command::new(&pipx)
         .args(["--version"])
         .output_checked_utf8()
         .map(|s| s.stdout.trim().to_owned());
@@ -404,7 +404,7 @@ pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
     let conda = require("conda")?;
 
-    let output = Command::new("conda")
+    let output = Command::new(&conda)
         .args(["config", "--show", "auto_activate_base"])
         .output_checked_utf8()?;
     debug!("Conda output: {}", output.stdout);
@@ -425,7 +425,7 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
     let mamba = require("mamba")?;
 
-    let output = Command::new("mamba")
+    let output = Command::new(&mamba)
         .args(["config", "--show", "auto_activate_base"])
         .output_checked_utf8()?;
     debug!("Mamba output: {}", output.stdout);
