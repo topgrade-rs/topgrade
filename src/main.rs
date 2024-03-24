@@ -27,7 +27,7 @@ use self::error::Upgraded;
 use self::steps::{remote::*, *};
 use self::terminal::*;
 
-use self::utils::{install_color_eyre, install_tracing, update_tracing};
+use self::utils::{hostname, install_color_eyre, install_tracing, update_tracing};
 
 mod breaking_changes;
 mod command;
@@ -182,7 +182,9 @@ fn run() -> Result<()> {
     }
 
     if let Some(topgrades) = config.remote_topgrades() {
-        for remote_topgrade in topgrades.iter().filter(|t| config.should_execute_remote(t)) {
+        let hostname_res = hostname();
+        let hostname: Option<&str> = hostname_res.as_ref().ok().map(|s| s.as_str());
+        for remote_topgrade in topgrades.iter().filter(|t| config.should_execute_remote(hostname, t)) {
             runner.execute(Step::Remotes, format!("Remote ({remote_topgrade})"), || {
                 ssh::ssh_step(&ctx, remote_topgrade)
             })?;

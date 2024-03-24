@@ -22,7 +22,7 @@ use which_crate::which;
 use super::utils::editor;
 use crate::command::CommandExt;
 use crate::sudo::SudoKind;
-use crate::utils::{hostname, string_prepend_str};
+use crate::utils::string_prepend_str;
 use tracing::{debug, error};
 
 pub static EXAMPLE_CONFIG: &str = include_str!("../config.example.toml");
@@ -1456,16 +1456,16 @@ impl Config {
     #[cfg(target_os = "linux")]
     str_value!(linux, emerge_update_flags);
 
-    pub fn should_execute_remote(&self, remote: &str) -> bool {
-        let remote_host = remote.split_once('@').map_or(remote, |(_,host)| host);
+    pub fn should_execute_remote(&self, hostname: Option<&str>, remote: &str) -> bool {
+        let remote_host = remote.split_once('@').map_or(remote, |(_, host)| host);
 
-        if let Ok(hostname) = hostname() {
+        if let Some(hostname) = hostname {
             if remote_host == hostname {
                 return false;
             }
         }
 
-        if let Some(limit) = self.opt.remote_host_limit.as_ref() {
+        if let Some(limit) = &self.opt.remote_host_limit.as_ref() {
             return limit.is_match(remote_host);
         }
 
@@ -1523,7 +1523,7 @@ impl Config {
 
 #[cfg(test)]
 mod test {
-    use crate::config::ConfigFile;
+    use crate::config::*;
 
     /// Test the default configuration in `config.example.toml` is valid.
     #[test]
@@ -1531,5 +1531,52 @@ mod test {
         let str = include_str!("../config.example.toml");
 
         assert!(toml::from_str::<ConfigFile>(str).is_ok());
+    }
+
+    fn config() -> Config {
+        Config {
+            opt: CommandLineArgs::parse_from::<_, String>([]),
+            config_file: ConfigFile::default(),
+            allowed_steps: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn test_should_execute_remote_different_hostname() {
+        assert!(config().should_execute_remote(Some("hostname"), "remote_hostname"))
+    }
+
+    #[test]
+    fn test_should_execute_remote_different_hostname_with_user() {
+        assert!(config().should_execute_remote(Some("hostname"), "user@remote_hostname"))
+    }
+
+    #[test]
+    fn test_should_execute_remote_unknown_hostname() {
+        assert!(config().should_execute_remote(None, "remote_hostname"))
+    }
+
+    #[test]
+    fn test_should_not_execute_remote_same_hostname() {
+        assert!(!config().should_execute_remote(Some("hostname"), "hostname"))
+    }
+
+    #[test]
+    fn test_should_not_execute_remote_same_hostname_with_user() {
+        assert!(!config().should_execute_remote(Some("hostname"), "user@hostname"))
+    }
+
+    #[test]
+    fn test_should_execute_remote_matching_limit() {
+        let mut config = config();
+        config.opt = CommandLineArgs::parse_from(["topgrade", "--remote-host-limit", "remote_hostname"]);
+        assert!(config.should_execute_remote(Some("hostname"), "user@remote_hostname"))
+    }
+
+    #[test]
+    fn test_should_not_execute_remote_not_matching_limit() {
+        let mut config = config();
+        config.opt = CommandLineArgs::parse_from(["topgrade", "--remote-host-limit", "other_hostname"]);
+        assert!(!config.should_execute_remote(Some("hostname"), "user@remote_hostname"))
     }
 }
