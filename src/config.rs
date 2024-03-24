@@ -477,7 +477,7 @@ impl ConfigFile {
 
         let config_directory = config_directory();
 
-        let possible_config_paths = vec![
+        let possible_config_paths = [
             config_directory.join("topgrade.toml"),
             config_directory.join("topgrade/topgrade.toml"),
         ];
