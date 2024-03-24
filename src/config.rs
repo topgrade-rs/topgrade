@@ -1457,14 +1457,16 @@ impl Config {
     str_value!(linux, emerge_update_flags);
 
     pub fn should_execute_remote(&self, remote: &str) -> bool {
+        let remote_host = remote.split_once('@').map_or(remote, |(_,host)| host);
+
         if let Ok(hostname) = hostname() {
-            if remote == hostname {
+            if remote_host == hostname {
                 return false;
             }
         }
 
         if let Some(limit) = self.opt.remote_host_limit.as_ref() {
-            return limit.is_match(remote);
+            return limit.is_match(remote_host);
         }
 
         true
