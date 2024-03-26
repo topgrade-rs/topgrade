@@ -16,8 +16,18 @@ pub fn upgrade_openbsd(ctx: &ExecutionContext) -> Result<()> {
 pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
     print_separator("OpenBSD Packages");
+
+    if ctx.config().cleanup() {
+        ctx.run_type()
+            .execute(sudo)
+            .args(["/usr/sbin/pkg_delete", "-ac"])
+            .status_checked()?;
+    }
+
     ctx.run_type()
         .execute(sudo)
         .args(["/usr/sbin/pkg_add", "-u"])
-        .status_checked()
+        .status_checked()?;
+
+    Ok(())
 }
