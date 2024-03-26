@@ -167,6 +167,8 @@
 # Extra Home Manager arguments
 # home_manager_arguments = ["--flake", "file"]
 
+# subcommand to use for apt variants != nala (dist-upgrade (default) or upgrade)
+# apt_command = "dist-upgrade"
 
 [git]
 # How many repos to pull at max in parallel
