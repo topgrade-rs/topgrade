@@ -1456,10 +1456,10 @@ impl Config {
     #[cfg(target_os = "linux")]
     str_value!(linux, emerge_update_flags);
 
-    pub fn should_execute_remote(&self, hostname: Option<&str>, remote: &str) -> bool {
+    pub fn should_execute_remote(&self, hostname: Result<String>, remote: &str) -> bool {
         let remote_host = remote.split_once('@').map_or(remote, |(_, host)| host);
 
-        if let Some(hostname) = hostname {
+        if let Ok(hostname) = hostname {
             if remote_host == hostname {
                 return false;
             }
@@ -1523,7 +1523,9 @@ impl Config {
 
 #[cfg(test)]
 mod test {
+
     use crate::config::*;
+    use color_eyre::eyre::eyre;
 
     /// Test the default configuration in `config.example.toml` is valid.
     #[test]
@@ -1543,40 +1545,40 @@ mod test {
 
     #[test]
     fn test_should_execute_remote_different_hostname() {
-        assert!(config().should_execute_remote(Some("hostname"), "remote_hostname"))
+        assert!(config().should_execute_remote(Ok("hostname".to_string()), "remote_hostname"))
     }
 
     #[test]
     fn test_should_execute_remote_different_hostname_with_user() {
-        assert!(config().should_execute_remote(Some("hostname"), "user@remote_hostname"))
+        assert!(config().should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"))
     }
 
     #[test]
     fn test_should_execute_remote_unknown_hostname() {
-        assert!(config().should_execute_remote(None, "remote_hostname"))
+        assert!(config().should_execute_remote(Err(eyre!("failed to get hostname")), "remote_hostname"))
     }
 
     #[test]
     fn test_should_not_execute_remote_same_hostname() {
-        assert!(!config().should_execute_remote(Some("hostname"), "hostname"))
+        assert!(!config().should_execute_remote(Ok("hostname".to_string()), "hostname"))
     }
 
     #[test]
     fn test_should_not_execute_remote_same_hostname_with_user() {
-        assert!(!config().should_execute_remote(Some("hostname"), "user@hostname"))
+        assert!(!config().should_execute_remote(Ok("hostname".to_string()), "user@hostname"))
     }
 
     #[test]
     fn test_should_execute_remote_matching_limit() {
         let mut config = config();
         config.opt = CommandLineArgs::parse_from(["topgrade", "--remote-host-limit", "remote_hostname"]);
-        assert!(config.should_execute_remote(Some("hostname"), "user@remote_hostname"))
+        assert!(config.should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"))
     }
 
     #[test]
     fn test_should_not_execute_remote_not_matching_limit() {
         let mut config = config();
         config.opt = CommandLineArgs::parse_from(["topgrade", "--remote-host-limit", "other_hostname"]);
-        assert!(!config.should_execute_remote(Some("hostname"), "user@remote_hostname"))
+        assert!(!config.should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"))
     }
 }

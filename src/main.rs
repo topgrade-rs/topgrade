@@ -182,9 +182,7 @@ fn run() -> Result<()> {
     }
 
     if let Some(topgrades) = config.remote_topgrades() {
-        let hostname_res = hostname();
-        let hostname: Option<&str> = hostname_res.as_ref().ok().map(|s| s.as_str());
-        for remote_topgrade in topgrades.iter().filter(|t| config.should_execute_remote(hostname, t)) {
+        for remote_topgrade in topgrades.iter().filter(|t| config.should_execute_remote(hostname(), t)) {
             runner.execute(Step::Remotes, format!("Remote ({remote_topgrade})"), || {
                 ssh::ssh_step(&ctx, remote_topgrade)
             })?;
