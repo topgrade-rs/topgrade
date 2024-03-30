@@ -298,6 +298,7 @@ fn run() -> Result<()> {
         runner.execute(Step::Guix, "guix", || unix::run_guix(&ctx))?;
         runner.execute(Step::HomeManager, "home-manager", || unix::run_home_manager(&ctx))?;
         runner.execute(Step::Asdf, "asdf", || unix::run_asdf(&ctx))?;
+        runner.execute(Step::Mise, "mise", || unix::run_mise(&ctx))?;
         runner.execute(Step::Pkgin, "pkgin", || unix::run_pkgin(&ctx))?;
         runner.execute(Step::Bun, "bun", || unix::run_bun(&ctx))?;
         runner.execute(Step::BunPackages, "bun-packages", || unix::run_bun_packages(&ctx))?;
