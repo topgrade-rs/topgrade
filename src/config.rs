@@ -106,6 +106,7 @@ pub enum Step {
     Mas,
     Maza,
     Micro,
+    Mise,
     Myrepos,
     Nix,
     Node,
