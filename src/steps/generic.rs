@@ -940,3 +940,23 @@ pub fn run_freshclam(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Update ClamAV Database(FreshClam)");
     ctx.run_type().execute(freshclam).status_checked()
 }
+
+/// Involve `pio upgrade` to update PlatformIO core.
+pub fn run_platform_io(ctx: &ExecutionContext) -> Result<()> {
+    // We use the full path because by default the binary is not in `PATH`:
+    // https://github.com/topgrade-rs/topgrade/issues/754#issuecomment-2020537559
+    #[cfg(unix)]
+    fn bin_path() -> PathBuf {
+        HOME_DIR.join(".platformio/penv/bin/pio")
+    }
+    #[cfg(windows)]
+    fn bin_path() -> PathBuf {
+        HOME_DIR.join(".platformio/penv/Scripts/pio.exe")
+    }
+
+    let bin_path = require(bin_path())?;
+
+    print_separator("PlatformIO Core");
+
+    ctx.run_type().execute(bin_path).arg("upgrade").status_checked()
+}

@@ -121,6 +121,7 @@ pub enum Step {
     Pipx,
     Pkg,
     Pkgin,
+    PlatformioCore,
     Pnpm,
     Powershell,
     Protonup,
