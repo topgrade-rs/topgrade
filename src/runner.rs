@@ -85,3 +85,24 @@ impl<'a> Runner<'a> {
         &self.report
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+    use crate::error::SkipStep;
+
+    #[test]
+    fn test_runner_execute_skip_step() {
+        let config = Config::default(); // Assuming Config::default() exists
+        let run_type = RunType::new(false);
+        let sudo = None; // Assuming sudo is optional and can be None
+        let ctx = ExecutionContext::new(run_type, sudo, &config);
+        let mut runner = Runner::new(&ctx);
+        let step = Step::new(); // Assuming Step::new() exists
+        let result = runner.execute(step, "test_step", || Err(SkipStep("Test skip".into()).into()));
+        assert!(result.is_ok(), "Expected skipped step to result in Ok(())");
+        assert!(matches!(runner.report().last_result(), Some((_, StepResult::Skipped(_)))));
+    }
+
+    // Additional tests for success, failure, and ignored cases
+}

@@ -165,3 +165,32 @@ mod test {
         all_0.parse::<Version>().unwrap();
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn test_first_run_of_major_release() {
+        let keep_file = keep_file_path();
+        fs::remove_file(&keep_file).ok(); // Ignore error if file doesn't exist
+        assert!(first_run_of_major_release().unwrap(), "Expected first run to be true for a new major release");
+        write_keep_file().unwrap();
+        assert!(!first_run_of_major_release().unwrap(), "Expected first run to be false on subsequent runs");
+    }
+
+    #[test]
+    fn test_print_breaking_changes() {
+        // Redirect stdout to capture the output
+        let mut buffer = Vec::new();
+        let stdout = std::io::stdout();
+        let mut handle = stdout.lock();
+        std::io::set_output_capture(Some(Box::new(&mut buffer)));
+
+        print_breaking_changes();
+
+        std::io::set_output_capture(None);
+        let output = String::from_utf8(buffer).unwrap();
+        assert!(output.contains("Breaking Changes"), "Expected breaking changes to be printed");
+    }
+}

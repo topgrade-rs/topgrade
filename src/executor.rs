@@ -261,3 +261,55 @@ impl CommandExt for Executor {
         self.spawn()
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::ffi::OsStr;
+
+    #[test]
+    fn test_executor_spawn_wet() {
+        let mut executor = RunType::Wet.execute("echo");
+        let child = executor.spawn().expect("Failed to spawn child process");
+        match child {
+            ExecutorChild::Wet(_) => (),
+            ExecutorChild::Dry => panic!("Expected a wet executor child"),
+        }
+    }
+
+    #[test]
+    fn test_executor_spawn_dry() {
+        let mut executor = RunType::Dry.execute("echo");
+        let child = executor.spawn().expect("Failed to spawn child process");
+        match child {
+            ExecutorChild::Dry => (),
+            ExecutorChild::Wet(_) => panic!("Expected a dry executor child"),
+        }
+    }
+
+    #[test]
+    fn test_executor_output_wet() {
+        let mut executor = RunType::Wet.execute("echo");
+        let output = executor.output().expect("Failed to get output");
+        match output {
+            ExecutorOutput::Wet(output) => assert!(!output.stdout.is_empty()),
+            ExecutorOutput::Dry => panic!("Expected a wet executor output"),
+        }
+    }
+
+    #[test]
+    fn test_executor_output_dry() {
+        let mut executor = RunType::Dry.execute("echo");
+        let output = executor.output().expect("Failed to get output");
+        match output {
+            ExecutorOutput::Dry => (),
+            ExecutorOutput::Wet(_) => panic!("Expected a dry executor output"),
+        }
+    }
+
+    #[test]
+    fn test_executor_status_checked_with_codes() {
+        let mut executor = RunType::Wet.execute("false");
+        let result = executor.status_checked_with_codes(&[1]);
+        assert!(result.is_ok(), "Expected status code 1 to be treated as success");
+    }
+}
