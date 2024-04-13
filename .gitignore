@@ -16,5 +16,8 @@
 # LLVM profiling output
 *.profraw
 
+# Aider
+.aiderignore
+
 # Backup files for any .rs files in the project
 **/*.rs.bk
