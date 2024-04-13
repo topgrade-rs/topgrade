@@ -265,6 +265,7 @@ impl CommandExt for Executor {
 mod tests {
     use super::*;
     use std::ffi::OsStr;
+    use std::process::Stdio;
 
     #[test]
     fn test_executor_arg() {

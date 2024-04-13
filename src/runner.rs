@@ -101,6 +101,8 @@ mod tests {
     use crate::execution_context::RunType;
     use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, Ordering};
 
     fn mock_execution_context() -> ExecutionContext<'static> {
         ExecutionContext::new(RunType::Dry, None, &Config::default())
