@@ -17,7 +17,7 @@
 *.profraw
 
 # Aider
-.aiderignore
+.aider*
 
 # Backup files for any .rs files in the project
 **/*.rs.bk
