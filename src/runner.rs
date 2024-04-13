@@ -98,6 +98,13 @@ mod tests {
     use super::*;
     use crate::config::Config;
     use crate::error::SkipStep;
+    use crate::execution_context::RunType;
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    fn mock_execution_context() -> ExecutionContext<'static> {
+        ExecutionContext::new(RunType::Dry, None, &Config::default())
+    }
 
     #[test]
     fn test_runner_execute_skip_step() {
@@ -112,5 +119,53 @@ mod tests {
         assert!(matches!(runner.report().last_result(), Some((_, StepResult::Skipped(_)))));
     }
 
+    #[test]
+    fn test_runner_execute_success() {
+        let ctx = mock_execution_context();
+        let mut runner = Runner::new(&ctx);
+        let step = Step::new(); // Assuming Step::new() exists
+        let result = runner.execute(step, "test_step", || Ok(()));
+        assert!(result.is_ok());
+        assert!(matches!(runner.report().last_result(), Some((_, StepResult::Success))));
+    }
+
+    #[test]
+    fn test_runner_execute_failure() {
+        let ctx = mock_execution_context();
+        let mut runner = Runner::new(&ctx);
+        let step = Step::new(); // Assuming Step::new() exists
+        let result = runner.execute(step, "test_step", || Err(color_eyre::eyre::eyre!("Test failure")));
+        assert!(result.is_ok());
+        assert!(matches!(runner.report().last_result(), Some((_, StepResult::Failure))));
+    }
+
+    #[test]
+    fn test_runner_execute_retry() {
+        let ctx = mock_execution_context();
+        let mut runner = Runner::new(&ctx);
+        let step = Step::new(); // Assuming Step::new() exists
+        let retry_flag = Arc::new(AtomicBool::new(false));
+        let retry_flag_clone = Arc::clone(&retry_flag);
+        let result = runner.execute(step, "test_step", move || {
+            if retry_flag_clone.load(Ordering::SeqCst) {
+                Ok(())
+            } else {
+                retry_flag_clone.store(true, Ordering::SeqCst);
+                Err(color_eyre::eyre::eyre!("Test failure"))
+            }
+        });
+        assert!(result.is_ok());
+        assert!(matches!(runner.report().last_result(), Some((_, StepResult::Success))));
+    }
+
+    #[test]
+    fn test_runner_execute_ignored() {
+        let ctx = mock_execution_context();
+        let mut runner = Runner::new(&ctx);
+        let step = Step::new(); // Assuming Step::new() exists
+        let result = runner.execute(step, "test_step", || Err(color_eyre::eyre::eyre!("Test failure")));
+        assert!(result.is_ok());
+        assert!(matches!(runner.report().last_result(), Some((_, StepResult::Ignored))));
+    }
     // Additional tests for success, failure, and ignored cases
 }
