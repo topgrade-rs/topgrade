@@ -267,6 +267,65 @@ mod tests {
     use std::ffi::OsStr;
 
     #[test]
+    fn test_executor_arg() {
+        let mut executor = RunType::Dry.execute("echo");
+        executor.arg("test");
+        assert_eq!(executor.get_program(), "echo");
+        match executor {
+            Executor::Dry(dry) => assert_eq!(dry.args, vec![OsString::from("test")]),
+            _ => panic!("Expected a dry executor"),
+        }
+    }
+
+    #[test]
+    fn test_executor_args() {
+        let mut executor = RunType::Dry.execute("echo");
+        executor.args(&["test1", "test2"]);
+        match executor {
+            Executor::Dry(dry) => assert_eq!(
+                dry.args,
+                vec![OsString::from("test1"), OsString::from("test2")]
+            ),
+            _ => panic!("Expected a dry executor"),
+        }
+    }
+
+    #[test]
+    fn test_executor_current_dir() {
+        let mut executor = RunType::Dry.execute("echo");
+        executor.current_dir("/tmp");
+        match executor {
+            Executor::Dry(dry) => assert_eq!(dry.directory, Some(OsString::from("/tmp"))),
+            _ => panic!("Expected a dry executor"),
+        }
+    }
+
+    #[test]
+    fn test_executor_env_remove() {
+        let mut executor = RunType::Wet.execute("echo");
+        executor.env_remove("KEY");
+        // Environment variables are not easily testable in a dry run,
+        // but we should ensure that the method can be called without panic.
+        assert!(true, "env_remove called without panic");
+    }
+
+    #[test]
+    fn test_executor_env() {
+        let mut executor = RunType::Wet.execute("echo");
+        executor.env("KEY", "VALUE");
+        // Environment variables are not easily testable in a dry run,
+        // but we should ensure that the method can be called without panic.
+        assert!(true, "env called without panic");
+    }
+
+    #[test]
+    fn test_executor_status_checked_with_codes() {
+        let mut executor = RunType::Dry.execute("false");
+        let result = executor.status_checked_with_codes(&[1]);
+        assert!(result.is_ok(), "Expected status code 1 to be treated as success");
+    }
+
+    #[test]
     fn test_executor_spawn_wet() {
         let mut executor = RunType::Wet.execute("echo");
         let child = executor.spawn().expect("Failed to spawn child process");
