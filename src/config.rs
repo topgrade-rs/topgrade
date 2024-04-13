@@ -186,9 +186,6 @@ pub struct Git {
     repos: Option<Vec<String>>,
 
     pull_predefined: Option<bool>,
-
-    // Don't show up to date repositories or pulling output. Only updated or errors will be shown.
-    verbose_output: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1366,14 +1363,6 @@ impl Config {
                 .as_ref()
                 .and_then(|git| git.pull_predefined)
                 .unwrap_or(true)
-    }
-
-    pub fn verbose_repos(&self) -> bool {
-        self.config_file
-            .git
-            .as_ref()
-            .and_then(|git| git.verbose_output)
-            .unwrap_or(true)
     }
 
     pub fn verbose(&self) -> bool {

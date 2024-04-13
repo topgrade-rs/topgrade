@@ -181,9 +181,6 @@
 # Don't pull the predefined git repos
 # pull_predefined = false
 
-# Don't show up to date repositories or pulling output. Only updated or errors will be shown.
-# verbose_output = true
-
 # Arguments to pass Git when pulling Repositories
 # arguments = "--rebase --autostash"
 

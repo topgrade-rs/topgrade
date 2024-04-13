@@ -368,10 +368,10 @@ impl RepoStep {
             return Ok(());
         }
 
-        let verbose = ctx.config().verbose_repos();
+        let verbose = ctx.config().verbose();
 
         if !verbose {
-            println!("{} updated repositories will be shown...", style("Only").green().bold());
+            println!("\n{} updated repositories will be shown...\n", style("Only").green().bold());
         }
 
         let futures_iterator = self
