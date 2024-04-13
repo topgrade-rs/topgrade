@@ -7,7 +7,6 @@ use std::process::Command;
 use color_eyre::eyre::Result;
 
 use tracing::{debug, error};
-use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::reload::{Handle, Layer};
 use tracing_subscriber::util::SubscriberInitExt;
@@ -239,10 +238,7 @@ pub fn install_tracing(filter_directives: &str) -> Result<Handle<EnvFilter, Regi
         .or_else(|_| EnvFilter::try_from_default_env())
         .or_else(|_| EnvFilter::try_new(DEFAULT_LOG_LEVEL))?;
 
-    let fmt_layer = fmt::layer()
-        .with_target(false)
-        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
-        .without_time();
+    let fmt_layer = fmt::layer().with_target(false).without_time();
 
     let (filter, reload_handle) = Layer::new(env_filter);
 

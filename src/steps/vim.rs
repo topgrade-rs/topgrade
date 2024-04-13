@@ -57,8 +57,8 @@ fn upgrade(command: &mut Executor, ctx: &ExecutionContext) -> Result<()> {
         let status = output.status;
 
         if !status.success() || ctx.config().verbose() {
-            io::stdout().write(&output.stdout).ok();
-            io::stderr().write(&output.stderr).ok();
+            io::stdout().write_all(&output.stdout).ok();
+            io::stderr().write_all(&output.stderr).ok();
         }
 
         if !status.success() {

@@ -227,6 +227,17 @@ pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(rustup).arg("update").status_checked()
 }
 
+pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
+    let elan = require("elan")?;
+
+    print_separator("elan");
+    ctx.run_type()
+        .execute(&elan)
+        .args(["self", "update"])
+        .status_checked()?;
+    ctx.run_type().execute(&elan).arg("update").status_checked()
+}
+
 pub fn run_juliaup(ctx: &ExecutionContext) -> Result<()> {
     let juliaup = require("juliaup")?;
 
@@ -347,7 +358,7 @@ pub fn run_vscode_extensions_update(ctx: &ExecutionContext) -> Result<()> {
 
     // Vscode has update command only since 1.86 version ("january 2024" update), disable the update for prior versions
     // Use command `code --version` which returns 3 lines: version, git commit, instruction set. We parse only the first one
-    let version: Result<Version> = match Command::new("code")
+    let version: Result<Version> = match Command::new(&vscode)
         .arg("--version")
         .output_checked_utf8()?
         .stdout
@@ -378,7 +389,7 @@ pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
 
     // pipx version 1.4.0 introduced a new command argument `pipx upgrade-all --quiet`
     // (see https://pipx.pypa.io/stable/docs/#pipx-upgrade-all)
-    let version_str = Command::new("pipx")
+    let version_str = Command::new(&pipx)
         .args(["--version"])
         .output_checked_utf8()
         .map(|s| s.stdout.trim().to_owned());
@@ -393,7 +404,7 @@ pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
     let conda = require("conda")?;
 
-    let output = Command::new("conda")
+    let output = Command::new(&conda)
         .args(["config", "--show", "auto_activate_base"])
         .output_checked_utf8()?;
     debug!("Conda output: {}", output.stdout);
@@ -414,7 +425,7 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
     let mamba = require("mamba")?;
 
-    let output = Command::new("mamba")
+    let output = Command::new(&mamba)
         .args(["config", "--show", "auto_activate_base"])
         .output_checked_utf8()?;
     debug!("Mamba output: {}", output.stdout);
@@ -919,4 +930,33 @@ pub fn run_certbot(ctx: &ExecutionContext) -> Result<()> {
     cmd.arg("renew");
 
     cmd.status_checked()
+}
+
+/// Run `$ freshclam` to update ClamAV signature database
+///
+/// doc: https://docs.clamav.net/manual/Usage/SignatureManagement.html#freshclam
+pub fn run_freshclam(ctx: &ExecutionContext) -> Result<()> {
+    let freshclam = require("freshclam")?;
+    print_separator("Update ClamAV Database(FreshClam)");
+    ctx.run_type().execute(freshclam).status_checked()
+}
+
+/// Involve `pio upgrade` to update PlatformIO core.
+pub fn run_platform_io(ctx: &ExecutionContext) -> Result<()> {
+    // We use the full path because by default the binary is not in `PATH`:
+    // https://github.com/topgrade-rs/topgrade/issues/754#issuecomment-2020537559
+    #[cfg(unix)]
+    fn bin_path() -> PathBuf {
+        HOME_DIR.join(".platformio/penv/bin/pio")
+    }
+    #[cfg(windows)]
+    fn bin_path() -> PathBuf {
+        HOME_DIR.join(".platformio/penv/Scripts/pio.exe")
+    }
+
+    let bin_path = require(bin_path())?;
+
+    print_separator("PlatformIO Core");
+
+    ctx.run_type().execute(bin_path).arg("upgrade").status_checked()
 }

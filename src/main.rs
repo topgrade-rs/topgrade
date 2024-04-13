@@ -27,7 +27,7 @@ use self::error::Upgraded;
 use self::steps::{remote::*, *};
 use self::terminal::*;
 
-use self::utils::{install_color_eyre, install_tracing, update_tracing};
+use self::utils::{hostname, install_color_eyre, install_tracing, update_tracing};
 
 mod breaking_changes;
 mod command;
@@ -182,7 +182,7 @@ fn run() -> Result<()> {
     }
 
     if let Some(topgrades) = config.remote_topgrades() {
-        for remote_topgrade in topgrades.iter().filter(|t| config.should_execute_remote(t)) {
+        for remote_topgrade in topgrades.iter().filter(|t| config.should_execute_remote(hostname(), t)) {
             runner.execute(Step::Remotes, format!("Remote ({remote_topgrade})"), || {
                 ssh::ssh_step(&ctx, remote_topgrade)
             })?;
@@ -298,6 +298,7 @@ fn run() -> Result<()> {
         runner.execute(Step::Guix, "guix", || unix::run_guix(&ctx))?;
         runner.execute(Step::HomeManager, "home-manager", || unix::run_home_manager(&ctx))?;
         runner.execute(Step::Asdf, "asdf", || unix::run_asdf(&ctx))?;
+        runner.execute(Step::Mise, "mise", || unix::run_mise(&ctx))?;
         runner.execute(Step::Pkgin, "pkgin", || unix::run_pkgin(&ctx))?;
         runner.execute(Step::Bun, "bun", || unix::run_bun(&ctx))?;
         runner.execute(Step::BunPackages, "bun-packages", || unix::run_bun_packages(&ctx))?;
@@ -342,6 +343,7 @@ fn run() -> Result<()> {
 
     // The following update function should be executed on all OSes.
     runner.execute(Step::Fossil, "fossil", || generic::run_fossil(&ctx))?;
+    runner.execute(Step::Elan, "elan", || generic::run_elan(&ctx))?;
     runner.execute(Step::Rustup, "rustup", || generic::run_rustup(&ctx))?;
     runner.execute(Step::Juliaup, "juliaup", || generic::run_juliaup(&ctx))?;
     runner.execute(Step::Dotnet, ".NET", || generic::run_dotnet_upgrade(&ctx))?;
@@ -404,6 +406,10 @@ fn run() -> Result<()> {
     runner.execute(Step::Bob, "Bob", || generic::run_bob(&ctx))?;
     runner.execute(Step::Certbot, "Certbot", || generic::run_certbot(&ctx))?;
     runner.execute(Step::GitRepos, "Git Repositories", || git::run_git_pull(&ctx))?;
+    runner.execute(Step::ClamAvDb, "ClamAV Databases", || generic::run_freshclam(&ctx))?;
+    runner.execute(Step::PlatformioCore, "PlatformIO Core", || {
+        generic::run_platform_io(&ctx)
+    })?;
 
     if should_run_powershell {
         runner.execute(Step::Powershell, "Powershell Modules Update", || {

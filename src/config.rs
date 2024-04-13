@@ -22,7 +22,7 @@ use which_crate::which;
 use super::utils::editor;
 use crate::command::CommandExt;
 use crate::sudo::SudoKind;
-use crate::utils::{hostname, string_prepend_str};
+use crate::utils::string_prepend_str;
 use tracing::{debug, error};
 
 pub static EXAMPLE_CONFIG: &str = include_str!("../config.example.toml");
@@ -65,6 +65,7 @@ pub enum Step {
     Chezmoi,
     Chocolatey,
     Choosenim,
+    ClamAvDb,
     Composer,
     Conda,
     ConfigUpdate,
@@ -75,6 +76,7 @@ pub enum Step {
     Distrobox,
     DkpPacman,
     Dotnet,
+    Elan,
     Emacs,
     Firmware,
     Flatpak,
@@ -104,6 +106,7 @@ pub enum Step {
     Mas,
     Maza,
     Micro,
+    Mise,
     Myrepos,
     Nix,
     Node,
@@ -118,6 +121,7 @@ pub enum Step {
     Pipx,
     Pkg,
     Pkgin,
+    PlatformioCore,
     Pnpm,
     Powershell,
     Protonup,
@@ -475,7 +479,7 @@ impl ConfigFile {
 
         let config_directory = config_directory();
 
-        let possible_config_paths = vec![
+        let possible_config_paths = [
             config_directory.join("topgrade.toml"),
             config_directory.join("topgrade/topgrade.toml"),
         ];
@@ -1454,15 +1458,17 @@ impl Config {
     #[cfg(target_os = "linux")]
     str_value!(linux, emerge_update_flags);
 
-    pub fn should_execute_remote(&self, remote: &str) -> bool {
-        if let Ok(hostname) = hostname() {
-            if remote == hostname {
+    pub fn should_execute_remote(&self, hostname: Result<String>, remote: &str) -> bool {
+        let remote_host = remote.split_once('@').map_or(remote, |(_, host)| host);
+
+        if let Ok(hostname) = hostname {
+            if remote_host == hostname {
                 return false;
             }
         }
 
-        if let Some(limit) = self.opt.remote_host_limit.as_ref() {
-            return limit.is_match(remote);
+        if let Some(limit) = &self.opt.remote_host_limit.as_ref() {
+            return limit.is_match(remote_host);
         }
 
         true
@@ -1519,7 +1525,9 @@ impl Config {
 
 #[cfg(test)]
 mod test {
-    use crate::config::ConfigFile;
+
+    use crate::config::*;
+    use color_eyre::eyre::eyre;
 
     /// Test the default configuration in `config.example.toml` is valid.
     #[test]
@@ -1527,5 +1535,52 @@ mod test {
         let str = include_str!("../config.example.toml");
 
         assert!(toml::from_str::<ConfigFile>(str).is_ok());
+    }
+
+    fn config() -> Config {
+        Config {
+            opt: CommandLineArgs::parse_from::<_, String>([]),
+            config_file: ConfigFile::default(),
+            allowed_steps: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn test_should_execute_remote_different_hostname() {
+        assert!(config().should_execute_remote(Ok("hostname".to_string()), "remote_hostname"))
+    }
+
+    #[test]
+    fn test_should_execute_remote_different_hostname_with_user() {
+        assert!(config().should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"))
+    }
+
+    #[test]
+    fn test_should_execute_remote_unknown_hostname() {
+        assert!(config().should_execute_remote(Err(eyre!("failed to get hostname")), "remote_hostname"))
+    }
+
+    #[test]
+    fn test_should_not_execute_remote_same_hostname() {
+        assert!(!config().should_execute_remote(Ok("hostname".to_string()), "hostname"))
+    }
+
+    #[test]
+    fn test_should_not_execute_remote_same_hostname_with_user() {
+        assert!(!config().should_execute_remote(Ok("hostname".to_string()), "user@hostname"))
+    }
+
+    #[test]
+    fn test_should_execute_remote_matching_limit() {
+        let mut config = config();
+        config.opt = CommandLineArgs::parse_from(["topgrade", "--remote-host-limit", "remote_hostname"]);
+        assert!(config.should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"))
+    }
+
+    #[test]
+    fn test_should_not_execute_remote_not_matching_limit() {
+        let mut config = config();
+        config.opt = CommandLineArgs::parse_from(["topgrade", "--remote-host-limit", "other_hostname"]);
+        assert!(!config.should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"))
     }
 }
