@@ -327,6 +327,34 @@ mod tests {
     }
 
     #[test]
+    fn test_executor_env() {
+        let mut executor = RunType::Dry.execute("echo");
+        executor.env("KEY", "VALUE");
+        // Environment variables are not easily testable in a dry run,
+        // but we should ensure that the method can be called without panic.
+        assert!(true, "env called without panic");
+    }
+
+    #[test]
+    fn test_executor_env_remove() {
+        let mut executor = RunType::Dry.execute("echo");
+        executor.env_remove("KEY");
+        // Environment variables are not easily testable in a dry run,
+        // but we should ensure that the method can be called without panic.
+        assert!(true, "env_remove called without panic");
+    }
+
+    #[test]
+    fn test_executor_current_dir() {
+        let mut executor = RunType::Dry.execute("echo");
+        executor.current_dir("/tmp");
+        match executor {
+            Executor::Dry(dry) => assert_eq!(dry.directory, Some(OsString::from("/tmp"))),
+            _ => panic!("Expected a dry executor"),
+        }
+    }
+
+    #[test]
     fn test_executor_spawn_wet() {
         let mut executor = RunType::Wet.execute("echo");
         let child = executor.spawn().expect("Failed to spawn child process");

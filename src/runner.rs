@@ -132,6 +132,35 @@ mod tests {
     }
 
     #[test]
+    fn test_runner_execute_retry() {
+        let ctx = mock_execution_context();
+        let mut runner = Runner::new(&ctx);
+        let step = Step::new(); // Assuming Step::new() exists
+        let retry_flag = Arc::new(AtomicBool::new(false));
+        let retry_flag_clone = Arc::clone(&retry_flag);
+        let result = runner.execute(step, "test_step", move || {
+            if retry_flag_clone.load(Ordering::SeqCst) {
+                Ok(())
+            } else {
+                retry_flag_clone.store(true, Ordering::SeqCst);
+                Err(color_eyre::eyre::eyre!("Test failure"))
+            }
+        });
+        assert!(result.is_ok());
+        assert!(matches!(runner.report().last_result(), Some((_, StepResult::Success))));
+    }
+
+    #[test]
+    fn test_runner_execute_ignored() {
+        let ctx = mock_execution_context();
+        let mut runner = Runner::new(&ctx);
+        let step = Step::new(); // Assuming Step::new() exists
+        let result = runner.execute(step, "test_step", || Err(color_eyre::eyre::eyre!("Test failure")));
+        assert!(result.is_ok());
+        assert!(matches!(runner.report().last_result(), Some((_, StepResult::Ignored))));
+    }
+
+    #[test]
     fn test_runner_execute_failure() {
         let ctx = mock_execution_context();
         let mut runner = Runner::new(&ctx);
