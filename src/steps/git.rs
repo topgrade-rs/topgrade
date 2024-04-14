@@ -292,10 +292,10 @@ impl RepoStep {
     }
 
     /// Try to pull a repo.
-    async fn pull_repo<P: AsRef<Path>>(&self, ctx: &ExecutionContext<'_>, repo: P, verbose: bool) -> Result<()> {
+    async fn pull_repo<P: AsRef<Path>>(&self, ctx: &ExecutionContext<'_>, repo: P) -> Result<()> {
         let before_revision = get_head_revision(&self.git, &repo);
 
-        if verbose {
+        if ctx.config().verbose() {
             println!("{} {}", style("Pulling").cyan().bold(), repo.as_ref().display());
         }
 
@@ -344,7 +344,7 @@ impl RepoStep {
                     println!();
                 }
                 _ => {
-                    if verbose {
+                    if ctx.config().verbose() {
                         println!("{} {}", style("Up-to-date").green().bold(), repo.as_ref().display());
                     }
                 }
@@ -368,10 +368,11 @@ impl RepoStep {
             return Ok(());
         }
 
-        let verbose = ctx.config().verbose();
-
-        if !verbose {
-            println!("\n{} updated repositories will be shown...\n", style("Only").green().bold());
+        if !ctx.config().verbose() {
+            println!(
+                "\n{} updated repositories will be shown...\n",
+                style("Only").green().bold()
+            );
         }
 
         let futures_iterator = self
@@ -388,7 +389,7 @@ impl RepoStep {
                 }
                 _ => true, // repo has remotes or command to check for remotes has failed. proceed to pull anyway.
             })
-            .map(|repo| self.pull_repo(ctx, repo, verbose));
+            .map(|repo| self.pull_repo(ctx, repo));
 
         let stream_of_futures = if let Some(limit) = ctx.config().git_concurrency_limit() {
             iter(futures_iterator).buffer_unordered(limit).boxed()
