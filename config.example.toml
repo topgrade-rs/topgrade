@@ -109,7 +109,7 @@
 # greedy_cask = true
 
 # For the BrewCask step
-# If `Repo Cask Upgrade` does not exist, then use the `--greedy_latest` optoin.
+# If `Repo Cask Upgrade` does not exist, then use the `--greedy_latest` option.
 # NOTE: the above entry `greedy_cask` contains this entry, though you can enable
 # both of them, they won't clash with each other.
 # greedy_latest = true

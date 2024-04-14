@@ -295,7 +295,9 @@ impl RepoStep {
     async fn pull_repo<P: AsRef<Path>>(&self, ctx: &ExecutionContext<'_>, repo: P) -> Result<()> {
         let before_revision = get_head_revision(&self.git, &repo);
 
-        println!("{} {}", style("Pulling").cyan().bold(), repo.as_ref().display());
+        if ctx.config().verbose() {
+            println!("{} {}", style("Pulling").cyan().bold(), repo.as_ref().display());
+        }
 
         let mut command = AsyncCommand::new(&self.git);
 
@@ -326,7 +328,7 @@ impl RepoStep {
 
             match (&before_revision, &after_revision) {
                 (Some(before), Some(after)) if before != after => {
-                    println!("{} {}:", style("Changed").yellow().bold(), repo.as_ref().display());
+                    println!("{} {}", style("Changed").yellow().bold(), repo.as_ref().display());
 
                     Command::new(&self.git)
                         .stdin(Stdio::null())
@@ -342,7 +344,9 @@ impl RepoStep {
                     println!();
                 }
                 _ => {
-                    println!("{} {}", style("Up-to-date").green().bold(), repo.as_ref().display());
+                    if ctx.config().verbose() {
+                        println!("{} {}", style("Up-to-date").green().bold(), repo.as_ref().display());
+                    }
                 }
             }
         }
@@ -362,6 +366,13 @@ impl RepoStep {
                 .for_each(|repo| println!("Would pull {}", repo.display()));
 
             return Ok(());
+        }
+
+        if !ctx.config().verbose() {
+            println!(
+                "\n{} updated repositories will be shown...\n",
+                style("Only").green().bold()
+            );
         }
 
         let futures_iterator = self
