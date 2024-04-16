@@ -62,6 +62,7 @@ impl Distribution {
                         || variant.contains(&"Kinoite")
                         || variant.contains(&"Sericea")
                         || variant.contains(&"Onyx")
+                        || variant.contains(&"IoT")
                     {
                         Ok(Distribution::FedoraImmutable)
                     } else {
@@ -1142,6 +1143,7 @@ mod tests {
         test_template(include_str!("os_release/fedorakinoite"), Distribution::FedoraImmutable);
         test_template(include_str!("os_release/fedoraonyx"), Distribution::FedoraImmutable);
         test_template(include_str!("os_release/fedorasericea"), Distribution::FedoraImmutable);
+        test_template(include_str!("os_release/fedoraiot"), Distribution::FedoraImmutable);
     }
 
     #[test]
