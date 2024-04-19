@@ -49,7 +49,7 @@ impl Sudo {
         let mut cmd = ctx.run_type().execute(self);
         match self.kind {
             SudoKind::Doas => {
-                // `doas` doesn't have anything like `sudo -v` to cache credentials,
+                // `doas` doesn't have anything like `sudo -vT 0` to cache credentials,
                 // so we just execute a dummy `echo` command so we have something
                 // unobtrusive to run.
                 // See: https://man.openbsd.org/doas
@@ -62,7 +62,13 @@ impl Sudo {
                 //   if necessary.  For the sudoers plugin, this extends the sudo
                 //   timeout for another 5 minutes by default, but does not run a
                 //   command.  Not all security policies support cached credentials.
-                cmd.arg("-v");
+                //   -T timeout, --command-timeout=timeout
+                // Used  to set a timeout for the command.  If the timeout expires before the command has
+                // exited, the command will be terminated.  The security policy may restrict  the  user's
+                // ability  to set timeouts.  The sudoers policy requires that user-specified timeouts be
+                // explicitly enabled.
+
+                cmd.arg("-vT -1");
             }
             SudoKind::Gsudo => {
                 // Shows current user, cache and console status.
