@@ -773,6 +773,7 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
         }
     };
 
+    let mut in_header = true;
     let mut packages = output
         .stdout
         .lines()
@@ -780,11 +781,17 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
         //
         // Package Id      Version      Commands
         // -------------------------------------
-        //
-        // One thing to note is that .NET SDK respect locale, which means this
-        // header can be printed in languages other than English, do NOT use it
-        // to do any check.
-        .skip(2)
+        .skip_while(|line| {
+            // The .NET SDK respects locale, so the header can be printed
+            // in languages other than English. The separator should hopefully
+            // always be at least 10 -'s long.
+            if in_header && line.starts_with("----------") {
+                in_header = false;
+                true
+            } else {
+                in_header
+            }
+        })
         .filter(|line| !line.is_empty())
         .peekable();
 
