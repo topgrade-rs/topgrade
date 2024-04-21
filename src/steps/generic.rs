@@ -1008,3 +1008,12 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Poetry");
     ctx.run_type().execute(poetry).args(["self", "update"]).status_checked()
 }
+
+/// Involve `zvm upgrade` to update ZVM
+pub fn run_zvm(ctx: &ExecutionContext) -> Result<()> {
+    let zvm = require("zvm")?;
+
+    print_separator("ZVM");
+
+    ctx.run_type().execute(zvm).arg("upgrade").status_checked()
+}

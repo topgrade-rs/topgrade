@@ -163,6 +163,7 @@ pub enum Step {
     Xcodes,
     Yadm,
     Yarn,
+    Zvm,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
