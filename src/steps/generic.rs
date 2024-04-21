@@ -967,3 +967,12 @@ pub fn run_platform_io(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.run_type().execute(bin_path).arg("upgrade").status_checked()
 }
+
+/// Involve `zvm upgrade` to update ZVM
+pub fn run_zvm(ctx: &ExecutionContext) -> Result<()> {
+    let zvm = require("zvm")?;
+
+    print_separator("ZVM");
+
+    ctx.run_type().execute(zvm).arg("upgrade").status_checked()
+}
