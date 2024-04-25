@@ -207,7 +207,7 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
         powershell.windows_update(ctx)
     } else {
         print_warning(
-            "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."
+            "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported.",
         );
 
         Err(SkipStep("USOClient not supported.".to_string()).into())
