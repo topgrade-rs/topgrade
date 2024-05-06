@@ -354,7 +354,9 @@ pub fn run_vscode_extensions_update(ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep(String::from("Should not run in WSL")).into());
     }
 
-    let vscode = require("code")?;
+    let vscode = require("code").or_else(
+        |_| require("codium")
+    )?;
 
     // Vscode has update command only since 1.86 version ("january 2024" update), disable the update for prior versions
     // Use command `code --version` which returns 3 lines: version, git commit, instruction set. We parse only the first one
