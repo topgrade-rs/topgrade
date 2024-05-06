@@ -151,6 +151,7 @@ pub enum Step {
     Vagrant,
     Vcpkg,
     Vim,
+    #[serde(alias="vscodium")]
     Vscode,
     Waydroid,
     Winget,
