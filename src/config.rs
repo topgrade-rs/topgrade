@@ -488,7 +488,7 @@ impl ConfigFile {
         for path in possible_config_paths.iter() {
             if path.exists() {
                 debug!("Configuration at {}", path.display());
-                res.0 = path.clone();
+                res.0.clone_from(path);
                 break;
             }
         }
@@ -497,7 +497,7 @@ impl ConfigFile {
 
         // If no config file exists, create a default one in the config directory
         if !res.0.exists() && res.1.is_empty() {
-            res.0 = possible_config_paths[0].clone();
+            res.0.clone_from(&possible_config_paths[0]);
             debug!("No configuration exists");
             write(&res.0, EXAMPLE_CONFIG).map_err(|e| {
                 debug!(
