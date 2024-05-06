@@ -1,6 +1,6 @@
 ## Contributing to `topgrade`
 
-Thank you for your interest in contributing to `topgrade`! 
+Thank you for your interest in contributing to `topgrade`!
 We welcome and encourage contributions of all kinds, such as:
 
 1. Issue reports or feature requests
@@ -13,9 +13,9 @@ for commit messages.
 ## Adding a new `step`
 
 In `topgrade`'s term, package manager is called `step`.
-To add a new `step` to `topgrade`: 
+To add a new `step` to `topgrade`:
 
-1. Add a new variant to 
+1. Add a new variant to
    [`enum Step`](https://github.com/topgrade-rs/topgrade/blob/cb7adc8ced8a77addf2cb051d18bba9f202ab866/src/config.rs#L100)
 
    ```rust
@@ -55,9 +55,9 @@ To add a new `step` to `topgrade`:
    ```
 
    Such a update function would be conventionally named `run_xxx()`, where `xxx`
-   is the name of the new step, and it should take a argument of type 
+   is the name of the new step, and it should take a argument of type
    `&ExecutionContext`, this is adequate for most cases unless some extra stuff is
-   needed (You can find some examples where extra arguments are needed 
+   needed (You can find some examples where extra arguments are needed
    [here](https://github.com/topgrade-rs/topgrade/blob/7e48c5dedcfd5d0124bb9f39079a03e27ed23886/src/main.rs#L201-L219)).
 
    Update function would usually do 3 things:
@@ -90,8 +90,8 @@ To add a new `step` to `topgrade`:
 
 ## Modification to the configuration entries
 
-If your PR has the configuration options 
-(in [`src/config.rs`](https://github.com/topgrade-rs/topgrade/blob/master/src/config.rs)) 
+If your PR has the configuration options
+(in [`src/config.rs`](https://github.com/topgrade-rs/topgrade/blob/master/src/config.rs))
 modified:
 
 1. Adding new options
@@ -148,5 +148,5 @@ Don't worry about other platforms, we have most of them covered in our CI.
    ```
 
    If `xxx` respects locale, then the above code should work on English system,
-   on a system that does not use English, e.g., it uses Chinese, that `"help"` may be 
+   on a system that does not use English, e.g., it uses Chinese, that `"help"` may be
    translated to `"帮助"`, and the above code won't work.
