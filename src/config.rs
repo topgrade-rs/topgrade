@@ -123,6 +123,7 @@ pub enum Step {
     Pkgin,
     PlatformioCore,
     Pnpm,
+    Poetry,
     Powershell,
     Protonup,
     Pyenv,

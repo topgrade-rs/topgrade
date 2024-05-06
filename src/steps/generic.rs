@@ -967,3 +967,9 @@ pub fn run_platform_io(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.run_type().execute(bin_path).arg("upgrade").status_checked()
 }
+
+pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
+    let poetry = require("poetry")?;
+    print_separator("Poetry");
+    ctx.run_type().execute(poetry).args(["self", "update"]).status_checked()
+}
