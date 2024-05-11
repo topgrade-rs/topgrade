@@ -1,5 +1,6 @@
 #![allow(unused_imports)]
 
+use std::fs::File;
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, path::Path};
@@ -8,9 +9,12 @@ use std::{fs, io::Write};
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use semver::Version;
+use semver::{Version, VersionReq};
+use serde_json::Value;
 use tempfile::tempfile_in;
+use tracing::instrument::WithSubscriber;
 use tracing::{debug, error};
+use tracing_subscriber::fmt::writer::MakeWriterExt;
 
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
@@ -54,6 +58,22 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep(format!("{} exists but empty", &toml_file.display())).into());
     }
 
+    let required = VersionReq::parse(">=1.77.0").unwrap();
+
+    let version = Command::new("cargo").arg("--version").output_checked_utf8()?.stdout;
+
+    let version = version
+        .split_whitespace()
+        .nth(1)
+        .ok_or(SkipStep(format!("cargo --version output is malformed: {version}")))?;
+    debug!("{version}");
+
+    let version = Version::parse(version)?;
+
+    if required.matches(&version) {
+        return manual_cargo_updates(cargo_dir.join(".crates2.json").require()?);
+    }
+
     print_separator("Cargo");
     let cargo_update = require("cargo-install-update")
         .ok()
@@ -88,6 +108,64 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn manual_cargo_updates(crates_json: PathBuf) -> Result<()> {
+    let file = File::open(crates_json)?;
+    let value: Value = serde_json::from_reader(file)?;
+
+    let crate_map = value
+        .get("installs")
+        .ok_or(SkipStep("Improper .crates2.json".to_string()))?;
+
+    let mut install_command = Command::new("cargo");
+    install_command.arg("install");
+
+    let mut feature_packages = Vec::new();
+
+    match crate_map {
+        Value::Object(object) => {
+            for (package, meta) in object {
+                let to_install = package.contains("registry");
+                let package = package.split_whitespace().next().unwrap();
+                if to_install
+                    && !meta["no_default_features"].as_bool().unwrap()
+                    && !meta["all_features"].as_bool().unwrap()
+                    && meta["features"].as_array().unwrap().is_empty()
+                {
+                    install_command.arg(package);
+                } else if to_install {
+                    feature_packages.push((
+                        package,
+                        meta["all_features"].as_bool().unwrap(),
+                        meta["no_default_features"].as_bool().unwrap(),
+                        meta["features"].as_array().unwrap(),
+                    ));
+                }
+            }
+        }
+        _ => {
+            return Err(SkipStep("Improper .crates2.json".to_string()).into());
+        }
+    }
+    println!("{feature_packages:?}");
+
+    for (package, all_features, no_default, feature) in feature_packages {
+        let feature: Vec<_> = feature.iter().map(|feat| feat.as_str().unwrap()).collect();
+        let mut command = Command::new("cargo");
+        command.args(["install", package]);
+        if all_features {
+            command.arg("--all-features");
+        }
+        if no_default {
+            command.arg("--no-default-features");
+        }
+        command.arg("--features");
+        command.args(feature);
+
+        command.status_checked()?;
+    }
+    install_command.status_checked()
 }
 
 pub fn run_flutter_upgrade(ctx: &ExecutionContext) -> Result<()> {
