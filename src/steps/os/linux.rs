@@ -48,7 +48,7 @@ impl Distribution {
         let section = os_release.general_section();
         let id = section.get("ID");
         let name = section.get("NAME");
-        let variant: Option<Vec<&str>> = section.get("VARIANT").map(|s| s.split_whitespace().collect());
+        let variant = section.get("VARIANT");
         let id_like: Option<Vec<&str>> = section.get("ID_LIKE").map(|s| s.split_whitespace().collect());
 
         Ok(match id {
@@ -58,15 +58,9 @@ impl Distribution {
             Some("clear-linux-os") => Distribution::ClearLinux,
             Some("fedora") => {
                 return if let Some(variant) = variant {
-                    if variant.contains(&"Silverblue")
-                        || variant.contains(&"Kinoite")
-                        || variant.contains(&"Sericea")
-                        || variant.contains(&"Onyx")
-                        || variant.contains(&"IoT")
-                    {
-                        Ok(Distribution::FedoraImmutable)
-                    } else {
-                        Ok(Distribution::Fedora)
+                    match variant {
+                        "Silverblue" | "Kinoite" | "Sericea" | "Onyx" | "IoT Edition" | "Sway Atomic" => Ok(Distribution::FedoraImmutable),
+                        _ => Ok(Distribution::Fedora)
                     }
                 } else {
                     Ok(Distribution::Fedora)
@@ -1144,6 +1138,7 @@ mod tests {
         test_template(include_str!("os_release/fedoraonyx"), Distribution::FedoraImmutable);
         test_template(include_str!("os_release/fedorasericea"), Distribution::FedoraImmutable);
         test_template(include_str!("os_release/fedoraiot"), Distribution::FedoraImmutable);
+        test_template(include_str!("os_release/fedoraswayatomic"), Distribution::FedoraImmutable);
     }
 
     #[test]
