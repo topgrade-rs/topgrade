@@ -59,8 +59,10 @@ impl Distribution {
             Some("fedora") => {
                 return if let Some(variant) = variant {
                     match variant {
-                        "Silverblue" | "Kinoite" | "Sericea" | "Onyx" | "IoT Edition" | "Sway Atomic" => Ok(Distribution::FedoraImmutable),
-                        _ => Ok(Distribution::Fedora)
+                        "Silverblue" | "Kinoite" | "Sericea" | "Onyx" | "IoT Edition" | "Sway Atomic" => {
+                            Ok(Distribution::FedoraImmutable)
+                        }
+                        _ => Ok(Distribution::Fedora),
                     }
                 } else {
                     Ok(Distribution::Fedora)
@@ -1138,7 +1140,10 @@ mod tests {
         test_template(include_str!("os_release/fedoraonyx"), Distribution::FedoraImmutable);
         test_template(include_str!("os_release/fedorasericea"), Distribution::FedoraImmutable);
         test_template(include_str!("os_release/fedoraiot"), Distribution::FedoraImmutable);
-        test_template(include_str!("os_release/fedoraswayatomic"), Distribution::FedoraImmutable);
+        test_template(
+            include_str!("os_release/fedoraswayatomic"),
+            Distribution::FedoraImmutable,
+        );
     }
 
     #[test]
