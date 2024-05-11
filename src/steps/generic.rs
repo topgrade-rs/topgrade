@@ -12,9 +12,7 @@ use color_eyre::eyre::Result;
 use semver::{Version, VersionReq};
 use serde_json::Value;
 use tempfile::tempfile_in;
-use tracing::instrument::WithSubscriber;
 use tracing::{debug, error};
-use tracing_subscriber::fmt::writer::MakeWriterExt;
 
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
