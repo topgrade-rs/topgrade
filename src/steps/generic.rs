@@ -146,7 +146,6 @@ fn manual_cargo_updates(crates_json: PathBuf) -> Result<()> {
             return Err(SkipStep("Improper .crates2.json".to_string()).into());
         }
     }
-    println!("{feature_packages:?}");
 
     for (package, all_features, no_default, feature) in feature_packages {
         let feature: Vec<_> = feature.iter().map(|feat| feat.as_str().unwrap()).collect();
