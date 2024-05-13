@@ -133,6 +133,7 @@ pub enum Step {
     Rtcl,
     RubyGems,
     Rustup,
+    Rye,
     Scoop,
     Sdkman,
     SelfUpdate,

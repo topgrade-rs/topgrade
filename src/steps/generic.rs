@@ -227,6 +227,13 @@ pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(rustup).arg("update").status_checked()
 }
 
+pub fn run_rye(ctx: &ExecutionContext) -> Result<()> {
+    let rye = require("rye")?;
+
+    print_separator("Rye");
+    ctx.run_type().execute(rye).args(["self", "update"]).status_checked()
+}
+
 pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
     let elan = require("elan")?;
 
