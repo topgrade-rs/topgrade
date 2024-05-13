@@ -224,6 +224,10 @@ pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
     let rustup = require("rustup")?;
 
     print_separator("rustup");
+    ctx.run_type()
+        .execute(rustup)
+        .args(["self", "update"])
+        .status_checked()?;
     ctx.run_type().execute(rustup).arg("update").status_checked()
 }
 
