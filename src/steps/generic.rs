@@ -225,10 +225,10 @@ pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("rustup");
     ctx.run_type()
-        .execute(rustup)
+        .execute(&rustup)
         .args(["self", "update"])
         .status_checked()?;
-    ctx.run_type().execute(rustup).arg("update").status_checked()
+    ctx.run_type().execute(&rustup).arg("update").status_checked()
 }
 
 pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
