@@ -235,6 +235,7 @@ fn run() -> Result<()> {
         })?;
         runner.execute(Step::Lure, "LURE", || linux::run_lure_update(&ctx))?;
         runner.execute(Step::Waydroid, "Waydroid", || linux::run_waydroid(&ctx))?;
+        runner.execute(Step::AutoCpufreq, "auto-cpufreq", || linux::run_auto_cpufreq(&ctx))?;
     }
 
     #[cfg(target_os = "macos")]
