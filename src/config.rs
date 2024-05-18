@@ -54,6 +54,7 @@ pub enum Step {
     Asdf,
     Atom,
     Audit,
+    AutoCpufreq,
     Bin,
     Bob,
     BrewCask,

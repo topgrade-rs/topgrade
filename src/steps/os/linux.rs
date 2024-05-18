@@ -1062,6 +1062,19 @@ pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
+pub fn run_auto_cpufreq(ctx: &ExecutionContext) -> Result<()> {
+    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let auto_cpu_freq = require("auto-cpufreq")?;
+
+    print_separator("auto-cpufreq");
+
+    ctx.run_type()
+        .execute(sudo)
+        .arg(auto_cpu_freq)
+        .arg("--update")
+        .status_checked()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
