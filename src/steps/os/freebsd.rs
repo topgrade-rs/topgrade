@@ -8,7 +8,7 @@ use std::process::Command;
 
 pub fn upgrade_freebsd(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
-    print_separator("FreeBSD Update");
+    print_separator(t!("FreeBSD Update"));
     ctx.run_type()
         .execute(sudo)
         .args(["/usr/sbin/freebsd-update", "fetch", "install"])
@@ -17,7 +17,7 @@ pub fn upgrade_freebsd(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
-    print_separator("FreeBSD Packages");
+    print_separator(t!("FreeBSD Packages"));
 
     let mut command = ctx.run_type().execute(sudo);
 
@@ -31,7 +31,7 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
 pub fn audit_packages(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
 
-    print_separator("FreeBSD Audit");
+    print_separator(t!("FreeBSD Audit"));
 
     Command::new(sudo)
         .args(["/usr/sbin/pkg", "audit", "-Fr"])

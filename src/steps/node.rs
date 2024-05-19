@@ -9,6 +9,7 @@ use crate::HOME_DIR;
 use color_eyre::eyre::Result;
 #[cfg(target_os = "linux")]
 use nix::unistd::Uid;
+use rust_i18n::t;
 use semver::Version;
 use tracing::debug;
 
@@ -214,7 +215,7 @@ fn should_use_sudo_yarn(yarn: &Yarn, ctx: &ExecutionContext) -> Result<bool> {
 pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let npm = require("npm").map(|b| NPM::new(b, NPMVariant::Npm))?;
 
-    print_separator("Node Package Manager");
+    print_separator(t!("Node Package Manager"));
 
     #[cfg(target_os = "linux")]
     {
@@ -230,7 +231,7 @@ pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_pnpm_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let pnpm = require("pnpm").map(|b| NPM::new(b, NPMVariant::Pnpm))?;
 
-    print_separator("Performant Node Package Manager");
+    print_separator(t!("Performant Node Package Manager"));
 
     #[cfg(target_os = "linux")]
     {
@@ -247,11 +248,11 @@ pub fn run_yarn_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let yarn = require("yarn").map(Yarn::new)?;
 
     if !yarn.has_global_subcmd() {
-        debug!("Yarn is 2.x or above, skipping global upgrade");
+        debug!("{}", t!("Yarn is 2.x or above, skipping global upgrade"));
         return Ok(());
     }
 
-    print_separator("Yarn Package Manager");
+    print_separator(t!("Yarn Package Manager"));
 
     #[cfg(target_os = "linux")]
     {
@@ -269,7 +270,7 @@ pub fn deno_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let deno_dir = HOME_DIR.join(".deno");
 
     if !deno.canonicalize()?.is_descendant_of(&deno_dir) {
-        let skip_reason = SkipStep("Deno installed outside of .deno directory".to_string());
+        let skip_reason = SkipStep(t!("Deno installed outside of .deno directory").to_string());
         return Err(skip_reason.into());
     }
 

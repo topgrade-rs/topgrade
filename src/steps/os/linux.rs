@@ -133,7 +133,7 @@ impl Distribution {
     }
 
     pub fn upgrade(self, ctx: &ExecutionContext) -> Result<()> {
-        print_separator("System update");
+        print_separator(t!("System update"));
 
         match self {
             Distribution::Alpine => upgrade_alpine_linux(ctx),
@@ -178,17 +178,17 @@ fn update_bedrock(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(sudo).args(["brl", "update"]);
 
     let output = Command::new("brl").arg("list").output_checked_utf8()?;
-    debug!("brl list: {:?} {:?}", output.stdout, output.stderr);
+    debug!("{}", t!("brl list: {output_stdout} {output_stderr}", output_stdout=format!("{output.stdout:?}"), output_stderr=format!("{output.stderr:?}")));
 
     for distribution in output.stdout.trim().lines() {
-        debug!("Bedrock distribution {}", distribution);
+        debug!("{}", t!("Bedrock distribution {distribution}", distribution=distribution));
         match distribution {
             "arch" => archlinux::upgrade_arch_linux(ctx)?,
             "debian" | "ubuntu" | "linuxmint" => upgrade_debian(ctx)?,
             "centos" | "fedora" => upgrade_redhat(ctx)?,
             "bedrock" => upgrade_bedrock_strata(ctx)?,
             _ => {
-                warn!("Unknown distribution {}", distribution);
+                warn!("{}", t!("Unknown distribution {distribution}", distribution=distribution));
             }
         }
     }
@@ -451,7 +451,7 @@ fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
             .status_checked()?;
     }
 
-    println!("Syncing portage");
+    println!(t!("Syncing portage"));
     run_type
         .execute(sudo)
         .args(["emerge", "--sync"])
@@ -771,7 +771,7 @@ fn upgrade_neon(ctx: &ExecutionContext) -> Result<()> {
 ///    alternative
 fn should_skip_needrestart() -> Result<()> {
     let distribution = Distribution::detect()?;
-    let msg = "needrestart will be ran by the package manager";
+    let msg = t!("needrestart will be ran by the package manager");
 
     if distribution.redhat_based() {
         return Err(SkipStep(String::from(msg)).into());
@@ -811,7 +811,7 @@ pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
 
     should_skip_needrestart()?;
 
-    print_separator("Check for needed restarts");
+    print_separator(t!("Check for needed restarts"));
 
     ctx.run_type().execute(sudo).arg(needrestart).status_checked()?;
 
@@ -822,10 +822,10 @@ pub fn run_fwupdmgr(ctx: &ExecutionContext) -> Result<()> {
     let fwupdmgr = require("fwupdmgr")?;
 
     if is_wsl()? {
-        return Err(SkipStep(String::from("Should not run in WSL")).into());
+        return Err(SkipStep(t!("Should not run in WSL")).into());
     }
 
-    print_separator("Firmware upgrades");
+    print_separator(t!("Firmware upgrades"));
 
     ctx.run_type()
         .execute(&fwupdmgr)
@@ -867,7 +867,7 @@ pub fn run_flatpak(ctx: &ExecutionContext) -> Result<()> {
         run_type.execute(&flatpak).args(&cleanup_args).status_checked()?;
     }
 
-    print_separator("Flatpak System Packages");
+    print_separator(t!("Flatpak System Packages"));
     if ctx.config().flatpak_use_sudo() || std::env::var("SSH_CLIENT").is_ok() {
         let mut update_args = vec!["update", "--system"];
         if yes {
@@ -912,7 +912,7 @@ pub fn run_snap(ctx: &ExecutionContext) -> Result<()> {
     let snap = require("snap")?;
 
     if !PathBuf::from("/var/snapd.socket").exists() && !PathBuf::from("/run/snapd.socket").exists() {
-        return Err(SkipStep(String::from("Snapd socket does not exist")).into());
+        return Err(SkipStep(t!("Snapd socket does not exist")).into());
     }
     print_separator("snap");
 
@@ -954,7 +954,7 @@ pub fn run_distrobox_update(ctx: &ExecutionContext) -> Result<()> {
         ) {
             (r, Some(c)) => {
                 if c.is_empty() {
-                    return Err(SkipStep("You need to specify at least one container".to_string()).into());
+                    return Err(SkipStep(t!("You need to specify at least one container")).into());
                 }
                 r.args(c)
             }
@@ -994,18 +994,18 @@ pub fn run_dkp_pacman_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
     if ctx.config().yes(Step::ConfigUpdate) {
-        return Err(SkipStep("Skipped in --yes".to_string()).into());
+        return Err(SkipStep(t!("Skipped in --yes")).into());
     }
 
     if let Ok(etc_update) = require("etc-update") {
-        print_separator("Configuration update");
+        print_separator(t!("Configuration update"));
         ctx.run_type().execute(sudo).arg(etc_update).status_checked()?;
     } else if let Ok(pacdiff) = require("pacdiff") {
         if std::env::var("DIFFPROG").is_err() {
             require("vim")?;
         }
 
-        print_separator("Configuration update");
+        print_separator(t!("Configuration update"));
         ctx.execute_elevated(&pacdiff, false)?.status_checked()?;
     }
 
@@ -1053,7 +1053,7 @@ pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
         .stdout
         .lines()
         .find(|line| line.contains("Session:"))
-        .expect("the output of `waydroid status` should contain `Session:`");
+        .expect(t!("the output of `waydroid status` should contain `Session:`"));
     let is_container_running = session.contains("RUNNING");
     let assume_yes = ctx.config().yes(Step::Waydroid);
 
@@ -1061,9 +1061,9 @@ pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
 
     if is_container_running && !assume_yes {
         let update_allowed =
-            prompt_yesno("Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?")?;
+            prompt_yesno(t!("Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?"))?;
         if !update_allowed {
-            return Err(SkipStep("Skip the Waydroid step because the user don't want to proceed".to_string()).into());
+            return Err(SkipStep(t!("Skip the Waydroid step because the user don't want to proceed")).into());
         }
     }
     ctx.run_type()

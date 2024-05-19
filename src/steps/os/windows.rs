@@ -64,12 +64,12 @@ pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
     if !is_wsl_installed()? {
-        return Err(SkipStep("WSL not installed".to_string()).into());
+        return Err(SkipStep(t!("WSL not installed")).into());
     }
 
     let wsl = require("wsl")?;
 
-    print_separator("Update WSL");
+    print_separator(t!("Update WSL"));
 
     let mut wsl_command = ctx.run_type().execute(wsl);
     wsl_command.args(["--update"]);
@@ -122,7 +122,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     let topgrade = Command::new(wsl)
         .args(["-d", dist, "bash", "-lc", "which topgrade"])
         .output_checked_utf8()
-        .map_err(|_| SkipStep(String::from("Could not find Topgrade installed in WSL")))?
+        .map_err(|_| SkipStep(t!("Could not find Topgrade installed in WSL")))?
         .stdout // The normal output from `which topgrade` appends a newline, so we trim it here.
         .trim_end()
         .to_owned();
@@ -171,18 +171,18 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
 
 pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     if !is_wsl_installed()? {
-        return Err(SkipStep("WSL not installed".to_string()).into());
+        return Err(SkipStep(t!("WSL not installed")).into());
     }
 
     let wsl = require("wsl")?;
     let wsl_distributions = get_wsl_distributions(&wsl)?;
     let mut ran = false;
 
-    debug!("WSL distributions: {:?}", wsl_distributions);
+    debug!("{}", t!("WSL distributions: {wsl_distributions}", wsl_distributions=format!("{wsl_distributions:?}")));
 
     for distribution in wsl_distributions {
         let result = upgrade_wsl_distribution(&wsl, &distribution, ctx);
-        debug!("Upgrading {:?}: {:?}", distribution, result);
+        debug!("{}", t!("Upgrading {distribution}: {result}", distribution=format!("{distribution:?}"), result=format!("{result:?}")));
         if let Err(e) = result {
             if e.is::<SkipStep>() {
                 continue;
@@ -194,23 +194,23 @@ pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     if ran {
         Ok(())
     } else {
-        Err(SkipStep(String::from("Could not find Topgrade in any WSL disribution")).into())
+        Err(SkipStep(t!("Could not find Topgrade in any WSL disribution")).into())
     }
 }
 
 pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
     let powershell = powershell::Powershell::windows_powershell();
 
-    print_separator("Windows Update");
+    print_separator(t!("Windows Update"));
 
     if powershell.supports_windows_update() {
         powershell.windows_update(ctx)
     } else {
         print_warning(
-            "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported.",
+            t!("Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."),
         );
 
-        Err(SkipStep("USOClient not supported.".to_string()).into())
+        Err(SkipStep(t!("USOClient not supported.")).into())
     }
 }
 
@@ -228,7 +228,7 @@ pub fn insert_startup_scripts(git_repos: &mut RepoStep) -> Result<()> {
         let path = entry.path();
         if path.extension().and_then(OsStr::to_str) == Some("lnk") {
             if let Ok(lnk) = parselnk::Lnk::try_from(Path::new(&path)) {
-                debug!("Startup link: {:?}", lnk);
+                debug!("{}", t!("Startup link: {link}", link=lnk));
                 if let Some(path) = lnk.relative_path() {
                     git_repos.insert_if_repo(&startup_dir.join(path));
                 }

@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 use serde::Deserialize;
 use strum::AsRefStr;
 
@@ -86,7 +87,7 @@ impl Sudo {
                 cmd.arg("-w");
             }
         }
-        cmd.status_checked().wrap_err("Failed to elevate permissions")
+        cmd.status_checked().wrap_err(t!("Failed to elevate permissions"))
     }
 
     /// Execute a command with `sudo`.

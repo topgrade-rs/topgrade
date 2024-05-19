@@ -11,6 +11,7 @@ use crate::WINDOWS_DIRS;
 use crate::XDG_DIRS;
 use color_eyre::eyre::Result;
 use etcetera::base_strategy::BaseStrategy;
+use rust_i18n::t;
 use std::{
     env::var,
     fs::{read_to_string, OpenOptions},
@@ -34,18 +35,19 @@ impl FromStr for Version {
     type Err = std::convert::Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        const NOT_SEMVER: &str = "Topgrade version is not semantic";
-        const NOT_NUMBER: &str = "Topgrade version is not dot-separated numbers";
+        let not_semver = t!("Topgrade version is not semantic").to_string();
+        let not_number = t!("Topgrade version is not dot-separated numbers").to_string();
 
         let mut iter = s.split('.').take(3);
-        let major = iter.next().expect(NOT_SEMVER).parse().expect(NOT_NUMBER);
-        let minor = iter.next().expect(NOT_SEMVER).parse().expect(NOT_NUMBER);
-        let patch = iter.next().expect(NOT_SEMVER).parse().expect(NOT_NUMBER);
+        let major = iter.next().expect(&not_semver).parse().expect(&not_number);
+        let minor = iter.next().expect(&not_semver).parse().expect(&not_number);
+        let patch = iter.next().expect(&not_semver).parse().expect(&not_number);
 
         // They cannot be all 0s
         assert!(
             !(major == 0 && minor == 0 && patch == 0),
-            "Version numbers can not be all 0s"
+            "{}",
+            t!("Version numbers can not be all 0s")
         );
 
         Ok(Self {
@@ -102,7 +104,7 @@ pub(crate) fn should_skip() -> bool {
 
 /// True if this is the first execution of a major release.
 pub(crate) fn first_run_of_major_release() -> Result<bool> {
-    let version = VERSION_STR.parse::<Version>().expect("should be a valid version");
+    let version = VERSION_STR.parse::<Version>().expect(&*t!("should be a valid version"));
     let keep_file = keep_file_path();
 
     // disable this lint here as the current code has better readability
@@ -118,12 +120,12 @@ pub(crate) fn first_run_of_major_release() -> Result<bool> {
 
 /// Print breaking changes to the user.
 pub(crate) fn print_breaking_changes() {
-    let header = format!("Topgrade {VERSION_STR} Breaking Changes");
+    let header = format!("{}", t!("Topgrade {version_str} Breaking Changes", version_str = VERSION_STR));
     print_separator(header);
     let contents = if BREAKINGCHANGES.is_empty() {
-        "No Breaking changes"
+        t!("No Breaking changes").to_string()
     } else {
-        BREAKINGCHANGES
+        BREAKINGCHANGES.to_string()
     };
     println!("{contents}\n");
 }
@@ -159,7 +161,7 @@ mod test {
     }
 
     #[test]
-    #[should_panic(expected = "Version numbers can not be all 0s")]
+    #[should_panic(expected = "Version numbers can not be all 0s")] // TODO: Problems with i18n?
     fn invalid_version() {
         let all_0 = "0.0.0";
         all_0.parse::<Version>().unwrap();

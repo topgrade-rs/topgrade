@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 
 use tracing::{debug, error};
 use tracing_subscriber::layer::SubscriberExt;
@@ -34,10 +35,10 @@ where
 {
     fn if_exists(self) -> Option<Self> {
         if self.as_ref().exists() {
-            debug!("Path {:?} exists", self.as_ref());
+            debug!("{}", t!("Path {path} exists", path = format!("{:?}", self.as_ref())));
             Some(self)
         } else {
-            debug!("Path {:?} doesn't exist", self.as_ref());
+            debug!("{}", t!("Path {path} doesn't exist", path = format!("{:?}", self.as_ref())));
             None
         }
     }
@@ -48,10 +49,10 @@ where
 
     fn require(self) -> Result<Self> {
         if self.as_ref().exists() {
-            debug!("Path {:?} exists", self.as_ref());
+            debug!("{}", t!("Path {path} exists", path = format!("{:?}", self.as_ref())));
             Ok(self)
         } else {
-            Err(SkipStep(format!("Path {:?} doesn't exist", self.as_ref())).into())
+            Err(SkipStep(format!("{}", t!("Path {path} doesn't exist", path = format!("{:?}", self.as_ref())))).into())
         }
     }
 }
@@ -59,16 +60,16 @@ where
 pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBuf> {
     match which_crate::which(&binary_name) {
         Ok(path) => {
-            debug!("Detected {:?} as {:?}", &path, &binary_name);
+            debug!("{}", t!("Detected {path} as {binary_name}", path = format!("{:?}", &path), binary_name = format!("{:?}", &binary_name)));
             Some(path)
         }
         Err(e) => {
             match e {
                 which_crate::Error::CannotFindBinaryPath => {
-                    debug!("Cannot find {:?}", &binary_name);
+                    debug!("{}", t!("Cannot find {binary_name}", binary_name = format!("{:?}", &binary_name)));
                 }
                 _ => {
-                    error!("Detecting {:?} failed: {}", &binary_name, e);
+                    error!("{} {}", t!("Detecting {binary_name} failed: ", binary_name = format!("{:?}", &binary_name)), e);
                 }
             }
 
@@ -88,15 +89,15 @@ pub fn editor() -> Vec<String> {
 pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
     match which_crate::which(&binary_name) {
         Ok(path) => {
-            debug!("Detected {:?} as {:?}", &path, &binary_name);
+            debug!("{}", t!("Detected {path} as {binary_name}", path = format!("{:?}", &path), binary_name = format!("{:?}", &binary_name)));
             Ok(path)
         }
         Err(e) => match e {
             which_crate::Error::CannotFindBinaryPath => {
-                Err(SkipStep(format!("Cannot find {:?} in PATH", &binary_name)).into())
+                Err(SkipStep(format!("{}", t!("Cannot find {binary_name} in PATH", binary_name=format!("{:?}", &binary_name)))).into())
             }
             _ => {
-                panic!("Detecting {:?} failed: {}", &binary_name, e);
+                panic!("{}", t!("Path {path} exists", binary_name = format!("{:?}", &binary_name)));
             }
         },
     }
@@ -123,7 +124,7 @@ pub fn hostname() -> Result<String> {
     match nix::unistd::gethostname() {
         Ok(os_str) => Ok(os_str
             .into_string()
-            .map_err(|_| SkipStep("Failed to get a UTF-8 encoded hostname".into()))?),
+            .map_err(|_| SkipStep(t!("Failed to get a UTF-8 encoded hostname").into()))?),
         Err(e) => Err(e.into()),
     }
 }
@@ -132,7 +133,7 @@ pub fn hostname() -> Result<String> {
 pub fn hostname() -> Result<String> {
     Command::new("hostname")
         .output_checked_utf8()
-        .map_err(|err| SkipStep(format!("Failed to get hostname: {err}")).into())
+        .map_err(|err| SkipStep(t!("Failed to get hostname: {err}", err=err)).into())
         .map(|output| output.stdout.trim().to_owned())
 }
 
@@ -191,6 +192,7 @@ pub mod merge_strategies {
 
 // Skip causes
 // TODO: Put them in a better place when we have more of them
+// TODO: Translate this
 pub const REQUIRE_SUDO: &str = "Require sudo or counterpart but not found, skip";
 
 /// Return `Err(SkipStep)` if `python` is a Python 2 or shim.
@@ -214,15 +216,15 @@ pub fn check_is_python_2_or_shim(python: PathBuf) -> Result<PathBuf> {
         let major_version = version
             .split('.')
             .next()
-            .expect("Should have a major version number")
+            .expect(t!("Should have a major version number").as_ref())
             .parse::<u32>()
-            .expect("Major version should be a valid number");
+            .expect(t!("Major version should be a valid number").as_ref());
         if major_version == 2 {
-            return Err(SkipStep(format!("{} is a Python 2, skip.", python.display())).into());
+            return Err(SkipStep(t!("{python} is a Python 2, skip.", python=python.display()).to_string()).into());
         }
     } else {
         // No version number, is a shim
-        return Err(SkipStep(format!("{} is a Python shim, skip.", python.display())).into());
+        return Err(SkipStep(t!("{python} is a Python shim, skip.", python=python.display()).to_string()).into());
     }
 
     Ok(python)

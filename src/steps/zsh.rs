@@ -14,6 +14,7 @@ use crate::utils::{require, PathExt};
 use crate::HOME_DIR;
 use crate::XDG_DIRS;
 use etcetera::base_strategy::BaseStrategy;
+use rust_i18n::t;
 
 pub fn run_zr(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
@@ -185,7 +186,7 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
         // this command will fail if `ZSH` is not set
         if let Ok(output) = res_env_zsh {
             let env_zsh = output.stdout;
-            debug!("Oh-my-zsh: under SSH, setting ZSH={}", env_zsh);
+            debug!("{}", t!("Oh-my-zsh: under SSH, setting ZSH={env_zsh}", env_zsh=env_zsh));
             env::set_var("ZSH", env_zsh);
         }
     }
@@ -210,14 +211,15 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
         .unwrap_or_else(|e| {
             let default_path = oh_my_zsh.join("custom");
             debug!(
-                "Running zsh returned {}. Using default path: {}",
-                e,
-                default_path.display()
+                "{}",
+                t!("Running zsh returned {error}. Using default path: {path}",
+                    error=e,
+                    path=default_path.display())
             );
             default_path
         });
 
-    debug!("oh-my-zsh custom dir: {}", custom_dir.display());
+    debug!("{}", t!("oh-my-zsh custom dir: {custom_dir}", custom_dir=custom_dir.display()));
 
     let mut custom_repos = RepoStep::try_new()?;
 

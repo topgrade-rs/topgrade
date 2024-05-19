@@ -18,6 +18,7 @@ use etcetera::base_strategy::Windows;
 #[cfg(unix)]
 use etcetera::base_strategy::Xdg;
 use once_cell::sync::Lazy;
+use rust_i18n::{i18n, t};
 use tracing::debug;
 
 use self::config::{CommandLineArgs, Config, Step};
@@ -47,12 +48,15 @@ mod sudo;
 mod terminal;
 mod utils;
 
-pub(crate) static HOME_DIR: Lazy<PathBuf> = Lazy::new(|| home::home_dir().expect("No home directory"));
+pub(crate) static HOME_DIR: Lazy<PathBuf> = Lazy::new(|| home::home_dir().expect(&*t!("No home directory")));
 #[cfg(unix)]
-pub(crate) static XDG_DIRS: Lazy<Xdg> = Lazy::new(|| Xdg::new().expect("No home directory"));
+pub(crate) static XDG_DIRS: Lazy<Xdg> = Lazy::new(|| Xdg::new().expect(&*t!("No home directory")));
 
 #[cfg(windows)]
 pub(crate) static WINDOWS_DIRS: Lazy<Windows> = Lazy::new(|| Windows::new().expect("No home directory"));
+
+// Initialization of the i18n crate
+i18n!("locales", fallback = "en");
 
 fn run() -> Result<()> {
     install_color_eyre()?;
@@ -97,7 +101,7 @@ fn run() -> Result<()> {
     };
 
     if opt.show_config_reference() {
-        print!("{}", config::EXAMPLE_CONFIG);
+        print!("{}", config::EXAMPLE_CONFIG); // TODO: Find a way to use a translated example config
         return Ok(());
     }
 
@@ -108,12 +112,15 @@ fn run() -> Result<()> {
     display_time(config.display_time());
     set_desktop_notifications(config.notify_each_step());
 
-    debug!("Version: {}", crate_version!());
-    debug!("OS: {}", env!("TARGET"));
+    debug!("{}", t!("Version: {version}", version = crate_version!()));
+    debug!("{}", t!("OS: {TARGET}", TARGET = env!("TARGET")));
     debug!("{:?}", std::env::args());
-    debug!("Binary path: {:?}", std::env::current_exe());
-    debug!("self-update Feature Enabled: {:?}", cfg!(feature = "self-update"));
-    debug!("Configuration: {:?}", config);
+    debug!("{}", t!("Binary path: {current_exe}", current_exe = format!("{:?}", std::env::current_exe())));
+    debug!(
+        "{}",
+        t!("self-update Feature Enabled: {self_update_feature}", self_update_feature=cfg!(feature = "self-update"))
+    );
+    debug!("{}", t!("Configuration: {config}", config = format!("{config:?}")));
 
     if config.run_in_tmux() && env::var("TOPGRADE_INSIDE_TMUX").is_err() {
         #[cfg(unix)]
@@ -210,7 +217,7 @@ fn run() -> Result<()> {
                 runner.execute(Step::System, "System update", || distribution.upgrade(&ctx))?;
             }
             Err(e) => {
-                println!("Error detecting current distribution: {e}");
+                println!("{}", t!("Error detecting current distribution: {error}", error=e));
             }
         }
         runner.execute(Step::ConfigUpdate, "config-update", || linux::run_config_update(&ctx))?;
@@ -441,7 +448,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Vagrant, "Vagrant boxes", || vagrant::upgrade_vagrant_boxes(&ctx))?;
 
     if !runner.report().data().is_empty() {
-        print_separator("Summary");
+        print_separator(t!("Summary"));
 
         for (key, result) in runner.report().data() {
             print_result(key, result);
@@ -465,14 +472,16 @@ fn run() -> Result<()> {
     }
 
     if config.keep_at_end() {
+        // TODO: Refactor this to make it easier to implement i18n
+        // Ie use the first letter from the translations, not a hardcoded literal
         print_info("\n(R)eboot\n(S)hell\n(Q)uit");
         loop {
             match get_key() {
                 Ok(Key::Char('s')) | Ok(Key::Char('S')) => {
-                    run_shell().context("Failed to execute shell")?;
+                    run_shell().context(t!("Failed to execute shell"))?;
                 }
                 Ok(Key::Char('r')) | Ok(Key::Char('R')) => {
-                    reboot().context("Failed to reboot")?;
+                    reboot().context(t!("Failed to reboot"))?;
                 }
                 Ok(Key::Char('q')) | Ok(Key::Char('Q')) => (),
                 _ => {
@@ -487,10 +496,11 @@ fn run() -> Result<()> {
 
     if !config.skip_notify() {
         notify_desktop(
-            format!(
-                "Topgrade finished {}",
-                if failed { "with errors" } else { "successfully" }
-            ),
+            if failed {
+                t!("Topgrade finished with errors")
+            } else {
+                t!("Topgrade finished successfully")
+            },
             Some(Duration::from_secs(10)),
         )
     }
@@ -525,7 +535,7 @@ fn main() {
                 // The `Debug` implementation of `eyre::Result` prints a multi-line
                 // error message that includes all the 'causes' added with
                 // `.with_context(...)` calls.
-                println!("Error: {error:?}");
+                println!("{}", t!("Error: {error}", error=format!("{:?}", error)));
             }
             exit(1);
         }

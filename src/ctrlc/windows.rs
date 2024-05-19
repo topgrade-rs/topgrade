@@ -4,6 +4,7 @@ use tracing::error;
 use winapi::shared::minwindef::{BOOL, DWORD, FALSE, TRUE};
 use winapi::um::consoleapi::SetConsoleCtrlHandler;
 use winapi::um::wincon::CTRL_C_EVENT;
+use rust_i18n::t;
 
 extern "system" fn handler(ctrl_type: DWORD) -> BOOL {
     match ctrl_type {
@@ -17,6 +18,6 @@ extern "system" fn handler(ctrl_type: DWORD) -> BOOL {
 
 pub fn set_handler() {
     if 0 == unsafe { SetConsoleCtrlHandler(Some(handler), TRUE) } {
-        error!("Cannot set a control C handler")
+        error!(t!("Cannot set a control C handler"))
     }
 }

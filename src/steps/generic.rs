@@ -8,6 +8,7 @@ use std::{fs, io::Write};
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 use semver::Version;
 use tempfile::tempfile_in;
 use tracing::{debug, error};
@@ -705,19 +706,18 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
     let composer_home = Command::new(&composer)
         .args(["global", "config", "--absolute", "--quiet", "home"])
         .output_checked_utf8()
-        .map_err(|e| (SkipStep(format!("Error getting the composer directory: {e}"))))
+        .map_err(|e| (SkipStep(t!("Error getting the composer directory: {error}", error=e).to_string())))
         .map(|s| PathBuf::from(s.stdout.trim()))?
         .require()?;
 
     if !composer_home.is_descendant_of(&HOME_DIR) {
-        return Err(SkipStep(format!(
-            "Composer directory {} isn't a descendant of the user's home directory",
-            composer_home.display()
-        ))
+        return Err(SkipStep(t!(
+            "Composer directory {composer_home} isn't a descendant of the user's home directory",
+            composer_home = composer_home.display()).to_string())
         .into());
     }
 
-    print_separator("Composer");
+    print_separator(t!("Composer"));
 
     if ctx.config().composer_self_update() {
         cfg_if::cfg_if! {
@@ -773,9 +773,9 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
     {
         Ok(output) => output,
         Err(_) => {
-            return Err(SkipStep(String::from(
-                "Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK.",
-            ))
+            return Err(SkipStep(
+                t!("Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK.").to_string()
+            )
             .into());
         }
     };
@@ -803,7 +803,7 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
         .peekable();
 
     if packages.peek().is_none() {
-        return Err(SkipStep(String::from("No dotnet global tools installed")).into());
+        return Err(SkipStep(t!("No dotnet global tools installed").to_string()).into());
     }
 
     print_separator(".NET");
@@ -814,7 +814,7 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
             .execute(&dotnet)
             .args(["tool", "update", package_name, "--global"])
             .status_checked()
-            .with_context(|| format!("Failed to update .NET package {package_name}"))?;
+            .with_context(|| t!("Failed to update .NET package {package_name}", package_name=format!("{package_name:?}")))?;
     }
 
     Ok(())
@@ -829,13 +829,13 @@ pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
         .execute(&helix)
         .args(["--grammar", "fetch"])
         .status_checked()
-        .with_context(|| "Failed to download helix grammars!")?;
+        .with_context(|| t!("Failed to download helix grammars!"))?;
 
     ctx.run_type()
         .execute(&helix)
         .args(["--grammar", "build"])
         .status_checked()
-        .with_context(|| "Failed to build helix grammars!")?;
+        .with_context(|| t!("Failed to build helix grammars!"))?;
 
     Ok(())
 }
@@ -843,7 +843,7 @@ pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_raco_update(ctx: &ExecutionContext) -> Result<()> {
     let raco = require("raco")?;
 
-    print_separator("Racket Package Manager");
+    print_separator(t!("Racket Package Manager"));
 
     ctx.run_type()
         .execute(raco)
@@ -870,11 +870,11 @@ pub fn run_ghcli_extensions_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let gh = require("gh")?;
     let result = Command::new(&gh).args(["extensions", "list"]).output_checked_utf8();
     if result.is_err() {
-        debug!("GH result {:?}", result);
-        return Err(SkipStep(String::from("GH failed")).into());
+        debug!("{}", t!("GH result {result}", result=format!("{result:?}")));
+        return Err(SkipStep(t!("GH failed").to_string()).into());
     }
 
-    print_separator("GitHub CLI Extensions");
+    print_separator(t!("GitHub CLI Extensions"));
     ctx.run_type()
         .execute(&gh)
         .args(["extension", "upgrade", "--all"])
@@ -884,7 +884,7 @@ pub fn run_ghcli_extensions_upgrade(ctx: &ExecutionContext) -> Result<()> {
 pub fn update_julia_packages(ctx: &ExecutionContext) -> Result<()> {
     let julia = require("julia")?;
 
-    print_separator("Julia Packages");
+    print_separator(t!("Julia Packages"));
 
     ctx.run_type()
         .execute(julia)
@@ -901,7 +901,7 @@ pub fn run_helm_repo_update(ctx: &ExecutionContext) -> Result<()> {
     let mut success = true;
     let mut exec = ctx.run_type().execute(helm);
     if let Err(e) = exec.arg("repo").arg("update").status_checked() {
-        error!("Updating repositories failed: {}", e);
+        error!("{}", t!("Updating repositories failed: {error}", error=e));
         success = match exec.output_checked_utf8() {
             Ok(s) => s.stdout.contains(no_repo) || s.stderr.contains(no_repo),
             Err(e) => match e.downcast_ref::<TopgradeError>() {
@@ -951,7 +951,7 @@ pub fn run_certbot(ctx: &ExecutionContext) -> Result<()> {
 /// doc: https://docs.clamav.net/manual/Usage/SignatureManagement.html#freshclam
 pub fn run_freshclam(ctx: &ExecutionContext) -> Result<()> {
     let freshclam = require("freshclam")?;
-    print_separator("Update ClamAV Database(FreshClam)");
+    print_separator(t!("Update ClamAV Database(FreshClam)"));
     ctx.run_type().execute(freshclam).status_checked()
 }
 

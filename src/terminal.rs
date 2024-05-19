@@ -11,6 +11,7 @@ use color_eyre::eyre::Context;
 use console::{style, Key, Term};
 use lazy_static::lazy_static;
 use notify_rust::{Notification, Timeout};
+use rust_i18n::t;
 use tracing::{debug, error};
 #[cfg(windows)]
 use which_crate::which;
@@ -73,7 +74,7 @@ impl Terminal {
     }
 
     fn notify_desktop<P: AsRef<str>>(&self, message: P, timeout: Option<Duration>) {
-        debug!("Desktop notification: {}", message.as_ref());
+        debug!("{}", t!("Desktop notification: {message}", message=message.as_ref()));
         let mut notification = Notification::new();
         notification
             .summary("Topgrade")
@@ -144,7 +145,7 @@ impl Terminal {
         self.term
             .write_fmt(format_args!(
                 "{} {}",
-                style(format!("{key} failed:")).red().bold(),
+                style(format!("{}", t!("{key} failed:", key=key))).red().bold(),
                 message
             ))
             .ok();
@@ -174,6 +175,7 @@ impl Terminal {
                 "{}: {}\n",
                 key,
                 match result {
+                    // TODO: Add i18n
                     StepResult::Success => format!("{}", style("OK").bold().green()),
                     StepResult::Failure => format!("{}", style("FAILED").bold().red()),
                     StepResult::Ignored => format!("{}", style("IGNORED").bold().yellow()),
@@ -188,6 +190,7 @@ impl Terminal {
         self.term
             .write_fmt(format_args!(
                 "{}",
+                // TODO: Implement i18n for this using the first character from the translated key
                 style(format!("{question} (y)es/(N)o",)).yellow().bold()
             ))
             .ok();
@@ -207,13 +210,14 @@ impl Terminal {
         }
 
         if self.set_title {
-            self.term.set_title("Topgrade - Awaiting user");
+            self.term.set_title(format!("Topgrade - {}", t!("Awaiting user")));
         }
 
         if self.desktop_notification {
-            self.notify_desktop(format!("{step_name} failed"), None);
+            self.notify_desktop(format!("{}", t!("{step_name} failed", step_name=step_name)), None);
         }
 
+        // TODO: Implement i18n for this using the first character from the translated key
         let prompt_inner = style(format!("{}Retry? (y)es/(N)o/(s)hell/(q)uit", self.prefix))
             .yellow()
             .bold();
@@ -224,7 +228,10 @@ impl Terminal {
             match self.term.read_key() {
                 Ok(Key::Char('y')) | Ok(Key::Char('Y')) => break Ok(true),
                 Ok(Key::Char('s')) | Ok(Key::Char('S')) => {
-                    println!("\n\nDropping you to shell. Fix what you need and then exit the shell.\n");
+                    println!(
+                        "\n\n{}\n",
+                        t!("Dropping you to shell. Fix what you need and then exit the shell.")
+                    );
                     if let Err(err) = run_shell().context("Failed to run shell") {
                         self.term.write_fmt(format_args!("{err:?}\n{prompt_inner}")).ok();
                     } else {
@@ -233,11 +240,11 @@ impl Terminal {
                 }
                 Ok(Key::Char('n')) | Ok(Key::Char('N')) | Ok(Key::Enter) => break Ok(false),
                 Err(e) => {
-                    error!("Error reading from terminal: {}", e);
+                    error!("{}", t!("Error reading from terminal: {error}", error=e));
                     break Ok(false);
                 }
                 Ok(Key::Char('q')) | Ok(Key::Char('Q')) => {
-                    return Err(io::Error::from(io::ErrorKind::Interrupted)).context("Quit from user input")
+                    return Err(io::Error::from(io::ErrorKind::Interrupted)).context(t!("Quit from user input"))
                 }
                 _ => (),
             }

@@ -6,7 +6,7 @@ use color_eyre::eyre::Result;
 
 pub fn upgrade_openbsd(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
-    print_separator("OpenBSD Update");
+    print_separator(t!("OpenBSD Update"));
     ctx.run_type()
         .execute(sudo)
         .args(["/usr/sbin/sysupgrade", "-n"])
@@ -15,7 +15,7 @@ pub fn upgrade_openbsd(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
-    print_separator("OpenBSD Packages");
+    print_separator(t!("OpenBSD Packages"));
 
     if ctx.config().cleanup() {
         ctx.run_type()
