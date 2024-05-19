@@ -24,6 +24,7 @@ pub enum Distribution {
     Arch,
     Bedrock,
     CentOS,
+    Chimera,
     ClearLinux,
     Fedora,
     FedoraImmutable,
@@ -53,6 +54,7 @@ impl Distribution {
 
         Ok(match id {
             Some("alpine") => Distribution::Alpine,
+            Some("chimera") => Distribution::Chimera,
             Some("wolfi") => Distribution::Wolfi,
             Some("centos") | Some("rhel") | Some("ol") => Distribution::CentOS,
             Some("clear-linux-os") => Distribution::ClearLinux,
@@ -135,6 +137,7 @@ impl Distribution {
 
         match self {
             Distribution::Alpine => upgrade_alpine_linux(ctx),
+            Distribution::Chimera => upgrade_chimera_linux(ctx),
             Distribution::Wolfi => upgrade_wolfi_linux(ctx),
             Distribution::Arch => archlinux::upgrade_arch_linux(ctx),
             Distribution::CentOS | Distribution::Fedora => upgrade_redhat(ctx),
@@ -194,6 +197,14 @@ fn update_bedrock(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_alpine_linux(ctx: &ExecutionContext) -> Result<()> {
+    let apk = require("apk")?;
+    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+
+    ctx.run_type().execute(sudo).arg(&apk).arg("update").status_checked()?;
+    ctx.run_type().execute(sudo).arg(&apk).arg("upgrade").status_checked()
+}
+
+fn upgrade_chimera_linux(ctx: &ExecutionContext) -> Result<()> {
     let apk = require("apk")?;
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
 
