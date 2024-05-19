@@ -24,7 +24,7 @@ pub enum TopgradeError {
 }
 
 #[derive(Error, Debug)]
-#[error("A step failed")]
+#[error("A step failed")] // TODO: How to add i18 to these?
 pub struct StepFailed;
 
 #[derive(Error, Debug)]

@@ -13,6 +13,7 @@ use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use home;
 use ini::Ini;
+use rust_i18n::t;
 use tracing::debug;
 
 #[cfg(target_os = "linux")]
@@ -694,7 +695,7 @@ pub fn run_bun_packages(ctx: &ExecutionContext) -> Result<()> {
     package_json.push("install/global/package.json");
 
     if !package_json.exists() {
-        println!("No global packages installed");
+        println!("{}", t!("No global packages installed"));
         return Ok(());
     }
 
@@ -719,6 +720,6 @@ pub fn run_maza(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn reboot() -> Result<()> {
-    print!("Rebooting...");
+    print!("{}", t!("Rebooting..."));
     Command::new("sudo").arg("reboot").status_checked()
 }

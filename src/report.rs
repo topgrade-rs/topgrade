@@ -1,3 +1,4 @@
+use rust_i18n::t;
 use std::borrow::Cow;
 
 pub enum StepResult {
@@ -34,7 +35,11 @@ impl<'a> Report<'a> {
         if let Some((key, success)) = result {
             let key = key.into();
 
-            debug_assert!(!self.data.iter().any(|(k, _)| k == &key), "{key} already reported");
+            debug_assert!(
+                !self.data.iter().any(|(k, _)| k == &key),
+                "{}",
+                t!("{key} already reported", key = key)
+            );
             self.data.push((key, success));
         }
     }

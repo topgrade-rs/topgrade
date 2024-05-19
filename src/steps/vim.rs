@@ -10,6 +10,7 @@ use crate::{
     execution_context::ExecutionContext,
     utils::{require, PathExt},
 };
+use rust_i18n::t;
 use std::path::PathBuf;
 use std::{
     io::{self, Write},
@@ -64,7 +65,7 @@ fn upgrade(command: &mut Executor, ctx: &ExecutionContext) -> Result<()> {
         if !status.success() {
             return Err(TopgradeError::ProcessFailed(command.get_program(), status).into());
         } else {
-            println!("Plugins upgraded")
+            println!("{}", t!("Plugins upgraded"))
         }
     }
 

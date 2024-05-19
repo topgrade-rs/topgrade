@@ -451,7 +451,7 @@ fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
             .status_checked()?;
     }
 
-    println!("Syncing portage");
+    println!(t!("Syncing portage"));
     run_type
         .execute(sudo)
         .args(["emerge", "--sync"])

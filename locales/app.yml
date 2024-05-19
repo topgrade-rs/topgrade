@@ -1,0 +1,222 @@
+_version: 2
+
+"Dry running:":
+  en: "Dry running:"
+"Rebooting...":
+  en: "Rebooting..."
+"Plugins upgraded":
+  en: "Plugins upgraded"
+"Would self-update":
+  en: "Would self-update"
+"Pulling":
+  en: "Pulling"
+"No Breaking changes":
+  en: "No Breaking changes"
+"in":
+  en: "in"
+"Dropping you to shell. Fix what you need and then exit the shell.":
+  en: "Dropping you to shell. Fix what you need and then exit the shell."
+"Topgrade launched in a new tmux session":
+  en: "Topgrade launched in a new tmux session"
+"Topgrade upgraded to ":
+  en: "Topgrade upgraded to "
+"Topgrade is up-to-date":
+  en: "Topgrade is up-to-date"
+"Updating modules...":
+  en: "Updating modules..."
+"Powershell Modules Update":
+  en: "Powershell Modules Update"
+"Powershell is not installed":
+  en: "Powershell is not installed"
+"Error detecting current distribution:":
+  en: "Error detecting current distribution:"
+"Error:":
+  en: "Error:"
+"Failed":
+  en: "Failed"
+"pulling":
+  en: "pulling"
+"Failed to pull":
+  en: "Failed to pull"
+"Changed":
+  en: "Changed"
+"Up-to-date":
+  en: "Up-to-date"
+"Self update":
+  en: "Self update"
+"Would pull":
+  en: "Would pull"
+"Only":
+  en: "Only"
+"updated repositories will be shown...":
+  en: "updated repositories will be shown..."
+"because it has no remotes":
+  en: "because it has no remotes"
+"Skipping":
+  en: "Skipping"
+"Aura requires sudo installed to work with AUR packages":
+  en: "Aura requires sudo installed to work with AUR packages"
+"Pacman backup configuration files found:":
+  en: "Pacman backup configuration files found:"
+"The package audit was successful, but vulnerable packages still remain on the system":
+  en: "The package audit was successful, but vulnerable packages still remain on the system"
+"Syncing portage":
+  en: "Syncing portage"
+"Finding available software":
+  en: "Finding available software"
+"A system update is available. Do you wish to install it?":
+  en: "A system update is available. Do you wish to install it?"
+"No new software available.":
+  en: "No new software available."
+"No Xcode releases installed.":
+  en: "No Xcode releases installed."
+"Would you like to move the former Xcode release to the trash?":
+  en: "Would you like to move the former Xcode release to the trash?"
+"New Xcode release detected:":
+  en: "New Xcode release detected:"
+"Would you like to install it?":
+  en: "Would you like to install it?"
+"No global packages installed":
+  en: "No global packages installed"
+"Connecting to":
+  en: "Connecting to"
+"Remote Topgrade launched in Tmux":
+  en: "Remote Topgrade launched in Tmux"
+"Remote Topgrade launched in an external terminal":
+  en: "Remote Topgrade launched in an external terminal"
+"Collecting Vagrant boxes":
+  en: "Collecting Vagrant boxes"
+"No Vagrant directories were specified in the configuration file":
+  en: "No Vagrant directories were specified in the configuration file"
+"Vagrant output in":
+  en: "Vagrant output in"
+"Vagrant line":
+  en: "Vagrant line"
+"Error collecting vagrant boxes from":
+  en: "Error collecting vagrant boxes from"
+"Skipping powered off box":
+  en: "Skipping powered off box"
+"Vagrant boxes":
+  en: "Vagrant boxes"
+"No outdated boxes":
+  en: "No outdated boxes"
+"No home directory":
+  en: "No home directory"
+"Version":
+  en: "Version"
+"OS":
+  en: "OS"
+"Binary path":
+  en: "Binary path"
+"self-update Feature Enabled":
+  en: "self-update Feature Enabled"
+"Configuration":
+  en: "Configuration"
+"Summary":
+  en: "Summary"
+"Failed to execute shell":
+  en: "Failed to execute shell"
+"Failed to reboot":
+  en: "Failed to reboot"
+"Topgrade finished with errors":
+  en: "Topgrade finished with errors"
+"Topgrade finished successfully":
+  en: "Topgrade finished successfully"
+"Topgrade version is not semantic":
+  en: "Topgrade version is not semantic"
+"Topgrade version is not dot-separated numbers":
+  en: "Topgrade version is not dot-separated numbers"
+"Version numbers can not be all 0s":
+  en: "Version numbers can not be all 0s"
+"should be a valid version":
+  en: "should be a valid version"
+"Breaking Changes":
+  en: "Breaking Changes"
+"Stdout contained invalid UTF-8":
+  en: "Stdout contained invalid UTF-8"
+"Stderr contained invalid UTF-8":
+  en: "Stderr contained invalid UTF-8"
+"Failed to execute":
+  en: "Failed to execute"
+"Command failed":
+  en: "Command failed"
+"Executing command":
+  en: "Executing command"
+"Configuration at":
+  en: "Configuration at"
+"No configuration exists":
+  en: "No configuration exists"
+"Unable to write the example configuration file to":
+  en: "Unable to write the example configuration file to %{location}: %{error}. Using blank config."
+"Found additional (directory) configuration file at":
+  en: "Found additional (directory) configuration file at %{path}"
+"No additional configuration directory exists, creating one":
+  en: "No additional configuration directory exists, creating one"
+"Unable to read":
+  en: "Unable to read"
+"Failed to deserialize":
+  en: "Failed to deserialize"
+"Failed to compile regex":
+  en: "Failed to compile regex"
+"Failed to deserialize an include section of":
+  en: "Failed to deserialize an include section of"
+"Path expanded to":
+  en: "Path expanded %{path} to %{expanded}"
+"Loaded configuration":
+  en: "Loaded configuration"
+"Editor":
+  en: "Editor"
+"Failed to open configuration file editor":
+  en: "Failed to open configuration file editor"
+"Adding [misc] section to":
+  en: "Adding [misc] section to %{path}"
+"Tried to auto-migrate the config file, unable to write to config file.\nPlease add \"[misc]\" section manually to the first line of the file.\nError":
+  en: "Tried to auto-migrate the config file, unable to write to config file.\nPlease add \"[misc]\" section manually to the first line of the file.\nError"
+"failed to load configuration":
+  en: "failed to load configuration"
+"Configuration directory {} does not exist":
+  en: "Configuration directory %{directory} does not exist"
+"Failed to parse `tmux_arguments`":
+  en: "Failed to parse `tmux_arguments`"
+"Running":
+  en: "Running"
+"{key} already reported":
+  en: "%{key} already reported"
+"Step":
+  en: "Step"
+"failed":
+  en: "failed"
+"Current exe in":
+  en: "Current exe in"
+"Moving it to":
+  en: "Moving it to"
+"exists. Topgrade was probably upgraded":
+  en: "exists. Topgrade was probably upgraded"
+"Moved Topgrade back from":
+  en: "Moved Topgrade back from"
+"to":
+  en: "to"
+"Could not move Topgrade from {} back to {}: {}":
+  en: "Could not move Topgrade from %{temp_path} back to %{exe_path}: {error}"
+"Failed to elevate permissions":
+  en: "Failed to elevate permissions"
+"Desktop notification":
+  en: "Desktop notification"
+"Error reading from terminal":
+  en: "Error reading from terminal"
+"Quit from user input":
+  en: "Quit from user input"
+"Path":
+  en: "Path"
+"exists":
+  en: "exists"
+"doesn't exist":
+  en: "doesn't exist"
+"Detected":
+  en: "Detected"
+"as":
+  en: "as"
+"Cannot find":
+  en: "Cannot find"
+"Detecting":
+  en: "Detecting"
