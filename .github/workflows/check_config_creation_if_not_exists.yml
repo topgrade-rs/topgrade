@@ -1,4 +1,4 @@
-name: Test Configuration File Creation
+name: Check config file creation if not exists
 
 on:
   pull_request:
