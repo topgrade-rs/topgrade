@@ -14,7 +14,7 @@ env:
 jobs:
   fmt:
     name: Rustfmt
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -42,16 +42,16 @@ jobs:
           - target: x86_64-linux-android
             target_name: Android
             use_cross: true
-            os: ubuntu-20.04
+            os: ubuntu-latest
 
           - target: x86_64-unknown-freebsd
             target_name: FreeBSD
             use_cross: true
-            os: ubuntu-20.04
+            os: ubuntu-latest
 
           - target: x86_64-unknown-linux-gnu
             target_name: Linux
-            os: ubuntu-20.04
+            os: ubuntu-latest
 
           - target: x86_64-apple-darwin
             target_name: macOS-x86_64
@@ -59,16 +59,16 @@ jobs:
 
           - target: aarch64-apple-darwin
             target_name: macOS-aarch64
-            os: macos-14
+            os: macos-latest
 
           - target: x86_64-unknown-netbsd
             target_name: NetBSD
             use_cross: true
-            os: ubuntu-20.04
+            os: ubuntu-latest
 
           - target: x86_64-pc-windows-msvc
             target_name: Windows
-            os: windows-2019
+            os: windows-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
