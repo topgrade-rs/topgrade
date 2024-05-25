@@ -13,48 +13,45 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [ "aarch64-unknown-linux-gnu", "armv7-unknown-linux-gnueabihf", "x86_64-unknown-linux-musl", "aarch64-unknown-linux-musl", "x86_64-unknown-freebsd",  ]
+        target: [ 
+          "aarch64-unknown-linux-gnu", 
+          "armv7-unknown-linux-gnueabihf", 
+          "x86_64-unknown-linux-musl", 
+          "aarch64-unknown-linux-musl", 
+          "x86_64-unknown-freebsd",  
+        ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          default: true
-          override: true
-          target: ${{ matrix.target }}
+
+      - name: setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with: 
           components: rustfmt, clippy
-      - uses: actions-rs/cargo@v1.0.1
-        name: Check format
+
+      - name: install targets
+        run: rustup target add ${{ matrix.target }}
+
+      - name: install cross
+        uses: taiki-e/install-action@v2
         with:
-          use-cross: true
-          command: fmt
-          args: --all -- --check
-      - uses: actions-rs/cargo@v1.0.1
-        name: Run clippy
-        with:
-          command: clippy
-          use-cross: true
-          args: --all-targets --locked --target ${{matrix.target}} -- -D warnings
-      - uses: actions-rs/cargo@v1.0.1
-        name: Run clippy (All features)
-        with:
-          command: clippy
-          use-cross: true
-          args:  --locked --all-features --target ${{matrix.target}} -- -D warnings
-      - uses: actions-rs/cargo@v1.0.1
-        name: Run tests
-        with:
-          command: test
-          use-cross: true
-          args: --target ${{matrix.target}}
-      - uses: actions-rs/cargo@v1.0.1
-        name: Build
-        with:
-          command: build
-          use-cross: true
-          args: --release --all-features --target ${{matrix.target}}
+          tool: cross@0.2.5
+
+      - name: Check format
+        run: cross fmt --all -- --check
+
+      - name: Run clippy
+        run: cross clippy --all-targets --locked --target ${{matrix.target}} -- -D warnings
+
+      - name: Run clippy (All features)
+        run: cross clippy  --locked --all-features --target ${{matrix.target}} -- -D warnings
+
+      - name: Run tests
+        run: cross test --target ${{matrix.target}}
+
+      - name: Build in Release profile with all features enabled
+        run: cross build --release --all-features --target ${{matrix.target}}
+
       - name: Rename Release
         run: |
           mkdir assets
@@ -64,6 +61,7 @@ jobs:
           tar --format=ustar -czf $FILENAME.tar.gz topgrade
           rm topgrade
           ls .
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
