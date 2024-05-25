@@ -17,36 +17,27 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
+
+      - name: setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with: 
           components: rustfmt, clippy
-      - uses: actions-rs/cargo@v1.0.1
-        name: Check format
-        with:
-          command: fmt
-          args: --all -- --check
-      - uses: actions-rs/cargo@v1.0.1
-        name: Run clippy
-        with:
-          command: clippy
-          args: --all-targets --locked -- -D warnings
-      - uses: actions-rs/cargo@v1.0.1
-        name: Run clippy (All features)
-        with:
-          command: clippy
-          args: --all-targets --locked --all-features -- -D warnings
-      - uses: actions-rs/cargo@v1.0.1
-        name: Run tests
-        with:
-          command: test
-      - uses: actions-rs/cargo@v1.0.1
-        name: Build
-        with:
-          command: build
-          args: --release --all-features
+
+      - name: Check format
+        run: cargo fmt --all -- --check
+
+      - name: Run clippy
+        run: cargo clippy --all-targets --locked -- -D warnings
+
+      - name: Run clippy (All features)
+        run: cargo clippy --all-targets --locked --all-features -- -D warnings
+
+      - name: Run tests
+        run: cargo test
+
+      - name: Build in Release profile with all features enabled
+        run: cargo build --release --all-features
+
       - name: Rename Release (Unix)
         run: |
           cargo install default-target
@@ -59,6 +50,7 @@ jobs:
           ls .
         if: ${{ matrix.platform != 'windows-latest' }}
         shell: bash
+
       - name: Rename Release (Windows)
         run: |
           cargo install default-target
@@ -71,6 +63,7 @@ jobs:
           ls .
         if: ${{ matrix.platform == 'windows-latest' }}
         shell: bash
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
