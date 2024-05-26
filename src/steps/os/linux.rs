@@ -73,7 +73,7 @@ impl Distribution {
 
             Some("nobara") => Distribution::Nobara,
             Some("void") => Distribution::Void,
-            Some("debian") | Some("pureos") | Some("Deepin") => Distribution::Debian,
+            Some("debian") | Some("pureos") | Some("Deepin") | Some("linuxmint") => Distribution::Debian,
             Some("arch") | Some("manjaro-arm") | Some("garuda") | Some("artix") => Distribution::Arch,
             Some("solus") => Distribution::Solus,
             Some("gentoo") => Distribution::Gentoo,
