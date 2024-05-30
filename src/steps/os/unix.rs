@@ -701,6 +701,14 @@ pub fn run_bun_packages(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(bun).args(["-g", "update"]).status_checked()
 }
 
+pub fn run_bun_completions(ctx: &ExecutionContext) -> Result<()> {
+    let bun = require("bun")?;
+
+    print_separator("Bun Completions");
+
+    ctx.run_type().execute(bun).args(["completions"]).status_checked()
+}
+
 /// Update dotfiles with `rcm(7)`.
 ///
 /// See: <https://github.com/thoughtbot/rcm>
