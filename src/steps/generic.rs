@@ -120,7 +120,10 @@ pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("RubyGems");
     let gem_path_str = gem.as_os_str();
-    if gem_path_str.to_str().unwrap().contains("asdf") {
+    if gem_path_str.to_str().unwrap().contains("asdf")
+        || gem_path_str.to_str().unwrap().contains(".rbenv")
+        || gem_path_str.to_str().unwrap().contains(".rvm")
+    {
         ctx.run_type()
             .execute(gem)
             .args(["update", "--system"])
