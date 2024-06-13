@@ -9,6 +9,11 @@ if exists(":AstroUpdate")
    quitall
 endif
 
+if exists(":MasonUpdate")
+	echo "MasonUpdate"
+	MasonUpdate
+endif
+
 if exists(":NeoBundleUpdate")
     echo "NeoBundle"
     NeoBundleUpdate
