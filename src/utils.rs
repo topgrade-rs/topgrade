@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 
 use tracing::{debug, error};
 use tracing_subscriber::layer::SubscriberExt;
@@ -34,10 +35,10 @@ where
 {
     fn if_exists(self) -> Option<Self> {
         if self.as_ref().exists() {
-            debug!("Path {:?} exists", self.as_ref());
+            debug!("{} {:?} {}", t!("Path"), self.as_ref(), t!("exists"));
             Some(self)
         } else {
-            debug!("Path {:?} doesn't exist", self.as_ref());
+            debug!("{} {:?} {}", t!("Path"), self.as_ref(), t!("doesn't exist"));
             None
         }
     }
@@ -48,10 +49,10 @@ where
 
     fn require(self) -> Result<Self> {
         if self.as_ref().exists() {
-            debug!("Path {:?} exists", self.as_ref());
+            debug!("{} {:?} {}", t!("Path"), self.as_ref(), t!("exists"));
             Ok(self)
         } else {
-            Err(SkipStep(format!("Path {:?} doesn't exist", self.as_ref())).into())
+            Err(SkipStep(format!("{} {:?} {}", t!("Path"), self.as_ref(), t!("doesn't exist"))).into())
         }
     }
 }
@@ -59,16 +60,16 @@ where
 pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBuf> {
     match which_crate::which(&binary_name) {
         Ok(path) => {
-            debug!("Detected {:?} as {:?}", &path, &binary_name);
+            debug!("{} {:?} {} {:?}", t!("Detected"), &path, t!("as"), &binary_name);
             Some(path)
         }
         Err(e) => {
             match e {
                 which_crate::Error::CannotFindBinaryPath => {
-                    debug!("Cannot find {:?}", &binary_name);
+                    debug!("{} {:?}", t!("Cannot find"), &binary_name);
                 }
                 _ => {
-                    error!("Detecting {:?} failed: {}", &binary_name, e);
+                    error!("{} {:?} {}: {}", t!("Detecting"), &binary_name, t!("failed"), e);
                 }
             }
 

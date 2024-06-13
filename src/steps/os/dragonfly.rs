@@ -28,7 +28,9 @@ pub fn audit_packages(ctx: &ExecutionContext) -> Result<()> {
         .status()?
         .success()
     {
-        println!("The package audit was successful, but vulnerable packages still remain on the system");
+        println!(t!(
+            "The package audit was successful, but vulnerable packages still remain on the system"
+        ));
     }
     Ok(())
 }

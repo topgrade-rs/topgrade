@@ -4,6 +4,7 @@ use std::path::Path;
 use std::process::{Child, Command, ExitStatus, Output};
 
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 use tracing::debug;
 
 use crate::command::CommandExt;
@@ -150,7 +151,7 @@ impl Executor {
     pub fn spawn(&mut self) -> Result<ExecutorChild> {
         let result = match self {
             Executor::Wet(c) => {
-                debug!("Running {:?}", c);
+                debug!("{} {:?}", t!("Running"), c);
                 c.spawn_checked().map(ExecutorChild::Wet)?
             }
             Executor::Dry(c) => {
@@ -209,7 +210,8 @@ pub struct DryCommand {
 impl DryCommand {
     fn dry_run(&self) {
         print!(
-            "Dry running: {} {}",
+            "{} {} {}",
+            t!("Dry running:"),
             self.program.to_string_lossy(),
             shell_words::join(
                 self.args
@@ -219,7 +221,7 @@ impl DryCommand {
             )
         );
         match &self.directory {
-            Some(dir) => println!(" in {}", dir.to_string_lossy()),
+            Some(dir) => println!(" {} {}", t!("in"), dir.to_string_lossy()),
             None => println!(),
         };
     }

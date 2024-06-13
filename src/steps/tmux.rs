@@ -14,6 +14,7 @@ use crate::{
     utils::{which, PathExt},
 };
 
+use rust_i18n::t;
 #[cfg(unix)]
 use std::os::unix::process::CommandExt as _;
 
@@ -149,7 +150,7 @@ pub fn run_in_tmux(args: Vec<String>) -> Result<()> {
         let err = tmux.build().args(["attach-session", "-t", &session]).exec();
         Err(eyre!("{err}")).context("Failed to `execvp(3)` tmux")
     } else {
-        println!("Topgrade launched in a new tmux session");
+        println!("{}", t!("Topgrade launched in a new tmux session"));
         Ok(())
     }
 }

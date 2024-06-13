@@ -4,6 +4,7 @@ use crate::terminal::{print_separator, prompt_yesno};
 use crate::utils::{require_option, REQUIRE_SUDO};
 use crate::{utils::require, Step};
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 use std::collections::HashSet;
 use std::fs;
 use std::process::Command;
@@ -44,15 +45,19 @@ pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
 
     let should_ask = !(ctx.config().yes(Step::System) || ctx.config().dry_run());
     if should_ask {
-        println!("Finding available software");
+        println!("{}", t!("Finding available software"));
         if system_update_available()? {
-            let answer = prompt_yesno("A system update is available. Do you wish to install it?")?;
+            let answer = prompt_yesno(
+                t!("A system update is available. Do you wish to install it?")
+                    .to_string()
+                    .as_ref(),
+            )?;
             if !answer {
                 return Ok(());
             }
             println!();
         } else {
-            println!("No new software available.");
+            println!("{}", t!("No new software available."));
             return Ok(());
         }
     }
@@ -72,7 +77,9 @@ fn system_update_available() -> Result<bool> {
 
     debug!("{:?}", output);
 
-    Ok(!output.stderr.contains("No new software available"))
+    Ok(!output
+        .stderr
+        .contains(t!("No new software available").to_string().as_str()))
 }
 
 pub fn run_sparkle(ctx: &ExecutionContext) -> Result<()> {
@@ -115,7 +122,7 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
         .collect();
 
     if releases_installed.is_empty() {
-        println!("No Xcode releases installed.");
+        println!("{}", t!("No Xcode releases installed."));
         return Ok(());
     }
 
@@ -194,7 +201,11 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
         releases_regular_new_installed,
     ] {
         if should_ask && releases_new_installed.len() == 2 {
-            let answer_uninstall = prompt_yesno("Would you like to move the former Xcode release to the trash?")?;
+            let answer_uninstall = prompt_yesno(
+                t!("Would you like to move the former Xcode release to the trash?")
+                    .to_string()
+                    .as_str(),
+            )?;
             if answer_uninstall {
                 let _ = ctx
                     .run_type()
@@ -221,7 +232,8 @@ pub fn process_xcodes_releases(releases_filtered: Vec<String>, should_ask: bool,
         && !releases_filtered.is_empty()
     {
         println!(
-            "New Xcode release detected: {}",
+            "{} {}",
+            t!("New Xcode release detected:"),
             releases_filtered.last().cloned().unwrap_or_default()
         );
         if should_ask {
