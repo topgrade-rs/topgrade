@@ -412,6 +412,7 @@ fn run() -> Result<()> {
     runner.execute(Step::PlatformioCore, "PlatformIO Core", || {
         generic::run_platform_io(&ctx)
     })?;
+    runner.execute(Step::Poetry, "Poetry", || generic::run_poetry(&ctx))?;
 
     if should_run_powershell {
         runner.execute(Step::Powershell, "Powershell Modules Update", || {
