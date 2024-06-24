@@ -178,17 +178,30 @@ fn update_bedrock(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(sudo).args(["brl", "update"]);
 
     let output = Command::new("brl").arg("list").output_checked_utf8()?;
-    debug!("{}", t!("brl list: {output_stdout} {output_stderr}", output_stdout=format!("{output.stdout:?}"), output_stderr=format!("{output.stderr:?}")));
+    debug!(
+        "{}",
+        t!(
+            "brl list: {output_stdout} {output_stderr}",
+            output_stdout = format!("{output.stdout:?}"),
+            output_stderr = format!("{output.stderr:?}")
+        )
+    );
 
     for distribution in output.stdout.trim().lines() {
-        debug!("{}", t!("Bedrock distribution {distribution}", distribution=distribution));
+        debug!(
+            "{}",
+            t!("Bedrock distribution {distribution}", distribution = distribution)
+        );
         match distribution {
             "arch" => archlinux::upgrade_arch_linux(ctx)?,
             "debian" | "ubuntu" | "linuxmint" => upgrade_debian(ctx)?,
             "centos" | "fedora" => upgrade_redhat(ctx)?,
             "bedrock" => upgrade_bedrock_strata(ctx)?,
             _ => {
-                warn!("{}", t!("Unknown distribution {distribution}", distribution=distribution));
+                warn!(
+                    "{}",
+                    t!("Unknown distribution {distribution}", distribution = distribution)
+                );
             }
         }
     }
@@ -1060,8 +1073,9 @@ pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Waydroid");
 
     if is_container_running && !assume_yes {
-        let update_allowed =
-            prompt_yesno(t!("Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?"))?;
+        let update_allowed = prompt_yesno(t!(
+            "Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?"
+        ))?;
         if !update_allowed {
             return Err(SkipStep(t!("Skip the Waydroid step because the user don't want to proceed")).into());
         }

@@ -186,7 +186,10 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
         // this command will fail if `ZSH` is not set
         if let Ok(output) = res_env_zsh {
             let env_zsh = output.stdout;
-            debug!("{}", t!("Oh-my-zsh: under SSH, setting ZSH={env_zsh}", env_zsh=env_zsh));
+            debug!(
+                "{}",
+                t!("Oh-my-zsh: under SSH, setting ZSH={env_zsh}", env_zsh = env_zsh)
+            );
             env::set_var("ZSH", env_zsh);
         }
     }
@@ -212,14 +215,19 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
             let default_path = oh_my_zsh.join("custom");
             debug!(
                 "{}",
-                t!("Running zsh returned {error}. Using default path: {path}",
-                    error=e,
-                    path=default_path.display())
+                t!(
+                    "Running zsh returned {error}. Using default path: {path}",
+                    error = e,
+                    path = default_path.display()
+                )
             );
             default_path
         });
 
-    debug!("{}", t!("oh-my-zsh custom dir: {custom_dir}", custom_dir=custom_dir.display()));
+    debug!(
+        "{}",
+        t!("oh-my-zsh custom dir: {custom_dir}", custom_dir = custom_dir.display())
+    );
 
     let mut custom_repos = RepoStep::try_new()?;
 

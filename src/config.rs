@@ -490,7 +490,7 @@ impl ConfigFile {
         // Search for the main config file
         for path in possible_config_paths.iter() {
             if path.exists() {
-                debug!("{}", t!("Configuration at {path}", path=path.display()));
+                debug!("{}", t!("Configuration at {path}", path = path.display()));
                 res.0.clone_from(path);
                 break;
             }
@@ -563,11 +563,23 @@ impl ConfigFile {
             */
             for include in dir_include {
                 let include_contents = fs::read_to_string(&include).map_err(|e| {
-                    error!("{}", t!("Unable to read {include_contents}", include_contents=include.display()));
+                    error!(
+                        "{}",
+                        t!(
+                            "Unable to read {include_contents}",
+                            include_contents = include.display()
+                        )
+                    );
                     e
                 })?;
                 let include_contents_parsed = toml::from_str(include_contents.as_str()).map_err(|e| {
-                    error!("{}", t!("Failed to deserialize {include_contents}", include_contents=include.display()));
+                    error!(
+                        "{}",
+                        t!(
+                            "Failed to deserialize {include_contents}",
+                            include_contents = include.display()
+                        )
+                    );
                     e
                 })?;
 
@@ -584,7 +596,10 @@ impl ConfigFile {
         }
 
         let mut contents_non_split = fs::read_to_string(&config_path).map_err(|e| {
-            error!("{}", t!("Unable to read {config_path}", config_path=config_path.display()));
+            error!(
+                "{}",
+                t!("Unable to read {config_path}", config_path = config_path.display())
+            );
             e
         })?;
 
@@ -599,7 +614,10 @@ impl ConfigFile {
             let config_file_include_only: ConfigFileIncludeOnly = toml::from_str(contents).map_err(|e| {
                 error!(
                     "{}",
-                    t!("Failed to deserialize an include section of {config_path}", config_path=config_path.display()),
+                    t!(
+                        "Failed to deserialize an include section of {config_path}",
+                        config_path = config_path.display()
+                    ),
                 );
                 e
             })?;
@@ -613,14 +631,28 @@ impl ConfigFile {
                         let include_contents = match fs::read_to_string(&include_path) {
                             Ok(c) => c,
                             Err(e) => {
-                                error!("{}", t!("Unable to read {include_path}: {error}", include_path=include_path.display(), error=e));
+                                error!(
+                                    "{}",
+                                    t!(
+                                        "Unable to read {include_path}: {error}",
+                                        include_path = include_path.display(),
+                                        error = e
+                                    )
+                                );
                                 continue;
                             }
                         };
                         match toml::from_str::<Self>(&include_contents) {
                             Ok(include_parsed) => result.merge(include_parsed),
                             Err(e) => {
-                                error!("{}", t!("Failed to deserialize {path}: {error}", path=include_path.display(), error=e));
+                                error!(
+                                    "{}",
+                                    t!(
+                                        "Failed to deserialize {path}: {error}",
+                                        path = include_path.display(),
+                                        error = e
+                                    )
+                                );
                                 continue;
                             }
                         };
@@ -630,7 +662,14 @@ impl ConfigFile {
 
             match toml::from_str::<Self>(contents) {
                 Ok(contents) => result.merge(contents),
-                Err(e) => error!("{}", t!("Failed to deserialize {path}: {error}", path=config_path.display(), error=e)),
+                Err(e) => error!(
+                    "{}",
+                    t!(
+                        "Failed to deserialize {path}: {error}",
+                        path = config_path.display(),
+                        error = e
+                    )
+                ),
             }
         }
 
@@ -642,14 +681,17 @@ impl ConfigFile {
             }
         }
 
-        debug!("{}", t!("Loaded configuration: {result}", result=format!("{result:?}")));
+        debug!(
+            "{}",
+            t!("Loaded configuration: {result}", result = format!("{result:?}"))
+        );
         Ok(result)
     }
 
     fn edit() -> Result<()> {
         let config_path = Self::ensure()?.0;
         let editor = editor();
-        debug!("{}", t!("Editor: {editor}", editor=format!("{editor:?}")));
+        debug!("{}", t!("Editor: {editor}", editor = format!("{editor:?}")));
 
         let command = which(&editor[0])?;
         let args: Vec<&String> = editor.iter().skip(1).collect();
@@ -834,7 +876,7 @@ impl Config {
             ConfigFile::read(opt.config.clone()).unwrap_or_else(|e| {
                 // Inform the user about errors when loading the configuration,
                 // but fallback to the default config to at least attempt to do something
-                error!("{}", t!("failed to load configuration: {error}", error=e));
+                error!("{}", t!("failed to load configuration: {error}", error = e));
                 ConfigFile::default()
             })
         } else {
@@ -1019,7 +1061,7 @@ impl Config {
             //
             //     Caused by:
             //         missing closing quote
-            .with_context(|| format!("{}", t!("Failed to parse `tmux_arguments`: `{args}`", args=args)))
+            .with_context(|| format!("{}", t!("Failed to parse `tmux_arguments`: `{args}`", args = args)))
     }
 
     /// Prompt for a key before exiting

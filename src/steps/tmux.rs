@@ -161,10 +161,12 @@ pub fn run_command(ctx: &ExecutionContext, window_name: &str, command: &str) -> 
     match ctx.get_tmux_session() {
         Some(session_name) => {
             let indices = tmux.window_indices(&session_name)?;
-            let last_window = indices
-                .iter()
-                .last()
-                .ok_or_else(|| eyre!(t!("tmux session {session_name} has no windows", session_name=session_name)))?;
+            let last_window = indices.iter().last().ok_or_else(|| {
+                eyre!(t!(
+                    "tmux session {session_name} has no windows",
+                    session_name = session_name
+                ))
+            })?;
             tmux.new_window(&session_name, &format!("{last_window}"), command)?;
         }
         None => {

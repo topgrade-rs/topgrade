@@ -74,7 +74,7 @@ impl Terminal {
     }
 
     fn notify_desktop<P: AsRef<str>>(&self, message: P, timeout: Option<Duration>) {
-        debug!("{}", t!("Desktop notification: {message}", message=message.as_ref()));
+        debug!("{}", t!("Desktop notification: {message}", message = message.as_ref()));
         let mut notification = Notification::new();
         notification
             .summary("Topgrade")
@@ -145,7 +145,7 @@ impl Terminal {
         self.term
             .write_fmt(format_args!(
                 "{} {}",
-                style(format!("{}", t!("{key} failed:", key=key))).red().bold(),
+                style(format!("{}", t!("{key} failed:", key = key))).red().bold(),
                 message
             ))
             .ok();
@@ -214,7 +214,7 @@ impl Terminal {
         }
 
         if self.desktop_notification {
-            self.notify_desktop(format!("{}", t!("{step_name} failed", step_name=step_name)), None);
+            self.notify_desktop(format!("{}", t!("{step_name} failed", step_name = step_name)), None);
         }
 
         // TODO: Implement i18n for this using the first character from the translated key
@@ -240,7 +240,7 @@ impl Terminal {
                 }
                 Ok(Key::Char('n')) | Ok(Key::Char('N')) | Ok(Key::Enter) => break Ok(false),
                 Err(e) => {
-                    error!("{}", t!("Error reading from terminal: {error}", error=e));
+                    error!("{}", t!("Error reading from terminal: {error}", error = e));
                     break Ok(false);
                 }
                 Ok(Key::Char('q')) | Ok(Key::Char('Q')) => {

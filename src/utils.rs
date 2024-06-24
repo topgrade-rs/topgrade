@@ -38,7 +38,10 @@ where
             debug!("{}", t!("Path {path} exists", path = format!("{:?}", self.as_ref())));
             Some(self)
         } else {
-            debug!("{}", t!("Path {path} doesn't exist", path = format!("{:?}", self.as_ref())));
+            debug!(
+                "{}",
+                t!("Path {path} doesn't exist", path = format!("{:?}", self.as_ref()))
+            );
             None
         }
     }
@@ -52,7 +55,11 @@ where
             debug!("{}", t!("Path {path} exists", path = format!("{:?}", self.as_ref())));
             Ok(self)
         } else {
-            Err(SkipStep(format!("{}", t!("Path {path} doesn't exist", path = format!("{:?}", self.as_ref())))).into())
+            Err(SkipStep(format!(
+                "{}",
+                t!("Path {path} doesn't exist", path = format!("{:?}", self.as_ref()))
+            ))
+            .into())
         }
     }
 }
@@ -60,16 +67,33 @@ where
 pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBuf> {
     match which_crate::which(&binary_name) {
         Ok(path) => {
-            debug!("{}", t!("Detected {path} as {binary_name}", path = format!("{:?}", &path), binary_name = format!("{:?}", &binary_name)));
+            debug!(
+                "{}",
+                t!(
+                    "Detected {path} as {binary_name}",
+                    path = format!("{:?}", &path),
+                    binary_name = format!("{:?}", &binary_name)
+                )
+            );
             Some(path)
         }
         Err(e) => {
             match e {
                 which_crate::Error::CannotFindBinaryPath => {
-                    debug!("{}", t!("Cannot find {binary_name}", binary_name = format!("{:?}", &binary_name)));
+                    debug!(
+                        "{}",
+                        t!("Cannot find {binary_name}", binary_name = format!("{:?}", &binary_name))
+                    );
                 }
                 _ => {
-                    error!("{} {}", t!("Detecting {binary_name} failed: ", binary_name = format!("{:?}", &binary_name)), e);
+                    error!(
+                        "{} {}",
+                        t!(
+                            "Detecting {binary_name} failed: ",
+                            binary_name = format!("{:?}", &binary_name)
+                        ),
+                        e
+                    );
                 }
             }
 
@@ -89,15 +113,30 @@ pub fn editor() -> Vec<String> {
 pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
     match which_crate::which(&binary_name) {
         Ok(path) => {
-            debug!("{}", t!("Detected {path} as {binary_name}", path = format!("{:?}", &path), binary_name = format!("{:?}", &binary_name)));
+            debug!(
+                "{}",
+                t!(
+                    "Detected {path} as {binary_name}",
+                    path = format!("{:?}", &path),
+                    binary_name = format!("{:?}", &binary_name)
+                )
+            );
             Ok(path)
         }
         Err(e) => match e {
-            which_crate::Error::CannotFindBinaryPath => {
-                Err(SkipStep(format!("{}", t!("Cannot find {binary_name} in PATH", binary_name=format!("{:?}", &binary_name)))).into())
-            }
+            which_crate::Error::CannotFindBinaryPath => Err(SkipStep(format!(
+                "{}",
+                t!(
+                    "Cannot find {binary_name} in PATH",
+                    binary_name = format!("{:?}", &binary_name)
+                )
+            ))
+            .into()),
             _ => {
-                panic!("{}", t!("Path {path} exists", binary_name = format!("{:?}", &binary_name)));
+                panic!(
+                    "{}",
+                    t!("Path {path} exists", binary_name = format!("{:?}", &binary_name))
+                );
             }
         },
     }
@@ -133,7 +172,7 @@ pub fn hostname() -> Result<String> {
 pub fn hostname() -> Result<String> {
     Command::new("hostname")
         .output_checked_utf8()
-        .map_err(|err| SkipStep(t!("Failed to get hostname: {err}", err=err)).into())
+        .map_err(|err| SkipStep(t!("Failed to get hostname: {err}", err = err)).into())
         .map(|output| output.stdout.trim().to_owned())
 }
 
@@ -220,11 +259,11 @@ pub fn check_is_python_2_or_shim(python: PathBuf) -> Result<PathBuf> {
             .parse::<u32>()
             .expect(t!("Major version should be a valid number").as_ref());
         if major_version == 2 {
-            return Err(SkipStep(t!("{python} is a Python 2, skip.", python=python.display()).to_string()).into());
+            return Err(SkipStep(t!("{python} is a Python 2, skip.", python = python.display()).to_string()).into());
         }
     } else {
         // No version number, is a shim
-        return Err(SkipStep(t!("{python} is a Python shim, skip.", python=python.display()).to_string()).into());
+        return Err(SkipStep(t!("{python} is a Python shim, skip.", python = python.display()).to_string()).into());
     }
 
     Ok(python)

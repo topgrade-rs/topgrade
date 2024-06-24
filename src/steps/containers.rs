@@ -45,7 +45,15 @@ impl Container {
 impl Display for Container {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         // e.g., "`fedora:latest` for `linux/amd64`"
-        write!(f, "{}", t!("`{repo_tag}` for `{platform}`", repo_tag=self.repo_tag, platform=self.platform))
+        write!(
+            f,
+            "{}",
+            t!(
+                "`{repo_tag}` for `{platform}`",
+                repo_tag = self.repo_tag,
+                platform = self.platform
+            )
+        )
     }
 }
 
@@ -74,22 +82,25 @@ fn list_containers(crt: &Path, ignored_containers: Option<&Vec<String>>) -> Resu
     for line in output.stdout.lines() {
         if line.starts_with("localhost") {
             // Don't know how to update self-built containers
-            debug!("{}", t!("Skipping self-built container '{line}'", line=line));
+            debug!("{}", t!("Skipping self-built container '{line}'", line = line));
             continue;
         }
 
         if line.contains("<none>") {
             // Bogus/dangling container or intermediate layer
-            debug!("{}", t!("Skipping bogus container '{line}'", line=line));
+            debug!("{}", t!("Skipping bogus container '{line}'", line = line));
             continue;
         }
 
         if line.starts_with("vsc-") {
-            debug!("{}", t!("Skipping visual studio code dev container '{line}'", line=line));
+            debug!(
+                "{}",
+                t!("Skipping visual studio code dev container '{line}'", line = line)
+            );
             continue;
         }
 
-        debug!("{}", t!("Using container '{line}'", line=line));
+        debug!("{}", t!("Using container '{line}'", line = line));
 
         // line is of format: `Repository:Tag ImageID`, e.g., `nixos/nix:latest d80fea9c32b4`
         let split_res = line.split(' ').collect::<Vec<&str>>();
@@ -98,7 +109,7 @@ fn list_containers(crt: &Path, ignored_containers: Option<&Vec<String>>) -> Resu
 
         if let Some(ref ignored_containers) = ignored_containers {
             if ignored_containers.iter().any(|pattern| pattern.matches(repo_tag)) {
-                debug!("{}", t!("Skipping ignored container '{line}'", line=line));
+                debug!("{}", t!("Skipping ignored container '{line}'", line = line));
                 continue;
             }
         }
@@ -130,12 +141,18 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Containers"));
     let mut success = true;
-    let containers =
-        list_containers(&crt, ctx.config().containers_ignored_tags()).context(t!("Failed to list Docker containers"))?;
-    debug!("{}", t!("Containers to inspect: {containers}", containers=format!("{containers:?}")));
+    let containers = list_containers(&crt, ctx.config().containers_ignored_tags())
+        .context(t!("Failed to list Docker containers"))?;
+    debug!(
+        "{}",
+        t!(
+            "Containers to inspect: {containers}",
+            containers = format!("{containers:?}")
+        )
+    );
 
     for container in containers.iter() {
-        debug!("{}", t!("Pulling container '{container}'", container=container));
+        debug!("{}", t!("Pulling container '{container}'", container = container));
         let args = vec![
             "pull",
             container.repo_tag.as_str(),
@@ -145,7 +162,14 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
         let mut exec = ctx.run_type().execute(&crt);
 
         if let Err(e) = exec.args(&args).status_checked() {
-            error!("{}", t!("Pulling container '{container}' failed: {error}", container=container, error=e));
+            error!(
+                "{}",
+                t!(
+                    "Pulling container '{container}' failed: {error}",
+                    container = container,
+                    error = e
+                )
+            );
 
             // Find out if this is 'skippable'
             // This is necessary e.g. for docker, because unlike podman docker doesn't tell from
@@ -160,7 +184,10 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
                     _ => false,
                 },
             } {
-                warn!("{}", t!("Skipping unknown container '{container}'", container=container));
+                warn!(
+                    "{}",
+                    t!("Skipping unknown container '{container}'", container = container)
+                );
                 continue;
             }
 
@@ -177,7 +204,7 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
             .args(["image", "prune", "-f"])
             .status_checked()
         {
-            error!("{}", t!("Removing dangling images failed: {error}", error=e));
+            error!("{}", t!("Removing dangling images failed: {error}", error = e));
             success = false;
         }
     }

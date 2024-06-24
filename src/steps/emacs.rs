@@ -75,9 +75,12 @@ impl Emacs {
         if let Some(doom) = &self.doom {
             Emacs::update_doom(doom, ctx)?;
         }
-        let init_file = require_option(self.directory.as_ref(), t!("Emacs directory does not exist").to_string())?
-            .join("init.el")
-            .require()?;
+        let init_file = require_option(
+            self.directory.as_ref(),
+            t!("Emacs directory does not exist").to_string(),
+        )?
+        .join("init.el")
+        .require()?;
 
         print_separator("Emacs");
 

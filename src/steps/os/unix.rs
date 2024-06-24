@@ -105,7 +105,7 @@ pub fn run_fisher(ctx: &ExecutionContext) -> Result<()> {
         .args(["-c", "echo \"$__fish_config_dir/fish_plugins\""])
         .output_checked_utf8()
         .and_then(|output| Path::new(&output.stdout.trim()).require().map(|_| ()))
-        .map_err(|err| SkipStep(t!("`fish_plugins` path doesn't exist: {err}", err=err).to_string()))?;
+        .map_err(|err| SkipStep(t!("`fish_plugins` path doesn't exist: {err}", err = err).to_string()))?;
 
     Command::new(&fish)
         .args(["-c", "fish_update_completions"])
@@ -121,7 +121,7 @@ pub fn run_fisher(ctx: &ExecutionContext) -> Result<()> {
         .args(["-c", "fisher --version"])
         .output_checked_utf8()?
         .stdout;
-    debug!("{}", t!("Fisher version: {version_str}", version_str=version_str));
+    debug!("{}", t!("Fisher version: {version_str}", version_str = version_str));
 
     if version_str.starts_with("fisher version 3.") {
         // v3 - see https://github.com/topgrade-rs/topgrade/pull/37#issuecomment-1283844506
@@ -248,7 +248,7 @@ pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
         ])
         .output_checked_utf8()?;
 
-    debug!("{}", t!("Checking for gnome extensions: {output}", output=output));
+    debug!("{}", t!("Checking for gnome extensions: {output}", output = output));
     if !output.stdout.contains("org.gnome.Shell.Extensions") {
         return Err(SkipStep(t!("Gnome shell extensions are unregistered in DBus")).into());
     }
@@ -354,9 +354,12 @@ pub fn run_guix(ctx: &ExecutionContext) -> Result<()> {
     let run_type = ctx.run_type();
 
     let output = Command::new(&guix).arg("pull").output_checked_utf8();
-    debug!("{}", t!("guix pull output: {output}", output=format!("{output:?}")));
+    debug!("{}", t!("guix pull output: {output}", output = format!("{output:?}")));
     let should_upgrade = output.is_ok();
-    debug!("{}", t!("Can Upgrade Guix: {should_upgrade}", should_upgrade=should_upgrade));
+    debug!(
+        "{}",
+        t!("Can Upgrade Guix: {should_upgrade}", should_upgrade = should_upgrade)
+    );
 
     print_separator("Guix");
 
@@ -383,9 +386,9 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     #[cfg(target_os = "macos")]
     {
         if require("darwin-rebuild").is_ok() {
-            return Err(SkipStep(
-                t!("Nix-darwin on macOS must be upgraded via darwin-rebuild switch").to_string()
-            ).into());
+            return Err(
+                SkipStep(t!("Nix-darwin on macOS must be upgraded via darwin-rebuild switch").to_string()).into(),
+            );
         }
     }
 
@@ -427,19 +430,19 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
     }
 
     if !should_self_upgrade {
-        return Err(SkipStep(t!("`nix upgrade-nix` can only be used on macOS or non-NixOS Linux").to_string())
-        .into());
+        return Err(SkipStep(t!("`nix upgrade-nix` can only be used on macOS or non-NixOS Linux").to_string()).into());
     }
 
     if nix_profile_dir(&nix)?.is_none() {
-        return Err(SkipStep(t!("`nix upgrade-nix` cannot be run when Nix is installed in a profile").to_string())
-        .into());
+        return Err(
+            SkipStep(t!("`nix upgrade-nix` cannot be run when Nix is installed in a profile").to_string()).into(),
+        );
     }
 
     print_separator(t!("Nix (self-upgrade)"));
 
     let multi_user = fs::metadata(&nix)?.uid() == 0;
-    debug!("{}", t!("Multi user nix: {mult_user}", multi_user=multi_user));
+    debug!("{}", t!("Multi user nix: {mult_user}", multi_user = multi_user));
 
     let nix_args = nix_args();
     if multi_user {
@@ -468,31 +471,51 @@ fn nix_profile_dir(nix: &Path) -> Result<Option<PathBuf>> {
     // binary; should be the same.
     let nix_bin_dir = nix.parent();
     if nix_bin_dir.and_then(|p| p.file_name()) != Some(OsStr::new("bin")) {
-        debug!("{}", t!("Nix is not installed in a `bin` directory: {nix_bin_dir}", nix_bin_dir=format!("{nix_bin_dir:?}")));
+        debug!(
+            "{}",
+            t!(
+                "Nix is not installed in a `bin` directory: {nix_bin_dir}",
+                nix_bin_dir = format!("{nix_bin_dir:?}")
+            )
+        );
         return Ok(None);
     }
 
-    let nix_dir = nix_bin_dir
-        .and_then(|bin_dir| bin_dir.parent())
-        .ok_or_else(|| eyre!(t!("Unable to find Nix install directory from Nix binary {nix}", nix=format!("{nix:?}"))))?;
+    let nix_dir = nix_bin_dir.and_then(|bin_dir| bin_dir.parent()).ok_or_else(|| {
+        eyre!(t!(
+            "Unable to find Nix install directory from Nix binary {nix}",
+            nix = format!("{nix:?}")
+        ))
+    })?;
 
-    debug!("{}", t!("Found Nix in {nix_dir}", nix_dir=format!("{nix_dir:?}")));
+    debug!("{}", t!("Found Nix in {nix_dir}", nix_dir = format!("{nix_dir:?}")));
 
     let mut profile_dir = nix_dir.to_path_buf();
     while profile_dir.is_symlink() {
         profile_dir = profile_dir
             .parent()
-            .ok_or_else(|| eyre!(t!("Path has no parent: {profile_dir}", profile_dir=format!("{profile_dir:?}"))))?
-            .join(
-                profile_dir
-                    .read_link()
-                    .wrap_err_with(|| t!("Failed to read symlink {profile_dir}", profile_dir=format!("{profile_dir:?}")))?,
-            );
+            .ok_or_else(|| {
+                eyre!(t!(
+                    "Path has no parent: {profile_dir}",
+                    profile_dir = format!("{profile_dir:?}")
+                ))
+            })?
+            .join(profile_dir.read_link().wrap_err_with(|| {
+                t!(
+                    "Failed to read symlink {profile_dir}",
+                    profile_dir = format!("{profile_dir:?}")
+                )
+            })?);
 
         // NOTE: `nix` uses a hand-rolled canonicalize function, Rust just uses `realpath`.
         if profile_dir
             .canonicalize()
-            .wrap_err_with(|| t!("Failed to canonicalize {profile_dir}", profile_dir=format!("{profile_dir:?}")))?
+            .wrap_err_with(|| {
+                t!(
+                    "Failed to canonicalize {profile_dir}",
+                    profile_dir = format!("{profile_dir:?}")
+                )
+            })?
             .components()
             .any(|component| component == Component::Normal(OsStr::new("profiles")))
         {
@@ -500,11 +523,20 @@ fn nix_profile_dir(nix: &Path) -> Result<Option<PathBuf>> {
         }
     }
 
-    debug!("{}", t!("Found Nix profile {profile_dir}", profile_dir=format!("{profile_dir:?}")));
+    debug!(
+        "{}",
+        t!(
+            "Found Nix profile {profile_dir}",
+            profile_dir = format!("{profile_dir:?}")
+        )
+    );
 
-    let user_env = profile_dir
-        .canonicalize()
-        .wrap_err_with(|| t!("Failed to canonicalize {profile_dir}", profile_dir=format!("{profile_dir:?}")))?;
+    let user_env = profile_dir.canonicalize().wrap_err_with(|| {
+        t!(
+            "Failed to canonicalize {profile_dir}",
+            profile_dir = format!("{profile_dir:?}")
+        )
+    })?;
 
     Ok(
         if user_env

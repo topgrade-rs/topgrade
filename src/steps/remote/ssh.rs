@@ -48,7 +48,7 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
         args.extend(["env", &env, "$SHELL", "-lc", topgrade]);
 
         print_separator(format!("Remote ({hostname})"));
-        println!("{}", t!("Connecting to {hostname}...", hostname=hostname));
+        println!("{}", t!("Connecting to {hostname}...", hostname = hostname));
 
         ctx.run_type().execute(ssh).args(&args).status_checked()
     }

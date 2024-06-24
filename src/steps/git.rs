@@ -101,10 +101,12 @@ pub fn run_git_pull(ctx: &ExecutionContext) -> Result<()> {
     // NOTE: this should be executed **before** skipping the Git step or the
     // user won't receive this warning in the cases where all the paths configured
     // are bad patterns.
-    repos
-        .bad_patterns
-        .iter()
-        .for_each(|pattern| print_warning(t!("Path {pattern} did not contain any git repositories", pattern=pattern)));
+    repos.bad_patterns.iter().for_each(|pattern| {
+        print_warning(t!(
+            "Path {pattern} did not contain any git repositories",
+            pattern = pattern
+        ))
+    });
 
     if repos.is_repos_empty() {
         return Err(SkipStep(t!("No repositories to pull").to_string()).into());
@@ -144,7 +146,14 @@ fn get_head_revision<P: AsRef<Path>>(git: &Path, repo: P) -> Option<String> {
         .output_checked_utf8()
         .map(|output| output.stdout.trim().to_string())
         .map_err(|e| {
-            error!("{}", t!("Error getting revision for {repo}: {error}", repo=repo.as_ref().display(), error=e));
+            error!(
+                "{}",
+                t!(
+                    "Error getting revision for {repo}: {error}",
+                    repo = repo.as_ref().display(),
+                    error = e
+                )
+            );
 
             e
         })
@@ -176,11 +185,21 @@ impl RepoStep {
                 debug_assert!(path.exists());
 
                 if path.is_file() {
-                    debug!("{}", t!("{path} is a file. Checking {path_parent}", path=path.display(), path_parent=path.parent()?.display()));
+                    debug!(
+                        "{}",
+                        t!(
+                            "{path} is a file. Checking {path_parent}",
+                            path = path.display(),
+                            path_parent = path.parent()?.display()
+                        )
+                    );
                     path = path.parent()?.to_path_buf();
                 }
 
-                debug!("{}", t!("Checking if {path} is a git repository", path=path.display()));
+                debug!(
+                    "{}",
+                    t!("Checking if {path} is a git repository", path = path.display())
+                );
 
                 #[cfg(windows)]
                 let path = {
@@ -206,8 +225,15 @@ impl RepoStep {
                 return output;
             }
             Err(e) => match e.kind() {
-                io::ErrorKind::NotFound => debug!("{}", t!("{path} does not exist", path=path.as_ref().display())),
-                _ => error!("{}", t!("Error looking for {path}: {error}", path=path.as_ref().display(), error=e)),
+                io::ErrorKind::NotFound => debug!("{}", t!("{path} does not exist", path = path.as_ref().display())),
+                _ => error!(
+                    "{}",
+                    t!(
+                        "Error looking for {path}: {error}",
+                        path = path.as_ref().display(),
+                        error = e
+                    )
+                ),
             },
         }
 
@@ -237,7 +263,14 @@ impl RepoStep {
 
         res.map(|output| output.stdout.lines().count() > 0)
             .map_err(|e| {
-                error!("{}", t!("Error getting remotes for {repo}: {error}", repo=repo.as_ref().display(), error=e));
+                error!(
+                    "{}",
+                    t!(
+                        "Error getting remotes for {repo}: {error}",
+                        repo = repo.as_ref().display(),
+                        error = e
+                    )
+                );
                 e
             })
             .ok()
@@ -253,9 +286,12 @@ impl RepoStep {
                         if let Some(last_git_repo) = &last_git_repo {
                             if path.is_descendant_of(last_git_repo) {
                                 debug!(
-                                    "{}", t!("Skipping {path} because it's a descendant of last known repo {last_git_repo}",
-                                    path=path.display(),
-                                    last_git_repo=last_git_repo.display())
+                                    "{}",
+                                    t!(
+                                        "Skipping {path} because it's a descendant of last known repo {last_git_repo}",
+                                        path = path.display(),
+                                        last_git_repo = last_git_repo.display()
+                                    )
                                 );
                                 continue;
                             }
@@ -265,7 +301,7 @@ impl RepoStep {
                         }
                     }
                     Err(e) => {
-                        error!("{}", t!("Error in path {error}", error=e));
+                        error!("{}", t!("Error in path {error}", error = e));
                     }
                 }
             }
@@ -274,7 +310,7 @@ impl RepoStep {
                 self.bad_patterns.push(String::from(pattern));
             }
         } else {
-            error!("{}", t!("Bad glob pattern: {pattern}", pattern=pattern));
+            error!("{}", t!("Bad glob pattern: {pattern}", pattern = pattern));
         }
     }
 
@@ -321,7 +357,7 @@ impl RepoStep {
             .await?;
         let result = output_checked_utf8(pull_output)
             .and_then(|_| output_checked_utf8(submodule_output))
-            .wrap_err_with(|| format!("{}", t!("Failed to pull {repo}", repo=repo.as_ref().display())));
+            .wrap_err_with(|| format!("{}", t!("Failed to pull {repo}", repo = repo.as_ref().display())));
 
         if result.is_err() {
             // TODO: Properly use i18n in this one. How to deal with the colors?
@@ -373,7 +409,7 @@ impl RepoStep {
         if ctx.run_type().dry() {
             self.repos
                 .iter()
-                .for_each(|repo| println!("{}", t!("Would pull {repo}", repo=repo.display())));
+                .for_each(|repo| println!("{}", t!("Would pull {repo}", repo = repo.display())));
 
             return Ok(());
         }

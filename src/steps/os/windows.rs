@@ -178,11 +178,24 @@ pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     let wsl_distributions = get_wsl_distributions(&wsl)?;
     let mut ran = false;
 
-    debug!("{}", t!("WSL distributions: {wsl_distributions}", wsl_distributions=format!("{wsl_distributions:?}")));
+    debug!(
+        "{}",
+        t!(
+            "WSL distributions: {wsl_distributions}",
+            wsl_distributions = format!("{wsl_distributions:?}")
+        )
+    );
 
     for distribution in wsl_distributions {
         let result = upgrade_wsl_distribution(&wsl, &distribution, ctx);
-        debug!("{}", t!("Upgrading {distribution}: {result}", distribution=format!("{distribution:?}"), result=format!("{result:?}")));
+        debug!(
+            "{}",
+            t!(
+                "Upgrading {distribution}: {result}",
+                distribution = format!("{distribution:?}"),
+                result = format!("{result:?}")
+            )
+        );
         if let Err(e) = result {
             if e.is::<SkipStep>() {
                 continue;
@@ -206,9 +219,9 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
     if powershell.supports_windows_update() {
         powershell.windows_update(ctx)
     } else {
-        print_warning(
-            t!("Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."),
-        );
+        print_warning(t!(
+            "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."
+        ));
 
         Err(SkipStep(t!("USOClient not supported.")).into())
     }
@@ -228,7 +241,7 @@ pub fn insert_startup_scripts(git_repos: &mut RepoStep) -> Result<()> {
         let path = entry.path();
         if path.extension().and_then(OsStr::to_str) == Some("lnk") {
             if let Ok(lnk) = parselnk::Lnk::try_from(Path::new(&path)) {
-                debug!("{}", t!("Startup link: {link}", link=lnk));
+                debug!("{}", t!("Startup link: {link}", link = lnk));
                 if let Some(path) = lnk.relative_path() {
                     git_repos.insert_if_repo(&startup_dir.join(path));
                 }

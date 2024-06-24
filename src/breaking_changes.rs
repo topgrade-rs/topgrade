@@ -120,7 +120,10 @@ pub(crate) fn first_run_of_major_release() -> Result<bool> {
 
 /// Print breaking changes to the user.
 pub(crate) fn print_breaking_changes() {
-    let header = format!("{}", t!("Topgrade {version_str} Breaking Changes", version_str = VERSION_STR));
+    let header = format!(
+        "{}",
+        t!("Topgrade {version_str} Breaking Changes", version_str = VERSION_STR)
+    );
     print_separator(header);
     let contents = if BREAKINGCHANGES.is_empty() {
         t!("No Breaking changes").to_string()

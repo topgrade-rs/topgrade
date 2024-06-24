@@ -706,14 +706,18 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
     let composer_home = Command::new(&composer)
         .args(["global", "config", "--absolute", "--quiet", "home"])
         .output_checked_utf8()
-        .map_err(|e| (SkipStep(t!("Error getting the composer directory: {error}", error=e).to_string())))
+        .map_err(|e| (SkipStep(t!("Error getting the composer directory: {error}", error = e).to_string())))
         .map(|s| PathBuf::from(s.stdout.trim()))?
         .require()?;
 
     if !composer_home.is_descendant_of(&HOME_DIR) {
-        return Err(SkipStep(t!(
-            "Composer directory {composer_home} isn't a descendant of the user's home directory",
-            composer_home = composer_home.display()).to_string())
+        return Err(SkipStep(
+            t!(
+                "Composer directory {composer_home} isn't a descendant of the user's home directory",
+                composer_home = composer_home.display()
+            )
+            .to_string(),
+        )
         .into());
     }
 
@@ -774,7 +778,8 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
         Ok(output) => output,
         Err(_) => {
             return Err(SkipStep(
-                t!("Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK.").to_string()
+                t!("Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK.")
+                    .to_string(),
             )
             .into());
         }
@@ -814,7 +819,12 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
             .execute(&dotnet)
             .args(["tool", "update", package_name, "--global"])
             .status_checked()
-            .with_context(|| t!("Failed to update .NET package {package_name}", package_name=format!("{package_name:?}")))?;
+            .with_context(|| {
+                t!(
+                    "Failed to update .NET package {package_name}",
+                    package_name = format!("{package_name:?}")
+                )
+            })?;
     }
 
     Ok(())
@@ -870,7 +880,7 @@ pub fn run_ghcli_extensions_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let gh = require("gh")?;
     let result = Command::new(&gh).args(["extensions", "list"]).output_checked_utf8();
     if result.is_err() {
-        debug!("{}", t!("GH result {result}", result=format!("{result:?}")));
+        debug!("{}", t!("GH result {result}", result = format!("{result:?}")));
         return Err(SkipStep(t!("GH failed").to_string()).into());
     }
 
@@ -901,7 +911,7 @@ pub fn run_helm_repo_update(ctx: &ExecutionContext) -> Result<()> {
     let mut success = true;
     let mut exec = ctx.run_type().execute(helm);
     if let Err(e) = exec.arg("repo").arg("update").status_checked() {
-        error!("{}", t!("Updating repositories failed: {error}", error=e));
+        error!("{}", t!("Updating repositories failed: {error}", error = e));
         success = match exec.output_checked_utf8() {
             Ok(s) => s.stdout.contains(no_repo) || s.stderr.contains(no_repo),
             Err(e) => match e.downcast_ref::<TopgradeError>() {

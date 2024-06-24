@@ -63,7 +63,14 @@ impl Vagrant {
             .arg("status")
             .current_dir(directory)
             .output_checked_utf8()?;
-        debug!("{}", t!("Vagrant output in {directory}: {output}", directory=directory, output=output));
+        debug!(
+            "{}",
+            t!(
+                "Vagrant output in {directory}: {output}",
+                directory = directory,
+                output = output
+            )
+        );
 
         let boxes = output
             .stdout
@@ -71,7 +78,7 @@ impl Vagrant {
             .skip(2)
             .take_while(|line| !(line.is_empty() || line.starts_with('\r')))
             .map(|line| {
-                debug!("{}", t!("Vagrant line: {line}", line=format!("{line:?}")));
+                debug!("{}", t!("Vagrant line: {line}", line = format!("{line:?}")));
                 let mut elements = line.split_whitespace();
 
                 let name = elements.next().unwrap().to_string();
@@ -168,7 +175,14 @@ pub fn collect_boxes(ctx: &ExecutionContext) -> Result<Vec<VagrantBox>> {
             Ok(mut boxes) => {
                 result.append(&mut boxes);
             }
-            Err(e) => error!("{}", t!("Error collecting vagrant boxes from {directory}: {error}", directory=directory, error=e)),
+            Err(e) => error!(
+                "{}",
+                t!(
+                    "Error collecting vagrant boxes from {directory}: {error}",
+                    directory = directory,
+                    error = e
+                )
+            ),
         };
     }
 
@@ -184,7 +198,11 @@ pub fn topgrade_vagrant_box(ctx: &ExecutionContext, vagrant_box: &VagrantBox) ->
     let mut _poweron = None;
     if !vagrant_box.initial_status.powered_on() {
         if !(ctx.config().vagrant_power_on().unwrap_or(true)) {
-            return Err(SkipStep(format!("{}", t!("Skipping powered off box {vagrant_box}", vagrant_box=vagrant_box))).into());
+            return Err(SkipStep(format!(
+                "{}",
+                t!("Skipping powered off box {vagrant_box}", vagrant_box = vagrant_box)
+            ))
+            .into());
         } else {
             print_separator(seperator);
             _poweron = Some(vagrant.temporary_power_on(vagrant_box, ctx)?);

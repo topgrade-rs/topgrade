@@ -115,10 +115,19 @@ fn run() -> Result<()> {
     debug!("{}", t!("Version: {version}", version = crate_version!()));
     debug!("{}", t!("OS: {TARGET}", TARGET = env!("TARGET")));
     debug!("{:?}", std::env::args());
-    debug!("{}", t!("Binary path: {current_exe}", current_exe = format!("{:?}", std::env::current_exe())));
     debug!(
         "{}",
-        t!("self-update Feature Enabled: {self_update_feature}", self_update_feature=cfg!(feature = "self-update"))
+        t!(
+            "Binary path: {current_exe}",
+            current_exe = format!("{:?}", std::env::current_exe())
+        )
+    );
+    debug!(
+        "{}",
+        t!(
+            "self-update Feature Enabled: {self_update_feature}",
+            self_update_feature = cfg!(feature = "self-update")
+        )
     );
     debug!("{}", t!("Configuration: {config}", config = format!("{config:?}")));
 
@@ -217,7 +226,7 @@ fn run() -> Result<()> {
                 runner.execute(Step::System, "System update", || distribution.upgrade(&ctx))?;
             }
             Err(e) => {
-                println!("{}", t!("Error detecting current distribution: {error}", error=e));
+                println!("{}", t!("Error detecting current distribution: {error}", error = e));
             }
         }
         runner.execute(Step::ConfigUpdate, "config-update", || linux::run_config_update(&ctx))?;
@@ -535,7 +544,7 @@ fn main() {
                 // The `Debug` implementation of `eyre::Result` prints a multi-line
                 // error message that includes all the 'causes' added with
                 // `.with_context(...)` calls.
-                println!("{}", t!("Error: {error}", error=format!("{:?}", error)));
+                println!("{}", t!("Error: {error}", error = format!("{:?}", error)));
             }
             exit(1);
         }

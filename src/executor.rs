@@ -211,17 +211,19 @@ impl DryCommand {
     fn dry_run(&self) {
         print!(
             "{}",
-            t!("Dry running: {program_name} {shell_words}",
+            t!(
+                "Dry running: {program_name} {shell_words}",
                 program_name = self.program.to_string_lossy(),
                 shell_words = shell_words::join(
                     self.args
                         .iter()
                         .map(|a| String::from(a.to_string_lossy()))
                         .collect::<Vec<String>>()
+                )
             )
-        ));
+        );
         match &self.directory {
-            Some(dir) => println!(" {}", t!("in {directory}", directory= dir.to_string_lossy())),
+            Some(dir) => println!(" {}", t!("in {directory}", directory = dir.to_string_lossy())),
             None => println!(),
         };
     }

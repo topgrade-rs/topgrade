@@ -28,13 +28,19 @@ impl TryFrom<Output> for Utf8Output {
         let stdout = String::from_utf8(stdout).map_err(|err| {
             eyre!(
                 "{}",
-                t!("Stdout contained invalid UTF-8: {err}", err=String::from_utf8_lossy(err.as_bytes()))
+                t!(
+                    "Stdout contained invalid UTF-8: {err}",
+                    err = String::from_utf8_lossy(err.as_bytes())
+                )
             )
         })?;
         let stderr = String::from_utf8(stderr).map_err(|err| {
             eyre!(
                 "{}",
-                t!("Stderr contained invalid UTF-8: {err}", err=String::from_utf8_lossy(err.as_bytes()))
+                t!(
+                    "Stderr contained invalid UTF-8: {err}",
+                    err = String::from_utf8_lossy(err.as_bytes())
+                )
             )
         })?;
 
@@ -49,13 +55,19 @@ impl TryFrom<&Output> for Utf8Output {
         let stdout = String::from_utf8(stdout.to_vec()).map_err(|err| {
             eyre!(
                 "{}",
-                t!("Stdout contained invalid UTF-8: {err}", err=String::from_utf8_lossy(err.as_bytes()))
+                t!(
+                    "Stdout contained invalid UTF-8: {err}",
+                    err = String::from_utf8_lossy(err.as_bytes())
+                )
             )
         })?;
         let stderr = String::from_utf8(stderr.to_vec()).map_err(|err| {
             eyre!(
                 "{}",
-                t!("Stderr contained invalid UTF-8: {err}", err=String::from_utf8_lossy(err.as_bytes()))
+                t!(
+                    "Stderr contained invalid UTF-8: {err}",
+                    err = String::from_utf8_lossy(err.as_bytes())
+                )
             )
         })?;
         let status = *status;
@@ -164,12 +176,12 @@ impl CommandExt for Command {
         #[allow(clippy::disallowed_methods)]
         let output = self
             .output()
-            .with_context(|| format!("{}", t!("Failed to execute `{command}`", command=command)))?;
+            .with_context(|| format!("{}", t!("Failed to execute `{command}`", command = command)))?;
 
         if succeeded(&output).is_ok() {
             Ok(output)
         } else {
-            let mut message = format!("{}", t!("Command failed: `{command}`", command=command));
+            let mut message = format!("{}", t!("Command failed: `{command}`", command = command));
             let stderr = String::from_utf8_lossy(&output.stderr);
             let stdout = String::from_utf8_lossy(&output.stdout);
 
@@ -186,14 +198,20 @@ impl CommandExt for Command {
             let err = TopgradeError::ProcessFailedWithOutput(program, output.status, stderr.into_owned());
 
             let ret = Err(err).with_context(|| message);
-            debug!("{}", t!("Command failed: {error_and_context}", error_and_context=format!("{ret:?}")));
+            debug!(
+                "{}",
+                t!(
+                    "Command failed: {error_and_context}",
+                    error_and_context = format!("{ret:?}")
+                )
+            );
             ret
         }
     }
 
     fn status_checked_with(&mut self, succeeded: impl Fn(ExitStatus) -> Result<(), ()>) -> eyre::Result<()> {
         let command = log(self);
-        let message = format!("{}", t!("Failed to execute `{command}`", command=command));
+        let message = format!("{}", t!("Failed to execute `{command}`", command = command));
 
         // This is where we implement `status_checked`, which is what we prefer to use instead of
         // `status`, so we allow `Command::status` here.
@@ -205,15 +223,21 @@ impl CommandExt for Command {
         } else {
             let (program, _) = get_program_and_args(self);
             let err = TopgradeError::ProcessFailed(program, status);
-            let ret = Err(err).with_context(|| format!("{}", t!("Command failed: `{command}`", command=command)));
-            debug!("{}", t!("Command failed: {error_and_context}", error_and_context=format!("{ret:?}")));
+            let ret = Err(err).with_context(|| format!("{}", t!("Command failed: `{command}`", command = command)));
+            debug!(
+                "{}",
+                t!(
+                    "Command failed: {error_and_context}",
+                    error_and_context = format!("{ret:?}")
+                )
+            );
             ret
         }
     }
 
     fn spawn_checked(&mut self) -> eyre::Result<Self::Child> {
         let command = log(self);
-        let message = format!("{}", t!("Failed to execute `{command}`", command=command));
+        let message = format!("{}", t!("Failed to execute `{command}`", command = command));
 
         // This is where we implement `spawn_checked`, which is what we prefer to use instead of
         // `spawn`, so we allow `Command::spawn` here.
@@ -242,6 +266,6 @@ fn format_program_and_args(cmd: &Command) -> String {
 
 fn log(cmd: &Command) -> String {
     let command = format_program_and_args(cmd);
-    debug!("{}", t!("Executing command `{command}`", command=command));
+    debug!("{}", t!("Executing command `{command}`", command = command));
     command
 }

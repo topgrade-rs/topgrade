@@ -47,9 +47,7 @@ pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
     if should_ask {
         println!("{}", t!("Finding available software"));
         if system_update_available()? {
-            let answer = prompt_yesno(
-                t!("A system update is available. Do you wish to install it?").as_ref(),
-            )?;
+            let answer = prompt_yesno(t!("A system update is available. Do you wish to install it?").as_ref())?;
             if !answer {
                 return Ok(());
             }
@@ -199,9 +197,8 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
         releases_regular_new_installed,
     ] {
         if should_ask && releases_new_installed.len() == 2 {
-            let answer_uninstall = prompt_yesno(
-                t!("Would you like to move the former Xcode release to the trash?").as_ref(),
-            )?;
+            let answer_uninstall =
+                prompt_yesno(t!("Would you like to move the former Xcode release to the trash?").as_ref())?;
             if answer_uninstall {
                 let _ = ctx
                     .run_type()

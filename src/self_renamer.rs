@@ -15,7 +15,14 @@ impl SelfRenamer {
         let temp_path = tempdir.path().join("topgrade.exe");
         let exe_path = current_exe()?;
 
-        debug!("{}", t!("Current exe in {exe_path}. Moving it to {temp_path}", exe_path=format!("{exe_path:?}"), temp_path=format!("{temp_path:?}")));
+        debug!(
+            "{}",
+            t!(
+                "Current exe in {exe_path}. Moving it to {temp_path}",
+                exe_path = format!("{exe_path:?}"),
+                temp_path = format!("{temp_path:?}")
+            )
+        );
 
         fs::rename(&exe_path, &temp_path)?;
 
@@ -26,15 +33,32 @@ impl SelfRenamer {
 impl Drop for SelfRenamer {
     fn drop(&mut self) {
         if self.exe_path.exists() {
-            debug!("{}", t!("{exe_path} exists. Topgrade was probably upgraded", exe_path=format!("{:?}", self.exe_path)));
+            debug!(
+                "{}",
+                t!(
+                    "{exe_path} exists. Topgrade was probably upgraded",
+                    exe_path = format!("{:?}", self.exe_path)
+                )
+            );
             return;
         }
 
         match fs::rename(&self.temp_path, &self.exe_path) {
-            Ok(_) => debug!("{}", t!("Moved Topgrade back from {temp_path} to {exe_path}", temp_path=format!("{temp_path:?}", exe_path=format!("{exe_path:?}")))),
+            Ok(_) => debug!(
+                "{}",
+                t!(
+                    "Moved Topgrade back from {temp_path} to {exe_path}",
+                    temp_path = format!("{temp_path:?}", exe_path = format!("{exe_path:?}"))
+                )
+            ),
             Err(e) => error!(
                 "{}",
-                t!("Could not move Topgrade from {temp_path} back to {exe_path}: {error}", temp_path=self.temp_path.display(), exe_path=self.exe_path.display(), error=e)
+                t!(
+                    "Could not move Topgrade from {temp_path} back to {exe_path}: {error}",
+                    temp_path = self.temp_path.display(),
+                    exe_path = self.exe_path.display(),
+                    error = e
+                )
             ),
         }
     }

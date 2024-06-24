@@ -43,7 +43,10 @@ fn nvimrc() -> Result<PathBuf> {
 fn upgrade_script() -> Result<tempfile::NamedTempFile> {
     let mut tempfile = tempfile::NamedTempFile::new()?;
     tempfile.write_all(UPGRADE_VIM.replace('\r', "").as_bytes())?;
-    debug!("{}", t!("Wrote vim script to {path}", path=format!("{:?}", tempfile.path())));
+    debug!(
+        "{}",
+        t!("Wrote vim script to {path}", path = format!("{:?}", tempfile.path()))
+    );
     Ok(tempfile)
 }
 

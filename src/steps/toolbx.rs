@@ -33,7 +33,13 @@ pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Toolbx");
     let toolboxes = list_toolboxes(&toolbx)?;
-    debug!("{}", t!("Toolboxes to inspect: {toolboxes}", toolboxes=format!("{toolboxes:?}")));
+    debug!(
+        "{}",
+        t!(
+            "Toolboxes to inspect: {toolboxes}",
+            toolboxes = format!("{toolboxes:?}")
+        )
+    );
 
     let mut topgrade_path = PathBuf::from("/run/host");
     // Path of the running Topgrade executable

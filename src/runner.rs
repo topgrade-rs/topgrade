@@ -33,7 +33,7 @@ impl<'a> Runner<'a> {
         }
 
         let key = key.into();
-        debug!("{}", t!("Step {key}", key=format!("{key:?}")));
+        debug!("{}", t!("Step {key}", key = format!("{key:?}")));
 
         // alter the `func` to put it in a span
         let func = || {
@@ -57,7 +57,14 @@ impl<'a> Runner<'a> {
                     break;
                 }
                 Err(e) => {
-                    debug!("{}", t!("Step {key} failed: {error}", key=format!("{:?}", key), error=format!("{:?}", e)));
+                    debug!(
+                        "{}",
+                        t!(
+                            "Step {key} failed: {error}",
+                            key = format!("{:?}", key),
+                            error = format!("{:?}", e)
+                        )
+                    );
                     let interrupted = ctrlc::interrupted();
                     if interrupted {
                         ctrlc::unset_interrupted();
