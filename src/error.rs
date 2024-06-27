@@ -1,5 +1,6 @@
 use std::{fmt::Display, process::ExitStatus};
 
+use rust_i18n::t;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq, Eq)]
@@ -21,13 +22,35 @@ pub enum TopgradeError {
 impl Display for TopgradeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TopgradeError::ProcessFailed(process, exit_satus) => write!(f, "`{process}` failed: {exit_satus}"),
-            TopgradeError::ProcessFailedWithOutput(process, exit_status, _) => {
-                write!(f, "`{process}` failed: {exit_status}")
+            TopgradeError::ProcessFailed(process, exit_status) => {
+                write!(
+                    f,
+                    "{}",
+                    t!(
+                        "`{process}` failed: {exit_satus}",
+                        process = process,
+                        exit_status = exit_status
+                    )
+                )
             }
-            TopgradeError::UnknownLinuxDistribution => write!(f, "Unknown Linux Distribution"),
-            TopgradeError::EmptyOSReleaseFile => write!(f, "File \"/etc/os-release\" does not exist or is empty"),
-            TopgradeError::FailedGettingPackageManager => write!(f, "Failed getting the system package manager"),
+            TopgradeError::ProcessFailedWithOutput(process, exit_status, _) => {
+                write!(
+                    f,
+                    "{}",
+                    t!(
+                        "`{process}` failed: {exit_satus}",
+                        process = process,
+                        exit_status = exit_status
+                    )
+                )
+            }
+            TopgradeError::UnknownLinuxDistribution => write!(f, "{}", t!("Unknown Linux Distribution")),
+            TopgradeError::EmptyOSReleaseFile => {
+                write!(f, "{}", t!("File \"/etc/os-release\" does not exist or is empty"))
+            }
+            TopgradeError::FailedGettingPackageManager => {
+                write!(f, "{}", t!("Failed getting the system package manager"))
+            }
         }
     }
 }
@@ -37,7 +60,7 @@ pub struct StepFailed;
 
 impl Display for StepFailed {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "A step failed")
+        write!(f, "{}", t!("A step failed"))
     }
 }
 
@@ -46,7 +69,7 @@ pub struct DryRun();
 
 impl Display for DryRun {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Dry running")
+        write!(f, "{}", t!("Dry running"))
     }
 }
 
@@ -66,6 +89,6 @@ pub struct Upgraded(pub ExitStatus);
 #[cfg(all(windows, feature = "self-update"))]
 impl Display for Upgraded {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Topgrade Upgraded")
+        write!(f, "{}", t!("Topgrade Upgraded"))
     }
 }

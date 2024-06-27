@@ -493,3 +493,17 @@ _version: 2
   en: "Running zsh returned %{error}. Using default path: %{path}"
 "oh-my-zsh custom dir: {custom_dir}":
   en: "oh-my-zsh custom dir: %{custom_dir}"
+"`{process}` failed: {exit_satus}":
+  en: "`%{process}` failed: %{exit_satus}"
+"Unknown Linux Distribution":
+  en: "Unknown Linux Distribution"
+'File "/etc/os-release" does not exist or is empty':
+  en: 'File "/etc/os-release" does not exist or is empty'
+"Failed getting the system package manager":
+  en: "Failed getting the system package manager"
+"A step failed":
+  en: "A step failed"
+"Dry running":
+  en: "Dry running"
+"Topgrade Upgraded":
+  en: "Topgrade Upgraded"
