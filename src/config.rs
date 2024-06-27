@@ -26,7 +26,7 @@ use crate::sudo::SudoKind;
 use crate::utils::string_prepend_str;
 use tracing::{debug, error};
 
-pub static EXAMPLE_CONFIG: &str = include_str!("../config.example.toml");
+pub static EXAMPLE_CONFIG_TRANSLATION_KEY: &str = "config.example.toml";
 
 /// Topgrade's default log level.
 pub const DEFAULT_LOG_LEVEL: &str = "warn";
@@ -502,7 +502,7 @@ impl ConfigFile {
         if !res.0.exists() && res.1.is_empty() {
             res.0.clone_from(&possible_config_paths[0]);
             debug!("{}", t!("No configuration exists"));
-            write(&res.0, EXAMPLE_CONFIG).map_err(|e| {
+            write(&res.0, t!(EXAMPLE_CONFIG_TRANSLATION_KEY).as_ref()).map_err(|e| {
                 debug!(
                     "{}",
                     t!(
@@ -1594,9 +1594,9 @@ mod test {
     /// Test the default configuration in `config.example.toml` is valid.
     #[test]
     fn test_default_config() {
-        let str = include_str!("../config.example.toml");
+        let str = t!(EXAMPLE_CONFIG_TRANSLATION_KEY);
 
-        assert!(toml::from_str::<ConfigFile>(str).is_ok());
+        assert!(toml::from_str::<ConfigFile>(&str).is_ok());
     }
 
     fn config() -> Config {
