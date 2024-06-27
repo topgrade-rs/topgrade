@@ -1,4 +1,5 @@
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 
 use crate::command::CommandExt;
 use crate::config::Step;

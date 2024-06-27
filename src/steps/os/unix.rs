@@ -233,7 +233,7 @@ pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
     let gdbus = require("gdbus")?;
     require_option(
         var("XDG_CURRENT_DESKTOP").ok().filter(|p| p.contains("GNOME")),
-        t!("Desktop doest not appear to be gnome"),
+        t!("Desktop doest not appear to be gnome").to_string(),
     )?;
     let output = Command::new("gdbus")
         .args([
@@ -250,7 +250,7 @@ pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
 
     debug!("{}", t!("Checking for gnome extensions: {output}", output = output));
     if !output.stdout.contains("org.gnome.Shell.Extensions") {
-        return Err(SkipStep(t!("Gnome shell extensions are unregistered in DBus")).into());
+        return Err(SkipStep(t!("Gnome shell extensions are unregistered in DBus").to_string()).into());
     }
 
     print_separator(t!("Gnome Shell extensions"));
