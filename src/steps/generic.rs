@@ -977,3 +977,28 @@ pub fn run_platform_io(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.run_type().execute(bin_path).arg("upgrade").status_checked()
 }
+
+/// Run `lensfun-update-data` to update lensfun database.
+///
+/// `sudo` will be used if `use_sudo` configuration entry is set to true.
+pub fn run_lensfun_update_data(ctx: &ExecutionContext) -> Result<()> {
+    const SEPARATOR: &str = "Lensfun's database update";
+    let lensfun_update_data = require("lensfun-update-data")?;
+    const EXIT_CODE_WHEN_NO_UPDATE: i32 = 1;
+
+    if ctx.config().lensfun_use_sudo() {
+        let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+        print_separator(SEPARATOR);
+        ctx.run_type()
+            .execute(sudo)
+            .arg(lensfun_update_data)
+            // `lensfun-update-data` returns 1 when there is no update available
+            // which should be considered success
+            .status_checked_with_codes(&[EXIT_CODE_WHEN_NO_UPDATE])
+    } else {
+        print_separator(SEPARATOR);
+        ctx.run_type()
+            .execute(lensfun_update_data)
+            .status_checked_with_codes(&[EXIT_CODE_WHEN_NO_UPDATE])
+    }
+}
