@@ -18,7 +18,14 @@ use crate::{
 use std::os::unix::process::CommandExt as _;
 
 pub fn run_tpm(ctx: &ExecutionContext) -> Result<()> {
-    let tpm = HOME_DIR.join(".tmux/plugins/tpm/bin/update_plugins").require()?;
+    let tpm = match env::var("TMUX_PLUGIN_MANAGER_PATH") {
+        // If `TMUX_PLUGIN_MANAGER_PATH` is set, search for
+        // `$TMUX_PLUGIN_MANAGER_PATH/bin/install_plugins/tpm/bin/update_plugins`
+        Ok(var) => PathBuf::from(var).join("bin/install_plugins/tpm/bin/update_plugins"),
+        // Otherwise, use the default location `~/.tmux/plugins/tpm/bin/update_plugins`
+        Err(_) => HOME_DIR.join(".tmux/plugins/tpm/bin/update_plugins"),
+    }
+    .require()?;
 
     print_separator("tmux plugins");
 
