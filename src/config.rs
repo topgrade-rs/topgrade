@@ -101,6 +101,7 @@ pub enum Step {
     Helix,
     Krew,
     Lure,
+    Lensfun,
     Macports,
     Mamba,
     Miktex,
@@ -398,6 +399,12 @@ pub struct Misc {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct Lensfun {
+    use_sudo: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 /// Configuration file
 pub struct ConfigFile {
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
@@ -456,6 +463,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     distrobox: Option<Distrobox>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    lensfun: Option<Lensfun>,
 }
 
 fn config_directory() -> PathBuf {
@@ -1522,6 +1532,14 @@ impl Config {
         }
 
         self.opt.custom_commands.iter().any(|s| s == name)
+    }
+
+    pub fn lensfun_use_sudo(&self) -> bool {
+        self.config_file
+            .lensfun
+            .as_ref()
+            .and_then(|lensfun| lensfun.use_sudo)
+            .unwrap_or(false)
     }
 }
 
