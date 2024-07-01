@@ -44,10 +44,13 @@ impl Display for TopgradeError {
                     )
                 )
             }
+            #[cfg(target_os = "linux")]
             TopgradeError::UnknownLinuxDistribution => write!(f, "{}", t!("Unknown Linux Distribution")),
+            #[cfg(target_os = "linux")]
             TopgradeError::EmptyOSReleaseFile => {
                 write!(f, "{}", t!("File \"/etc/os-release\" does not exist or is empty"))
             }
+            #[cfg(target_os = "linux")]
             TopgradeError::FailedGettingPackageManager => {
                 write!(f, "{}", t!("Failed getting the system package manager"))
             }
