@@ -175,11 +175,10 @@ impl Terminal {
                 "{}: {}\n",
                 key,
                 match result {
-                    // TODO: Add i18n
-                    StepResult::Success => format!("{}", style("OK").bold().green()),
-                    StepResult::Failure => format!("{}", style("FAILED").bold().red()),
-                    StepResult::Ignored => format!("{}", style("IGNORED").bold().yellow()),
-                    StepResult::Skipped(reason) => format!("{}: {}", style("SKIPPED").bold().blue(), reason),
+                    StepResult::Success => format!("{}", style(t!("OK")).bold().green()),
+                    StepResult::Failure => format!("{}", style(t!("FAILED")).bold().red()),
+                    StepResult::Ignored => format!("{}", style(t!("IGNORED")).bold().yellow()),
+                    StepResult::Skipped(reason) => format!("{}: {}", style(t!("SKIPPED")).bold().blue(), reason),
                 }
             ))
             .ok();
@@ -190,8 +189,7 @@ impl Terminal {
         self.term
             .write_fmt(format_args!(
                 "{}",
-                // TODO: Implement i18n for this using the first character from the translated key
-                style(format!("{question} (y)es/(N)o",)).yellow().bold()
+                style(format!("{question} {}", t!("(Y)es/(N)o"))).yellow().bold()
             ))
             .ok();
 
@@ -217,8 +215,7 @@ impl Terminal {
             self.notify_desktop(format!("{}", t!("{step_name} failed", step_name = step_name)), None);
         }
 
-        // TODO: Implement i18n for this using the first character from the translated key
-        let prompt_inner = style(format!("{}Retry? (y)es/(N)o/(s)hell/(q)uit", self.prefix))
+        let prompt_inner = style(format!("{}{}", self.prefix, t!("Retry? (y)es/(N)o/(s)hell/(q)uit")))
             .yellow()
             .bold();
 
@@ -232,7 +229,7 @@ impl Terminal {
                         "\n\n{}\n",
                         t!("Dropping you to shell. Fix what you need and then exit the shell.")
                     );
-                    if let Err(err) = run_shell().context("Failed to run shell") {
+                    if let Err(err) = run_shell().context(t!("Failed to run shell")) {
                         self.term.write_fmt(format_args!("{err:?}\n{prompt_inner}")).ok();
                     } else {
                         break Ok(true);

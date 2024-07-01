@@ -481,9 +481,7 @@ fn run() -> Result<()> {
     }
 
     if config.keep_at_end() {
-        // TODO: Refactor this to make it easier to implement i18n
-        // Ie use the first letter from the translations, not a hardcoded literal
-        print_info("\n(R)eboot\n(S)hell\n(Q)uit");
+        print_info(t!("\n(R)eboot\n(S)hell\n(Q)uit"));
         loop {
             match get_key() {
                 Ok(Key::Char('s')) | Ok(Key::Char('S')) => {

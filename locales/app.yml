@@ -507,3 +507,22 @@ _version: 2
   en: "Dry running"
 "Topgrade Upgraded":
   en: "Topgrade Upgraded"
+"OK":
+  en: "OK"
+"FAILED":
+  en: "FAILED"
+"IGNORED":
+  en: "IGNORED"
+"SKIPPED":
+  en: "SKIPPED"
+# 'Y' and 'N' have to stay the same characters. Eg for German the translation would look sth like "(Y) Ja / (N) Nein"
+"(Y)es/(N)o":
+  en: "(Y)es/(N)o"
+# 'y', 'N', 's', 'q' have to stay the same throughout all translations. Eg German would look like "(R) Wiederholen / (N) Nein / (s) Konsole / (q) Beenden"
+"Retry? (y)es/(N)o/(s)hell/(q)uit":
+  en: "Retry? (y)es/(N)o/(s)hell/(q)uit"
+"Failed to run shell":
+  en: "Failed to run shell"
+# 'R', 'S', 'Q'  have to stay the same throughout all translations. Eg German would look like "\n(R) Neustarten\n(S) Konsole\n(Q) Beenden"
+"\n(R)eboot\n(S)hell\n(Q)uit":
+  en: "\n(R)eboot\n(S)hell\n(Q)uit"
