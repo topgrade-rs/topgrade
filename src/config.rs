@@ -676,62 +676,62 @@ impl ConfigFile {
 
 // Command line arguments
 #[derive(Parser, Debug)]
-#[clap(name = "Topgrade", version)]
+#[command(name = "topgrade", version)]
 pub struct CommandLineArgs {
     /// Edit the configuration file
-    #[clap(long = "edit-config")]
+    #[arg(long = "edit-config")]
     edit_config: bool,
 
     /// Show config reference
-    #[clap(long = "config-reference")]
+    #[arg(long = "config-reference")]
     show_config_reference: bool,
 
     /// Run inside tmux
-    #[clap(short = 't', long = "tmux")]
+    #[arg(short = 't', long = "tmux")]
     run_in_tmux: bool,
 
     /// Cleanup temporary or old files
-    #[clap(short = 'c', long = "cleanup")]
+    #[arg(short = 'c', long = "cleanup")]
     cleanup: bool,
 
     /// Print what would be done
-    #[clap(short = 'n', long = "dry-run")]
+    #[arg(short = 'n', long = "dry-run")]
     dry_run: bool,
 
     /// Do not ask to retry failed steps
-    #[clap(long = "no-retry")]
+    #[arg(long = "no-retry")]
     no_retry: bool,
 
     /// Do not perform upgrades for the given steps
-    #[clap(long = "disable", value_name = "STEP", value_enum, num_args = 1..)]
+    #[arg(long = "disable", value_name = "STEP", value_enum, num_args = 1..)]
     disable: Vec<Step>,
 
     /// Perform only the specified steps (experimental)
-    #[clap(long = "only", value_name = "STEP", value_enum, num_args = 1..)]
+    #[arg(long = "only", value_name = "STEP", value_enum, num_args = 1..)]
     only: Vec<Step>,
 
     /// Run only specific custom commands
-    #[clap(long = "custom-commands", value_name = "NAME", num_args = 1..)]
+    #[arg(long = "custom-commands", value_name = "NAME", num_args = 1..)]
     custom_commands: Vec<String>,
 
     /// Set environment variables
-    #[clap(long = "env", value_name = "NAME=VALUE", num_args = 1..)]
+    #[arg(long = "env", value_name = "NAME=VALUE", num_args = 1..)]
     env: Vec<String>,
 
     /// Output debug logs. Alias for `--log-filter debug`.
-    #[clap(short = 'v', long = "verbose")]
+    #[arg(short = 'v', long = "verbose")]
     pub verbose: bool,
 
     /// Prompt for a key before exiting
-    #[clap(short = 'k', long = "keep")]
+    #[arg(short = 'k', long = "keep")]
     keep_at_end: bool,
 
     /// Skip sending a notification at the end of a run
-    #[clap(long = "skip-notify")]
+    #[arg(long = "skip-notify")]
     skip_notify: bool,
 
     /// Say yes to package manager's prompt
-    #[clap(
+    #[arg(
         short = 'y',
         long = "yes",
         value_name = "STEP",
@@ -741,37 +741,37 @@ pub struct CommandLineArgs {
     yes: Option<Vec<Step>>,
 
     /// Don't pull the predefined git repos
-    #[clap(long = "disable-predefined-git-repos")]
+    #[arg(long = "disable-predefined-git-repos")]
     disable_predefined_git_repos: bool,
 
     /// Alternative configuration file
-    #[clap(long = "config", value_name = "PATH")]
+    #[arg(long = "config", value_name = "PATH")]
     config: Option<PathBuf>,
 
     /// A regular expression for restricting remote host execution
-    #[clap(long = "remote-host-limit", value_name = "REGEX")]
+    #[arg(long = "remote-host-limit", value_name = "REGEX")]
     remote_host_limit: Option<Regex>,
 
     /// Show the reason for skipped steps
-    #[clap(long = "show-skipped")]
+    #[arg(long = "show-skipped")]
     show_skipped: bool,
 
     /// Tracing filter directives.
     ///
     /// See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/struct.EnvFilter.html
-    #[clap(long, default_value = DEFAULT_LOG_LEVEL)]
+    #[arg(long, default_value = DEFAULT_LOG_LEVEL)]
     pub log_filter: String,
 
     /// Print completion script for the given shell and exit
-    #[clap(long, value_enum, hide = true)]
+    #[arg(long, value_enum, hide = true)]
     pub gen_completion: Option<Shell>,
 
     /// Print roff manpage and exit
-    #[clap(long, hide = true)]
+    #[arg(long, hide = true)]
     pub gen_manpage: bool,
 
     /// Don't update Topgrade
-    #[clap(long = "no-self-update")]
+    #[arg(long = "no-self-update")]
     pub no_self_update: bool,
 }
 
