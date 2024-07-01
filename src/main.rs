@@ -11,7 +11,6 @@ use clap::CommandFactory;
 use clap::{crate_version, Parser};
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use config::EXAMPLE_CONFIG_TRANSLATION_KEY;
 use console::Key;
 use etcetera::base_strategy::BaseStrategy;
 #[cfg(windows)]
@@ -102,7 +101,7 @@ fn run() -> Result<()> {
     };
 
     if opt.show_config_reference() {
-        print!("{}", t!(EXAMPLE_CONFIG_TRANSLATION_KEY)); // TODO: Find a way to use a translated example config
+        print!("{}", config::EXAMPLE_CONFIG); // TODO: Find a way to use a translated example config
         return Ok(());
     }
 
