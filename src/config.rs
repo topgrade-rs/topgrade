@@ -676,7 +676,7 @@ impl ConfigFile {
 
 // Command line arguments
 #[derive(Parser, Debug)]
-#[command(name = "Topgrade", version)]
+#[command(name = "topgrade", version)]
 pub struct CommandLineArgs {
     /// Edit the configuration file
     #[arg(long = "edit-config")]
