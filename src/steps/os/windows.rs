@@ -204,14 +204,17 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Windows Update");
 
     if powershell.supports_windows_update() {
+        println!("The installer will request to run as administrator, expect a prompt.");
+
         powershell.windows_update(ctx)
     } else {
         print_warning(
-            "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported.",
+            "Consider installing PSWindowsUpdate Module as the use of Windows Update via USOClient is not supported.",
         );
 
         Err(SkipStep("USOClient not supported.".to_string()).into())
     }
+    
 }
 
 pub fn reboot() -> Result<()> {
@@ -230,7 +233,7 @@ pub fn insert_startup_scripts(git_repos: &mut RepoStep) -> Result<()> {
             if let Ok(lnk) = parselnk::Lnk::try_from(Path::new(&path)) {
                 debug!("Startup link: {:?}", lnk);
                 if let Some(path) = lnk.relative_path() {
-                    git_repos.insert_if_repo(&startup_dir.join(path));
+                    git_repos.insert_if_repo(startup_dir.join(path));
                 }
             }
         }
