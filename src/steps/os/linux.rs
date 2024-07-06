@@ -59,7 +59,9 @@ impl Distribution {
             Some("centos") | Some("rhel") | Some("ol") => Distribution::CentOS,
             Some("clear-linux-os") => Distribution::ClearLinux,
             Some("fedora") => {
-                return if let Some(variant) = variant {
+                return if section.get("OSTREE_VERSION").is_some() {
+                    Ok(Distribution::FedoraImmutable)
+                } else if let Some(variant) = variant {
                     match variant {
                         "Silverblue" | "Kinoite" | "Sericea" | "Onyx" | "IoT Edition" | "Sway Atomic" => {
                             Ok(Distribution::FedoraImmutable)
