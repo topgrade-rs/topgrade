@@ -415,6 +415,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Lensfun, "Lensfun's database update", || {
         generic::run_lensfun_update_data(&ctx)
     })?;
+    runner.execute(Step::Poetry, "Poetry", || generic::run_poetry(&ctx))?;
 
     if should_run_powershell {
         runner.execute(Step::Powershell, "Powershell Modules Update", || {

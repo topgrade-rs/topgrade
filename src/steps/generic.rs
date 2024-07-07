@@ -1002,3 +1002,9 @@ pub fn run_lensfun_update_data(ctx: &ExecutionContext) -> Result<()> {
             .status_checked_with_codes(&[EXIT_CODE_WHEN_NO_UPDATE])
     }
 }
+
+pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
+    let poetry = require("poetry")?;
+    print_separator("Poetry");
+    ctx.run_type().execute(poetry).args(["self", "update"]).status_checked()
+}
