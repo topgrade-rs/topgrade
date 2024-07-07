@@ -533,7 +533,9 @@ impl ConfigFile {
         if dir_to_search.exists() {
             for entry in fs::read_dir(dir_to_search)? {
                 let entry = entry?;
-                if entry.file_type()?.is_file() {
+                // Use `Path::is_file()` here to traverse symbolic links.
+                // `DirEntry::file_type()` and `FileType::is_file()` will not traverse symbolic links.
+                if entry.path().is_file() {
                     debug!(
                         "Found additional (directory) configuration file at {}",
                         entry.path().display()
