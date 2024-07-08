@@ -1,13 +1,3 @@
-# Maintenance
-
-This project is **currently unmaintained** because the accounts of the current 
-maintainer Steve Lau (@SteveLauC and @stevelauc-ghost) have been suspended (for 
-no reason). Maintenance will continue if GitHub reinstates any of my account.
-
-
------
-
-
 <div align="center">
   <h1>
     <img alt="Topgrade" src="doc/topgrade_transparent.png" width="850px">
