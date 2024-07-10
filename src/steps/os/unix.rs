@@ -609,6 +609,10 @@ pub fn run_pyenv(ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep("pyenv is not a git repository".to_string()).into());
     }
 
+    if !pyenv_dir.join("plugins").join("pyenv-update").exists() {
+        return Err(SkipStep("pyenv-update plugin is not installed".to_string()).into());
+    }
+
     ctx.run_type().execute(pyenv).arg("update").status_checked()
 }
 
