@@ -1,5 +1,6 @@
 //! A stub for Ctrl + C handling.
 use crate::ctrlc::interrupted::set_interrupted;
+use rust_i18n::t;
 use tracing::error;
 use winapi::shared::minwindef::{BOOL, DWORD, FALSE, TRUE};
 use winapi::um::consoleapi::SetConsoleCtrlHandler;
@@ -17,6 +18,6 @@ extern "system" fn handler(ctrl_type: DWORD) -> BOOL {
 
 pub fn set_handler() {
     if 0 == unsafe { SetConsoleCtrlHandler(Some(handler), TRUE) } {
-        error!("Cannot set a control C handler")
+        error!("{}", t!("Cannot set a control C handler"))
     }
 }

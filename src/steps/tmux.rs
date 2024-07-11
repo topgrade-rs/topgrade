@@ -14,6 +14,7 @@ use crate::{
     utils::{which, PathExt},
 };
 
+use rust_i18n::t;
 #[cfg(unix)]
 use std::os::unix::process::CommandExt as _;
 
@@ -40,7 +41,7 @@ struct Tmux {
 impl Tmux {
     fn new(args: Vec<String>) -> Self {
         Self {
-            tmux: which("tmux").expect("Could not find tmux"),
+            tmux: which("tmux").unwrap_or_else(|| panic!("{}", t!("Could not find tmux").as_ref().to_string())),
             args: if args.is_empty() { None } else { Some(args) },
         }
     }
@@ -87,10 +88,10 @@ impl Tmux {
         for i in 1.. {
             if !self
                 .has_session(&session)
-                .context("Error determining if a tmux session exists")?
+                .context(t!("Error determining if a tmux session exists"))?
             {
                 self.new_session(&session, window_name, command)
-                    .context("Error running Topgrade in tmux")?;
+                    .context(t!("Error running Topgrade in tmux"))?;
                 return Ok(session);
             }
             session = format!("{session_name}-{i}");
@@ -127,7 +128,7 @@ impl Tmux {
             .lines()
             .map(|l| l.parse())
             .collect::<Result<Vec<usize>, _>>()
-            .context("Failed to compute tmux windows")
+            .context(t!("Failed to compute tmux windows"))
     }
 }
 
@@ -156,7 +157,7 @@ pub fn run_in_tmux(args: Vec<String>) -> Result<()> {
         let err = tmux.build().args(["attach-session", "-t", &session]).exec();
         Err(eyre!("{err}")).context("Failed to `execvp(3)` tmux")
     } else {
-        println!("Topgrade launched in a new tmux session");
+        println!("{}", t!("Topgrade launched in a new tmux session"));
         Ok(())
     }
 }
@@ -167,10 +168,12 @@ pub fn run_command(ctx: &ExecutionContext, window_name: &str, command: &str) -> 
     match ctx.get_tmux_session() {
         Some(session_name) => {
             let indices = tmux.window_indices(&session_name)?;
-            let last_window = indices
-                .iter()
-                .last()
-                .ok_or_else(|| eyre!("tmux session {session_name} has no windows"))?;
+            let last_window = indices.iter().last().ok_or_else(|| {
+                eyre!(t!(
+                    "tmux session {session_name} has no windows",
+                    session_name = session_name
+                ))
+            })?;
             tmux.new_window(&session_name, &format!("{last_window}"), command)?;
         }
         None => {

@@ -1,4 +1,5 @@
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 
 use crate::command::CommandExt;
 use crate::config::Step;
@@ -33,7 +34,13 @@ pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Toolbx");
     let toolboxes = list_toolboxes(&toolbx)?;
-    debug!("Toolboxes to inspect: {:?}", toolboxes);
+    debug!(
+        "{}",
+        t!(
+            "Toolboxes to inspect: {toolboxes}",
+            toolboxes = format!("{toolboxes:?}")
+        )
+    );
 
     let mut topgrade_path = PathBuf::from("/run/host");
     // Path of the running Topgrade executable

@@ -1,6 +1,7 @@
 use crate::terminal::print_separator;
 use crate::utils::require;
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 
 use crate::execution_context::ExecutionContext;
 
@@ -17,7 +18,7 @@ pub fn upgrade_kak_plug(ctx: &ExecutionContext) -> Result<()> {
         .args(["-ui", "dummy", "-e", UPGRADE_KAK])
         .output()?;
 
-    println!("Plugins upgraded");
+    println!("{}", t!("Plugins upgraded"));
 
     Ok(())
 }

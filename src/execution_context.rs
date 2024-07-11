@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use crate::executor::RunType;
 use crate::sudo::Sudo;
-use crate::utils::{require_option, REQUIRE_SUDO};
+use crate::utils::{get_require_sudo_string, require_option};
 use crate::{config::Config, executor::Executor};
 use color_eyre::eyre::Result;
 use std::env::var;
@@ -33,7 +33,7 @@ impl<'a> ExecutionContext<'a> {
     }
 
     pub fn execute_elevated(&self, command: &Path, interactive: bool) -> Result<Executor> {
-        let sudo = require_option(self.sudo.as_ref(), REQUIRE_SUDO.to_string())?;
+        let sudo = require_option(self.sudo.as_ref(), get_require_sudo_string())?;
         Ok(sudo.execute_elevated(self, command, interactive))
     }
 

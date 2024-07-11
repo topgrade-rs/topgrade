@@ -1,4 +1,5 @@
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 
 use crate::{
     command::CommandExt, error::SkipStep, execution_context::ExecutionContext, terminal::print_separator, utils,
@@ -27,7 +28,7 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
         {
             prepare_async_ssh_command(&mut args);
             crate::tmux::run_command(ctx, hostname, &shell_words::join(args))?;
-            Err(SkipStep(String::from("Remote Topgrade launched in Tmux")).into())
+            Err(SkipStep(String::from(t!("Remote Topgrade launched in Tmux"))).into())
         }
 
         #[cfg(not(unix))]
@@ -35,7 +36,7 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
     } else if ctx.config().open_remotes_in_new_terminal() && !ctx.run_type().dry() && cfg!(windows) {
         prepare_async_ssh_command(&mut args);
         ctx.run_type().execute("wt").args(&args).spawn()?;
-        Err(SkipStep(String::from("Remote Topgrade launched in an external terminal")).into())
+        Err(SkipStep(String::from(t!("Remote Topgrade launched in an external terminal"))).into())
     } else {
         let mut args = vec!["-t", hostname];
 
@@ -47,7 +48,7 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
         args.extend(["env", &env, "$SHELL", "-lc", topgrade]);
 
         print_separator(format!("Remote ({hostname})"));
-        println!("Connecting to {hostname}...");
+        println!("{}", t!("Connecting to {hostname}...", hostname = hostname));
 
         ctx.run_type().execute(ssh).args(&args).status_checked()
     }

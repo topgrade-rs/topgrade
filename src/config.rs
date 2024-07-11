@@ -15,6 +15,7 @@ use etcetera::base_strategy::BaseStrategy;
 use merge::Merge;
 use regex::Regex;
 use regex_split::RegexSplit;
+use rust_i18n::t;
 use serde::Deserialize;
 use strum::{EnumIter, EnumString, IntoEnumIterator, VariantNames};
 use which_crate::which;
@@ -25,6 +26,7 @@ use crate::sudo::SudoKind;
 use crate::utils::string_prepend_str;
 use tracing::{debug, error};
 
+// TODO: Add i18n to this. Tracking issue: https://github.com/topgrade-rs/topgrade/issues/859
 pub static EXAMPLE_CONFIG: &str = include_str!("../config.example.toml");
 
 /// Topgrade's default log level.
@@ -500,7 +502,7 @@ impl ConfigFile {
         // Search for the main config file
         for path in possible_config_paths.iter() {
             if path.exists() {
-                debug!("Configuration at {}", path.display());
+                debug!("{}", t!("Configuration at {path}", path = path.display()));
                 res.0.clone_from(path);
                 break;
             }
@@ -511,12 +513,15 @@ impl ConfigFile {
         // If no config file exists, create a default one in the config directory
         if !res.0.exists() && res.1.is_empty() {
             res.0.clone_from(&possible_config_paths[0]);
-            debug!("No configuration exists");
+            debug!("{}", t!("No configuration exists"));
             write(&res.0, EXAMPLE_CONFIG).map_err(|e| {
                 debug!(
-                    "Unable to write the example configuration file to {}: {}. Using blank config.",
-                    &res.0.display(),
-                    e
+                    "{}",
+                    t!(
+                        "Unable to write the example configuration file to {location}: {error}. Using blank config.",
+                        location = &res.0.display(),
+                        error = e
+                    ),
                 );
                 e
             })?;
@@ -537,15 +542,18 @@ impl ConfigFile {
                 // `DirEntry::file_type()` and `FileType::is_file()` will not traverse symbolic links.
                 if entry.path().is_file() {
                     debug!(
-                        "Found additional (directory) configuration file at {}",
-                        entry.path().display()
+                        "{}",
+                        t!(
+                            "Found additional (directory) configuration file at {path}",
+                            path = entry.path().display()
+                        )
                     );
                     res.push(entry.path());
                 }
             }
             res.sort();
         } else {
-            debug!("No additional configuration directory exists, creating one");
+            debug!("{}", t!("No additional configuration directory exists, creating one"));
             fs::create_dir_all(&dir_to_search)?;
         }
 
@@ -569,11 +577,23 @@ impl ConfigFile {
             */
             for include in dir_include {
                 let include_contents = fs::read_to_string(&include).map_err(|e| {
-                    error!("Unable to read {}", include.display());
+                    error!(
+                        "{}",
+                        t!(
+                            "Unable to read {include_contents}",
+                            include_contents = include.display()
+                        )
+                    );
                     e
                 })?;
                 let include_contents_parsed = toml::from_str(include_contents.as_str()).map_err(|e| {
-                    error!("Failed to deserialize {}", include.display());
+                    error!(
+                        "{}",
+                        t!(
+                            "Failed to deserialize {include_contents}",
+                            include_contents = include.display()
+                        )
+                    );
                     e
                 })?;
 
@@ -590,7 +610,10 @@ impl ConfigFile {
         }
 
         let mut contents_non_split = fs::read_to_string(&config_path).map_err(|e| {
-            error!("Unable to read {}", config_path.display());
+            error!(
+                "{}",
+                t!("Unable to read {config_path}", config_path = config_path.display())
+            );
             e
         })?;
 
@@ -598,12 +621,18 @@ impl ConfigFile {
 
         // To parse [include] sections in the order as they are written,
         // we split the file and parse each part as a separate file
-        let regex_match_include = Regex::new(r"^\s*\[include]").expect("Failed to compile regex");
+        let regex_match_include = Regex::new(r"^\s*\[include]").expect(&t!("Failed to compile regex"));
         let contents_split = regex_match_include.split_inclusive_left(contents_non_split.as_str());
 
         for contents in contents_split {
             let config_file_include_only: ConfigFileIncludeOnly = toml::from_str(contents).map_err(|e| {
-                error!("Failed to deserialize an include section of {}", config_path.display());
+                error!(
+                    "{}",
+                    t!(
+                        "Failed to deserialize an include section of {config_path}",
+                        config_path = config_path.display()
+                    ),
+                );
                 e
             })?;
 
@@ -616,14 +645,28 @@ impl ConfigFile {
                         let include_contents = match fs::read_to_string(&include_path) {
                             Ok(c) => c,
                             Err(e) => {
-                                error!("Unable to read {}: {}", include_path.display(), e);
+                                error!(
+                                    "{}",
+                                    t!(
+                                        "Unable to read {include_path}: {error}",
+                                        include_path = include_path.display(),
+                                        error = e
+                                    )
+                                );
                                 continue;
                             }
                         };
                         match toml::from_str::<Self>(&include_contents) {
                             Ok(include_parsed) => result.merge(include_parsed),
                             Err(e) => {
-                                error!("Failed to deserialize {}: {}", include_path.display(), e);
+                                error!(
+                                    "{}",
+                                    t!(
+                                        "Failed to deserialize {path}: {error}",
+                                        path = include_path.display(),
+                                        error = e
+                                    )
+                                );
                                 continue;
                             }
                         };
@@ -633,26 +676,36 @@ impl ConfigFile {
 
             match toml::from_str::<Self>(contents) {
                 Ok(contents) => result.merge(contents),
-                Err(e) => error!("Failed to deserialize {}: {}", config_path.display(), e),
+                Err(e) => error!(
+                    "{}",
+                    t!(
+                        "Failed to deserialize {path}: {error}",
+                        path = config_path.display(),
+                        error = e
+                    )
+                ),
             }
         }
 
         if let Some(paths) = result.git.as_mut().and_then(|git| git.repos.as_mut()) {
             for path in paths.iter_mut() {
                 let expanded = shellexpand::tilde::<&str>(&path.as_ref()).into_owned();
-                debug!("Path {} expanded to {}", path, expanded);
+                debug!("{}", t!("Path expanded to", path = path, expanded = expanded));
                 *path = expanded;
             }
         }
 
-        debug!("Loaded configuration: {:?}", result);
+        debug!(
+            "{}",
+            t!("Loaded configuration: {result}", result = format!("{result:?}"))
+        );
         Ok(result)
     }
 
     fn edit() -> Result<()> {
         let config_path = Self::ensure()?.0;
         let editor = editor();
-        debug!("Editor: {:?}", editor);
+        debug!("{}", t!("Editor: {editor}", editor = format!("{editor:?}")));
 
         let command = which(&editor[0])?;
         let args: Vec<&String> = editor.iter().skip(1).collect();
@@ -661,23 +714,25 @@ impl ConfigFile {
             .args(args)
             .arg(config_path)
             .status_checked()
-            .context("Failed to open configuration file editor")
+            .context(t!("Failed to open configuration file editor"))
     }
 
     /// [Misc] was added later, here we check if it is present in the config file and add it if not
     fn ensure_misc_is_present(contents: &mut String, path: &PathBuf) {
         if !contents.contains("[misc]") {
-            debug!("Adding [misc] section to {}", path.display());
+            debug!("{}", t!("Adding [misc] section to {path}", path = path.display()));
             string_prepend_str(contents, "[misc]\n");
 
             File::create(path)
                 .and_then(|mut f| f.write_all(contents.as_bytes()))
-                .expect("Tried to auto-migrate the config file, unable to write to config file.\nPlease add \"[misc]\" section manually to the first line of the file.\nError");
+                .expect(&t!("Tried to auto-migrate the config file, unable to write to config file.\nPlease add \"[misc]\" section manually to the first line of the file.\nError"));
         }
     }
 }
 
 // Command line arguments
+// TODO: i18n of clap currently not easily possible. Waiting for https://github.com/clap-rs/clap/issues/380
+// Tracking issue for i18n: https://github.com/topgrade-rs/topgrade/issues/859
 #[derive(Parser, Debug)]
 #[command(name = "topgrade", version)]
 pub struct CommandLineArgs {
@@ -835,11 +890,17 @@ impl Config {
             ConfigFile::read(opt.config.clone()).unwrap_or_else(|e| {
                 // Inform the user about errors when loading the configuration,
                 // but fallback to the default config to at least attempt to do something
-                error!("failed to load configuration: {}", e);
+                error!("{}", t!("failed to load configuration: {error}", error = e));
                 ConfigFile::default()
             })
         } else {
-            debug!("Configuration directory {} does not exist", config_directory.display());
+            debug!(
+                "{}",
+                t!(
+                    "Configuration directory {config_directory} does not exist",
+                    config_directory = config_directory.display()
+                )
+            );
             ConfigFile::default()
         };
 
@@ -1014,7 +1075,7 @@ impl Config {
             //
             //     Caused by:
             //         missing closing quote
-            .with_context(|| format!("Failed to parse `tmux_arguments`: `{args}`"))
+            .with_context(|| format!("{}", t!("Failed to parse `tmux_arguments`: `{args}`", args = args)))
     }
 
     /// Prompt for a key before exiting
