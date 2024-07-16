@@ -720,5 +720,19 @@ pub fn run_maza(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn reboot() -> Result<()> {
     print!("Rebooting...");
+
+    cfg_if::cfg_if! {
+        if #[cfg(target_os = "linux")] {
+            // Per this doc: https://www.freedesktop.org/software/systemd/man/latest/sd_booted.html
+            //
+            // If this directory exists, then this Linux uses systemd as the init program.
+            let systemd_dir = Path::new("/run/systemd/system");
+            if let Ok(true) = systemd_dir.try_exists() {
+                // On Linux with systemd, `reboot` can be invoded without `sudo`.
+                return Command::new("reboot").status_checked();
+            }
+        }
+    }
+
     Command::new("sudo").arg("reboot").status_checked()
 }
