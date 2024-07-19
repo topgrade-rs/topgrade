@@ -76,7 +76,7 @@ impl Distribution {
             Some("debian") | Some("pureos") | Some("Deepin") | Some("linuxmint") => Distribution::Debian,
             Some("arch") | Some("manjaro-arm") | Some("garuda") | Some("artix") => Distribution::Arch,
             Some("solus") => Distribution::Solus,
-            Some("gentoo") => Distribution::Gentoo,
+            Some("gentoo") | Some("funtoo") => Distribution::Gentoo,
             Some("exherbo") => Distribution::Exherbo,
             Some("nixos") => Distribution::NixOS,
             Some("opensuse-microos") => Distribution::SuseMicro,
@@ -452,16 +452,25 @@ fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
     }
 
     println!("Syncing portage");
-    run_type
-        .execute(sudo)
-        .args(["emerge", "--sync"])
-        .args(
-            ctx.config()
-                .emerge_sync_flags()
-                .map(|s| s.split_whitespace().collect())
-                .unwrap_or_else(|| vec!["-q"]),
-        )
-        .status_checked()?;
+    if let Some(ego) = which("ego") {
+        // The Funtoo team doesn't reccomend running both ego sync and emerge --sync
+        run_type
+            .execute(sudo)
+            .arg(ego)
+            .arg("sync")
+            .status_checked()?;
+    } else {
+        run_type
+            .execute(sudo)
+            .args(["emerge", "--sync"])
+            .args(
+                ctx.config()
+                    .emerge_sync_flags()
+                    .map(|s| s.split_whitespace().collect())
+                    .unwrap_or_else(|| vec!["-q"]),
+            )
+            .status_checked()?;
+    }
 
     if let Some(eix_update) = which("eix-update") {
         run_type.execute(sudo).arg(eix_update).status_checked()?;
