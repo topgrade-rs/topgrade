@@ -30,6 +30,7 @@ pub enum Distribution {
     FedoraImmutable,
     Debian,
     Gentoo,
+    NILRT,
     OpenMandriva,
     OpenSuseTumbleweed,
     PCLinuxOS,
@@ -71,6 +72,7 @@ impl Distribution {
                 };
             }
 
+            Some("nilrt") => Distribution::NILRT,
             Some("nobara") => Distribution::Nobara,
             Some("void") => Distribution::Void,
             Some("debian") | Some("pureos") | Some("Deepin") | Some("linuxmint") => Distribution::Debian,
@@ -158,6 +160,7 @@ impl Distribution {
             Distribution::OpenMandriva => upgrade_openmandriva(ctx),
             Distribution::PCLinuxOS => upgrade_pclinuxos(ctx),
             Distribution::Nobara => upgrade_nobara(ctx),
+            Distribution::NILRT => upgrade_nilrt(ctx),
         }
     }
 
@@ -283,6 +286,14 @@ fn upgrade_nobara(ctx: &ExecutionContext) -> Result<()> {
 
     upgrade_command.status_checked()?;
     Ok(())
+}
+
+fn upgrade_nilrt(ctx: &ExecutionContext) -> Result<()> {
+    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let opkg = require("opkg")?;
+
+    ctx.run_type().execute(sudo).arg(&opkg).arg("update").status_checked()?;
+    ctx.run_type().execute(sudo).arg(&opkg).arg("upgrade").status_checked()
 }
 
 fn upgrade_fedora_immutable(ctx: &ExecutionContext) -> Result<()> {
@@ -1253,5 +1264,10 @@ mod tests {
     #[test]
     fn test_nobara() {
         test_template(include_str!("os_release/nobara"), Distribution::Nobara);
+    }
+
+    #[test]
+    fn test_nilrt() {
+        test_template(include_str!("os_release/nilrt"), Distribution::NILRT);
     }
 }
