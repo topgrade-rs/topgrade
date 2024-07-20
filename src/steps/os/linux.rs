@@ -1191,6 +1191,11 @@ mod tests {
     }
 
     #[test]
+    fn test_funtoo() {
+        test_template(include_str!("os_release/funtoo"), Distribution::Gentoo);
+    }
+
+    #[test]
     fn test_exherbo() {
         test_template(include_str!("os_release/exherbo"), Distribution::Exherbo);
     }
