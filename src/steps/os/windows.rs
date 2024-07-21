@@ -214,7 +214,6 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
 
         Err(SkipStep("USOClient not supported.".to_string()).into())
     }
-    
 }
 
 pub fn reboot() -> Result<()> {
