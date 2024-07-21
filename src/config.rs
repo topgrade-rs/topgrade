@@ -568,13 +568,11 @@ impl ConfigFile {
             to read the include directory before returning the main config path
             */
             for include in dir_include {
-                let include_contents = fs::read_to_string(&include).map_err(|e| {
+                let include_contents = fs::read_to_string(&include).inspect_err(|_| {
                     error!("Unable to read {}", include.display());
-                    e
                 })?;
-                let include_contents_parsed = toml::from_str(include_contents.as_str()).map_err(|e| {
+                let include_contents_parsed = toml::from_str(include_contents.as_str()).inspect_err(|_| {
                     error!("Failed to deserialize {}", include.display());
-                    e
                 })?;
 
                 result.merge(include_contents_parsed);
@@ -589,9 +587,8 @@ impl ConfigFile {
             return Ok(result);
         }
 
-        let mut contents_non_split = fs::read_to_string(&config_path).map_err(|e| {
+        let mut contents_non_split = fs::read_to_string(&config_path).inspect_err(|_| {
             error!("Unable to read {}", config_path.display());
-            e
         })?;
 
         Self::ensure_misc_is_present(&mut contents_non_split, &config_path);
@@ -602,9 +599,8 @@ impl ConfigFile {
         let contents_split = regex_match_include.split_inclusive_left(contents_non_split.as_str());
 
         for contents in contents_split {
-            let config_file_include_only: ConfigFileIncludeOnly = toml::from_str(contents).map_err(|e| {
+            let config_file_include_only: ConfigFileIncludeOnly = toml::from_str(contents).inspect_err(|_| {
                 error!("Failed to deserialize an include section of {}", config_path.display());
-                e
             })?;
 
             if let Some(includes) = &config_file_include_only.include {

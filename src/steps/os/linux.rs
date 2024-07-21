@@ -369,7 +369,7 @@ fn upgrade_openmandriva(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
     let mut command = ctx.run_type().execute(sudo);
 
-    command.arg(&which("dnf").unwrap()).arg("upgrade");
+    command.arg(which("dnf").unwrap()).arg("upgrade");
 
     if let Some(args) = ctx.config().dnf_arguments() {
         command.args(args.split_whitespace());
@@ -388,7 +388,7 @@ fn upgrade_pclinuxos(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
     let mut command_update = ctx.run_type().execute(sudo);
 
-    command_update.arg(&which("apt-get").unwrap()).arg("update");
+    command_update.arg(which("apt-get").unwrap()).arg("update");
 
     if let Some(args) = ctx.config().dnf_arguments() {
         command_update.args(args.split_whitespace());
@@ -401,7 +401,7 @@ fn upgrade_pclinuxos(ctx: &ExecutionContext) -> Result<()> {
     command_update.status_checked()?;
 
     let mut cmd = ctx.run_type().execute(sudo);
-    cmd.arg(&which("apt-get").unwrap());
+    cmd.arg(which("apt-get").unwrap());
     cmd.arg("dist-upgrade");
     if ctx.config().yes(Step::System) {
         cmd.arg("-y");
