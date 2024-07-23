@@ -13,6 +13,7 @@ use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use home;
 use ini::Ini;
+use semver::Version;
 use tracing::debug;
 
 #[cfg(target_os = "linux")]
@@ -392,13 +393,39 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     let run_type = ctx.run_type();
     run_type.execute(nix_channel).arg("--update").status_checked()?;
 
+    let version: Result<Version> = match Command::new(&nix)
+        .arg("--version")
+        .output_checked_utf8()?
+        .stdout
+        .lines()
+        .next()
+    {
+        Some(item) => {
+            let parts: Vec<&str> = item.split_whitespace().collect();
+            if parts.len() >= 3 {
+                Version::parse(parts[2]).map_err(|err| err.into())
+            } else {
+                Err(SkipStep(String::from("Unexpected version format")).into())
+            }
+        }
+        _ => return Err(SkipStep(String::from("Cannot find nix version")).into()),
+    };
+
+    debug!("Nix version: {:?}", version);
+
+    let mut packages = "--all";
+
+    if !matches!(version, Ok(version) if version >= Version::new(2, 21, 0)) {
+        packages = ".*";
+    }
+
     if Path::new(&manifest_json_path).exists() {
         run_type
             .execute(nix)
             .args(nix_args())
             .arg("profile")
             .arg("upgrade")
-            .arg(".*")
+            .arg(packages)
             .arg("--verbose")
             .status_checked()
     } else {
