@@ -244,3 +244,10 @@
 [containers]
 # Specify the containers to ignore while updating (Wildcard supported)
 # ignored_containers = ["ghcr.io/rancher-sandbox/rancher-desktop/rdx-proxy:latest", "docker.io*"]
+
+[lensfun]
+# If disabled, Topgrade invokes `lensfun‑update‑data` without root priviledge, 
+# then the update will be only available to you. Otherwise, `sudo` is required,
+# and the update will be installed system-wide, i.e., available to all users.
+# (default: false)
+# use_sudo = false

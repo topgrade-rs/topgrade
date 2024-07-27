@@ -30,6 +30,7 @@ pub enum Distribution {
     FedoraImmutable,
     Debian,
     Gentoo,
+    NILRT,
     OpenMandriva,
     OpenSuseTumbleweed,
     PCLinuxOS,
@@ -71,12 +72,13 @@ impl Distribution {
                 };
             }
 
+            Some("nilrt") => Distribution::NILRT,
             Some("nobara") => Distribution::Nobara,
             Some("void") => Distribution::Void,
             Some("debian") | Some("pureos") | Some("Deepin") | Some("linuxmint") => Distribution::Debian,
             Some("arch") | Some("manjaro-arm") | Some("garuda") | Some("artix") => Distribution::Arch,
             Some("solus") => Distribution::Solus,
-            Some("gentoo") => Distribution::Gentoo,
+            Some("gentoo") | Some("funtoo") => Distribution::Gentoo,
             Some("exherbo") => Distribution::Exherbo,
             Some("nixos") => Distribution::NixOS,
             Some("opensuse-microos") => Distribution::SuseMicro,
@@ -158,6 +160,7 @@ impl Distribution {
             Distribution::OpenMandriva => upgrade_openmandriva(ctx),
             Distribution::PCLinuxOS => upgrade_pclinuxos(ctx),
             Distribution::Nobara => upgrade_nobara(ctx),
+            Distribution::NILRT => upgrade_nilrt(ctx),
         }
     }
 
@@ -285,6 +288,14 @@ fn upgrade_nobara(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+fn upgrade_nilrt(ctx: &ExecutionContext) -> Result<()> {
+    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let opkg = require("opkg")?;
+
+    ctx.run_type().execute(sudo).arg(&opkg).arg("update").status_checked()?;
+    ctx.run_type().execute(sudo).arg(&opkg).arg("upgrade").status_checked()
+}
+
 fn upgrade_fedora_immutable(ctx: &ExecutionContext) -> Result<()> {
     let ostree = require("rpm-ostree")?;
     let mut command = ctx.run_type().execute(ostree);
@@ -358,7 +369,7 @@ fn upgrade_openmandriva(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
     let mut command = ctx.run_type().execute(sudo);
 
-    command.arg(&which("dnf").unwrap()).arg("upgrade");
+    command.arg(which("dnf").unwrap()).arg("upgrade");
 
     if let Some(args) = ctx.config().dnf_arguments() {
         command.args(args.split_whitespace());
@@ -377,7 +388,7 @@ fn upgrade_pclinuxos(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
     let mut command_update = ctx.run_type().execute(sudo);
 
-    command_update.arg(&which("apt-get").unwrap()).arg("update");
+    command_update.arg(which("apt-get").unwrap()).arg("update");
 
     if let Some(args) = ctx.config().dnf_arguments() {
         command_update.args(args.split_whitespace());
@@ -390,7 +401,7 @@ fn upgrade_pclinuxos(ctx: &ExecutionContext) -> Result<()> {
     command_update.status_checked()?;
 
     let mut cmd = ctx.run_type().execute(sudo);
-    cmd.arg(&which("apt-get").unwrap());
+    cmd.arg(which("apt-get").unwrap());
     cmd.arg("dist-upgrade");
     if ctx.config().yes(Step::System) {
         cmd.arg("-y");
@@ -452,16 +463,21 @@ fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
     }
 
     println!("Syncing portage");
-    run_type
-        .execute(sudo)
-        .args(["emerge", "--sync"])
-        .args(
-            ctx.config()
-                .emerge_sync_flags()
-                .map(|s| s.split_whitespace().collect())
-                .unwrap_or_else(|| vec!["-q"]),
-        )
-        .status_checked()?;
+    if let Some(ego) = which("ego") {
+        // The Funtoo team doesn't reccomend running both ego sync and emerge --sync
+        run_type.execute(sudo).arg(ego).arg("sync").status_checked()?;
+    } else {
+        run_type
+            .execute(sudo)
+            .args(["emerge", "--sync"])
+            .args(
+                ctx.config()
+                    .emerge_sync_flags()
+                    .map(|s| s.split_whitespace().collect())
+                    .unwrap_or_else(|| vec!["-q"]),
+            )
+            .status_checked()?;
+    }
 
     if let Some(eix_update) = which("eix-update") {
         run_type.execute(sudo).arg(eix_update).status_checked()?;
@@ -1186,6 +1202,11 @@ mod tests {
     }
 
     #[test]
+    fn test_funtoo() {
+        test_template(include_str!("os_release/funtoo"), Distribution::Gentoo);
+    }
+
+    #[test]
     fn test_exherbo() {
         test_template(include_str!("os_release/exherbo"), Distribution::Exherbo);
     }
@@ -1243,5 +1264,10 @@ mod tests {
     #[test]
     fn test_nobara() {
         test_template(include_str!("os_release/nobara"), Distribution::Nobara);
+    }
+
+    #[test]
+    fn test_nilrt() {
+        test_template(include_str!("os_release/nilrt"), Distribution::NILRT);
     }
 }

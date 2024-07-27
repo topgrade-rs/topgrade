@@ -412,6 +412,11 @@ fn run() -> Result<()> {
     runner.execute(Step::PlatformioCore, "PlatformIO Core", || {
         generic::run_platform_io(&ctx)
     })?;
+    runner.execute(Step::Lensfun, "Lensfun's database update", || {
+        generic::run_lensfun_update_data(&ctx)
+    })?;
+    runner.execute(Step::Poetry, "Poetry", || generic::run_poetry(&ctx))?;
+    runner.execute(Step::Zvm, "ZVM", || generic::run_zvm(&ctx))?;
 
     if should_run_powershell {
         runner.execute(Step::Powershell, "Powershell Modules Update", || {

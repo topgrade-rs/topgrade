@@ -1,5 +1,3 @@
-#![cfg(windows)]
-
 use color_eyre::eyre::Result;
 use std::{env::current_exe, fs, path::PathBuf};
 use tracing::{debug, error};
