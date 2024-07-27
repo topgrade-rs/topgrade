@@ -230,7 +230,7 @@ pub fn insert_startup_scripts(git_repos: &mut RepoStep) -> Result<()> {
             if let Ok(lnk) = parselnk::Lnk::try_from(Path::new(&path)) {
                 debug!("Startup link: {:?}", lnk);
                 if let Some(path) = lnk.relative_path() {
-                    git_repos.insert_if_repo(&startup_dir.join(path));
+                    git_repos.insert_if_repo(startup_dir.join(path));
                 }
             }
         }
