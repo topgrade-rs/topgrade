@@ -70,6 +70,7 @@ self_update_crate = { version = "~0.40", default-features = false, optional = tr
 self_update_crate = { version = "~0.40", default-features = false, optional = true, package = "self_update", features = ["archive-zip", "compression-zip-deflate", "rustls"] }
 winapi = "~0.3"
 parselnk = "~0.1"
+self-replace = "~1.4"
 
 [profile.release]
 lto = true

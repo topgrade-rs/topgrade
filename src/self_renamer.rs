@@ -53,6 +53,9 @@ impl Drop for SelfRenamer {
     fn drop(&mut self) {
         if self.exe_path.exists() {
             debug!("{:?} exists. Topgrade was probably upgraded", self.exe_path);
+            if let Err(e) = self_replace::self_delete_at(&self.temp_path) {
+                error!("Could not clean up temporarily renamed topgrade executable: {}", e);
+            }
             return;
         }
 
