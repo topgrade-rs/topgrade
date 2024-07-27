@@ -14,7 +14,7 @@
 
       ```sh'
       $ cd topgrade
-      $ cp BREAKINGCHANGES_dev.md BREAKINGCHANGES.md
+      $ mv BREAKINGCHANGES_dev.md BREAKINGCHANGES.md
       $ touch BREAKINGCHANGES_dev.md
       ```
 

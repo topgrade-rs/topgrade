@@ -1,12 +1,9 @@
-1. In 13.0.0, we introduced a new feature, pushing git repos, now this feature 
-   has been removed as some users are not satisfied with it.
+# Git: Pull Repos
 
-   For configuration entries, the following ones are gone:
+1. The output of "Pulling <repository path>" has been moved behind the
+   --verbose flag / [misc] configuration block.
 
-   ```toml
-   [git]
-   pull_only_repos = []
-   push_only_repos = []
-   pull_arguments = ""
-   push_arguments = ""
-   ```
+# Configuration
+
+1. The `enable_winget` configuration entry in the `windows` section has been
+   removed because it will not cause any issues and will be enabled by default.

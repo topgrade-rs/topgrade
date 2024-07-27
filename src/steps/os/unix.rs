@@ -13,6 +13,7 @@ use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use home;
 use ini::Ini;
+use semver::Version;
 use tracing::debug;
 
 #[cfg(target_os = "linux")]
@@ -392,13 +393,39 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     let run_type = ctx.run_type();
     run_type.execute(nix_channel).arg("--update").status_checked()?;
 
+    let version: Result<Version> = match Command::new(&nix)
+        .arg("--version")
+        .output_checked_utf8()?
+        .stdout
+        .lines()
+        .next()
+    {
+        Some(item) => {
+            let parts: Vec<&str> = item.split_whitespace().collect();
+            if parts.len() >= 3 {
+                Version::parse(parts[2]).map_err(|err| err.into())
+            } else {
+                Err(SkipStep(String::from("Unexpected version format")).into())
+            }
+        }
+        _ => return Err(SkipStep(String::from("Cannot find nix version")).into()),
+    };
+
+    debug!("Nix version: {:?}", version);
+
+    let mut packages = "--all";
+
+    if !matches!(version, Ok(version) if version >= Version::new(2, 21, 0)) {
+        packages = ".*";
+    }
+
     if Path::new(&manifest_json_path).exists() {
         run_type
             .execute(nix)
             .args(nix_args())
             .arg("profile")
             .arg("upgrade")
-            .arg(".*")
+            .arg(packages)
             .arg("--verbose")
             .status_checked()
     } else {
@@ -609,6 +636,10 @@ pub fn run_pyenv(ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep("pyenv is not a git repository".to_string()).into());
     }
 
+    if !pyenv_dir.join("plugins").join("pyenv-update").exists() {
+        return Err(SkipStep("pyenv-update plugin is not installed".to_string()).into());
+    }
+
     ctx.run_type().execute(pyenv).arg("update").status_checked()
 }
 
@@ -720,5 +751,19 @@ pub fn run_maza(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn reboot() -> Result<()> {
     print!("Rebooting...");
+
+    cfg_if::cfg_if! {
+        if #[cfg(target_os = "linux")] {
+            // Per this doc: https://www.freedesktop.org/software/systemd/man/latest/sd_booted.html
+            //
+            // If this directory exists, then this Linux uses systemd as the init program.
+            let systemd_dir = Path::new("/run/systemd/system");
+            if let Ok(true) = systemd_dir.try_exists() {
+                // On Linux with systemd, `reboot` can be invoded without `sudo`.
+                return Command::new("reboot").status_checked();
+            }
+        }
+    }
+
     Command::new("sudo").arg("reboot").status_checked()
 }

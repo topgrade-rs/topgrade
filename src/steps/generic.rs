@@ -1002,3 +1002,18 @@ pub fn run_lensfun_update_data(ctx: &ExecutionContext) -> Result<()> {
             .status_checked_with_codes(&[EXIT_CODE_WHEN_NO_UPDATE])
     }
 }
+
+pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
+    let poetry = require("poetry")?;
+    print_separator("Poetry");
+    ctx.run_type().execute(poetry).args(["self", "update"]).status_checked()
+}
+
+/// Involve `zvm upgrade` to update ZVM
+pub fn run_zvm(ctx: &ExecutionContext) -> Result<()> {
+    let zvm = require("zvm")?;
+
+    print_separator("ZVM");
+
+    ctx.run_type().execute(zvm).arg("upgrade").status_checked()
+}
