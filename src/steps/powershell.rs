@@ -96,11 +96,15 @@ impl Powershell {
     pub fn windows_update(&self, ctx: &ExecutionContext) -> Result<()> {
         let powershell = require_option(self.path.as_ref(), String::from("Powershell is not installed"))?;
         debug_assert!(self.supports_windows_update());
+
         let accept_all = if ctx.config().accept_all_windows_updates() {
             "-AcceptAll"
         } else {
             ""
         };
+
+        let install_windowsupdate_verbose = "Install-WindowsUpdate -Verbose".to_string();
+
         let mut command = if let Some(sudo) = ctx.sudo() {
             let mut command = ctx.run_type().execute(sudo);
             command.arg(powershell);
@@ -108,18 +112,9 @@ impl Powershell {
         } else {
             ctx.run_type().execute(powershell)
         };
-        // Correctly format the argument list for Start-Process
-        let argument_list = format!(
-            "-NoProfile -Command \"Import-Module PSWindowsUpdate; Install-WindowsUpdate -MicrosoftUpdate {} -Verbose\"",
-            accept_all
-        );
-        // Correctly pass the entire PowerShell command as a single string to -ArgumentList
+
         command
-            .args([
-                "-NoProfile",
-                "-Command",
-                &format!("Start-Process powershell -Verb runAs -ArgumentList '{}'", argument_list),
-            ])
+            .args(["-NoProfile", &install_windowsupdate_verbose, accept_all])
             .status_checked()
     }
 }
