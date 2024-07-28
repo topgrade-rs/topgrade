@@ -14,8 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Publish AUR package
-        uses: ATiltedTree/create-aur-release@v1
+        uses: aksh1618/update-aur-package@v1.0.5
         with:
+          tag_version_prefix: v
           package_name: topgrade
           commit_username: "Thomas Schönauer"
           commit_email: t.schoenauer@hgs-wt.at
