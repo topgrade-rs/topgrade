@@ -155,6 +155,7 @@ pub enum Step {
     Vagrant,
     Vcpkg,
     Vim,
+    VoltaPackages,
     Vscode,
     Waydroid,
     Winget,

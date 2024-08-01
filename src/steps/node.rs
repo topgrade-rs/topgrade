@@ -13,7 +13,7 @@ use semver::Version;
 use tracing::debug;
 
 use crate::command::CommandExt;
-use crate::terminal::print_separator;
+use crate::terminal::{print_info, print_separator};
 use crate::utils::{require, PathExt};
 use crate::{error::SkipStep, execution_context::ExecutionContext};
 
@@ -275,4 +275,49 @@ pub fn deno_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Deno");
     ctx.run_type().execute(&deno).arg("upgrade").status_checked()
+}
+
+/// There is no `volta upgrade` command, so we need to upgrade each package
+pub fn run_volta_packages_upgrade(ctx: &ExecutionContext) -> Result<()> {
+    let volta = require("volta")?;
+
+    print_separator("Volta");
+
+    if ctx.run_type().dry() {
+        print_info("Updating Volta packages...");
+        return Ok(());
+    }
+
+    let list_output = ctx
+        .run_type()
+        .execute(&volta)
+        .args(["list", "--format=plain"])
+        .output_checked_utf8()?
+        .stdout;
+
+    let installed_packages: Vec<&str> = list_output
+        .lines()
+        .filter_map(|line| {
+            // format is 'kind package@version ...'
+            let mut parts = line.split_whitespace();
+            parts.next();
+            let package_part = parts.next()?;
+            let version_index = package_part.rfind('@').unwrap_or(package_part.len());
+            Some(package_part[..version_index].trim())
+        })
+        .collect();
+
+    if installed_packages.is_empty() {
+        print_info("No packages installed with Volta");
+        return Ok(());
+    }
+
+    for package in installed_packages.iter() {
+        ctx.run_type()
+            .execute(&volta)
+            .args(["install", package])
+            .status_checked()?;
+    }
+
+    Ok(())
 }
