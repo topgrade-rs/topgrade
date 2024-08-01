@@ -413,10 +413,10 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
 
     debug!("Nix version: {:?}", version);
 
-    let mut packages = "--all";
+    let mut packages: Vec<&str> = vec!["--all", "--impure"];
 
     if !matches!(version, Ok(version) if version >= Version::new(2, 21, 0)) {
-        packages = ".*";
+        packages = vec![".*"];
     }
 
     if Path::new(&manifest_json_path).exists() {
@@ -425,7 +425,7 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
             .args(nix_args())
             .arg("profile")
             .arg("upgrade")
-            .arg(packages)
+            .args(&packages)
             .arg("--verbose")
             .status_checked()
     } else {
