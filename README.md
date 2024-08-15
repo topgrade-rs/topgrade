@@ -32,7 +32,7 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 - Windows: [Chocolatey][choco], [Scoop][scoop] or [Winget][winget]
 - PyPi: [pip](https://pypi.org/project/topgrade/)
 
-[choco]: [https://](https://community.chocolatey.org/packages/topgrade)
+[choco]: https://community.chocolatey.org/packages/topgrade
 [scoop]: https://scoop.sh/#/apps?q=topgrade
 [winget]: https://winstall.app/apps/topgrade-rs.topgrade
 
