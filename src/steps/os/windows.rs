@@ -204,10 +204,12 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Windows Update");
 
     if powershell.supports_windows_update() {
+        println!("The installer will request to run as administrator, expect a prompt.");
+
         powershell.windows_update(ctx)
     } else {
         print_warning(
-            "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported.",
+            "Consider installing PSWindowsUpdate Module as the use of Windows Update via USOClient is not supported.",
         );
 
         Err(SkipStep("USOClient not supported.".to_string()).into())
