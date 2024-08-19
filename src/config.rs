@@ -53,6 +53,7 @@ pub enum Step {
     AppMan,
     Asdf,
     Atom,
+    Aqua,
     Audit,
     AutoCpufreq,
     Bin,
