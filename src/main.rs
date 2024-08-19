@@ -300,7 +300,6 @@ fn run() -> Result<()> {
         runner.execute(Step::HomeManager, "home-manager", || unix::run_home_manager(&ctx))?;
         runner.execute(Step::Asdf, "asdf", || unix::run_asdf(&ctx))?;
         runner.execute(Step::Mise, "mise", || unix::run_mise(&ctx))?;
-        runner.execute(Step::Aqua, "aqua", || unix::run_aqua(&ctx))?;
         runner.execute(Step::Pkgin, "pkgin", || unix::run_pkgin(&ctx))?;
         runner.execute(Step::Bun, "bun", || unix::run_bun(&ctx))?;
         runner.execute(Step::BunPackages, "bun-packages", || unix::run_bun_packages(&ctx))?;
@@ -421,6 +420,7 @@ fn run() -> Result<()> {
     })?;
     runner.execute(Step::Poetry, "Poetry", || generic::run_poetry(&ctx))?;
     runner.execute(Step::Zvm, "ZVM", || generic::run_zvm(&ctx))?;
+    runner.execute(Step::Aqua, "aqua", || generic::run_aqua(&ctx))?;
 
     if should_run_powershell {
         runner.execute(Step::Powershell, "Powershell Modules Update", || {
