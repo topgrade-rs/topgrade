@@ -224,6 +224,20 @@ pub fn run_apm(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
+pub fn run_aqua(ctx: &ExecutionContext) -> Result<()> {
+    let aqua = require("aqua")?;
+
+    print_separator("Aqua");
+    if ctx.run_type().dry() {
+        println!("Updating aqua ...");
+        println!("Updating aqua installed cli tools ...");
+        Ok(())
+    } else {
+        ctx.run_type().execute(&aqua).arg("update-aqua").status_checked()?;
+        ctx.run_type().execute(&aqua).arg("update").status_checked()
+    }
+}
+
 pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
     let rustup = require("rustup")?;
 
