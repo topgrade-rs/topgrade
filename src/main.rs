@@ -327,6 +327,7 @@ fn run() -> Result<()> {
             unix::upgrade_gnome_extensions(&ctx)
         })?;
         runner.execute(Step::Pyenv, "pyenv", || unix::run_pyenv(&ctx))?;
+        runner.execute(Step::Uv, "uv", || unix::run_uv(&ctx))?;
         runner.execute(Step::Sdkman, "SDKMAN!", || unix::run_sdkman(&ctx))?;
         runner.execute(Step::Rcm, "rcm", || unix::run_rcm(&ctx))?;
         runner.execute(Step::Maza, "maza", || unix::run_maza(&ctx))?;

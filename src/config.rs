@@ -153,6 +153,7 @@ pub enum Step {
     Tlmgr,
     Tmux,
     Toolbx,
+    Uv,
     Vagrant,
     Vcpkg,
     Vim,
