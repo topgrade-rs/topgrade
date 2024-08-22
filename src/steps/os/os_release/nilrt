@@ -1,0 +1,8 @@
+ID=nilrt
+NAME="NI Linux Real-Time"
+VERSION="10.0 (kirkstone)"
+VERSION_ID=10.0
+PRETTY_NAME="NI Linux Real-Time 10.0 (kirkstone)"
+DISTRO_CODENAME="kirkstone"
+BUILD_ID="23.8.0f153-x64"
+VERSION_CODENAME="kirkstone"

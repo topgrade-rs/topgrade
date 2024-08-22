@@ -121,6 +121,7 @@ pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
     print_separator("RubyGems");
     let gem_path_str = gem.as_os_str();
     if gem_path_str.to_str().unwrap().contains("asdf")
+        || gem_path_str.to_str().unwrap().contains("mise")
         || gem_path_str.to_str().unwrap().contains(".rbenv")
         || gem_path_str.to_str().unwrap().contains(".rvm")
     {
@@ -221,6 +222,20 @@ pub fn run_apm(ctx: &ExecutionContext) -> Result<()> {
         .execute(apm)
         .args(["upgrade", "--confirm=false"])
         .status_checked()
+}
+
+pub fn run_aqua(ctx: &ExecutionContext) -> Result<()> {
+    let aqua = require("aqua")?;
+
+    print_separator("Aqua");
+    if ctx.run_type().dry() {
+        println!("Updating aqua ...");
+        println!("Updating aqua installed cli tools ...");
+        Ok(())
+    } else {
+        ctx.run_type().execute(&aqua).arg("update-aqua").status_checked()?;
+        ctx.run_type().execute(&aqua).arg("update").status_checked()
+    }
 }
 
 pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
@@ -1007,4 +1022,13 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
     let poetry = require("poetry")?;
     print_separator("Poetry");
     ctx.run_type().execute(poetry).args(["self", "update"]).status_checked()
+}
+
+/// Involve `zvm upgrade` to update ZVM
+pub fn run_zvm(ctx: &ExecutionContext) -> Result<()> {
+    let zvm = require("zvm")?;
+
+    print_separator("ZVM");
+
+    ctx.run_type().execute(zvm).arg("upgrade").status_checked()
 }

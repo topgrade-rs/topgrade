@@ -385,6 +385,9 @@ fn run() -> Result<()> {
     runner.execute(Step::Node, "npm", || node::run_npm_upgrade(&ctx))?;
     runner.execute(Step::Yarn, "yarn", || node::run_yarn_upgrade(&ctx))?;
     runner.execute(Step::Pnpm, "pnpm", || node::run_pnpm_upgrade(&ctx))?;
+    runner.execute(Step::VoltaPackages, "volta packages", || {
+        node::run_volta_packages_upgrade(&ctx)
+    })?;
     runner.execute(Step::Containers, "Containers", || containers::run_containers(&ctx))?;
     runner.execute(Step::Deno, "deno", || node::deno_upgrade(&ctx))?;
     runner.execute(Step::Composer, "composer", || generic::run_composer_update(&ctx))?;
@@ -416,6 +419,8 @@ fn run() -> Result<()> {
         generic::run_lensfun_update_data(&ctx)
     })?;
     runner.execute(Step::Poetry, "Poetry", || generic::run_poetry(&ctx))?;
+    runner.execute(Step::Zvm, "ZVM", || generic::run_zvm(&ctx))?;
+    runner.execute(Step::Aqua, "aqua", || generic::run_aqua(&ctx))?;
 
     if should_run_powershell {
         runner.execute(Step::Powershell, "Powershell Modules Update", || {
