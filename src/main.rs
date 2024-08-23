@@ -327,7 +327,6 @@ fn run() -> Result<()> {
             unix::upgrade_gnome_extensions(&ctx)
         })?;
         runner.execute(Step::Pyenv, "pyenv", || unix::run_pyenv(&ctx))?;
-        runner.execute(Step::Uv, "uv", || unix::run_uv(&ctx))?;
         runner.execute(Step::Sdkman, "SDKMAN!", || unix::run_sdkman(&ctx))?;
         runner.execute(Step::Rcm, "rcm", || unix::run_rcm(&ctx))?;
         runner.execute(Step::Maza, "maza", || unix::run_maza(&ctx))?;
@@ -420,6 +419,7 @@ fn run() -> Result<()> {
         generic::run_lensfun_update_data(&ctx)
     })?;
     runner.execute(Step::Poetry, "Poetry", || generic::run_poetry(&ctx))?;
+    runner.execute(Step::Uv, "uv", || generic::run_uv(&ctx))?;
     runner.execute(Step::Zvm, "ZVM", || generic::run_zvm(&ctx))?;
     runner.execute(Step::Aqua, "aqua", || generic::run_aqua(&ctx))?;
 
