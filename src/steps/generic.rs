@@ -1024,6 +1024,26 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(poetry).args(["self", "update"]).status_checked()
 }
 
+pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
+    let uv_exec = require("uv")?;
+    print_separator("uv");
+
+    ctx.run_type()
+        .execute(&uv_exec)
+        .args(["self", "update"])
+        .status_checked()
+        .ok();
+
+    // ignoring self-update errors, because they are likely due to uv's
+    // installation being managed by another package manager, in which
+    // case another step will handle the update.
+
+    ctx.run_type()
+        .execute(&uv_exec)
+        .args(["tool", "upgrade", "--all"])
+        .status_checked()
+}
+
 /// Involve `zvm upgrade` to update ZVM
 pub fn run_zvm(ctx: &ExecutionContext) -> Result<()> {
     let zvm = require("zvm")?;
