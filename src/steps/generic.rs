@@ -1052,3 +1052,11 @@ pub fn run_zvm(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.run_type().execute(zvm).arg("upgrade").status_checked()
 }
+
+pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
+    let bun = require("bun")?;
+
+    print_separator("Bun");
+
+    ctx.run_type().execute(bun).arg("upgrade").status_checked()
+}
