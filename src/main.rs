@@ -301,7 +301,6 @@ fn run() -> Result<()> {
         runner.execute(Step::Asdf, "asdf", || unix::run_asdf(&ctx))?;
         runner.execute(Step::Mise, "mise", || unix::run_mise(&ctx))?;
         runner.execute(Step::Pkgin, "pkgin", || unix::run_pkgin(&ctx))?;
-        runner.execute(Step::Bun, "bun", || unix::run_bun(&ctx))?;
         runner.execute(Step::BunPackages, "bun-packages", || unix::run_bun_packages(&ctx))?;
         runner.execute(Step::Shell, "zr", || zsh::run_zr(&ctx))?;
         runner.execute(Step::Shell, "antibody", || zsh::run_antibody(&ctx))?;
@@ -422,6 +421,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Uv, "uv", || generic::run_uv(&ctx))?;
     runner.execute(Step::Zvm, "ZVM", || generic::run_zvm(&ctx))?;
     runner.execute(Step::Aqua, "aqua", || generic::run_aqua(&ctx))?;
+    runner.execute(Step::Bun, "bun", || generic::run_bun(&ctx))?;
 
     if should_run_powershell {
         runner.execute(Step::Powershell, "Powershell Modules Update", || {
