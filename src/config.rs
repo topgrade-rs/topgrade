@@ -5,7 +5,7 @@ use std::fs::{write, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::{env, fs};
+use std::{env, fmt, fs};
 
 use clap::{Parser, ValueEnum};
 use clap_complete::Shell;
@@ -181,6 +181,7 @@ pub struct Include {
 pub struct Containers {
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     ignored_containers: Option<Vec<String>>,
+    runtime: Option<ContainerRuntime>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -285,6 +286,22 @@ pub enum ArchPackageManager {
     Pikaur,
     Trizen,
     Yay,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ContainerRuntime {
+    Docker,
+    Podman,
+}
+
+impl fmt::Display for ContainerRuntime {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ContainerRuntime::Docker => write!(f, "docker"),
+            ContainerRuntime::Podman => write!(f, "podman"),
+        }
+    }
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -883,6 +900,16 @@ impl Config {
             .containers
             .as_ref()
             .and_then(|containers| containers.ignored_containers.as_ref())
+    }
+
+    /// The preferred runtime for container updates (podman / docker).
+    pub fn containers_runtime(&self) -> ContainerRuntime {
+        self.config_file
+            .containers
+            .as_ref()
+            .unwrap()
+            .runtime
+            .unwrap_or(ContainerRuntime::Docker) // defaults to a popular choice
     }
 
     /// Tell whether the specified step should run.
