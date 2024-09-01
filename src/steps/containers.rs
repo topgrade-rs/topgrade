@@ -120,8 +120,9 @@ fn list_containers(crt: &Path, ignored_containers: Option<&Vec<String>>) -> Resu
 }
 
 pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
-    // Prefer podman, fall back to docker if not present
-    let crt = require("podman").or_else(|_| require("docker"))?;
+    // Check what runtime is specified in the config
+    let container_runtime = ctx.config().containers_runtime().to_string();
+    let crt = require(container_runtime)?;
     debug!("Using container runtime '{}'", crt.display());
 
     print_separator("Containers");
