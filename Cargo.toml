@@ -59,7 +59,15 @@ assets = [{ source = "target/release/topgrade", dest = "/usr/bin/topgrade" }]
 git = "*"
 
 [package.metadata.deb]
+name = "topgrade"
+maintainer = "Topgrade Maintainer <maintainer@noreply.local>"
+copyright = "2024, Topgrade Team"
+license-file = ["LICENSE", "0"]
 depends = "$auto,git"
+extended-description = "Keeping your system up to date usually involves invoking multiple package managers. This results in big, non-portable shell one-liners saved in your shell. To remedy this, Topgrade detects which tools you use and runs the appropriate commands to update them."
+section = "utils"
+priority = "optional"
+default-features = true
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "~0.29", features = ["hostname", "signal", "user"] }
