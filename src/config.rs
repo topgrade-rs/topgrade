@@ -907,8 +907,7 @@ impl Config {
         self.config_file
             .containers
             .as_ref()
-            .unwrap()
-            .runtime
+            .and_then(|containers| containers.runtime)
             .unwrap_or(ContainerRuntime::Docker) // defaults to a popular choice
     }
 
