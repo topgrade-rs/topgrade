@@ -60,7 +60,7 @@ git = "*"
 
 [package.metadata.deb]
 name = "topgrade"
-maintainer = "Topgrade Maintainer <maintainer@noreply.local>"
+maintainer = "Chris Gelatt <kreeblah@gmail.com>"
 copyright = "2024, Topgrade Team"
 license-file = ["LICENSE", "0"]
 depends = "$auto,git"
