@@ -18,11 +18,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with: 
-          components: rustfmt, clippy
-
       - name: Install cargo-deb
         run: cargo install cargo-deb
         if: ${{ matrix.platform == 'ubuntu-latest' }}
