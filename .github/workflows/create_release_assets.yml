@@ -23,6 +23,11 @@ jobs:
         with: 
           components: rustfmt, clippy
 
+      - name: Install cargo-deb
+        run: cargo install cargo-deb
+        if: ${{ matrix.platform == 'ubuntu-latest' }}
+        shell: bash
+
       - name: Check format
         run: cargo fmt --all -- --check
 
@@ -41,7 +46,7 @@ jobs:
       - name: Rename Release (Unix)
         run: |
           cargo install default-target
-          mkdir assets
+          mkdir -p assets
           FILENAME=topgrade-${{github.event.release.tag_name}}-$(default-target)
           mv target/release/topgrade assets
           cd assets
@@ -49,6 +54,24 @@ jobs:
           rm topgrade
           ls .
         if: ${{ matrix.platform != 'windows-latest' }}
+        shell: bash
+
+      - name: Build Debian-based system binary and create package
+        # First remove the binary built by previous steps
+        # because we don't want the auto-update feature,
+        # then build the new binary without auto-updating.
+        run: |
+          rm -rf target/release
+          cargo build --release
+          cargo deb --no-build --no-strip
+        if: ${{ matrix.platform == 'ubuntu-latest' }}
+        shell: bash
+
+      - name: Move Debian-based system package
+        run: |
+          mkdir -p assets
+          mv target/debian/*.deb assets
+        if: ${{ matrix.platform == 'ubuntu-latest' }}
         shell: bash
 
       - name: Rename Release (Windows)
