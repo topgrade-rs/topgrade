@@ -47,6 +47,12 @@
 # Run inside tmux (default: false)
 # run_in_tmux = true
 
+# Changes the way topgrade interacts with
+# the newly crated tmux session, creating the session
+# and only attaching to it if not inside tmux
+# (default: create, allowed values: "create", "create_and_switch_client")
+# tmux_session_attach_mode = "create"
+
 # Cleanup temporary or old files (default: false)
 # cleanup = true
 
