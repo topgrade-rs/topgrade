@@ -151,10 +151,10 @@ pub fn run_in_tmux(config: TmuxConfig) -> Result<()> {
     // Find an unused session and run `topgrade` in it with the current command's arguments.
     let session_name = "topgrade";
     let window_name = "topgrade";
-    // Only attach to the newly-created session if we're not currently in a tmux session.
     let session = tmux.new_unique_session(session_name, window_name, &command)?;
 
     let err = match config.session_attach_mode {
+        // Only attach to the newly-created session if we're not currently in a tmux session.
         TmuxSessionAttachMode::Create if env::var("TMUX").is_ok() => {
             println!("Topgrade launched in a new tmux session");
             return Ok(());
