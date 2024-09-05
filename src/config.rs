@@ -403,6 +403,8 @@ pub struct Misc {
 
     run_in_tmux: Option<bool>,
 
+    tmux_session_attach_mode: Option<TmuxSessionAttachMode>,
+
     cleanup: Option<bool>,
 
     notify_each_step: Option<bool>,
@@ -417,6 +419,19 @@ pub struct Misc {
     no_self_update: Option<bool>,
 
     log_filters: Option<Vec<String>>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, ValueEnum)]
+#[clap(rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum TmuxSessionAttachMode {
+    Create,
+    CreateAndSwitchClient,
+}
+
+pub struct TmuxConfig {
+    pub args: Vec<String>,
+    pub session_attach_mode: TmuxSessionAttachMode,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -710,6 +725,10 @@ pub struct CommandLineArgs {
     #[arg(short = 't', long = "tmux")]
     run_in_tmux: bool,
 
+    /// The preferred way to run the new tmux session
+    #[arg(long = "tmux-session-attach-mode")]
+    tmux_session_attach_mode: Option<TmuxSessionAttachMode>,
+
     /// Cleanup temporary or old files
     #[arg(short = 'c', long = "cleanup")]
     cleanup: bool,
@@ -967,6 +986,19 @@ impl Config {
                 .unwrap_or(false)
     }
 
+    /// The preferred way to run the new tmux session.
+    pub fn tmux_session_attach_mode(&self) -> TmuxSessionAttachMode {
+        if let Some(mode) = self.opt.tmux_session_attach_mode {
+            return mode;
+        }
+
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.tmux_session_attach_mode)
+            .unwrap_or(TmuxSessionAttachMode::Create)
+    }
+
     /// Tell whether we should perform cleanup steps.
     pub fn cleanup(&self) -> bool {
         self.opt.cleanup
@@ -1024,8 +1056,16 @@ impl Config {
         self.config_file.git.as_ref().and_then(|git| git.arguments.as_ref())
     }
 
+    pub fn tmux_config(&self) -> Result<TmuxConfig> {
+        let args = self.tmux_arguments()?;
+        Ok(TmuxConfig {
+            args,
+            session_attach_mode: self.tmux_session_attach_mode(),
+        })
+    }
+
     /// Extra Tmux arguments
-    pub fn tmux_arguments(&self) -> Result<Vec<String>> {
+    fn tmux_arguments(&self) -> Result<Vec<String>> {
         let args = &self
             .config_file
             .misc

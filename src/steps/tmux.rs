@@ -7,6 +7,8 @@ use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 
 use crate::command::CommandExt;
+use crate::config::TmuxConfig;
+use crate::config::TmuxSessionAttachMode;
 use crate::terminal::print_separator;
 use crate::HOME_DIR;
 use crate::{
@@ -131,7 +133,7 @@ impl Tmux {
     }
 }
 
-pub fn run_in_tmux(args: Vec<String>) -> Result<()> {
+pub fn run_in_tmux(config: TmuxConfig) -> Result<()> {
     let command = {
         let mut command = vec![
             String::from("env"),
@@ -144,25 +146,27 @@ pub fn run_in_tmux(args: Vec<String>) -> Result<()> {
         shell_words::join(command)
     };
 
-    let tmux = Tmux::new(args);
+    let tmux = Tmux::new(config.args);
 
     // Find an unused session and run `topgrade` in it with the current command's arguments.
     let session_name = "topgrade";
     let window_name = "topgrade";
+    // Only attach to the newly-created session if we're not currently in a tmux session.
     let session = tmux.new_unique_session(session_name, window_name, &command)?;
 
-    // Only attach to the newly-created session if we're not currently in a tmux session.
-    if env::var("TMUX").is_err() {
-        let err = tmux.build().args(["attach-session", "-t", &session]).exec();
-        Err(eyre!("{err}")).context("Failed to `execvp(3)` tmux")
-    } else {
-        println!("Topgrade launched in a new tmux session");
-        Ok(())
-    }
+    let err = match config.session_attach_mode {
+        TmuxSessionAttachMode::Create if env::var("TMUX").is_ok() => {
+            println!("Topgrade launched in a new tmux session");
+            return Ok(());
+        }
+        TmuxSessionAttachMode::Create => tmux.build().args(["attach-session", "-t", &session]).exec(),
+        TmuxSessionAttachMode::CreateAndSwitchClient => tmux.build().args(["switch-client", "-t", &session]).exec(),
+    };
+    Err(eyre!("{err}")).context("Failed to `execvp(3)` tmux")
 }
 
 pub fn run_command(ctx: &ExecutionContext, window_name: &str, command: &str) -> Result<()> {
-    let tmux = Tmux::new(ctx.config().tmux_arguments()?);
+    let tmux = Tmux::new(ctx.config().tmux_config()?.args);
 
     match ctx.get_tmux_session() {
         Some(session_name) => {
