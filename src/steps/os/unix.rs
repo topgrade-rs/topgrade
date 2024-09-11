@@ -13,6 +13,8 @@ use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use home;
 use ini::Ini;
+#[cfg(target_os = "linux")]
+use nix::unistd::Uid;
 use semver::Version;
 use tracing::debug;
 
@@ -270,6 +272,23 @@ pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
+#[cfg(target_os = "linux")]
+pub fn brew_linux_sudo_uid() -> Option<u32> {
+    let linuxbrew_directory = "/home/linuxbrew/.linuxbrew";
+    if let Ok(metadata) = std::fs::metadata(linuxbrew_directory) {
+        let owner_id = metadata.uid();
+        let current_id = Uid::effective();
+        // print debug these two values
+        debug!("linuxbrew_directory owner_id: {}, current_id: {}", owner_id, current_id);
+        return if owner_id == current_id.as_raw() {
+            None // no need for sudo if linuxbrew is owned by the current user
+        } else {
+            Some(owner_id) // otherwise use sudo to run brew as the owner
+        };
+    }
+    None
+}
+
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()> {
     #[allow(unused_variables)]
@@ -282,6 +301,30 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
         }
     }
 
+    #[cfg(target_os = "linux")]
+    {
+        let sudo_uid = brew_linux_sudo_uid();
+        // if brew is owned by another user, execute "sudo -Hu <uid> brew update"
+        if let Some(user_id) = sudo_uid {
+            let uid = nix::unistd::Uid::from_raw(user_id);
+            let user = nix::unistd::User::from_uid(uid)
+                .expect("failed to call getpwuid()")
+                .expect("this user should exist");
+            print_separator(format!("{} (sudo as user '{}')", variant.step_title(), user.name));
+            let sudo = crate::utils::require_option(ctx.sudo().as_ref(), "sudo is needed to run the update".into())?;
+            ctx.run_type()
+                .execute(sudo)
+                .current_dir("/tmp") // brew needs a writable current directory
+                .args([
+                    "--set-home",
+                    &format!("--user={}", user.name),
+                    &format!("{}", binary_name.to_string_lossy()),
+                    "update",
+                ])
+                .status_checked()?;
+            return Ok(());
+        }
+    }
     print_separator(variant.step_title());
     let run_type = ctx.run_type();
 
