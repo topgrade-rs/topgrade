@@ -450,14 +450,6 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
     let mamba = require("mamba")?;
 
-    let output = Command::new(&mamba)
-        .args(["config", "--show", "auto_activate_base"])
-        .output_checked_utf8()?;
-    debug!("Mamba output: {}", output.stdout);
-    if output.stdout.contains("False") {
-        return Err(SkipStep("auto_activate_base is set to False".to_string()).into());
-    }
-
     print_separator("Mamba");
 
     let mut command = ctx.run_type().execute(mamba);
