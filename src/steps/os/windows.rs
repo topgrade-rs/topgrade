@@ -57,6 +57,10 @@ pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
 
     if ctx.config().cleanup() {
         ctx.run_type().execute(&scoop).args(["cleanup", "*"]).status_checked()?;
+        ctx.run_type()
+            .execute(&scoop)
+            .args(["cache", "rm", "-a"])
+            .status_checked()?
     }
 
     Ok(())
