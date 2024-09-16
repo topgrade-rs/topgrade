@@ -153,14 +153,19 @@ pub fn run_in_tmux(config: TmuxConfig) -> Result<()> {
     let window_name = "topgrade";
     let session = tmux.new_unique_session(session_name, window_name, &command)?;
 
+    let is_inside_tmux = env::var("TMUX").is_ok();
     let err = match config.session_attach_mode {
         // Only attach to the newly-created session if we're not currently in a tmux session.
-        TmuxSessionAttachMode::Create if env::var("TMUX").is_ok() => {
+        TmuxSessionAttachMode::Create if is_inside_tmux => {
             println!("Topgrade launched in a new tmux session");
             return Ok(());
         }
-        TmuxSessionAttachMode::Create => tmux.build().args(["attach-session", "-t", &session]).exec(),
-        TmuxSessionAttachMode::CreateAndSwitchClient => tmux.build().args(["switch-client", "-t", &session]).exec(),
+        TmuxSessionAttachMode::CreateAndSwitchClient if is_inside_tmux => {
+            tmux.build().args(["switch-client", "-t", &session]).exec()
+        }
+        TmuxSessionAttachMode::Create | TmuxSessionAttachMode::CreateAndSwitchClient => {
+            tmux.build().args(["attach-session", "-t", &session]).exec()
+        }
     };
     Err(eyre!("{err}")).context("Failed to `execvp(3)` tmux")
 }
