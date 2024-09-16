@@ -9,7 +9,7 @@ use walkdir::WalkDir;
 use crate::command::CommandExt;
 use crate::error::TopgradeError;
 use crate::execution_context::ExecutionContext;
-use crate::sudo::Sudo;
+use crate::utils::require_option;
 use crate::utils::which;
 use crate::{config, Step};
 
@@ -144,13 +144,13 @@ impl Trizen {
 }
 
 pub struct Pacman {
-    sudo: Sudo,
     executable: PathBuf,
 }
 
 impl ArchPackageManager for Pacman {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
-        let mut command = ctx.run_type().execute(&self.sudo);
+        let sudo = require_option(ctx.sudo().as_ref(), "sudo is required to run pacman".into())?;
+        let mut command = ctx.run_type().execute(sudo);
         command
             .arg(&self.executable)
             .arg("-Syu")
@@ -161,7 +161,7 @@ impl ArchPackageManager for Pacman {
         command.status_checked()?;
 
         if ctx.config().cleanup() {
-            let mut command = ctx.run_type().execute(&self.sudo);
+            let mut command = ctx.run_type().execute(sudo);
             command.arg(&self.executable).arg("-Scc");
             if ctx.config().yes(Step::System) {
                 command.arg("--noconfirm");
@@ -174,10 +174,9 @@ impl ArchPackageManager for Pacman {
 }
 
 impl Pacman {
-    pub fn get(ctx: &ExecutionContext) -> Option<Self> {
+    pub fn get() -> Option<Self> {
         Some(Self {
             executable: which("powerpill").unwrap_or_else(|| PathBuf::from("pacman")),
-            sudo: ctx.sudo().to_owned()?,
         })
     }
 }
@@ -263,46 +262,75 @@ impl ArchPackageManager for Pamac {
 
 pub struct Aura {
     executable: PathBuf,
-    sudo: Sudo,
 }
 
 impl Aura {
-    fn get(ctx: &ExecutionContext) -> Option<Self> {
+    fn get() -> Option<Self> {
         Some(Self {
             executable: which("aura")?,
-            sudo: ctx.sudo().to_owned()?,
         })
     }
 }
 
 impl ArchPackageManager for Aura {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
-        let sudo = which("sudo").unwrap_or_default();
-        let mut aur_update = ctx.run_type().execute(&sudo);
+        use semver::Version;
 
-        if sudo.ends_with("sudo") {
-            aur_update
-                .arg(&self.executable)
+        let version_cmd_output = ctx
+            .run_type()
+            .execute(&self.executable)
+            .arg("--version")
+            .output_checked_utf8()?;
+        // Output will be something like: "aura x.x.x\n"
+        let version_cmd_stdout = version_cmd_output.stdout;
+        let version_str = version_cmd_stdout.trim_start_matches("aura ").trim_end();
+        let version = Version::parse(version_str).expect("invalid version");
+
+        // Aura, since version 4.0.6, no longer needs sudo.
+        //
+        // https://github.com/fosskers/aura/releases/tag/v4.0.6
+        let version_no_sudo = Version::new(4, 0, 6);
+
+        if version >= version_no_sudo {
+            let mut cmd = ctx.run_type().execute(&self.executable);
+            cmd.arg("-Au")
+                .args(ctx.config().aura_aur_arguments().split_whitespace());
+            if ctx.config().yes(Step::System) {
+                cmd.arg("--noconfirm");
+            }
+            cmd.status_checked()?;
+
+            let mut cmd = ctx.run_type().execute(&self.executable);
+            cmd.arg("-Syu")
+                .args(ctx.config().aura_pacman_arguments().split_whitespace());
+            if ctx.config().yes(Step::System) {
+                cmd.arg("--noconfirm");
+            }
+            cmd.status_checked()?;
+        } else {
+            let sudo = crate::utils::require_option(
+                ctx.sudo().as_ref(),
+                "Aura(<0.4.6) requires sudo installed to work with AUR packages".into(),
+            )?;
+
+            let mut cmd = ctx.run_type().execute(sudo);
+            cmd.arg(&self.executable)
                 .arg("-Au")
                 .args(ctx.config().aura_aur_arguments().split_whitespace());
             if ctx.config().yes(Step::System) {
-                aur_update.arg("--noconfirm");
+                cmd.arg("--noconfirm");
             }
+            cmd.status_checked()?;
 
-            aur_update.status_checked()?;
-        } else {
-            println!("Aura requires sudo installed to work with AUR packages")
+            let mut cmd = ctx.run_type().execute(sudo);
+            cmd.arg(&self.executable)
+                .arg("-Syu")
+                .args(ctx.config().aura_pacman_arguments().split_whitespace());
+            if ctx.config().yes(Step::System) {
+                cmd.arg("--noconfirm");
+            }
+            cmd.status_checked()?;
         }
-
-        let mut pacman_update = ctx.run_type().execute(&self.sudo);
-        pacman_update
-            .arg(&self.executable)
-            .arg("-Syu")
-            .args(ctx.config().aura_pacman_arguments().split_whitespace());
-        if ctx.config().yes(Step::System) {
-            pacman_update.arg("--noconfirm");
-        }
-        pacman_update.status_checked()?;
 
         Ok(())
     }
@@ -323,16 +351,16 @@ pub fn get_arch_package_manager(ctx: &ExecutionContext) -> Option<Box<dyn ArchPa
             .or_else(|| Trizen::get().map(box_package_manager))
             .or_else(|| Pikaur::get().map(box_package_manager))
             .or_else(|| Pamac::get().map(box_package_manager))
-            .or_else(|| Pacman::get(ctx).map(box_package_manager))
-            .or_else(|| Aura::get(ctx).map(box_package_manager)),
+            .or_else(|| Pacman::get().map(box_package_manager))
+            .or_else(|| Aura::get().map(box_package_manager)),
         config::ArchPackageManager::GarudaUpdate => GarudaUpdate::get().map(box_package_manager),
         config::ArchPackageManager::Trizen => Trizen::get().map(box_package_manager),
         config::ArchPackageManager::Paru => YayParu::get("paru", &pacman).map(box_package_manager),
         config::ArchPackageManager::Yay => YayParu::get("yay", &pacman).map(box_package_manager),
-        config::ArchPackageManager::Pacman => Pacman::get(ctx).map(box_package_manager),
+        config::ArchPackageManager::Pacman => Pacman::get().map(box_package_manager),
         config::ArchPackageManager::Pikaur => Pikaur::get().map(box_package_manager),
         config::ArchPackageManager::Pamac => Pamac::get().map(box_package_manager),
-        config::ArchPackageManager::Aura => Aura::get(ctx).map(box_package_manager),
+        config::ArchPackageManager::Aura => Aura::get().map(box_package_manager),
     }
 }
 
