@@ -725,10 +725,6 @@ pub struct CommandLineArgs {
     #[arg(short = 't', long = "tmux")]
     run_in_tmux: bool,
 
-    /// The preferred way to run the new tmux session
-    #[arg(long = "tmux-session-attach-mode")]
-    tmux_session_attach_mode: Option<TmuxSessionAttachMode>,
-
     /// Cleanup temporary or old files
     #[arg(short = 'c', long = "cleanup")]
     cleanup: bool,
@@ -988,10 +984,6 @@ impl Config {
 
     /// The preferred way to run the new tmux session.
     fn tmux_session_attach_mode(&self) -> TmuxSessionAttachMode {
-        if let Some(mode) = self.opt.tmux_session_attach_mode {
-            return mode;
-        }
-
         self.config_file
             .misc
             .as_ref()
