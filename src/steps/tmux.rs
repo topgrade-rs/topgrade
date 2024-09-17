@@ -155,18 +155,25 @@ pub fn run_in_tmux(config: TmuxConfig) -> Result<()> {
 
     let is_inside_tmux = env::var("TMUX").is_ok();
     let err = match config.session_attach_mode {
-        // Only attach to the newly-created session if we're not currently in a tmux session.
-        TmuxSessionAttachMode::Create if is_inside_tmux => {
-            println!("Topgrade launched in a new tmux session");
-            return Ok(());
+        TmuxSessionAttachMode::Create => {
+            if is_inside_tmux {
+                // Only attach to the newly-created session if we're not currently in a tmux session.
+                println!("Topgrade launched in a new tmux session");
+                return Ok(());
+            } else {
+                tmux.build().args(["attach-client", "-t", &session]).exec()
+            }
         }
-        TmuxSessionAttachMode::CreateAndSwitchClient if is_inside_tmux => {
-            tmux.build().args(["switch-client", "-t", &session]).exec()
-        }
-        TmuxSessionAttachMode::Create | TmuxSessionAttachMode::CreateAndSwitchClient => {
-            tmux.build().args(["attach-session", "-t", &session]).exec()
+
+        TmuxSessionAttachMode::CreateAndSwitchClient => {
+            if is_inside_tmux {
+                tmux.build().args(["switch-client", "-t", &session]).exec()
+            } else {
+                tmux.build().args(["attach-client", "-t", &session]).exec()
+            }
         }
     };
+
     Err(eyre!("{err}")).context("Failed to `execvp(3)` tmux")
 }
 
