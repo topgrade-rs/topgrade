@@ -987,7 +987,7 @@ impl Config {
     }
 
     /// The preferred way to run the new tmux session.
-    pub fn tmux_session_attach_mode(&self) -> TmuxSessionAttachMode {
+    fn tmux_session_attach_mode(&self) -> TmuxSessionAttachMode {
         if let Some(mode) = self.opt.tmux_session_attach_mode {
             return mode;
         }
