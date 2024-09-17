@@ -403,6 +403,8 @@ pub struct Misc {
 
     run_in_tmux: Option<bool>,
 
+    tmux_session_mode: Option<TmuxSessionMode>,
+
     cleanup: Option<bool>,
 
     notify_each_step: Option<bool>,
@@ -417,6 +419,19 @@ pub struct Misc {
     no_self_update: Option<bool>,
 
     log_filters: Option<Vec<String>>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, ValueEnum)]
+#[clap(rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum TmuxSessionMode {
+    AttachIfNotInSession,
+    AttachAlways,
+}
+
+pub struct TmuxConfig {
+    pub args: Vec<String>,
+    pub session_mode: TmuxSessionMode,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -967,6 +982,15 @@ impl Config {
                 .unwrap_or(false)
     }
 
+    /// The preferred way to run the new tmux session.
+    fn tmux_session_mode(&self) -> TmuxSessionMode {
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.tmux_session_mode)
+            .unwrap_or(TmuxSessionMode::AttachIfNotInSession)
+    }
+
     /// Tell whether we should perform cleanup steps.
     pub fn cleanup(&self) -> bool {
         self.opt.cleanup
@@ -1024,8 +1048,16 @@ impl Config {
         self.config_file.git.as_ref().and_then(|git| git.arguments.as_ref())
     }
 
+    pub fn tmux_config(&self) -> Result<TmuxConfig> {
+        let args = self.tmux_arguments()?;
+        Ok(TmuxConfig {
+            args,
+            session_mode: self.tmux_session_mode(),
+        })
+    }
+
     /// Extra Tmux arguments
-    pub fn tmux_arguments(&self) -> Result<Vec<String>> {
+    fn tmux_arguments(&self) -> Result<Vec<String>> {
         let args = &self
             .config_file
             .misc
