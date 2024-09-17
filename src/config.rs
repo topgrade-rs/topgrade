@@ -403,7 +403,7 @@ pub struct Misc {
 
     run_in_tmux: Option<bool>,
 
-    tmux_session_attach_mode: Option<TmuxSessionAttachMode>,
+    tmux_session_mode: Option<TmuxSessionMode>,
 
     cleanup: Option<bool>,
 
@@ -424,14 +424,14 @@ pub struct Misc {
 #[derive(Clone, Copy, Debug, Deserialize, ValueEnum)]
 #[clap(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
-pub enum TmuxSessionAttachMode {
-    Create,
-    CreateAndSwitchClient,
+pub enum TmuxSessionMode {
+    AttachIfNotInSession,
+    AttachAlways,
 }
 
 pub struct TmuxConfig {
     pub args: Vec<String>,
-    pub session_attach_mode: TmuxSessionAttachMode,
+    pub session_mode: TmuxSessionMode,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -983,12 +983,12 @@ impl Config {
     }
 
     /// The preferred way to run the new tmux session.
-    fn tmux_session_attach_mode(&self) -> TmuxSessionAttachMode {
+    fn tmux_session_mode(&self) -> TmuxSessionMode {
         self.config_file
             .misc
             .as_ref()
-            .and_then(|misc| misc.tmux_session_attach_mode)
-            .unwrap_or(TmuxSessionAttachMode::Create)
+            .and_then(|misc| misc.tmux_session_mode)
+            .unwrap_or(TmuxSessionMode::AttachIfNotInSession)
     }
 
     /// Tell whether we should perform cleanup steps.
@@ -1052,7 +1052,7 @@ impl Config {
         let args = self.tmux_arguments()?;
         Ok(TmuxConfig {
             args,
-            session_attach_mode: self.tmux_session_attach_mode(),
+            session_mode: self.tmux_session_mode(),
         })
     }
 

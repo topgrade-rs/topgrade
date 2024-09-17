@@ -8,7 +8,7 @@ use color_eyre::eyre::Result;
 
 use crate::command::CommandExt;
 use crate::config::TmuxConfig;
-use crate::config::TmuxSessionAttachMode;
+use crate::config::TmuxSessionMode;
 use crate::terminal::print_separator;
 use crate::HOME_DIR;
 use crate::{
@@ -154,8 +154,8 @@ pub fn run_in_tmux(config: TmuxConfig) -> Result<()> {
     let session = tmux.new_unique_session(session_name, window_name, &command)?;
 
     let is_inside_tmux = env::var("TMUX").is_ok();
-    let err = match config.session_attach_mode {
-        TmuxSessionAttachMode::Create => {
+    let err = match config.session_mode {
+        TmuxSessionMode::AttachIfNotInSession => {
             if is_inside_tmux {
                 // Only attach to the newly-created session if we're not currently in a tmux session.
                 println!("Topgrade launched in a new tmux session");
@@ -165,7 +165,7 @@ pub fn run_in_tmux(config: TmuxConfig) -> Result<()> {
             }
         }
 
-        TmuxSessionAttachMode::CreateAndSwitchClient => {
+        TmuxSessionMode::AttachAlways => {
             if is_inside_tmux {
                 tmux.build().args(["switch-client", "-t", &session]).exec()
             } else {

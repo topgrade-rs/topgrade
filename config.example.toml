@@ -50,8 +50,8 @@
 # Changes the way topgrade interacts with
 # the newly crated tmux session, creating the session
 # and only attaching to it if not inside tmux
-# (default: "create", allowed values: "create", "create_and_switch_client")
-# tmux_session_attach_mode = "create"
+# (default: "attach_if_not_in_session", allowed values: "attach_if_not_in_session", "attach_always")
+# tmux_session_mode = "attach_if_not_in_session"
 
 # Cleanup temporary or old files (default: false)
 # cleanup = true
