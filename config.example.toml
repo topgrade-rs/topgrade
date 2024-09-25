@@ -120,6 +120,12 @@
 # both of them, they won't clash with each other.
 # greedy_latest = true
 
+# For the BrewCask step
+# If `Repo Cask Upgrade` does not exist, then use the `--greedy_auto_updates` option.
+# NOTE: the above entry `greedy_cask` contains this entry, though you can enable
+# both of them, they won't clash with each other.
+# greedy_auto_updates = true
+
 # For the BrewFormula step
 # Execute `brew autoremove` after the step.
 # autoremove = true
@@ -254,7 +260,7 @@
 # runtime = "podman"
 
 [lensfun]
-# If disabled, Topgrade invokes `lensfun‑update‑data` without root priviledge, 
+# If disabled, Topgrade invokes `lensfun‑update‑data` without root priviledge,
 # then the update will be only available to you. Otherwise, `sudo` is required,
 # and the update will be installed system-wide, i.e., available to all users.
 # (default: false)

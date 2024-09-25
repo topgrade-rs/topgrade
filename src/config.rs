@@ -270,6 +270,7 @@ pub struct Flatpak {
 pub struct Brew {
     greedy_cask: Option<bool>,
     greedy_latest: Option<bool>,
+    greedy_auto_updates: Option<bool>,
     autoremove: Option<bool>,
     fetch_head: Option<bool>,
 }
@@ -1175,6 +1176,15 @@ impl Config {
             .brew
             .as_ref()
             .and_then(|c| c.greedy_latest)
+            .unwrap_or(false)
+    }
+
+    /// Whether Brew cask should be auto_updates
+    pub fn brew_greedy_auto_updates(&self) -> bool {
+        self.config_file
+            .brew
+            .as_ref()
+            .and_then(|c| c.greedy_auto_updates)
             .unwrap_or(false)
     }
 
