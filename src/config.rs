@@ -122,6 +122,7 @@ pub enum Step {
     PipReviewLocal,
     Pipupgrade,
     Pipx,
+    Pixi,
     Pkg,
     Pkgin,
     PlatformioCore,
