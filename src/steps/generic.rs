@@ -447,14 +447,11 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
     command.status_checked()
 }
 
-pub fn run_pixi_update(ctx:&ExecutionContext) -> Result<()> {
+pub fn run_pixi_update(ctx: &ExecutionContext) -> Result<()> {
     let pixi = require("pixi")?;
     print_separator("Pixi");
 
-    ctx.run_type()
-        .execute(pixi)
-        .args("self-update")
-        .status_checked()
+    ctx.run_type().execute(pixi).args("self-update").status_checked()
 }
 
 pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
