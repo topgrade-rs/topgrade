@@ -48,7 +48,7 @@ To add a new `step` to `topgrade`:
 
        // Invoke the new step to get things updated!
        ctx.run_type()
-          .execute("xxx")
+          .execute(xxx)
           .arg(/* args required by this step */)
           .status_checked()
    }
