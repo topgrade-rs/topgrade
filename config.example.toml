@@ -196,6 +196,8 @@
 # Arguments to pass Git when pulling Repositories
 # arguments = "--rebase --autostash"
 
+# Whether to fetch only instead of pulling remote changes
+# fetch_only = false
 
 [windows]
 # Manually select Windows updates
