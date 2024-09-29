@@ -743,7 +743,7 @@ pub struct CommandLineArgs {
     #[arg(long = "disable", value_name = "STEP", value_enum, num_args = 1..)]
     disable: Vec<Step>,
 
-    /// Perform only the specified steps (experimental)
+    /// Perform only the specified steps
     #[arg(long = "only", value_name = "STEP", value_enum, num_args = 1..)]
     only: Vec<Step>,
 
