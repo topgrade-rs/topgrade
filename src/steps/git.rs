@@ -295,16 +295,24 @@ impl RepoStep {
     async fn pull_repo<P: AsRef<Path>>(&self, ctx: &ExecutionContext<'_>, repo: P) -> Result<()> {
         let before_revision = get_head_revision(&self.git, &repo);
 
-        if ctx.config().verbose() {
-            println!("{} {}", style("Pulling").cyan().bold(), repo.as_ref().display());
-        }
-
         let mut command = AsyncCommand::new(&self.git);
 
-        command
-            .stdin(Stdio::null())
-            .current_dir(&repo)
-            .args(["pull", "--ff-only"]);
+        if ctx.config().git_fetch_only().is_some_and(|f| *f) {
+            if ctx.config().verbose() {
+                println!("{} {}", style("Fetching").cyan().bold(), repo.as_ref().display());
+            }
+
+            command.stdin(Stdio::null()).current_dir(&repo).args(["fetch"]);
+        } else {
+            if ctx.config().verbose() {
+                println!("{} {}", style("Pulling").cyan().bold(), repo.as_ref().display());
+            }
+
+            command
+                .stdin(Stdio::null())
+                .current_dir(&repo)
+                .args(["pull", "--ff-only"]);
+        }
 
         if let Some(extra_arguments) = ctx.config().git_arguments() {
             command.args(extra_arguments.split_whitespace());
