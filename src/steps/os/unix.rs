@@ -311,8 +311,11 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
             let user = nix::unistd::User::from_uid(uid)
                 .expect("failed to call getpwuid()")
                 .expect("this user should exist");
-            print_separator(format!("{} (sudo as user '{}')", variant.step_title(), user.name));
-            let sudo = crate::utils::require_option(ctx.sudo().as_ref(), "sudo is needed to run the update".into())?;
+
+            let sudo_as_user = t!("sudo as user '{user}'", user = user.name);
+            print_separator(format!("{} ()", variant.step_title(), sudo_as_user));
+
+            let sudo = crate::utils::require_option(ctx.sudo().as_ref(), crate::utils::get_require_sudo_string())?;
             ctx.run_type()
                 .execute(sudo)
                 .current_dir("/tmp") // brew needs a writable current directory
@@ -439,31 +442,29 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     let run_type = ctx.run_type();
     run_type.execute(nix_channel).arg("--update").status_checked()?;
 
-    let version: Result<Version> = match Command::new(&nix)
-        .arg("--version")
-        .output_checked_utf8()?
+    let mut get_version_cmd = ctx.run_type().execute(&nix);
+    get_version_cmd.arg("--version");
+    let get_version_cmd_output = get_version_cmd.output_checked_utf8()?;
+    let get_version_cmd_first_line_stdout = get_version_cmd_output
         .stdout
         .lines()
         .next()
-    {
-        Some(item) => {
-            let parts: Vec<&str> = item.split_whitespace().collect();
-            if parts.len() >= 3 {
-                Version::parse(parts[2]).map_err(|err| err.into())
-            } else {
-                Err(SkipStep(String::from("Unexpected version format")).into())
-            }
-        }
-        _ => return Err(SkipStep(String::from("Cannot find nix version")).into()),
+        .expect("nix --version gives an empty output");
+    let splitted: Vec<&str> = get_version_cmd_first_line_stdout.split_whitespace().collect();
+    let version = if splitted.len() >= 3 {
+        Version::parse(splitted[2]).expect("invalid version")
+    } else {
+        panic!("nix --version output format changed, file an issue to Topgrade!")
     };
 
     debug!("Nix version: {:?}", version);
 
-    let mut packages: Vec<&str> = vec!["--all", "--impure"];
-
-    if !matches!(version, Ok(version) if version >= Version::new(2, 21, 0)) {
-        packages = vec![".*"];
-    }
+    // Nix since 2.21.0 uses `--all --impure` rather than `.*` to upgrade all packages
+    let packages = if version >= Version::new(2, 21, 0) {
+        vec!["--all", "--impure"]
+    } else {
+        vec![".*"]
+    };
 
     if Path::new(&manifest_json_path).exists() {
         run_type
@@ -678,7 +679,7 @@ pub fn run_pyenv(ctx: &ExecutionContext) -> Result<()> {
     }
 
     if !pyenv_dir.join("plugins").join("pyenv-update").exists() {
-        return Err(SkipStep("pyenv-update plugin is not installed".to_string()).into());
+        return Err(SkipStep(t!("pyenv-update plugin is not installed").to_string()).into());
     }
 
     ctx.run_type().execute(pyenv).arg("update").status_checked()

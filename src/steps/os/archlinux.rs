@@ -311,7 +311,7 @@ impl ArchPackageManager for Aura {
         } else {
             let sudo = crate::utils::require_option(
                 ctx.sudo().as_ref(),
-                "Aura(<0.4.6) requires sudo installed to work with AUR packages".into(),
+                t!("Aura(<0.4.6) requires sudo installed to work with AUR packages").to_strig(),
             )?;
 
             let mut cmd = ctx.run_type().execute(sudo);

@@ -230,8 +230,8 @@ pub fn run_aqua(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Aqua");
     if ctx.run_type().dry() {
-        println!("Updating aqua ...");
-        println!("Updating aqua installed cli tools ...");
+        println!("{}", t!("Updating aqua ..."));
+        println!("{}", t!("Updating aqua installed cli tools ..."));
         Ok(())
     } else {
         ctx.run_type().execute(&aqua).arg("update-aqua").status_checked()?;
@@ -1006,7 +1006,7 @@ pub fn run_lensfun_update_data(ctx: &ExecutionContext) -> Result<()> {
     const EXIT_CODE_WHEN_NO_UPDATE: i32 = 1;
 
     if ctx.config().lensfun_use_sudo() {
-        let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string().to_string())?;
+        let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
         print_separator(SEPARATOR);
         ctx.run_type()
             .execute(sudo)

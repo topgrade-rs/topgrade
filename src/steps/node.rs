@@ -285,7 +285,7 @@ pub fn run_volta_packages_upgrade(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Volta");
 
     if ctx.run_type().dry() {
-        print_info("Updating Volta packages...");
+        print_info(t!("Updating Volta packages..."));
         return Ok(());
     }
 
@@ -309,7 +309,7 @@ pub fn run_volta_packages_upgrade(ctx: &ExecutionContext) -> Result<()> {
         .collect();
 
     if installed_packages.is_empty() {
-        print_info("No packages installed with Volta");
+        print_info(t!("No packages installed with Volta"));
         return Ok(());
     }
 
