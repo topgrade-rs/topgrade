@@ -313,7 +313,7 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
                 .expect("this user should exist");
 
             let sudo_as_user = t!("sudo as user '{user}'", user = user.name);
-            print_separator(format!("{} ()", variant.step_title(), sudo_as_user));
+            print_separator(format!("{} ({})", variant.step_title(), sudo_as_user));
 
             let sudo = crate::utils::require_option(ctx.sudo().as_ref(), crate::utils::get_require_sudo_string())?;
             ctx.run_type()
