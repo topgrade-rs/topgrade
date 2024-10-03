@@ -11,6 +11,7 @@ use color_eyre::eyre::Context;
 use console::{style, Key, Term};
 use lazy_static::lazy_static;
 use notify_rust::{Notification, Timeout};
+use rust_i18n::t;
 use tracing::{debug, error};
 #[cfg(windows)]
 use which_crate::which;
@@ -144,7 +145,7 @@ impl Terminal {
         self.term
             .write_fmt(format_args!(
                 "{} {}",
-                style(format!("{key} failed:")).red().bold(),
+                style(format!("{}", t!("{key} failed:", key = key))).red().bold(),
                 message
             ))
             .ok();
@@ -174,10 +175,10 @@ impl Terminal {
                 "{}: {}\n",
                 key,
                 match result {
-                    StepResult::Success => format!("{}", style("OK").bold().green()),
-                    StepResult::Failure => format!("{}", style("FAILED").bold().red()),
-                    StepResult::Ignored => format!("{}", style("IGNORED").bold().yellow()),
-                    StepResult::Skipped(reason) => format!("{}: {}", style("SKIPPED").bold().blue(), reason),
+                    StepResult::Success => format!("{}", style(t!("OK")).bold().green()),
+                    StepResult::Failure => format!("{}", style(t!("FAILED")).bold().red()),
+                    StepResult::Ignored => format!("{}", style(t!("IGNORED")).bold().yellow()),
+                    StepResult::Skipped(reason) => format!("{}: {}", style(t!("SKIPPED")).bold().blue(), reason),
                 }
             ))
             .ok();
@@ -188,7 +189,7 @@ impl Terminal {
         self.term
             .write_fmt(format_args!(
                 "{}",
-                style(format!("{question} (y)es/(N)o",)).yellow().bold()
+                style(format!("{question} {}", t!("(Y)es/(N)o"))).yellow().bold()
             ))
             .ok();
 
@@ -207,14 +208,14 @@ impl Terminal {
         }
 
         if self.set_title {
-            self.term.set_title("Topgrade - Awaiting user");
+            self.term.set_title(format!("Topgrade - {}", t!("Awaiting user")));
         }
 
         if self.desktop_notification {
-            self.notify_desktop(format!("{step_name} failed"), None);
+            self.notify_desktop(format!("{}", t!("{step_name} failed", step_name = step_name)), None);
         }
 
-        let prompt_inner = style(format!("{}Retry? (y)es/(N)o/(s)hell/(q)uit", self.prefix))
+        let prompt_inner = style(format!("{}{}", self.prefix, t!("Retry? (y)es/(N)o/(s)hell/(q)uit")))
             .yellow()
             .bold();
 
@@ -224,7 +225,10 @@ impl Terminal {
             match self.term.read_key() {
                 Ok(Key::Char('y')) | Ok(Key::Char('Y')) => break Ok(true),
                 Ok(Key::Char('s')) | Ok(Key::Char('S')) => {
-                    println!("\n\nDropping you to shell. Fix what you need and then exit the shell.\n");
+                    println!(
+                        "\n\n{}\n",
+                        t!("Dropping you to shell. Fix what you need and then exit the shell.")
+                    );
                     if let Err(err) = run_shell().context("Failed to run shell") {
                         self.term.write_fmt(format_args!("{err:?}\n{prompt_inner}")).ok();
                     } else {

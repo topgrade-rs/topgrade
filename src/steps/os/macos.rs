@@ -1,9 +1,10 @@
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::terminal::{print_separator, prompt_yesno};
-use crate::utils::{require_option, REQUIRE_SUDO};
+use crate::utils::{get_require_sudo_string, require_option};
 use crate::{utils::require, Step};
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 use std::collections::HashSet;
 use std::fs;
 use std::process::Command;
@@ -11,7 +12,7 @@ use tracing::debug;
 
 pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
     require("port")?;
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
 
     print_separator("MacPorts");
     ctx.run_type()
@@ -34,25 +35,25 @@ pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_mas(ctx: &ExecutionContext) -> Result<()> {
     let mas = require("mas")?;
-    print_separator("macOS App Store");
+    print_separator(t!("macOS App Store"));
 
     ctx.run_type().execute(mas).arg("upgrade").status_checked()
 }
 
 pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
-    print_separator("macOS system update");
+    print_separator(t!("macOS system update"));
 
     let should_ask = !(ctx.config().yes(Step::System) || ctx.config().dry_run());
     if should_ask {
-        println!("Finding available software");
+        println!("{}", t!("Finding available software"));
         if system_update_available()? {
-            let answer = prompt_yesno("A system update is available. Do you wish to install it?")?;
+            let answer = prompt_yesno(t!("A system update is available. Do you wish to install it?").as_ref())?;
             if !answer {
                 return Ok(());
             }
             println!();
         } else {
-            println!("No new software available.");
+            println!("{}", t!("No new software available."));
             return Ok(());
         }
     }
@@ -115,7 +116,7 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
         .collect();
 
     if releases_installed.is_empty() {
-        println!("No Xcode releases installed.");
+        println!("{}", t!("No Xcode releases installed."));
         return Ok(());
     }
 
@@ -194,7 +195,8 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
         releases_regular_new_installed,
     ] {
         if should_ask && releases_new_installed.len() == 2 {
-            let answer_uninstall = prompt_yesno("Would you like to move the former Xcode release to the trash?")?;
+            let answer_uninstall =
+                prompt_yesno(t!("Would you like to move the former Xcode release to the trash?").as_ref())?;
             if answer_uninstall {
                 let _ = ctx
                     .run_type()
@@ -221,11 +223,12 @@ pub fn process_xcodes_releases(releases_filtered: Vec<String>, should_ask: bool,
         && !releases_filtered.is_empty()
     {
         println!(
-            "New Xcode release detected: {}",
+            "{} {}",
+            t!("New Xcode release detected:"),
             releases_filtered.last().cloned().unwrap_or_default()
         );
         if should_ask {
-            let answer_install = prompt_yesno("Would you like to install it?")?;
+            let answer_install = prompt_yesno(t!("Would you like to install it?").as_ref())?;
             if answer_install {
                 let _ = ctx
                     .run_type()

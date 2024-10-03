@@ -12,6 +12,7 @@ use crate::command::CommandExt;
 use crate::error::{self, TopgradeError};
 use crate::terminal::print_separator;
 use crate::{execution_context::ExecutionContext, utils::require};
+use rust_i18n::t;
 
 // A string found in the output of docker for containers that weren't found in
 // the docker registry. We use this to gracefully handle and skip containers
@@ -43,7 +44,15 @@ impl Container {
 impl Display for Container {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         // e.g., "`fedora:latest` for `linux/amd64`"
-        write!(f, "`{}` for `{}`", self.repo_tag, self.platform)
+        write!(
+            f,
+            "{}",
+            t!(
+                "`{repo_tag}` for `{platform}`",
+                repo_tag = self.repo_tag,
+                platform = self.platform
+            )
+        )
     }
 }
 
@@ -125,7 +134,7 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
     let crt = require(container_runtime)?;
     debug!("Using container runtime '{}'", crt.display());
 
-    print_separator("Containers");
+    print_separator(t!("Containers"));
     let mut success = true;
     let containers =
         list_containers(&crt, ctx.config().containers_ignored_tags()).context("Failed to list Docker containers")?;

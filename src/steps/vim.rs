@@ -10,6 +10,7 @@ use crate::{
     execution_context::ExecutionContext,
     utils::{require, PathExt},
 };
+use rust_i18n::t;
 use std::path::PathBuf;
 use std::{
     io::{self, Write},
@@ -64,7 +65,7 @@ fn upgrade(command: &mut Executor, ctx: &ExecutionContext) -> Result<()> {
         if !status.success() {
             return Err(TopgradeError::ProcessFailed(command.get_program(), status).into());
         } else {
-            println!("Plugins upgraded")
+            println!("{}", t!("Plugins upgraded"))
         }
     }
 
@@ -77,7 +78,7 @@ pub fn upgrade_ultimate_vimrc(ctx: &ExecutionContext) -> Result<()> {
     let python = require("python3")?;
     let update_plugins = config_dir.join("update_plugins.py").require()?;
 
-    print_separator("The Ultimate vimrc");
+    print_separator(t!("The Ultimate vimrc"));
 
     ctx.run_type()
         .execute(&git)
@@ -108,7 +109,7 @@ pub fn upgrade_vim(ctx: &ExecutionContext) -> Result<()> {
 
     let output = Command::new(&vim).arg("--version").output_checked_utf8()?;
     if !output.stdout.starts_with("VIM") {
-        return Err(SkipStep(String::from("vim binary might be actually nvim")).into());
+        return Err(SkipStep(t!("vim binary might be actually nvim").to_string()).into());
     }
 
     let vimrc = vimrc()?;

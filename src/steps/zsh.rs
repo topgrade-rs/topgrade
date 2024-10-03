@@ -210,8 +210,7 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
         .unwrap_or_else(|e| {
             let default_path = oh_my_zsh.join("custom");
             debug!(
-                "Running zsh returned {}. Using default path: {}",
-                e,
+                "Running zsh returned {e}. Using default path: {}",
                 default_path.display()
             );
             default_path

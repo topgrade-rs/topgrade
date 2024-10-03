@@ -18,6 +18,7 @@ use etcetera::base_strategy::Windows;
 #[cfg(unix)]
 use etcetera::base_strategy::Xdg;
 use once_cell::sync::Lazy;
+use rust_i18n::{i18n, t};
 use tracing::debug;
 
 use self::config::{CommandLineArgs, Config, Step};
@@ -54,6 +55,9 @@ pub(crate) static XDG_DIRS: Lazy<Xdg> = Lazy::new(|| Xdg::new().expect("No home 
 #[cfg(windows)]
 pub(crate) static WINDOWS_DIRS: Lazy<Windows> = Lazy::new(|| Windows::new().expect("No home directory"));
 
+// Init and load the i18n files
+i18n!("locales", fallback = "en");
+
 fn run() -> Result<()> {
     install_color_eyre()?;
     ctrlc::set_handler();
@@ -71,6 +75,11 @@ fn run() -> Result<()> {
     // For more info, see the comments in `CommandLineArgs::tracing_filter_directives()`
     // and `Config::tracing_filter_directives()`.
     let reload_handle = install_tracing(&opt.tracing_filter_directives())?;
+
+    // Get current system locale and set it as the default locale
+    let system_locale = sys_locale::get_locale().unwrap_or("en".to_string());
+    rust_i18n::set_locale(&system_locale);
+    debug!("Current system locale is {system_locale}");
 
     if let Some(shell) = opt.gen_completion {
         let cmd = &mut CommandLineArgs::command();
@@ -210,7 +219,7 @@ fn run() -> Result<()> {
                 runner.execute(Step::System, "System update", || distribution.upgrade(&ctx))?;
             }
             Err(e) => {
-                println!("Error detecting current distribution: {e}");
+                println!("{}", t!("Error detecting current distribution: {error}", error = e));
             }
         }
         runner.execute(Step::ConfigUpdate, "config-update", || linux::run_config_update(&ctx))?;
@@ -452,7 +461,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Vagrant, "Vagrant boxes", || vagrant::upgrade_vagrant_boxes(&ctx))?;
 
     if !runner.report().data().is_empty() {
-        print_separator("Summary");
+        print_separator(t!("Summary"));
 
         for (key, result) in runner.report().data() {
             print_result(key, result);
@@ -476,7 +485,7 @@ fn run() -> Result<()> {
     }
 
     if config.keep_at_end() {
-        print_info("\n(R)eboot\n(S)hell\n(Q)uit");
+        print_info(t!("\n(R)eboot\n(S)hell\n(Q)uit"));
         loop {
             match get_key() {
                 Ok(Key::Char('s')) | Ok(Key::Char('S')) => {
@@ -498,10 +507,11 @@ fn run() -> Result<()> {
 
     if !config.skip_notify() {
         notify_desktop(
-            format!(
-                "Topgrade finished {}",
-                if failed { "with errors" } else { "successfully" }
-            ),
+            if failed {
+                t!("Topgrade finished with errors")
+            } else {
+                t!("Topgrade finished successfully")
+            },
             Some(Duration::from_secs(10)),
         )
     }
@@ -536,7 +546,7 @@ fn main() {
                 // The `Debug` implementation of `eyre::Result` prints a multi-line
                 // error message that includes all the 'causes' added with
                 // `.with_context(...)` calls.
-                println!("Error: {error:?}");
+                println!("{}", t!("Error: {error}", error = format!("{:?}", error)));
             }
             exit(1);
         }

@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use color_eyre::eyre;
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 use walkdir::WalkDir;
 
 use crate::command::CommandExt;
@@ -310,7 +311,7 @@ impl ArchPackageManager for Aura {
         } else {
             let sudo = crate::utils::require_option(
                 ctx.sudo().as_ref(),
-                "Aura(<0.4.6) requires sudo installed to work with AUR packages".into(),
+                t!("Aura(<0.4.6) requires sudo installed to work with AUR packages").to_string(),
             )?;
 
             let mut cmd = ctx.run_type().execute(sudo);
@@ -383,7 +384,7 @@ pub fn show_pacnew() {
         .peekable();
 
     if iter.peek().is_some() {
-        println!("\nPacman backup configuration files found:");
+        println!("\n{}", t!("Pacman backup configuration files found:"));
 
         for entry in iter {
             println!("{}", entry.path().display());

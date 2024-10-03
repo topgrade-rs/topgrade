@@ -11,6 +11,7 @@ use crate::terminal::{print_separator, print_warning};
 use crate::utils::{require, which};
 use crate::{error::SkipStep, steps::git::RepoStep};
 use crate::{powershell, Step};
+use rust_i18n::t;
 
 pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
     let choco = require("choco")?;
@@ -68,12 +69,12 @@ pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
     if !is_wsl_installed()? {
-        return Err(SkipStep("WSL not installed".to_string()).into());
+        return Err(SkipStep(t!("WSL not installed").to_string()).into());
     }
 
     let wsl = require("wsl")?;
 
-    print_separator("Update WSL");
+    print_separator(t!("Update WSL"));
 
     let mut wsl_command = ctx.run_type().execute(wsl);
     wsl_command.args(["--update"]);
@@ -126,7 +127,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     let topgrade = Command::new(wsl)
         .args(["-d", dist, "bash", "-lc", "which topgrade"])
         .output_checked_utf8()
-        .map_err(|_| SkipStep(String::from("Could not find Topgrade installed in WSL")))?
+        .map_err(|_| SkipStep(t!("Could not find Topgrade installed in WSL").to_string()))?
         .stdout // The normal output from `which topgrade` appends a newline, so we trim it here.
         .trim_end()
         .to_owned();
@@ -175,7 +176,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
 
 pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     if !is_wsl_installed()? {
-        return Err(SkipStep("WSL not installed".to_string()).into());
+        return Err(SkipStep(t!("WSL not installed").to_string()).into());
     }
 
     let wsl = require("wsl")?;
@@ -198,25 +199,25 @@ pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     if ran {
         Ok(())
     } else {
-        Err(SkipStep(String::from("Could not find Topgrade in any WSL disribution")).into())
+        Err(SkipStep(t!("Could not find Topgrade in any WSL disribution").to_string()).into())
     }
 }
 
 pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
     let powershell = powershell::Powershell::windows_powershell();
 
-    print_separator("Windows Update");
+    print_separator(t!("Windows Update"));
 
     if powershell.supports_windows_update() {
         println!("The installer will request to run as administrator, expect a prompt.");
 
         powershell.windows_update(ctx)
     } else {
-        print_warning(
-            "Consider installing PSWindowsUpdate Module as the use of Windows Update via USOClient is not supported.",
-        );
+        print_warning(t!(
+            "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."
+        ));
 
-        Err(SkipStep("USOClient not supported.".to_string()).into())
+        Err(SkipStep(t!("USOClient not supported.").to_string()).into())
     }
 }
 

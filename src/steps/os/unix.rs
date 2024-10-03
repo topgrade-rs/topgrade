@@ -15,6 +15,7 @@ use home;
 use ini::Ini;
 #[cfg(target_os = "linux")]
 use nix::unistd::Uid;
+use rust_i18n::t;
 use semver::Version;
 use tracing::debug;
 
@@ -27,7 +28,7 @@ use crate::executor::Executor;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use crate::executor::RunType;
 use crate::terminal::print_separator;
-use crate::utils::{require, require_option, PathExt, REQUIRE_SUDO};
+use crate::utils::{get_require_sudo_string, require, require_option, PathExt};
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 const INTEL_BREW: &str = "/usr/local/bin/brew";
@@ -101,19 +102,19 @@ pub fn run_fisher(ctx: &ExecutionContext) -> Result<()> {
         .args(["-c", "type -t fisher"])
         .output_checked_utf8()
         .map(|_| ())
-        .map_err(|_| SkipStep("`fisher` is not defined in `fish`".to_owned()))?;
+        .map_err(|_| SkipStep(t!("`fisher` is not defined in `fish`").to_string()))?;
 
     Command::new(&fish)
         .args(["-c", "echo \"$__fish_config_dir/fish_plugins\""])
         .output_checked_utf8()
         .and_then(|output| Path::new(&output.stdout.trim()).require().map(|_| ()))
-        .map_err(|err| SkipStep(format!("`fish_plugins` path doesn't exist: {err}")))?;
+        .map_err(|err| SkipStep(t!("`fish_plugins` path doesn't exist: {err}", err = err).to_string()))?;
 
     Command::new(&fish)
         .args(["-c", "fish_update_completions"])
         .output_checked_utf8()
         .map(|_| ())
-        .map_err(|_| SkipStep("`fish_update_completions` is not available".to_owned()))?;
+        .map_err(|_| SkipStep(t!("`fish_update_completions` is not available").to_string()))?;
 
     print_separator("Fisher");
 
@@ -180,7 +181,7 @@ pub fn run_oh_my_fish(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_pkgin(ctx: &ExecutionContext) -> Result<()> {
     let pkgin = require("pkgin")?;
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
 
     print_separator("Pkgin");
 
@@ -235,7 +236,7 @@ pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
     let gdbus = require("gdbus")?;
     require_option(
         var("XDG_CURRENT_DESKTOP").ok().filter(|p| p.contains("GNOME")),
-        "Desktop doest not appear to be gnome".to_string(),
+        t!("Desktop doest not appear to be gnome").to_string(),
     )?;
     let output = Command::new("gdbus")
         .args([
@@ -252,10 +253,10 @@ pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
 
     debug!("Checking for gnome extensions: {}", output);
     if !output.stdout.contains("org.gnome.Shell.Extensions") {
-        return Err(SkipStep(String::from("Gnome shell extensions are unregistered in DBus")).into());
+        return Err(SkipStep(t!("Gnome shell extensions are unregistered in DBus").to_string()).into());
     }
 
-    print_separator("Gnome Shell extensions");
+    print_separator(t!("Gnome Shell extensions"));
 
     ctx.run_type()
         .execute(gdbus)
@@ -297,7 +298,7 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
     #[cfg(target_os = "macos")]
     {
         if variant.is_path() && !BrewVariant::is_macos_custom(binary_name) {
-            return Err(SkipStep("Not a custom brew for macOS".to_string()).into());
+            return Err(SkipStep(t!("Not a custom brew for macOS").to_string()).into());
         }
     }
 
@@ -310,8 +311,11 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
             let user = nix::unistd::User::from_uid(uid)
                 .expect("failed to call getpwuid()")
                 .expect("this user should exist");
-            print_separator(format!("{} (sudo as user '{}')", variant.step_title(), user.name));
-            let sudo = crate::utils::require_option(ctx.sudo().as_ref(), "sudo is needed to run the update".into())?;
+
+            let sudo_as_user = t!("sudo as user '{user}'", user = user.name);
+            print_separator(format!("{} ({})", variant.step_title(), sudo_as_user));
+
+            let sudo = crate::utils::require_option(ctx.sudo().as_ref(), crate::utils::get_require_sudo_string())?;
             ctx.run_type()
                 .execute(sudo)
                 .current_dir("/tmp") // brew needs a writable current directory
@@ -354,7 +358,7 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
 pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()> {
     let binary_name = require(variant.binary_name())?;
     if variant.is_path() && !BrewVariant::is_macos_custom(binary_name) {
-        return Err(SkipStep("Not a custom brew for macOS".to_string()).into());
+        return Err(SkipStep(t!("Not a custom brew for macOS").to_string()).into());
     }
     print_separator(format!("{} - Cask", variant.step_title()));
     let run_type = ctx.run_type();
@@ -409,7 +413,7 @@ pub fn run_guix(ctx: &ExecutionContext) -> Result<()> {
     if should_upgrade {
         return run_type.execute(&guix).args(["package", "-u"]).status_checked();
     }
-    Err(SkipStep(String::from("Guix Pull Failed, Skipping")).into())
+    Err(SkipStep(t!("Guix Pull Failed, Skipping").to_string()).into())
 }
 
 pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
@@ -429,41 +433,38 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     #[cfg(target_os = "macos")]
     {
         if require("darwin-rebuild").is_ok() {
-            return Err(SkipStep(String::from(
-                "Nix-darwin on macOS must be upgraded via darwin-rebuild switch",
-            ))
-            .into());
+            return Err(
+                SkipStep(t!("Nix-darwin on macOS must be upgraded via darwin-rebuild switch").to_string()).into(),
+            );
         }
     }
 
     let run_type = ctx.run_type();
     run_type.execute(nix_channel).arg("--update").status_checked()?;
 
-    let version: Result<Version> = match Command::new(&nix)
-        .arg("--version")
-        .output_checked_utf8()?
+    let mut get_version_cmd = ctx.run_type().execute(&nix);
+    get_version_cmd.arg("--version");
+    let get_version_cmd_output = get_version_cmd.output_checked_utf8()?;
+    let get_version_cmd_first_line_stdout = get_version_cmd_output
         .stdout
         .lines()
         .next()
-    {
-        Some(item) => {
-            let parts: Vec<&str> = item.split_whitespace().collect();
-            if parts.len() >= 3 {
-                Version::parse(parts[2]).map_err(|err| err.into())
-            } else {
-                Err(SkipStep(String::from("Unexpected version format")).into())
-            }
-        }
-        _ => return Err(SkipStep(String::from("Cannot find nix version")).into()),
+        .expect("nix --version gives an empty output");
+    let splitted: Vec<&str> = get_version_cmd_first_line_stdout.split_whitespace().collect();
+    let version = if splitted.len() >= 3 {
+        Version::parse(splitted[2]).expect("invalid version")
+    } else {
+        panic!("nix --version output format changed, file an issue to Topgrade!")
     };
 
     debug!("Nix version: {:?}", version);
 
-    let mut packages: Vec<&str> = vec!["--all", "--impure"];
-
-    if !matches!(version, Ok(version) if version >= Version::new(2, 21, 0)) {
-        packages = vec![".*"];
-    }
+    // Nix since 2.21.0 uses `--all --impure` rather than `.*` to upgrade all packages
+    let packages = if version >= Version::new(2, 21, 0) {
+        vec!["--all", "--impure"]
+    } else {
+        vec![".*"]
+    };
 
     if Path::new(&manifest_json_path).exists() {
         run_type
@@ -500,20 +501,16 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
     }
 
     if !should_self_upgrade {
-        return Err(SkipStep(String::from(
-            "`nix upgrade-nix` can only be used on macOS or non-NixOS Linux",
-        ))
-        .into());
+        return Err(SkipStep(t!("`nix upgrade-nix` can only be used on macOS or non-NixOS Linux").to_string()).into());
     }
 
     if nix_profile_dir(&nix)?.is_none() {
-        return Err(SkipStep(String::from(
-            "`nix upgrade-nix` cannot be run when Nix is installed in a profile",
-        ))
-        .into());
+        return Err(
+            SkipStep(t!("`nix upgrade-nix` cannot be run when Nix is installed in a profile").to_string()).into(),
+        );
     }
 
-    print_separator("Nix (self-upgrade)");
+    print_separator(t!("Nix (self-upgrade)"));
 
     let multi_user = fs::metadata(&nix)?.uid() == 0;
     debug!("Multi user nix: {}", multi_user);
@@ -578,7 +575,6 @@ fn nix_profile_dir(nix: &Path) -> Result<Option<PathBuf>> {
     }
 
     debug!("Found Nix profile {profile_dir:?}");
-
     let user_env = profile_dir
         .canonicalize()
         .wrap_err_with(|| format!("Failed to canonicalize {profile_dir:?}"))?;
@@ -675,15 +671,15 @@ pub fn run_pyenv(ctx: &ExecutionContext) -> Result<()> {
         .unwrap_or_else(|_| HOME_DIR.join(".pyenv"));
 
     if !pyenv_dir.exists() {
-        return Err(SkipStep("Pyenv is installed, but $PYENV_ROOT is not set correctly".to_string()).into());
+        return Err(SkipStep(t!("Pyenv is installed, but $PYENV_ROOT is not set correctly").to_string()).into());
     }
 
     if !pyenv_dir.join(".git").exists() {
-        return Err(SkipStep("pyenv is not a git repository".to_string()).into());
+        return Err(SkipStep(t!("pyenv is not a git repository").to_string()).into());
     }
 
     if !pyenv_dir.join("plugins").join("pyenv-update").exists() {
-        return Err(SkipStep("pyenv-update plugin is not installed".to_string()).into());
+        return Err(SkipStep(t!("pyenv-update plugin is not installed").to_string()).into());
     }
 
     ctx.run_type().execute(pyenv).arg("update").status_checked()
@@ -755,7 +751,7 @@ pub fn run_sdkman(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_bun_packages(ctx: &ExecutionContext) -> Result<()> {
     let bun = require("bun")?;
 
-    print_separator("Bun Packages");
+    print_separator(t!("Bun Packages"));
 
     let mut package_json: PathBuf = var("BUN_INSTALL")
         .map(PathBuf::from)
@@ -763,7 +759,7 @@ pub fn run_bun_packages(ctx: &ExecutionContext) -> Result<()> {
     package_json.push("install/global/package.json");
 
     if !package_json.exists() {
-        println!("No global packages installed");
+        println!("{}", t!("No global packages installed"));
         return Ok(());
     }
 
@@ -788,7 +784,7 @@ pub fn run_maza(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn reboot() -> Result<()> {
-    print!("Rebooting...");
+    print!("{}", t!("Rebooting..."));
 
     cfg_if::cfg_if! {
         if #[cfg(target_os = "linux")] {

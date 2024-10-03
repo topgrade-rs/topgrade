@@ -15,6 +15,7 @@ use etcetera::base_strategy::BaseStrategy;
 use merge::Merge;
 use regex::Regex;
 use regex_split::RegexSplit;
+use rust_i18n::t;
 use serde::Deserialize;
 use strum::{EnumIter, EnumString, IntoEnumIterator, VariantNames};
 use which_crate::which;
@@ -25,6 +26,7 @@ use crate::sudo::SudoKind;
 use crate::utils::string_prepend_str;
 use tracing::{debug, error};
 
+// TODO: Add i18n to this. Tracking issue: https://github.com/topgrade-rs/topgrade/issues/859
 pub static EXAMPLE_CONFIG: &str = include_str!("../config.example.toml");
 
 /// Topgrade's default log level.
@@ -650,14 +652,14 @@ impl ConfigFile {
                         let include_contents = match fs::read_to_string(&include_path) {
                             Ok(c) => c,
                             Err(e) => {
-                                error!("Unable to read {}: {}", include_path.display(), e);
+                                error!("Unable to read {}: {e}", include_path.display(),);
                                 continue;
                             }
                         };
                         match toml::from_str::<Self>(&include_contents) {
                             Ok(include_parsed) => result.merge(include_parsed),
                             Err(e) => {
-                                error!("Failed to deserialize {}: {}", include_path.display(), e);
+                                error!("Failed to deserialize {}: {e}", include_path.display(),);
                                 continue;
                             }
                         };
@@ -667,14 +669,17 @@ impl ConfigFile {
 
             match toml::from_str::<Self>(contents) {
                 Ok(contents) => result.merge(contents),
-                Err(e) => error!("Failed to deserialize {}: {}", config_path.display(), e),
+                Err(e) => error!("Failed to deserialize {}: {e}", config_path.display(),),
             }
         }
 
         if let Some(paths) = result.git.as_mut().and_then(|git| git.repos.as_mut()) {
             for path in paths.iter_mut() {
                 let expanded = shellexpand::tilde::<&str>(&path.as_ref()).into_owned();
-                debug!("Path {} expanded to {}", path, expanded);
+                debug!(
+                    "{}",
+                    t!("Path {path} expanded to {expanded}", path = path, expanded = expanded)
+                );
                 *path = expanded;
             }
         }
@@ -712,6 +717,8 @@ impl ConfigFile {
 }
 
 // Command line arguments
+// TODO: i18n of clap currently not easily possible. Waiting for https://github.com/clap-rs/clap/issues/380
+// Tracking issue for i18n: https://github.com/topgrade-rs/topgrade/issues/859
 #[derive(Parser, Debug)]
 #[command(name = "topgrade", version)]
 pub struct CommandLineArgs {
@@ -869,7 +876,7 @@ impl Config {
             ConfigFile::read(opt.config.clone()).unwrap_or_else(|e| {
                 // Inform the user about errors when loading the configuration,
                 // but fallback to the default config to at least attempt to do something
-                error!("failed to load configuration: {}", e);
+                error!("failed to load configuration: {e}");
                 ConfigFile::default()
             })
         } else {

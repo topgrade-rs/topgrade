@@ -16,6 +16,7 @@ use crate::{
     utils::{which, PathExt},
 };
 
+use rust_i18n::t;
 #[cfg(unix)]
 use std::os::unix::process::CommandExt as _;
 
@@ -158,7 +159,7 @@ pub fn run_in_tmux(config: TmuxConfig) -> Result<()> {
         TmuxSessionMode::AttachIfNotInSession => {
             if is_inside_tmux {
                 // Only attach to the newly-created session if we're not currently in a tmux session.
-                println!("Topgrade launched in a new tmux session");
+                println!("{}", t!("Topgrade launched in a new tmux session"));
                 return Ok(());
             } else {
                 tmux.build().args(["attach-client", "-t", &session]).exec()
