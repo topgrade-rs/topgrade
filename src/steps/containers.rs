@@ -44,7 +44,15 @@ impl Container {
 impl Display for Container {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         // e.g., "`fedora:latest` for `linux/amd64`"
-        write!(f, "{}", t!("`{repo_tag}` for `{platform}`", repo_tag = self.repo_tag, platform = self.platform))
+        write!(
+            f,
+            "{}",
+            t!(
+                "`{repo_tag}` for `{platform}`",
+                repo_tag = self.repo_tag,
+                platform = self.platform
+            )
+        )
     }
 }
 
