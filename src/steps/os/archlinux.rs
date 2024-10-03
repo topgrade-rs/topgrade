@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use color_eyre::eyre;
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 use walkdir::WalkDir;
 
 use crate::command::CommandExt;
@@ -383,7 +384,7 @@ pub fn show_pacnew() {
         .peekable();
 
     if iter.peek().is_some() {
-        println!("\nPacman backup configuration files found:");
+        println!("\n{}", t!("Pacman backup configuration files found:"));
 
         for entry in iter {
             println!("{}", entry.path().display());

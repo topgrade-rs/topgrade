@@ -1,0 +1,490 @@
+_version: 2
+  
+"Current system locale is {system_locale}":
+  en: "Current system locale is %{system_locale}"
+"Dry running: {program_name} {arguments}":
+  en: "Dry running: %{program_name} %{arguments}"
+"in {directory}":
+  en: "in %{directory}"
+"Rebooting...":
+  en: "Rebooting..."
+"Plugins upgraded":
+  en: "Plugins upgraded"
+"Would self-update":
+  en: "Would self-update"
+"Pulling":
+  en: "Pulling"
+"No Breaking changes":
+  en: "No Breaking changes"
+"Dropping you to shell. Fix what you need and then exit the shell.":
+  en: "Dropping you to shell. Fix what you need and then exit the shell."
+"Topgrade launched in a new tmux session":
+  en: "Topgrade launched in a new tmux session"
+#TODO: See if the \n breaks anything
+"Topgrade upgraded to {version}:\n":
+  en: "Topgrade upgraded to %{version}:\n"
+"Topgrade is up-to-date":
+  en: "Topgrade is up-to-date"
+"Updating modules...":
+  en: "Updating modules..."
+"Powershell Modules Update":
+  en: "Powershell Modules Update"
+"Powershell is not installed":
+  en: "Powershell is not installed"
+"Error detecting current distribution: {error}":
+  en: "Error detecting current distribution: %{error}"
+"Error: {error}":
+  en: "Error: %{error}"
+"Failed":
+  en: "Failed"
+"pulling":
+  en: "pulling"
+"Failed to pull":
+  en: "Failed to pull"
+"Changed":
+  en: "Changed"
+"Up-to-date":
+  en: "Up-to-date"
+"Self update":
+  en: "Self update"
+"Would pull":
+  en: "Would pull"
+"Only":
+  en: "Only"
+"updated repositories will be shown...":
+  en: "updated repositories will be shown..."
+"because it has no remotes":
+  en: "because it has no remotes"
+"Skipping":
+  en: "Skipping"
+"Aura requires sudo installed to work with AUR packages":
+  en: "Aura requires sudo installed to work with AUR packages"
+"Pacman backup configuration files found:":
+  en: "Pacman backup configuration files found:"
+"The package audit was successful, but vulnerable packages still remain on the system":
+  en: "The package audit was successful, but vulnerable packages still remain on the system"
+"Syncing portage":
+  en: "Syncing portage"
+"Finding available software":
+  en: "Finding available software"
+"A system update is available. Do you wish to install it?":
+  en: "A system update is available. Do you wish to install it?"
+"No new software available.":
+  en: "No new software available."
+"No Xcode releases installed.":
+  en: "No Xcode releases installed."
+"Would you like to move the former Xcode release to the trash?":
+  en: "Would you like to move the former Xcode release to the trash?"
+"New Xcode release detected:":
+  en: "New Xcode release detected:"
+"Would you like to install it?":
+  en: "Would you like to install it?"
+"No global packages installed":
+  en: "No global packages installed"
+"Connecting to":
+  en: "Connecting to"
+"Remote Topgrade launched in Tmux":
+  en: "Remote Topgrade launched in Tmux"
+"Remote Topgrade launched in an external terminal":
+  en: "Remote Topgrade launched in an external terminal"
+"Collecting Vagrant boxes":
+  en: "Collecting Vagrant boxes"
+"No Vagrant directories were specified in the configuration file":
+  en: "No Vagrant directories were specified in the configuration file"
+"Error collecting vagrant boxes from":
+  en: "Error collecting vagrant boxes from"
+"Skipping powered off box":
+  en: "Skipping powered off box"
+"Vagrant boxes":
+  en: "Vagrant boxes"
+"No outdated boxes":
+  en: "No outdated boxes"
+"No home directory":
+  en: "No home directory"
+"Version: {version}":
+  en: "Version: %{version}"
+"OS: {TARGET}":
+  en: "OS: %{TARGET}"
+"Binary path: {current_exe}":
+  en: "Binary path: %{current_exe}"
+"self-update Feature Enabled: {self_update_feature}":
+  en: "self-update Feature Enabled: %{self_update_feature}"
+"Configuration: {config}":
+  en: "Configuration: %{config}"
+"Summary":
+  en: "Summary"
+"Failed to execute shell":
+  en: "Failed to execute shell"
+"Failed to reboot":
+  en: "Failed to reboot"
+"Topgrade finished with errors":
+  en: "Topgrade finished with errors"
+"Topgrade finished successfully":
+  en: "Topgrade finished successfully"
+"Topgrade {version_str} Breaking Changes":
+  en: "Topgrade %{version_str} Breaking Changes"
+"Command failed: `{command}`":
+  en: "Command failed: `%{command}`"
+"Command failed: {error_and_context}":
+  en: "Command failed: %{error_and_context}"
+"Executing command `{command}`":
+  en: "Executing command `%{command}`"
+"No configuration exists":
+  en: "No configuration exists"
+"No additional configuration directory exists, creating one":
+  en: "No additional configuration directory exists, creating one"
+"Path expanded {path} to {expanded}":
+  en: "Path expanded %{path} to %{expanded}"
+"Tried to auto-migrate the config file, unable to write to config file.\nPlease add \"[misc]\" section manually to the first line of the file.\nError":
+  en: "Tried to auto-migrate the config file, unable to write to config file.\nPlease add \"[misc]\" section manually to the first line of the file.\nError"
+"Running":
+  en: "Running"
+"{key} already reported":
+  en: "%{key} already reported"
+"Step {key}":
+  en: "Step %{key}"
+"Step {key} failed: {error}":
+  en: "Step %{key} failed: %{error}"
+"Current exe in {exe_path}. Moving it to {temp_path}":
+  en: "Current exe in %{exe_path}. Moving it to %{temp_path}"
+"{exe_path} exists. Topgrade was probably upgraded":
+  en: "%{exe_path} exists. Topgrade was probably upgraded"
+"Moved Topgrade back from {temp_path} to {exe_path}":
+  en: "Moved Topgrade back from %{temp_path} to %{exe_path}"
+"Could not move Topgrade from {temp_path} back to {exe_path}: {error}":
+  en: "Could not move Topgrade from %{temp_path} back to %{exe_path}: %{error}"
+"Failed to elevate permissions":
+  en: "Failed to elevate permissions"
+"Desktop notification: {message}":
+  en: "Desktop notification: %{message}"
+"Error reading from terminal: {error}":
+  en: "Error reading from terminal: %{error}"
+"Quit from user input":
+  en: "Quit from user input"
+"Path {path} exists":
+  en: "Path %{path} exists"
+"Path {path} doesn't exist":
+  en: "Path %{path} doesn't exist"
+"Detected {path} as {binary_name}":
+  en: "Detected %{path} as %{binary_name}"
+"Cannot find {binary_name}":
+  en: "Cannot find %{binary_name}"
+"Detecting {binary_name} failed: ":
+  en: "Detecting %{binary_name} failed: "
+"Cannot find {binary_name} in PATH":
+  en: "Cannot find %{binary_name} in PATH"
+"Failed to get a UTF-8 encoded hostname":
+  en: "Failed to get a UTF-8 encoded hostname"
+"Failed to get hostname: {err}":
+  en: "Failed to get hostname: %{err}"
+"Should have a major version number":
+  en: "Should have a major version number"
+"Major version should be a valid number":
+  en: "Major version should be a valid number"
+"{python} is a Python 2, skip.":
+  en: "%{python} is a Python 2, skip."
+"{python} is a Python shim, skip.":
+  en: "%{python} is a Python shim, skip."
+"{key} failed:":
+  en: "%{key} failed:"
+"{step_name} failed":
+  en: "%{step_name} failed"
+"Cannot set a control C handler":
+  en: "Cannot set a control C handler"
+"DragonFly BSD Packages":
+  en: "DragonFly BSD Packages"
+"DragonFly BSD Audit":
+  en: "DragonFly BSD Audit"
+"FreeBSD Update":
+  en: "FreeBSD Update"
+"FreeBSD Packages":
+  en: "FreeBSD Packages"
+"FreeBSD Audit":
+  en: "FreeBSD Audit"
+"System update":
+  en: "System update"
+"brl list: {output_stdout} {output_stderr}":
+  en: "brl list: %{output_stdout} %{output_stderr}"
+"Bedrock distribution {distribution}":
+  en: "Bedrock distribution %{distribution}"
+"Unknown distribution {distribution}":
+  en: "Unknown distribution %{distribution}"
+"needrestart will be ran by the package manager":
+  en: "needrestart will be ran by the package manager"
+"Check for needed restarts":
+  en: "Check for needed restarts"
+"Should not run in WSL":
+  en: "Should not run in WSL"
+"Firmware upgrades":
+  en: "Firmware upgrades"
+"Flatpak System Packages":
+  en: "Flatpak System Packages"
+"Snapd socket does not exist":
+  en: "Snapd socket does not exist"
+"You need to specify at least one container":
+  en: "You need to specify at least one container"
+"Skipped in --yes":
+  en: "Skipped in --yes"
+"Configuration update":
+  en: "Configuration update"
+"the output of `waydroid status` should contain `Session:`":
+  en: "the output of `waydroid status` should contain `Session:`"
+"Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?":
+  en: "Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?"
+"Skip the Waydroid step because the user don't want to proceed":
+  en: "Skip the Waydroid step because the user don't want to proceed"
+"macOS App Store":
+  en: "macOS App Store"
+"macOS system update":
+  en: "macOS system update"
+"OpenBSD Update":
+  en: "OpenBSD Update"
+"OpenBSD Packages":
+  en: "OpenBSD Packages"
+"`fisher` is not defined in `fish`":
+  en: "`fisher` is not defined in `fish`"
+"`fish_plugins` path doesn't exist: {err}":
+  en: "`fish_plugins` path doesn't exist: %{err}"
+"`fish_update_completions` is not available":
+  en: "`fish_update_completions` is not available"
+"Fisher version: {version_str}":
+  en: "Fisher version: %{version_str}"
+"Desktop doest not appear to be gnome":
+  en: "Desktop doest not appear to be gnome"
+"Checking for gnome extensions: {output}":
+  en: "Checking for gnome extensions: %{output}"
+"Gnome shell extensions are unregistered in DBus":
+  en: "Gnome shell extensions are unregistered in DBus"
+"Gnome Shell extensions":
+  en: "Gnome Shell extensions"
+"Not a custom brew for macOS":
+  en: "Not a custom brew for macOS"
+"guix pull output: {output}":
+  en: "guix pull output: %{output}"
+"Can Upgrade Guix: {should_upgrade}":
+  en: "Can Upgrade Guix: %{should_upgrade}"
+"Guix Pull Failed, Skipping":
+  en: "Guix Pull Failed, Skipping"
+"Nix-darwin on macOS must be upgraded via darwin-rebuild switch":
+  en: "Nix-darwin on macOS must be upgraded via darwin-rebuild switch"
+"`nix upgrade-nix` can only be used on macOS or non-NixOS Linux":
+  en: "`nix upgrade-nix` can only be used on macOS or non-NixOS Linux"
+"`nix upgrade-nix` cannot be run when Nix is installed in a profile":
+  en: "`nix upgrade-nix` cannot be run when Nix is installed in a profile"
+"Nix (self-upgrade)":
+  en: "Nix (self-upgrade)"
+"Multi user nix: {mult_user}":
+  en: "Multi user nix: %{mult_user}"
+"Nix is not installed in a `bin` directory: {nix_bin_dir}":
+  en: "Nix is not installed in a `bin` directory: %{nix_bin_dir}"
+"Unable to find Nix install directory from Nix binary {nix}":
+  en: "Unable to find Nix install directory from Nix binary %{nix}"
+"Found Nix in {nix_dir}":
+  en: "Found Nix in %{nix_dir}"
+"Path has no parent: {profile_dir}":
+  en: "Path has no parent: %{profile_dir}"
+"Failed to read symlink {profile_dir}":
+  en: "Failed to read symlink %{profile_dir}"
+"Failed to canonicalize {profile_dir}":
+  en: "Failed to canonicalize %{profile_dir}"
+"Found Nix profile {profile_dir}":
+  en: "Found Nix profile %{profile_dir}"
+"Pyenv is installed, but $PYENV_ROOT is not set correctly":
+  en: "Pyenv is installed, but $PYENV_ROOT is not set correctly"
+"pyenv is not a git repository":
+  en: "pyenv is not a git repository"
+"Bun Packages":
+  en: "Bun Packages"
+"WSL not installed":
+  en: "WSL not installed"
+"Update WSL":
+  en: "Update WSL"
+"Could not find Topgrade installed in WSL":
+  en: "Could not find Topgrade installed in WSL"
+"WSL distributions: {wsl_distributions}":
+  en: "WSL distributions: %{wsl_distributions}"
+"Could not find Topgrade in any WSL disribution":
+  en: "Could not find Topgrade in any WSL disribution"
+"Windows Update":
+  en: "Windows Update"
+"Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported.":
+  en: "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."
+"USOClient not supported.":
+  en: "USOClient not supported."
+"Startup link: {link}":
+  en: "Startup link: %{link}"
+"Connecting to {hostname}...":
+  en: "Connecting to %{hostname}..."
+"Vagrant output in {directory}: {output}":
+  en: "Vagrant output in %{directory}: %{output}"
+"Vagrant line: {line}":
+  en: "Vagrant line: %{line}"
+"Error collecting vagrant boxes from {directory}: {error}":
+  en: "Error collecting vagrant boxes from %{directory}: %{error}"
+"Skipping powered off box {vagrant_box}":
+  en: "Skipping powered off box %{vagrant_box}"
+"`{repo_tag}` for `{platform}`":
+  en: "`%{repo_tag}` for `%{platform}`"
+"Skipping self-built container '{line}'":
+  en: "Skipping self-built container '%{line}'"
+"Skipping bogus container '{line}'":
+  en: "Skipping bogus container '%{line}'"
+"Skipping visual studio code dev container '{line}'":
+  en: "Skipping visual studio code dev container '%{line}'"
+"Using container '{line}'":
+  en: "Using container '%{line}'"
+"Skipping ignored container '{line}'":
+  en: "Skipping ignored container '%{line}'"
+"Using container runtime '{crt}'":
+  en: "Using container runtime '%{crt}'"
+"Containers":
+  en: "Containers"
+"Failed to list Docker containers":
+  en: "Failed to list Docker containers"
+"Containers to inspect: {containers}":
+  en: "Containers to inspect: %{containers}"
+"Pulling container '{container}'":
+  en: "Pulling container '%{container}'"
+"Pulling container '{container}' failed: {error}":
+  en: "Pulling container '%{container}' failed: %{error}"
+"Skipping unknown container '{container}'":
+  en: "Skipping unknown container '%{container}'"
+"Removing dangling images":
+  en: "Removing dangling images"
+"Removing dangling images failed: {error}":
+  en: "Removing dangling images failed: %{error}"
+"Emacs directory does not exist":
+  en: "Emacs directory does not exist"
+"Error getting the composer directory: {error}":
+  en: "Error getting the composer directory: %{error}"
+"Composer directory {composer_home} isn't a descendant of the user's home directory":
+  en: "Composer directory %{composer_home} isn't a descendant of the user's home directory"
+"Composer":
+  en: "Composer"
+"Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK.":
+  en: "Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK."
+"No dotnet global tools installed":
+  en: "No dotnet global tools installed"
+"Failed to update .NET package {package_name}":
+  en: "Failed to update .NET package %{package_name}"
+"Failed to download helix grammars!":
+  en: "Failed to download helix grammars!"
+"Failed to build helix grammars!":
+  en: "Failed to build helix grammars!"
+"Racket Package Manager":
+  en: "Racket Package Manager"
+"GH result {result}":
+  en: "GH result %{result}"
+"GH failed":
+  en: "GH failed"
+"GitHub CLI Extensions":
+  en: "GitHub CLI Extensions"
+"Julia Packages":
+  en: "Julia Packages"
+"Updating repositories failed: {error}":
+  en: "Updating repositories failed: %{error}"
+"Update ClamAV Database(FreshClam)":
+  en: "Update ClamAV Database(FreshClam)"
+"Path {pattern} did not contain any git repositories":
+  en: "Path %{pattern} did not contain any git repositories"
+"No repositories to pull":
+  en: "No repositories to pull"
+"Git repositories":
+  en: "Git repositories"
+"Error getting revision for {repo}: {error}":
+  en: "Error getting revision for %{repo}: %{error}"
+"{path} is a file. Checking {path_parent}":
+  en: "%{path} is a file. Checking %{path_parent}"
+"Checking if {path} is a git repository":
+  en: "Checking if %{path} is a git repository"
+"{path} does not exist":
+  en: "%{path} does not exist"
+"Error looking for {path}: {error}":
+  en: "Error looking for %{path}: %{error}"
+"Error getting remotes for {repo}: {error}":
+  en: "Error getting remotes for %{repo}: %{error}"
+"Skipping {path} because it's a descendant of last known repo {last_git_repo}":
+  en: "Skipping %{path} because it's a descendant of last known repo %{last_git_repo}"
+"Error in path {error}":
+  en: "Error in path %{error}"
+"Bad glob pattern: {pattern}":
+  en: "Bad glob pattern: %{pattern}"
+"Failed to pull {repo}":
+  en: "Failed to pull %{repo}"
+"Would pull {repo}":
+  en: "Would pull %{repo}"
+"Node Package Manager":
+  en: "Node Package Manager"
+"Performant Node Package Manager":
+  en: "Performant Node Package Manager"
+"Yarn is 2.x or above, skipping global upgrade":
+  en: "Yarn is 2.x or above, skipping global upgrade"
+"Yarn Package Manager":
+  en: "Yarn Package Manager"
+"Deno installed outside of .deno directory":
+  en: "Deno installed outside of .deno directory"
+"Could not find tmux":
+  en: "Could not find tmux"
+"Error determining if a tmux session exists":
+  en: "Error determining if a tmux session exists"
+"Error running Topgrade in tmux":
+  en: "Error running Topgrade in tmux"
+"Failed to compute tmux windows":
+  en: "Failed to compute tmux windows"
+"tmux session {session_name} has no windows":
+  en: "tmux session %{session_name} has no windows"
+"Toolboxes to inspect: {toolboxes}":
+  en: "Toolboxes to inspect: %{toolboxes}"
+"Wrote vim script to {path}":
+  en: "Wrote vim script to %{path}"
+"The Ultimate vimrc":
+  en: "The Ultimate vimrc"
+"vim binary might be actually nvim":
+  en: "vim binary might be actually nvim"
+"Oh-my-zsh: under SSH, setting ZSH={env_zsh}":
+  en: "Oh-my-zsh: under SSH, setting ZSH=%{env_zsh}"
+"Running zsh returned {error}. Using default path: {path}":
+  en: "Running zsh returned %{error}. Using default path: %{path}"
+"oh-my-zsh custom dir: {custom_dir}":
+  en: "oh-my-zsh custom dir: %{custom_dir}"
+"`{process}` failed: {exit_satus}":
+  en: "`%{process}` failed: %{exit_satus}"
+"`{process}` failed: {exit_satus} with {output}":
+  en: "`%{process}` failed: %{exit_satus} with %{output}"
+"Unknown Linux Distribution":
+  en: "Unknown Linux Distribution"
+'File "/etc/os-release" does not exist or is empty':
+  en: 'File "/etc/os-release" does not exist or is empty'
+"Failed getting the system package manager":
+  en: "Failed getting the system package manager"
+"A step failed":
+  en: "A step failed"
+"Dry running":
+  en: "Dry running"
+"Topgrade Upgraded":
+  en: "Topgrade Upgraded"
+"OK":
+  en: "OK"
+"FAILED":
+  en: "FAILED"
+"IGNORED":
+  en: "IGNORED"
+"SKIPPED":
+  en: "SKIPPED"
+# 'Y' and 'N' have to stay the same characters. Eg for German the translation would look sth like "(Y) Ja / (N) Nein"
+"(Y)es/(N)o":
+  en: "(Y)es/(N)o"
+# 'y', 'N', 's', 'q' have to stay the same throughout all translations. Eg German would look like "(y) Wiederholen / (N) Nein / (s) Konsole / (q) Beenden"
+"Retry? (y)es/(N)o/(s)hell/(q)uit":
+  en: "Retry? (y)es/(N)o/(s)hell/(q)uit"
+"Failed to run shell":
+  en: "Failed to run shell"
+# 'R', 'S', 'Q'  have to stay the same throughout all translations. Eg German would look like "\n(R) Neustarten\n(S) Konsole\n(Q) Beenden"
+"\n(R)eboot\n(S)hell\n(Q)uit":
+  en: "\n(R)eboot\n(S)hell\n(Q)uit"
+"Querying '{path} {command}' for containers":
+  en: "Querying '%{path} %{command}' for containers"
+"Querying '{path} {command}' for container {container}":
+  en: "Querying '%{path} %{command}' for container %{container}"
+"Require sudo or counterpart but not found, skip":
+  en: "Require sudo or counterpart but not found, skip"

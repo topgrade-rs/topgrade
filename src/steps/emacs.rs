@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use color_eyre::eyre::Result;
 use etcetera::base_strategy::BaseStrategy;
+use rust_i18n::t;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
@@ -74,9 +75,12 @@ impl Emacs {
         if let Some(doom) = &self.doom {
             Emacs::update_doom(doom, ctx)?;
         }
-        let init_file = require_option(self.directory.as_ref(), String::from("Emacs directory does not exist"))?
-            .join("init.el")
-            .require()?;
+        let init_file = require_option(
+            self.directory.as_ref(),
+            t!("Emacs directory does not exist").to_string(),
+        )?
+        .join("init.el")
+        .require()?;
 
         print_separator("Emacs");
 

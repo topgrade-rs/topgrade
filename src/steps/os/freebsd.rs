@@ -1,14 +1,15 @@
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::terminal::print_separator;
-use crate::utils::{require_option, REQUIRE_SUDO};
+use crate::utils::{get_require_sudo_string, require_option};
 use crate::Step;
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 use std::process::Command;
 
 pub fn upgrade_freebsd(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
-    print_separator("FreeBSD Update");
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
+    print_separator(t!("FreeBSD Update"));
     ctx.run_type()
         .execute(sudo)
         .args(["/usr/sbin/freebsd-update", "fetch", "install"])
@@ -16,8 +17,8 @@ pub fn upgrade_freebsd(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
-    print_separator("FreeBSD Packages");
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
+    print_separator(t!("FreeBSD Packages"));
 
     let mut command = ctx.run_type().execute(sudo);
 
@@ -29,9 +30,9 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn audit_packages(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
 
-    print_separator("FreeBSD Audit");
+    print_separator(t!("FreeBSD Audit"));
 
     Command::new(sudo)
         .args(["/usr/sbin/pkg", "audit", "-Fr"])

@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 
 use tracing::{debug, error};
 use tracing_subscriber::layer::SubscriberExt;
@@ -51,7 +52,11 @@ where
             debug!("Path {:?} exists", self.as_ref());
             Ok(self)
         } else {
-            Err(SkipStep(format!("Path {:?} doesn't exist", self.as_ref())).into())
+            Err(SkipStep(format!(
+                "{}",
+                t!("Path {path} doesn't exist", path = format!("{:?}", self.as_ref()))
+            ))
+            .into())
         }
     }
 }
@@ -92,9 +97,14 @@ pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
             Ok(path)
         }
         Err(e) => match e {
-            which_crate::Error::CannotFindBinaryPath => {
-                Err(SkipStep(format!("Cannot find {:?} in PATH", &binary_name)).into())
-            }
+            which_crate::Error::CannotFindBinaryPath => Err(SkipStep(format!(
+                "{}",
+                t!(
+                    "Cannot find {binary_name} in PATH",
+                    binary_name = format!("{:?}", &binary_name)
+                )
+            ))
+            .into()),
             _ => {
                 panic!("Detecting {:?} failed: {}", &binary_name, e);
             }
@@ -123,7 +133,7 @@ pub fn hostname() -> Result<String> {
     match nix::unistd::gethostname() {
         Ok(os_str) => Ok(os_str
             .into_string()
-            .map_err(|_| SkipStep("Failed to get a UTF-8 encoded hostname".into()))?),
+            .map_err(|_| SkipStep(t!("Failed to get a UTF-8 encoded hostname").into()))?),
         Err(e) => Err(e.into()),
     }
 }
@@ -132,7 +142,7 @@ pub fn hostname() -> Result<String> {
 pub fn hostname() -> Result<String> {
     Command::new("hostname")
         .output_checked_utf8()
-        .map_err(|err| SkipStep(format!("Failed to get hostname: {err}")).into())
+        .map_err(|err| SkipStep(t!("Failed to get hostname: {err}", err = err).to_string()).into())
         .map(|output| output.stdout.trim().to_owned())
 }
 
@@ -191,7 +201,9 @@ pub mod merge_strategies {
 
 // Skip causes
 // TODO: Put them in a better place when we have more of them
-pub const REQUIRE_SUDO: &str = "Require sudo or counterpart but not found, skip";
+pub fn get_require_sudo_string() -> String {
+    t!("Require sudo or counterpart but not found, skip").to_string()
+}
 
 /// Return `Err(SkipStep)` if `python` is a Python 2 or shim.
 ///
@@ -218,11 +230,11 @@ pub fn check_is_python_2_or_shim(python: PathBuf) -> Result<PathBuf> {
             .parse::<u32>()
             .expect("Major version should be a valid number");
         if major_version == 2 {
-            return Err(SkipStep(format!("{} is a Python 2, skip.", python.display())).into());
+            return Err(SkipStep(t!("{python} is a Python 2, skip.", python = python.display()).to_string()).into());
         }
     } else {
         // No version number, is a shim
-        return Err(SkipStep(format!("{} is a Python shim, skip.", python.display())).into());
+        return Err(SkipStep(t!("{python} is a Python shim, skip.", python = python.display()).to_string()).into());
     }
 
     Ok(python)
