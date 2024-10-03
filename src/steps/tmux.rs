@@ -130,7 +130,7 @@ impl Tmux {
             .lines()
             .map(|l| l.parse())
             .collect::<Result<Vec<usize>, _>>()
-            .context(t!("Failed to compute tmux windows"))
+            .context("Failed to compute tmux windows")
     }
 }
 

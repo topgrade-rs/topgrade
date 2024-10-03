@@ -676,7 +676,10 @@ impl ConfigFile {
         if let Some(paths) = result.git.as_mut().and_then(|git| git.repos.as_mut()) {
             for path in paths.iter_mut() {
                 let expanded = shellexpand::tilde::<&str>(&path.as_ref()).into_owned();
-                debug!("{}", t!("Path expanded to", path = path, expanded = expanded));
+                debug!(
+                    "{}",
+                    t!("Path {path} expanded to {expanded}", path = path, expanded = expanded)
+                );
                 *path = expanded;
             }
         }

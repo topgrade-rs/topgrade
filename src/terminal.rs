@@ -229,7 +229,7 @@ impl Terminal {
                         "\n\n{}\n",
                         t!("Dropping you to shell. Fix what you need and then exit the shell.")
                     );
-                    if let Err(err) = run_shell().context(t!("Failed to run shell")) {
+                    if let Err(err) = run_shell().context("Failed to run shell") {
                         self.term.write_fmt(format_args!("{err:?}\n{prompt_inner}")).ok();
                     } else {
                         break Ok(true);
