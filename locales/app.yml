@@ -20,9 +20,8 @@ _version: 2
   en: "Dropping you to shell. Fix what you need and then exit the shell."
 "Topgrade launched in a new tmux session":
   en: "Topgrade launched in a new tmux session"
-#TODO: See if the \n breaks anything
-"Topgrade upgraded to {version}:\n":
-  en: "Topgrade upgraded to %{version}:\n"
+'Topgrade upgraded to {version}:\n':
+  en: 'Topgrade upgraded to %{version}:\n'
 "Topgrade is up-to-date":
   en: "Topgrade is up-to-date"
 "Updating modules...":
@@ -284,8 +283,8 @@ _version: 2
 "Retry? (y)es/(N)o/(s)hell/(q)uit":
   en: "Retry? (y)es/(N)o/(s)hell/(q)uit"
 # 'R', 'S', 'Q'  have to stay the same throughout all translations. Eg German would look like "\n(R) Neustarten\n(S) Konsole\n(Q) Beenden"
-"\n(R)eboot\n(S)hell\n(Q)uit":
-  en: "\n(R)eboot\n(S)hell\n(Q)uit"
+'\n(R)eboot\n(S)hell\n(Q)uit':
+  en: '\n(R)eboot\n(S)hell\n(Q)uit'
 "Require sudo or counterpart but not found, skip":
   en: "Require sudo or counterpart but not found, skip"
 "sudo as user '{user}'":
@@ -300,4 +299,9 @@ _version: 2
   en: "No packages installed with Volta"
 "pyenv-update plugin is not installed":
   en: "pyenv-update plugin is not installed"
-  
+"Respawning...":
+  en:  "Respawning..."
+"Could not find Topgrade in any WSL disribution":
+  en: "Could not find Topgrade in any WSL disribution"
+"Windows Update":
+  en: "Windows Update"
