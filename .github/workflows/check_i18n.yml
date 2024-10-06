@@ -19,4 +19,4 @@ jobs:
           cargo install --git https://github.com/topgrade-rs/topgrade_i18n_locale_checker --profile dev
 
       - name: Run the checker
-        run: topgrade_i18n_locale_checker --locale-file ./locales/app.yml --rust-src-to-check ../src
+        run: topgrade_i18n_locale_checker --locale-file ./locales/app.yml --rust-src-to-check ./src
