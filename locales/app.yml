@@ -249,10 +249,10 @@ _version: 2
   en: "The Ultimate vimrc"
 "vim binary might be actually nvim":
   en: "vim binary might be actually nvim"
-"`{process}` failed: {exit_satus}":
-  en: "`%{process}` failed: %{exit_satus}"
-"`{process}` failed: {exit_satus} with {output}":
-  en: "`%{process}` failed: %{exit_satus} with %{output}"
+"`{process}` failed: {exit_status}":
+  en: "`%{process}` failed: %{exit_status}"
+"`{process}` failed: {exit_status} with {output}":
+  en: "`%{process}` failed: %{exit_status} with %{output}"
 "Unknown Linux Distribution":
   en: "Unknown Linux Distribution"
 'File "/etc/os-release" does not exist or is empty':
