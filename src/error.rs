@@ -27,7 +27,7 @@ impl Display for TopgradeError {
                     f,
                     "{}",
                     t!(
-                        "`{process}` failed: {exit_satus}",
+                        "`{process}` failed: {exit_status}",
                         process = process,
                         exit_status = exit_status
                     )
@@ -38,7 +38,7 @@ impl Display for TopgradeError {
                     f,
                     "{}",
                     t!(
-                        "`{process}` failed: {exit_satus} with {output}",
+                        "`{process}` failed: {exit_status} with {output}",
                         process = process,
                         exit_status = exit_status,
                         output = output
