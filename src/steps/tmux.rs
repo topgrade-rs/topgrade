@@ -162,7 +162,7 @@ pub fn run_in_tmux(config: TmuxConfig) -> Result<()> {
                 println!("{}", t!("Topgrade launched in a new tmux session"));
                 return Ok(());
             } else {
-                tmux.build().args(["attach-client", "-t", &session]).exec()
+                tmux.build().args(["attach-session", "-t", &session]).exec()
             }
         }
 
@@ -170,7 +170,7 @@ pub fn run_in_tmux(config: TmuxConfig) -> Result<()> {
             if is_inside_tmux {
                 tmux.build().args(["switch-client", "-t", &session]).exec()
             } else {
-                tmux.build().args(["attach-client", "-t", &session]).exec()
+                tmux.build().args(["attach-session", "-t", &session]).exec()
             }
         }
     };
