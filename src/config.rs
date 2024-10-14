@@ -1566,8 +1566,7 @@ impl Config {
     }
 
     pub fn enable_pipupgrade(&self) -> bool {
-        self
-            .config_file
+        self.config_file
             .python
             .as_ref()
             .and_then(|python| python.enable_pipupgrade)
@@ -1581,16 +1580,14 @@ impl Config {
             .unwrap_or("")
     }
     pub fn enable_pip_review(&self) -> bool {
-        self
-            .config_file
+        self.config_file
             .python
             .as_ref()
             .and_then(|python| python.enable_pip_review)
             .unwrap_or(false)
     }
     pub fn enable_pip_review_local(&self) -> bool {
-        self
-            .config_file
+        self.config_file
             .python
             .as_ref()
             .and_then(|python| python.enable_pip_review_local)
