@@ -7,7 +7,6 @@ on:
 name: CI
 
 env:
-  RUST_VER: 'stable'
   CROSS_VER: '0.2.5'
   CARGO_NET_RETRY: 3
 
@@ -18,12 +17,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: '${{ env.RUST_VER }}'
-          components: rustfmt
 
       - name: Run cargo fmt
         env:
@@ -72,12 +65,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: '${{ env.RUST_VER }}'
-          components: clippy
 
       - name: Setup Rust Cache
         uses: Swatinem/rust-cache@v2

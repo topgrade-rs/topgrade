@@ -1,9 +1,6 @@
-# Git: Pull Repos
+# Containers step
 
-1. The output of "Pulling <repository path>" has been moved behind the
-   --verbose flag / [misc] configuration block.
-
-# Configuration
-
-1. The `enable_winget` configuration entry in the `windows` section has been
-   removed because it will not cause any issues and will be enabled by default.
+* New default behavior: In the previous versions, if you have both Docker and 
+  Podman installed, Podman will be used by Topgrade. Now the default option
+  has been changed to Docker. This can be overridden by setting the 
+  `containers.runtime` option in the configuration TOML to "podman".

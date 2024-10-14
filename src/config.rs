@@ -5,7 +5,7 @@ use std::fs::{write, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::{env, fs};
+use std::{env, fmt, fs};
 
 use clap::{Parser, ValueEnum};
 use clap_complete::Shell;
@@ -15,6 +15,7 @@ use etcetera::base_strategy::BaseStrategy;
 use merge::Merge;
 use regex::Regex;
 use regex_split::RegexSplit;
+use rust_i18n::t;
 use serde::Deserialize;
 use strum::{EnumIter, EnumString, IntoEnumIterator, VariantNames};
 use which_crate::which;
@@ -25,6 +26,7 @@ use crate::sudo::SudoKind;
 use crate::utils::string_prepend_str;
 use tracing::{debug, error};
 
+// TODO: Add i18n to this. Tracking issue: https://github.com/topgrade-rs/topgrade/issues/859
 pub static EXAMPLE_CONFIG: &str = include_str!("../config.example.toml");
 
 /// Topgrade's default log level.
@@ -53,6 +55,7 @@ pub enum Step {
     AppMan,
     Asdf,
     Atom,
+    Aqua,
     Audit,
     AutoCpufreq,
     Bin,
@@ -121,6 +124,7 @@ pub enum Step {
     PipReviewLocal,
     Pipupgrade,
     Pipx,
+    Pixi,
     Pkg,
     Pkgin,
     PlatformioCore,
@@ -152,6 +156,7 @@ pub enum Step {
     Tlmgr,
     Tmux,
     Toolbx,
+    Uv,
     Vagrant,
     Vcpkg,
     Vim,
@@ -179,6 +184,7 @@ pub struct Include {
 pub struct Containers {
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     ignored_containers: Option<Vec<String>>,
+    runtime: Option<ContainerRuntime>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -267,6 +273,7 @@ pub struct Flatpak {
 pub struct Brew {
     greedy_cask: Option<bool>,
     greedy_latest: Option<bool>,
+    greedy_auto_updates: Option<bool>,
     autoremove: Option<bool>,
     fetch_head: Option<bool>,
 }
@@ -283,6 +290,22 @@ pub enum ArchPackageManager {
     Pikaur,
     Trizen,
     Yay,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ContainerRuntime {
+    Docker,
+    Podman,
+}
+
+impl fmt::Display for ContainerRuntime {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ContainerRuntime::Docker => write!(f, "docker"),
+            ContainerRuntime::Podman => write!(f, "podman"),
+        }
+    }
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -384,6 +407,8 @@ pub struct Misc {
 
     run_in_tmux: Option<bool>,
 
+    tmux_session_mode: Option<TmuxSessionMode>,
+
     cleanup: Option<bool>,
 
     notify_each_step: Option<bool>,
@@ -398,6 +423,19 @@ pub struct Misc {
     no_self_update: Option<bool>,
 
     log_filters: Option<Vec<String>>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, ValueEnum)]
+#[clap(rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum TmuxSessionMode {
+    AttachIfNotInSession,
+    AttachAlways,
+}
+
+pub struct TmuxConfig {
+    pub args: Vec<String>,
+    pub session_mode: TmuxSessionMode,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -614,14 +652,14 @@ impl ConfigFile {
                         let include_contents = match fs::read_to_string(&include_path) {
                             Ok(c) => c,
                             Err(e) => {
-                                error!("Unable to read {}: {}", include_path.display(), e);
+                                error!("Unable to read {}: {e}", include_path.display(),);
                                 continue;
                             }
                         };
                         match toml::from_str::<Self>(&include_contents) {
                             Ok(include_parsed) => result.merge(include_parsed),
                             Err(e) => {
-                                error!("Failed to deserialize {}: {}", include_path.display(), e);
+                                error!("Failed to deserialize {}: {e}", include_path.display(),);
                                 continue;
                             }
                         };
@@ -631,14 +669,17 @@ impl ConfigFile {
 
             match toml::from_str::<Self>(contents) {
                 Ok(contents) => result.merge(contents),
-                Err(e) => error!("Failed to deserialize {}: {}", config_path.display(), e),
+                Err(e) => error!("Failed to deserialize {}: {e}", config_path.display(),),
             }
         }
 
         if let Some(paths) = result.git.as_mut().and_then(|git| git.repos.as_mut()) {
             for path in paths.iter_mut() {
                 let expanded = shellexpand::tilde::<&str>(&path.as_ref()).into_owned();
-                debug!("Path {} expanded to {}", path, expanded);
+                debug!(
+                    "{}",
+                    t!("Path {path} expanded to {expanded}", path = path, expanded = expanded)
+                );
                 *path = expanded;
             }
         }
@@ -676,6 +717,8 @@ impl ConfigFile {
 }
 
 // Command line arguments
+// TODO: i18n of clap currently not easily possible. Waiting for https://github.com/clap-rs/clap/issues/380
+// Tracking issue for i18n: https://github.com/topgrade-rs/topgrade/issues/859
 #[derive(Parser, Debug)]
 #[command(name = "topgrade", version)]
 pub struct CommandLineArgs {
@@ -707,7 +750,7 @@ pub struct CommandLineArgs {
     #[arg(long = "disable", value_name = "STEP", value_enum, num_args = 1..)]
     disable: Vec<Step>,
 
-    /// Perform only the specified steps (experimental)
+    /// Perform only the specified steps
     #[arg(long = "only", value_name = "STEP", value_enum, num_args = 1..)]
     only: Vec<Step>,
 
@@ -833,7 +876,7 @@ impl Config {
             ConfigFile::read(opt.config.clone()).unwrap_or_else(|e| {
                 // Inform the user about errors when loading the configuration,
                 // but fallback to the default config to at least attempt to do something
-                error!("failed to load configuration: {}", e);
+                error!("failed to load configuration: {e}");
                 ConfigFile::default()
             })
         } else {
@@ -881,6 +924,15 @@ impl Config {
             .containers
             .as_ref()
             .and_then(|containers| containers.ignored_containers.as_ref())
+    }
+
+    /// The preferred runtime for container updates (podman / docker).
+    pub fn containers_runtime(&self) -> ContainerRuntime {
+        self.config_file
+            .containers
+            .as_ref()
+            .and_then(|containers| containers.runtime)
+            .unwrap_or(ContainerRuntime::Docker) // defaults to a popular choice
     }
 
     /// Tell whether the specified step should run.
@@ -937,6 +989,15 @@ impl Config {
                 .as_ref()
                 .and_then(|misc| misc.run_in_tmux)
                 .unwrap_or(false)
+    }
+
+    /// The preferred way to run the new tmux session.
+    fn tmux_session_mode(&self) -> TmuxSessionMode {
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.tmux_session_mode)
+            .unwrap_or(TmuxSessionMode::AttachIfNotInSession)
     }
 
     /// Tell whether we should perform cleanup steps.
@@ -996,8 +1057,16 @@ impl Config {
         self.config_file.git.as_ref().and_then(|git| git.arguments.as_ref())
     }
 
+    pub fn tmux_config(&self) -> Result<TmuxConfig> {
+        let args = self.tmux_arguments()?;
+        Ok(TmuxConfig {
+            args,
+            session_mode: self.tmux_session_mode(),
+        })
+    }
+
     /// Extra Tmux arguments
-    pub fn tmux_arguments(&self) -> Result<Vec<String>> {
+    fn tmux_arguments(&self) -> Result<Vec<String>> {
         let args = &self
             .config_file
             .misc
@@ -1115,6 +1184,15 @@ impl Config {
             .brew
             .as_ref()
             .and_then(|c| c.greedy_latest)
+            .unwrap_or(false)
+    }
+
+    /// Whether Brew cask should be auto_updates
+    pub fn brew_greedy_auto_updates(&self) -> bool {
+        self.config_file
+            .brew
+            .as_ref()
+            .and_then(|c| c.greedy_auto_updates)
             .unwrap_or(false)
     }
 

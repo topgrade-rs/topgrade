@@ -24,10 +24,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with: 
-          components: rustfmt, clippy
+      - name: Install cargo-deb cross compilation dependencies
+        run: sudo apt-get install libc6-arm64-cross libgcc-s1-arm64-cross
+        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
+        shell: bash
+
+      - name: Install cargo-deb
+        run: cargo install cargo-deb
+        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
+        shell: bash
 
       - name: install targets
         run: rustup target add ${{ matrix.target }}
@@ -54,13 +59,31 @@ jobs:
 
       - name: Rename Release
         run: |
-          mkdir assets
+          mkdir -p assets
           FILENAME=topgrade-${{github.event.release.tag_name}}-${{matrix.target}}
           mv target/${{matrix.target}}/release/topgrade assets
           cd assets
           tar --format=ustar -czf $FILENAME.tar.gz topgrade
           rm topgrade
           ls .
+
+      - name: Build Debian-based system package without autoupdate feature
+        # First remove the binary built by previous steps
+        # because we don't want the auto-update feature,
+        # then build the new binary without auto-updating.
+        run: |
+          rm -rf target/${{matrix.target}}
+          cross build --release --target ${{matrix.target}}
+          cargo deb --target=${{matrix.target}} --no-build --no-strip
+        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
+        shell: bash
+
+      - name: Move Debian-based system package
+        run: |
+          mkdir -p assets
+          mv target/${{matrix.target}}/debian/*.deb assets
+        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
+        shell: bash
 
       - name: Release
         uses: softprops/action-gh-release@v2

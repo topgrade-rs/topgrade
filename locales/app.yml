@@ -1,0 +1,464 @@
+_version: 2
+
+"Current system locale is {system_locale}":
+  en: "Current system locale is %{system_locale}"
+  zh_TW: "目前語言為 %{system_locale}"
+"Dry running: {program_name} {arguments}":
+  en: "Dry running: %{program_name} %{arguments}"
+  zh_TW: "正在模擬 %{program_name} %{arguments} 的執行過程"
+"in {directory}":
+  en: "in %{directory}"
+  zh_TW: "在 %{directory}"
+"Rebooting...":
+  en: "Rebooting..."
+  zh_TW: "正在重新啟動..."
+"Plugins upgraded":
+  en: "Plugins upgraded"
+  zh_TW: "已更新所有擴充功能"
+"Would self-update":
+  en: "Would self-update"
+  zh_TW: "將自行更新"
+"Pulling":
+  en: "Pulling"
+  zh_TW: "正在拉取"
+"No Breaking changes":
+  en: "No Breaking changes"
+  zh_TW: "無重大更改"
+"Dropping you to shell. Fix what you need and then exit the shell.":
+  en: "Dropping you to shell. Fix what you need and then exit the shell."
+  zh_TW: "已切換到終端殼層。修復完畢後請退出殼層以繼續。"
+"Topgrade launched in a new tmux session":
+  en: "Topgrade launched in a new tmux session"
+  zh_TW: "Topgrade 已啟動新 tmux 程序"
+'Topgrade upgraded to {version}:\n':
+  en: 'Topgrade upgraded to %{version}:\n'
+  zh_TW: '已將 Topgrade 更新至 %{version}：\n'
+"Topgrade is up-to-date":
+  en: "Topgrade is up-to-date"
+  zh_TW: "Topgrade 為最新版本"
+"Updating modules...":
+  en: "Updating modules..."
+  zh_TW: "正在更新模組..."
+"Powershell Modules Update":
+  en: "Powershell Modules Update"
+  zh_TW: "Powershell 模組更新"
+"Powershell is not installed":
+  en: "Powershell is not installed"
+  zh_TW: "未安裝 Powershell"
+"Error detecting current distribution: {error}":
+  en: "Error detecting current distribution: %{error}"
+  zh_TW: "無法偵測作業系統：%{error}"
+"Error: {error}":
+  en: "Error: %{error}"
+  zh_TW: "錯誤：%{error}"
+"Failed":
+  en: "Failed"
+  zh_TW: "失敗"
+"pulling":
+  en: "pulling"
+  zh_TW: "正在拉取"
+"Changed":
+  en: "Changed"
+  zh_TW: "已更改"
+"Up-to-date":
+  en: "Up-to-date"
+  zh_TW: "已為最新版本"
+"Self update":
+  en: "Self update"
+  zh_TW: "自行更新"
+
+# The following 2 strings are used in the same sentence
+# i.e. *Only* updated repositories will be shown...
+# Note that the text *Only* is highlighted in green
+
+"Only":
+  en: "Only"
+  zh_TW: "將僅"
+"updated repositories will be shown...":
+  en: "updated repositories will be shown..."
+  zh_TW: "顯示被更新的 git 來源..."
+
+"because it has no remotes":
+  en: "because it has no remotes"
+  zh_TW: "因為其沒有遠端來源"
+"Skipping":
+  en: "Skipping"
+  zh_TW: "正在略過"
+"Aura(<0.4.6) requires sudo installed to work with AUR packages":
+  en: "Aura(<0.4.6) requires sudo installed to work with AUR packages"
+  zh_TW: "Aura（<0.4.6）依賴 sudo 安裝 AUR 套件"
+"Pacman backup configuration files found:":
+  en: "Pacman backup configuration files found:"
+  zh_TW: "找到 Pacman 設定備份檔："
+"The package audit was successful, but vulnerable packages still remain on the system":
+  en: "The package audit was successful, but vulnerable packages still remain on the system"
+  zh_TW: "雖然套件檢測成功，但系統仍然包含危險套件"
+"Syncing portage":
+  en: "Syncing portage"
+  zh_TW: "正在同步 portage"
+"Finding available software":
+  en: "Finding available software"
+  zh_TW: "正在尋找軟體"
+"A system update is available. Do you wish to install it?":
+  en: "A system update is available. Do you wish to install it?"
+  zh_TW: "系統更新已就緒。是否現在安裝？"
+"No new software available.":
+  en: "No new software available."
+  zh_TW: "沒有新軟體。"
+"No Xcode releases installed.":
+  en: "No Xcode releases installed."
+  zh_TW: "尚未安裝 Xcode 發行版。"
+"Would you like to move the former Xcode release to the trash?":
+  en: "Would you like to move the former Xcode release to the trash?"
+  zh_TW: "是否將舊版 Xcode 移至垃圾桶？"
+"New Xcode release detected:":
+  en: "New Xcode release detected:"
+  zh_TW: "有新的 Xcode 版本："
+"Would you like to install it?":
+  en: "Would you like to install it?"
+  zh_TW: "是否現在安裝？"
+"No global packages installed":
+  en: "No global packages installed"
+  zh_TW: "尚未安裝全域套件"
+"Remote Topgrade launched in Tmux":
+  en: "Remote Topgrade launched in Tmux"
+  zh_TW: "已在 Tmux 中啟動遠端 Topgrade 程序"
+"Remote Topgrade launched in an external terminal":
+  en: "Remote Topgrade launched in an external terminal"
+  zh_TW: "已在新終端機視窗中啟動遠端 Topgrade"
+"Collecting Vagrant boxes":
+  en: "Collecting Vagrant boxes"
+  zh_TW: "正在蒐集 Vagrant 容器"
+"No Vagrant directories were specified in the configuration file":
+  en: "No Vagrant directories were specified in the configuration file"
+  zh_TW: "尚未在設定檔中指定 Vagrant 資料夾"
+"Vagrant boxes":
+  en: "Vagrant boxes"
+  zh_TW: "Vagrant 容器"
+"No outdated boxes":
+  en: "No outdated boxes"
+  zh_TW: "未有需要更新的容器"
+"Summary":
+  en: "Summary"
+  zh_TW: "結果"
+"Topgrade finished with errors":
+  en: "Topgrade finished with errors"
+  zh_TW: "Topgrade 執行部分成功"
+"Topgrade finished successfully":
+  en: "Topgrade finished successfully"
+  zh_TW: "Topgrade 執行成功"
+"Topgrade {version_str} Breaking Changes":
+  en: "Topgrade %{version_str} Breaking Changes"
+  zh_TW: "Topgrade %{version_str} 重大更改"
+"Path {path} expanded to {expanded}":
+  en: "Path %{path} expanded to %{expanded}"
+  zh_TW: "已擴展 %{path} 至 %{expanded}"
+"Path {path} doesn't exist":
+  en: "Path %{path} doesn't exist"
+  zh_TW: "路徑 %{path} 不存在"
+"Cannot find {binary_name} in PATH":
+  en: "Cannot find %{binary_name} in PATH"
+  zh_TW: "在 $PATH 中找不到 %{binary_name} 執行檔"
+"Failed to get a UTF-8 encoded hostname":
+  en: "Failed to get a UTF-8 encoded hostname"
+  zh_TW: "無法取得 UTF-8 編碼的主機名稱"
+"Failed to get hostname: {err}":
+  en: "Failed to get hostname: %{err}"
+  zh_TW: "無法取得主機名稱：%{err}"
+"{python} is a Python 2, skip.":
+  en: "%{python} is a Python 2, skip."
+  zh_TW: "%{python} 是 Python 2，略過。"
+"{python} is a Python shim, skip.":
+  en: "%{python} is a Python shim, skip."
+  zh_TW: "%{python} 是 Python shim，略過。"
+"{key} failed:":
+  en: "%{key} failed:"
+  zh_TW: "%{key} 失敗："
+"{step_name} failed":
+  en: "%{step_name} failed"
+  zh_TW: "%{step_name} 失敗"
+"DragonFly BSD Packages":
+  en: "DragonFly BSD Packages"
+  zh_TW: "DragonFly BSD 套件"
+"DragonFly BSD Audit":
+  en: "DragonFly BSD Audit"
+  zh_TW: "DragonFly BSD 紀錄"
+"FreeBSD Update":
+  en: "FreeBSD Update"
+  zh_TW: "FreeBSD 更新"
+"FreeBSD Packages":
+  en: "FreeBSD Packages"
+  zh_TW: "FreeBSD 套件"
+"FreeBSD Audit":
+  en: "FreeBSD Audit"
+  zh_TW: "FreeBSD 紀錄"
+"System update":
+  en: "System update"
+  zh_TW: "系統更新"
+"needrestart will be ran by the package manager":
+  en: "needrestart will be ran by the package manager"
+  zh_TW: "needrestart 將被套件管理員執行"
+"Check for needed restarts":
+  en: "Check for needed restarts"
+  zh_TW: "正在檢查是否需要重新啟動系統"
+"Should not run in WSL":
+  en: "Should not run in WSL"
+  zh_TW: "不該在 WSL 中執行"
+"Firmware upgrades":
+  en: "Firmware upgrades"
+  zh_TW: "韌體更新"
+"Flatpak System Packages":
+  en: "Flatpak System Packages"
+  zh_TW: "Flatpak 系統套件"
+"Snapd socket does not exist":
+  en: "Snapd socket does not exist"
+  zh_TW: "找不到 Snapd 程序"
+"You need to specify at least one container":
+  en: "You need to specify at least one container"
+  zh_TW: "必須指定至少一個容器"
+"Skipped in --yes":
+  en: "Skipped in --yes"
+  zh_TW: "指定 --yes，略過"
+"Configuration update":
+  en: "Configuration update"
+  zh_TW: "設定更新"
+"Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?":
+  en: "Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?"
+  zh_TW: "將略過 `waydroid upgrade`，並且「停止」執行容器。是否繼續？"
+"Skip the Waydroid step because the user don't want to proceed":
+  en: "Skip the Waydroid step because the user don't want to proceed"
+  zh_TW: "使用者指定略過 Waydroid 程序"
+"macOS App Store":
+  en: "macOS App Store"
+  zh_TW: "macOS App Store"
+"macOS system update":
+  en: "macOS system update"
+  zh_TW: "macOS 系統更新"
+"OpenBSD Update":
+  en: "OpenBSD Update"
+  zh_TW: "OpenBSD 更新"
+"OpenBSD Packages":
+  en: "OpenBSD Packages"
+  zh_TW: "OpenBSD 套件"
+"`fisher` is not defined in `fish`":
+  en: "`fisher` is not defined in `fish`"
+  zh_TW: "`fisher` 未在 `fish` 中指定"
+"`fish_plugins` path doesn't exist: {err}":
+  en: "`fish_plugins` path doesn't exist: %{err}"
+  zh_TW: "不存在 `fish_plugins` 路徑：%{err}"
+"`fish_update_completions` is not available":
+  en: "`fish_update_completions` is not available"
+  zh_TW: "無法使用 `fish_update_completions`"
+"Desktop doest not appear to be gnome":
+  en: "Desktop doest not appear to be gnome"
+  zh_TW: "桌面環境不是 Gnome"
+"Gnome shell extensions are unregistered in DBus":
+  en: "Gnome shell extensions are unregistered in DBus"
+  zh_TW: "Gnome Shell 擴充功能在 DBus 中未被註冊"
+"Gnome Shell extensions":
+  en: "Gnome Shell extensions"
+  zh_TW: "Gnome Shell 擴充功能"
+"Not a custom brew for macOS":
+  en: "Not a custom brew for macOS"
+  zh_TW: "不是專門的 macOS brew"
+"Guix Pull Failed, Skipping":
+  en: "Guix Pull Failed, Skipping"
+  zh_TW: "Guix 拉取失敗，略過"
+"Nix-darwin on macOS must be upgraded via darwin-rebuild switch":
+  en: "Nix-darwin on macOS must be upgraded via darwin-rebuild switch"
+  zh_TW: "Nix-darwin 在 macOS 上必須使用 darwin-rebuild 更新"
+"`nix upgrade-nix` can only be used on macOS or non-NixOS Linux":
+  en: "`nix upgrade-nix` can only be used on macOS or non-NixOS Linux"
+  zh_TW: "`nix upgrade-nix` 僅能在 macOS 或非 NixOS 的 Linux 上使用"
+"`nix upgrade-nix` cannot be run when Nix is installed in a profile":
+  en: "`nix upgrade-nix` cannot be run when Nix is installed in a profile"
+  zh_TW: "`nix upgrade-nix` 無法在已安裝 Nix 使用者環境的系統上使用"
+"Nix (self-upgrade)":
+  en: "Nix (self-upgrade)"
+  zh_TW: "Nix（自行更新）"
+"Pyenv is installed, but $PYENV_ROOT is not set correctly":
+  en: "Pyenv is installed, but $PYENV_ROOT is not set correctly"
+  zh_TW: "已安裝 Pyenv 但尚未正確設定 $PYENV_ROOT"
+"pyenv is not a git repository":
+  en: "pyenv is not a git repository"
+  zh_TW: "pyenv 不是 git 來源"
+"Bun Packages":
+  en: "Bun Packages"
+  zh_TW: "Bun 套件"
+"WSL not installed":
+  en: "WSL not installed"
+  zh_TW: "未安裝 WSL"
+"Update WSL":
+  en: "Update WSL"
+  zh_TW: "更新 WSL"
+"Could not find Topgrade installed in WSL":
+  en: "Could not find Topgrade installed in WSL"
+  zh_TW: "尚未在 WSL 內安裝 Topgrade"
+"Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported.":
+  en: "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."
+  zh_TW: "目前不支援使用 USOClient 管理 Windows 更新。建議安裝 PSWindowsUpdate。"
+"USOClient not supported.":
+  en: "USOClient not supported."
+  zh_TW: "不支援 USOClient。"
+"Connecting to {hostname}...":
+  en: "Connecting to %{hostname}..."
+  zh_TW: "正在連接 %{hostname}..."
+"Skipping powered off box {vagrant_box}":
+  en: "Skipping powered off box %{vagrant_box}"
+  zh_TW: "正在略過已關機的容器 %{vagrant_box}"
+"`{repo_tag}` for `{platform}`":
+  en: "`%{repo_tag}` for `%{platform}`"
+  zh_TW: "`%{repo_tag}` 給 `%{platform}`"
+"Containers":
+  en: "Containers"
+  zh_TW: "容器"
+"Emacs directory does not exist":
+  en: "Emacs directory does not exist"
+  zh_TW: "找不到 Emacs 資料夾"
+"Error getting the composer directory: {error}":
+  en: "Error getting the composer directory: %{error}"
+  zh_TW: "無法取得 composer 資料夾：%{error}"
+"Composer directory {composer_home} isn't a descendant of the user's home directory":
+  en: "Composer directory %{composer_home} isn't a descendant of the user's home directory"
+  zh_TW: "Composer 資料夾 %{composer_home} 不在家目錄下"
+"Composer":
+  en: "Composer"
+  zh_TW: "Composer"
+"Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK.":
+  en: "Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK."
+  zh_TW: "執行 `dotnet tool list` 失敗。已安裝 dotnet 執行環境但未安裝 SDK"
+"No dotnet global tools installed":
+  en: "No dotnet global tools installed"
+  zh_TW: "尚未安裝全域 dotnet 工具"
+"Racket Package Manager":
+  en: "Racket Package Manager"
+  zh_TW: "Racket 套件管理員"
+"GH failed":
+  en: "GH failed"
+  zh_TW: "GH 失敗"
+"GitHub CLI Extensions":
+  en: "GitHub CLI Extensions"
+  zh_TW: "GitHub CLI 擴充功能"
+"Julia Packages":
+  en: "Julia Packages"
+  zh_TW: "Julia 套件"
+"Update ClamAV Database(FreshClam)":
+  en: "Update ClamAV Database(FreshClam)"
+  zh_TW: "更新 ClamAV 資料庫（FreshClam）"
+"Path {pattern} did not contain any git repositories":
+  en: "Path %{pattern} did not contain any git repositories"
+  zh_TW: "路徑 %{pattern} 中沒有任何 git 來源"
+"No repositories to pull":
+  en: "No repositories to pull"
+  zh_TW: "沒有來源可以拉取"
+"Git repositories":
+  en: "Git repositories"
+  zh_TW: "Git 來源"
+"Would pull {repo}":
+  en: "Would pull %{repo}"
+  zh_TW: "拉取 %{repo}"
+
+# aka npm
+"Node Package Manager":
+  en: "Node Package Manager"
+  zh_TW: "Node 套件管理員（npm）"
+# aka pnpm
+"Performant Node Package Manager":
+  en: "Performant Node Package Manager"
+  zh_TW: "效能 Node 套件管理員（pnpm）"
+"Yarn Package Manager":
+  en: "Yarn Package Manager"
+  zh_TW: "Yarn 套件管理員"
+"Deno installed outside of .deno directory":
+  en: "Deno installed outside of .deno directory"
+  zh_TW: "Deno 安裝在 .deno 資料夾外"
+"The Ultimate vimrc":
+  en: "The Ultimate vimrc"
+  zh_TW: "終極 vimrc（The Ultimate vimrc）"
+"vim binary might be actually nvim":
+  en: "vim binary might be actually nvim"
+  zh_TW: "vim 執行檔可能為 nvim"
+"`{process}` failed: {exit_status}":
+  en: "`%{process}` failed: %{exit_status}"
+  zh_TW: "`%{process}` 失敗：%{exit_status}"
+"`{process}` failed: {exit_status} with {output}":
+  en: "`%{process}` failed: %{exit_status} with %{output}"
+  zh_TW: "`%{process}` 失敗：%{exit_status} 伴隨 %{output}"
+"Unknown Linux Distribution":
+  en: "Unknown Linux Distribution"
+  zh_TW: "未知 Linux"
+'File "/etc/os-release" does not exist or is empty':
+  en: 'File "/etc/os-release" does not exist or is empty'
+  zh_TW: '「/etc/os-release」不存在或為空'
+"Failed getting the system package manager":
+  en: "Failed getting the system package manager"
+  zh_TW: "偵測系統套件管理員失敗"
+"A step failed":
+  en: "A step failed"
+  zh_TW: "某步驟執行失敗"
+"Dry running":
+  en: "Dry running"
+  zh_TW: "模擬執行"
+"Topgrade Upgraded":
+  en: "Topgrade Upgraded"
+  zh_TW: "已更新 Topgrade"
+
+# Summary texts
+"OK":
+  en: "OK"
+  zh_TW: "成功"
+"FAILED":
+  en: "FAILED"
+  zh_TW: "失敗"
+"IGNORED":
+  en: "IGNORED"
+  zh_TW: "忽略"
+"SKIPPED":
+  en: "SKIPPED"
+  zh_TW: "略過"
+
+# 'Y' and 'N' have to stay the same characters. Eg for German the translation
+# would look sth like "(Y) Ja / (N) Nein"
+"(Y)es/(N)o":
+  en: "(Y)es/(N)o"
+  zh_TW: "(Y)是/(N)否"
+
+# 'y', 'N', 's', 'q' have to stay the same throughout all translations.
+# Eg German would look like "(y) Wiederholen / (N) Nein / (s) Konsole / (q) Beenden"
+"Retry? (y)es/(N)o/(s)hell/(q)uit":
+  en: "Retry? (y)es/(N)o/(s)hell/(q)uit"
+  zh_TW: "再試一次？ (y)是/(N)否/(s)殼層/(q)退出"
+# 'R', 'S', 'Q'  have to stay the same throughout all translations. Eg German would look like "\n(R) Neustarten\n(S) Konsole\n(Q) Beenden"
+'\n(R)eboot\n(S)hell\n(Q)uit':
+  en: '\n(R)eboot\n(S)hell\n(Q)uit'
+  zh_TW: '\n(R)重新啟動\n(S)殼層\n(Q)退出'
+"Require sudo or counterpart but not found, skip":
+  en: "Require sudo or counterpart but not found, skip"
+  zh_TW: "找不到權限管理程式（sudo 等），略過"
+"sudo as user '{user}'":
+  en: "sudo as user '%{user}'"
+  zh_TW: "sudo 以使用者 '%{user}'"
+"Updating aqua ...":
+  en: "Updating aqua ..."
+  zh_TW: "正在更新 aqua..."
+"Updating aqua installed cli tools ...":
+  en: "Updating aqua installed cli tools ..."
+  zh_TW: "正在更新 aqua 安裝的命令行介面工具..."
+"Updating Volta packages...":
+  en: "Updating Volta packages..."
+  zh_TW: "正在更新 Volta 套件..."
+"No packages installed with Volta":
+  en: "No packages installed with Volta"
+  zh_TW: "沒有任何 Volta 套件"
+"pyenv-update plugin is not installed":
+  en: "pyenv-update plugin is not installed"
+  zh_TW: "尚未安裝 pyenv-update 擴充功能"
+"Respawning...":
+  en:  "Respawning..."
+  zh_TW:  "正在重新生成..."
+"Could not find Topgrade in any WSL disribution":
+  en: "Could not find Topgrade in any WSL disribution"
+  zh_TW: "在所有 WSL 中找不到 Topgrade"
+"Windows Update":
+  en: "Windows Update"
+  zh_TW: "Windows 更新"

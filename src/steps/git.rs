@@ -20,6 +20,7 @@ use crate::terminal::print_separator;
 use crate::utils::{require, PathExt};
 use crate::{error::SkipStep, terminal::print_warning, HOME_DIR};
 use etcetera::base_strategy::BaseStrategy;
+use rust_i18n::t;
 
 #[cfg(unix)]
 use crate::XDG_DIRS;
@@ -100,16 +101,18 @@ pub fn run_git_pull(ctx: &ExecutionContext) -> Result<()> {
     // NOTE: this should be executed **before** skipping the Git step or the
     // user won't receive this warning in the cases where all the paths configured
     // are bad patterns.
-    repos
-        .bad_patterns
-        .iter()
-        .for_each(|pattern| print_warning(format!("Path {pattern} did not contain any git repositories")));
+    repos.bad_patterns.iter().for_each(|pattern| {
+        print_warning(t!(
+            "Path {pattern} did not contain any git repositories",
+            pattern = pattern
+        ))
+    });
 
     if repos.is_repos_empty() {
-        return Err(SkipStep(String::from("No repositories to pull")).into());
+        return Err(SkipStep(t!("No repositories to pull").to_string()).into());
     }
 
-    print_separator("Git repositories");
+    print_separator(t!("Git repositories"));
 
     repos.pull_repos(ctx)
 }
@@ -143,7 +146,7 @@ fn get_head_revision<P: AsRef<Path>>(git: &Path, repo: P) -> Option<String> {
         .output_checked_utf8()
         .map(|output| output.stdout.trim().to_string())
         .map_err(|e| {
-            error!("Error getting revision for {}: {}", repo.as_ref().display(), e);
+            error!("Error getting revision for {}: {e}", repo.as_ref().display(),);
 
             e
         })
@@ -206,7 +209,7 @@ impl RepoStep {
             }
             Err(e) => match e.kind() {
                 io::ErrorKind::NotFound => debug!("{} does not exist", path.as_ref().display()),
-                _ => error!("Error looking for {}: {}", path.as_ref().display(), e),
+                _ => error!("Error looking for {}: {e}", path.as_ref().display(),),
             },
         }
 
@@ -236,7 +239,7 @@ impl RepoStep {
 
         res.map(|output| output.stdout.lines().count() > 0)
             .map_err(|e| {
-                error!("Error getting remotes for {}: {}", repo.as_ref().display(), e);
+                error!("Error getting remotes for {}: {e}", repo.as_ref().display());
                 e
             })
             .ok()
@@ -264,7 +267,7 @@ impl RepoStep {
                         }
                     }
                     Err(e) => {
-                        error!("Error in path {}", e);
+                        error!("Error in path {e}");
                     }
                 }
             }
@@ -273,7 +276,7 @@ impl RepoStep {
                 self.bad_patterns.push(String::from(pattern));
             }
         } else {
-            error!("Bad glob pattern: {}", pattern);
+            error!("Bad glob pattern: {pattern}");
         }
     }
 
@@ -296,7 +299,7 @@ impl RepoStep {
         let before_revision = get_head_revision(&self.git, &repo);
 
         if ctx.config().verbose() {
-            println!("{} {}", style("Pulling").cyan().bold(), repo.as_ref().display());
+            println!("{} {}", style(t!("Pulling")).cyan().bold(), repo.as_ref().display());
         }
 
         let mut command = AsyncCommand::new(&self.git);
@@ -322,13 +325,18 @@ impl RepoStep {
             .wrap_err_with(|| format!("Failed to pull {}", repo.as_ref().display()));
 
         if result.is_err() {
-            println!("{} pulling {}", style("Failed").red().bold(), repo.as_ref().display());
+            println!(
+                "{} {} {}",
+                style(t!("Failed")).red().bold(),
+                t!("pulling"),
+                repo.as_ref().display()
+            );
         } else {
             let after_revision = get_head_revision(&self.git, repo.as_ref());
 
             match (&before_revision, &after_revision) {
                 (Some(before), Some(after)) if before != after => {
-                    println!("{} {}", style("Changed").yellow().bold(), repo.as_ref().display());
+                    println!("{} {}", style(t!("Changed")).yellow().bold(), repo.as_ref().display());
 
                     Command::new(&self.git)
                         .stdin(Stdio::null())
@@ -345,7 +353,7 @@ impl RepoStep {
                 }
                 _ => {
                     if ctx.config().verbose() {
-                        println!("{} {}", style("Up-to-date").green().bold(), repo.as_ref().display());
+                        println!("{} {}", style(t!("Up-to-date")).green().bold(), repo.as_ref().display());
                     }
                 }
             }
@@ -363,15 +371,16 @@ impl RepoStep {
         if ctx.run_type().dry() {
             self.repos
                 .iter()
-                .for_each(|repo| println!("Would pull {}", repo.display()));
+                .for_each(|repo| println!("{}", t!("Would pull {repo}", repo = repo.display())));
 
             return Ok(());
         }
 
         if !ctx.config().verbose() {
             println!(
-                "\n{} updated repositories will be shown...\n",
-                style("Only").green().bold()
+                "\n{} {}\n",
+                style(t!("Only")).green().bold(),
+                t!("updated repositories will be shown...")
             );
         }
 
@@ -381,9 +390,10 @@ impl RepoStep {
             .filter(|repo| match self.has_remotes(repo) {
                 Some(false) => {
                     println!(
-                        "{} {} because it has no remotes",
-                        style("Skipping").yellow().bold(),
-                        repo.display()
+                        "{} {} {}",
+                        style(t!("Skipping")).yellow().bold(),
+                        repo.display(),
+                        t!("because it has no remotes")
                     );
                     false
                 }

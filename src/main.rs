@@ -18,6 +18,7 @@ use etcetera::base_strategy::Windows;
 #[cfg(unix)]
 use etcetera::base_strategy::Xdg;
 use once_cell::sync::Lazy;
+use rust_i18n::{i18n, t};
 use tracing::debug;
 
 use self::config::{CommandLineArgs, Config, Step};
@@ -54,6 +55,9 @@ pub(crate) static XDG_DIRS: Lazy<Xdg> = Lazy::new(|| Xdg::new().expect("No home 
 #[cfg(windows)]
 pub(crate) static WINDOWS_DIRS: Lazy<Windows> = Lazy::new(|| Windows::new().expect("No home directory"));
 
+// Init and load the i18n files
+i18n!("locales", fallback = "en");
+
 fn run() -> Result<()> {
     install_color_eyre()?;
     ctrlc::set_handler();
@@ -71,6 +75,11 @@ fn run() -> Result<()> {
     // For more info, see the comments in `CommandLineArgs::tracing_filter_directives()`
     // and `Config::tracing_filter_directives()`.
     let reload_handle = install_tracing(&opt.tracing_filter_directives())?;
+
+    // Get current system locale and set it as the default locale
+    let system_locale = sys_locale::get_locale().unwrap_or("en".to_string());
+    rust_i18n::set_locale(&system_locale);
+    debug!("Current system locale is {system_locale}");
 
     if let Some(shell) = opt.gen_completion {
         let cmd = &mut CommandLineArgs::command();
@@ -118,7 +127,7 @@ fn run() -> Result<()> {
     if config.run_in_tmux() && env::var("TOPGRADE_INSIDE_TMUX").is_err() {
         #[cfg(unix)]
         {
-            tmux::run_in_tmux(config.tmux_arguments()?)?;
+            tmux::run_in_tmux(config.tmux_config()?)?;
             return Ok(());
         }
     }
@@ -210,7 +219,7 @@ fn run() -> Result<()> {
                 runner.execute(Step::System, "System update", || distribution.upgrade(&ctx))?;
             }
             Err(e) => {
-                println!("Error detecting current distribution: {e}");
+                println!("{}", t!("Error detecting current distribution: {error}", error = e));
             }
         }
         runner.execute(Step::ConfigUpdate, "config-update", || linux::run_config_update(&ctx))?;
@@ -301,7 +310,6 @@ fn run() -> Result<()> {
         runner.execute(Step::Asdf, "asdf", || unix::run_asdf(&ctx))?;
         runner.execute(Step::Mise, "mise", || unix::run_mise(&ctx))?;
         runner.execute(Step::Pkgin, "pkgin", || unix::run_pkgin(&ctx))?;
-        runner.execute(Step::Bun, "bun", || unix::run_bun(&ctx))?;
         runner.execute(Step::BunPackages, "bun-packages", || unix::run_bun_packages(&ctx))?;
         runner.execute(Step::Shell, "zr", || zsh::run_zr(&ctx))?;
         runner.execute(Step::Shell, "antibody", || zsh::run_antibody(&ctx))?;
@@ -363,6 +371,7 @@ fn run() -> Result<()> {
     })?;
     runner.execute(Step::Conda, "conda", || generic::run_conda_update(&ctx))?;
     runner.execute(Step::Mamba, "mamba", || generic::run_mamba_update(&ctx))?;
+    runner.execute(Step::Pixi, "pixi", || generic::run_pixi_update(&ctx))?;
     runner.execute(Step::Miktex, "miktex", || generic::run_miktex_packages_update(&ctx))?;
     runner.execute(Step::Pip3, "pip3", || generic::run_pip3_update(&ctx))?;
     runner.execute(Step::PipReview, "pip-review", || generic::run_pip_review_update(&ctx))?;
@@ -419,7 +428,10 @@ fn run() -> Result<()> {
         generic::run_lensfun_update_data(&ctx)
     })?;
     runner.execute(Step::Poetry, "Poetry", || generic::run_poetry(&ctx))?;
+    runner.execute(Step::Uv, "uv", || generic::run_uv(&ctx))?;
     runner.execute(Step::Zvm, "ZVM", || generic::run_zvm(&ctx))?;
+    runner.execute(Step::Aqua, "aqua", || generic::run_aqua(&ctx))?;
+    runner.execute(Step::Bun, "bun", || generic::run_bun(&ctx))?;
 
     if should_run_powershell {
         runner.execute(Step::Powershell, "Powershell Modules Update", || {
@@ -449,7 +461,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Vagrant, "Vagrant boxes", || vagrant::upgrade_vagrant_boxes(&ctx))?;
 
     if !runner.report().data().is_empty() {
-        print_separator("Summary");
+        print_separator(t!("Summary"));
 
         for (key, result) in runner.report().data() {
             print_result(key, result);
@@ -473,7 +485,7 @@ fn run() -> Result<()> {
     }
 
     if config.keep_at_end() {
-        print_info("\n(R)eboot\n(S)hell\n(Q)uit");
+        print_info(t!("\n(R)eboot\n(S)hell\n(Q)uit"));
         loop {
             match get_key() {
                 Ok(Key::Char('s')) | Ok(Key::Char('S')) => {
@@ -495,10 +507,11 @@ fn run() -> Result<()> {
 
     if !config.skip_notify() {
         notify_desktop(
-            format!(
-                "Topgrade finished {}",
-                if failed { "with errors" } else { "successfully" }
-            ),
+            if failed {
+                t!("Topgrade finished with errors")
+            } else {
+                t!("Topgrade finished successfully")
+            },
             Some(Duration::from_secs(10)),
         )
     }
@@ -533,7 +546,7 @@ fn main() {
                 // The `Debug` implementation of `eyre::Result` prints a multi-line
                 // error message that includes all the 'causes' added with
                 // `.with_context(...)` calls.
-                println!("Error: {error:?}");
+                println!("{}", t!("Error: {error}", error = format!("{:?}", error)));
             }
             exit(1);
         }

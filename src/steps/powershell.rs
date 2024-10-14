@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
@@ -62,9 +63,9 @@ impl Powershell {
     }
 
     pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
-        let powershell = require_option(self.path.as_ref(), String::from("Powershell is not installed"))?;
+        let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
 
-        print_separator("Powershell Modules Update");
+        print_separator(t!("Powershell Modules Update"));
 
         let mut cmd = vec!["Update-Module"];
 
@@ -76,7 +77,7 @@ impl Powershell {
             cmd.push("-Force")
         }
 
-        println!("Updating modules...");
+        println!("{}", t!("Updating modules..."));
         ctx.run_type()
             .execute(powershell)
             // This probably doesn't need `shell_words::join`.
@@ -94,7 +95,8 @@ impl Powershell {
 
     #[cfg(windows)]
     pub fn windows_update(&self, ctx: &ExecutionContext) -> Result<()> {
-        let powershell = require_option(self.path.as_ref(), String::from("Powershell is not installed"))?;
+        let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
+
         debug_assert!(self.supports_windows_update());
 
         let accept_all = if ctx.config().accept_all_windows_updates() {

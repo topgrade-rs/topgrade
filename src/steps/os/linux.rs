@@ -3,6 +3,7 @@ use std::process::Command;
 
 use color_eyre::eyre::Result;
 use ini::Ini;
+use rust_i18n::t;
 use tracing::{debug, warn};
 
 use crate::command::CommandExt;
@@ -11,7 +12,7 @@ use crate::execution_context::ExecutionContext;
 use crate::steps::generic::is_wsl;
 use crate::steps::os::archlinux;
 use crate::terminal::{print_separator, prompt_yesno};
-use crate::utils::{require, require_option, which, PathExt, REQUIRE_SUDO};
+use crate::utils::{get_require_sudo_string, require, require_option, which, PathExt};
 use crate::{Step, HOME_DIR};
 
 static OS_RELEASE_PATH: &str = "/etc/os-release";
@@ -135,7 +136,7 @@ impl Distribution {
     }
 
     pub fn upgrade(self, ctx: &ExecutionContext) -> Result<()> {
-        print_separator("System update");
+        print_separator(t!("System update"));
 
         match self {
             Distribution::Alpine => upgrade_alpine_linux(ctx),
@@ -176,7 +177,7 @@ impl Distribution {
 }
 
 fn update_bedrock(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
 
     ctx.run_type().execute(sudo).args(["brl", "update"]);
 
@@ -201,7 +202,7 @@ fn update_bedrock(ctx: &ExecutionContext) -> Result<()> {
 
 fn upgrade_alpine_linux(ctx: &ExecutionContext) -> Result<()> {
     let apk = require("apk")?;
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
 
     ctx.run_type().execute(sudo).arg(&apk).arg("update").status_checked()?;
     ctx.run_type().execute(sudo).arg(&apk).arg("upgrade").status_checked()
@@ -209,7 +210,7 @@ fn upgrade_alpine_linux(ctx: &ExecutionContext) -> Result<()> {
 
 fn upgrade_chimera_linux(ctx: &ExecutionContext) -> Result<()> {
     let apk = require("apk")?;
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
 
     ctx.run_type().execute(sudo).arg(&apk).arg("update").status_checked()?;
     ctx.run_type().execute(sudo).arg(&apk).arg("upgrade").status_checked()
@@ -217,7 +218,7 @@ fn upgrade_chimera_linux(ctx: &ExecutionContext) -> Result<()> {
 
 fn upgrade_wolfi_linux(ctx: &ExecutionContext) -> Result<()> {
     let apk = require("apk")?;
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
 
     ctx.run_type().execute(sudo).arg(&apk).arg("update").status_checked()?;
     ctx.run_type().execute(sudo).arg(&apk).arg("upgrade").status_checked()
@@ -232,7 +233,7 @@ fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
         }
     };
 
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let mut command = ctx.run_type().execute(sudo);
     command
         .arg(which("dnf").unwrap_or_else(|| Path::new("yum").to_path_buf()))
@@ -255,7 +256,7 @@ fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_nobara(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let pkg_manager = require("dnf")?;
 
     let mut update_command = ctx.run_type().execute(sudo);
@@ -289,7 +290,7 @@ fn upgrade_nobara(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_nilrt(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let opkg = require("opkg")?;
 
     ctx.run_type().execute(sudo).arg(&opkg).arg("update").status_checked()?;
@@ -305,14 +306,14 @@ fn upgrade_fedora_immutable(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_bedrock_strata(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     ctx.run_type().execute(sudo).args(["brl", "update"]).status_checked()?;
 
     Ok(())
 }
 
 fn upgrade_suse(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     ctx.run_type()
         .execute(sudo)
         .args(["zypper", "refresh"])
@@ -335,7 +336,7 @@ fn upgrade_suse(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_opensuse_tumbleweed(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     ctx.run_type()
         .execute(sudo)
         .args(["zypper", "refresh"])
@@ -353,7 +354,7 @@ fn upgrade_opensuse_tumbleweed(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_suse_micro(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let mut cmd = ctx.run_type().execute(sudo);
     cmd.arg("transactional-update");
     if ctx.config().yes(Step::System) {
@@ -366,7 +367,7 @@ fn upgrade_suse_micro(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_openmandriva(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let mut command = ctx.run_type().execute(sudo);
 
     command.arg(which("dnf").unwrap()).arg("upgrade");
@@ -385,7 +386,7 @@ fn upgrade_openmandriva(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_pclinuxos(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let mut command_update = ctx.run_type().execute(sudo);
 
     command_update.arg(which("apt-get").unwrap()).arg("update");
@@ -432,7 +433,7 @@ fn upgrade_vanilla(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_void(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let mut command = ctx.run_type().execute(sudo);
     command.args(["xbps-install", "-Su", "xbps"]);
     if ctx.config().yes(Step::System) {
@@ -453,7 +454,7 @@ fn upgrade_void(ctx: &ExecutionContext) -> Result<()> {
 fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
     let run_type = ctx.run_type();
 
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     if let Some(layman) = which("layman") {
         run_type
             .execute(sudo)
@@ -462,7 +463,7 @@ fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
             .status_checked()?;
     }
 
-    println!("Syncing portage");
+    println!("{}", t!("Syncing portage"));
     if let Some(ego) = which("ego") {
         // The Funtoo team doesn't reccomend running both ego sync and emerge --sync
         run_type.execute(sudo).arg(ego).arg("sync").status_checked()?;
@@ -528,7 +529,7 @@ fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
         return Ok(());
     }
 
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     if !is_nala {
         ctx.run_type()
             .execute(sudo)
@@ -582,7 +583,7 @@ pub fn run_deb_get(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_solus(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let mut cmd = ctx.run_type().execute(sudo);
     cmd.arg("eopkg");
     if ctx.config().yes(Step::System) {
@@ -691,7 +692,7 @@ pub fn run_packer_nu(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_clearlinux(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let mut cmd = ctx.run_type().execute(sudo);
     cmd.args(["swupd", "update"]);
     if ctx.config().yes(Step::System) {
@@ -703,7 +704,7 @@ fn upgrade_clearlinux(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_exherbo(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     ctx.run_type().execute(sudo).args(["cave", "sync"]).status_checked()?;
 
     ctx.run_type()
@@ -732,7 +733,7 @@ fn upgrade_exherbo(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_nixos(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let mut command = ctx.run_type().execute(sudo);
     command.args(["/run/current-system/sw/bin/nixos-rebuild", "switch", "--upgrade"]);
 
@@ -758,7 +759,7 @@ fn upgrade_neon(ctx: &ExecutionContext) -> Result<()> {
     // seems rare
     // if that comes up we need to create a Distribution::PackageKit or some such
 
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let pkcon = which("pkcon").unwrap();
     // pkcon ignores update with update and refresh provided together
     ctx.run_type()
@@ -787,7 +788,7 @@ fn upgrade_neon(ctx: &ExecutionContext) -> Result<()> {
 ///    alternative
 fn should_skip_needrestart() -> Result<()> {
     let distribution = Distribution::detect()?;
-    let msg = "needrestart will be ran by the package manager";
+    let msg = t!("needrestart will be ran by the package manager");
 
     if distribution.redhat_based() {
         return Err(SkipStep(String::from(msg)).into());
@@ -822,12 +823,12 @@ fn should_skip_needrestart() -> Result<()> {
 }
 
 pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let needrestart = require("needrestart")?;
 
     should_skip_needrestart()?;
 
-    print_separator("Check for needed restarts");
+    print_separator(t!("Check for needed restarts"));
 
     ctx.run_type().execute(sudo).arg(needrestart).status_checked()?;
 
@@ -838,10 +839,10 @@ pub fn run_fwupdmgr(ctx: &ExecutionContext) -> Result<()> {
     let fwupdmgr = require("fwupdmgr")?;
 
     if is_wsl()? {
-        return Err(SkipStep(String::from("Should not run in WSL")).into());
+        return Err(SkipStep(t!("Should not run in WSL").to_string()).into());
     }
 
-    print_separator("Firmware upgrades");
+    print_separator(t!("Firmware upgrades"));
 
     ctx.run_type()
         .execute(&fwupdmgr)
@@ -863,7 +864,7 @@ pub fn run_fwupdmgr(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_flatpak(ctx: &ExecutionContext) -> Result<()> {
     let flatpak = require("flatpak")?;
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let cleanup = ctx.config().cleanup();
     let yes = ctx.config().yes(Step::Flatpak);
     let run_type = ctx.run_type();
@@ -883,7 +884,7 @@ pub fn run_flatpak(ctx: &ExecutionContext) -> Result<()> {
         run_type.execute(&flatpak).args(&cleanup_args).status_checked()?;
     }
 
-    print_separator("Flatpak System Packages");
+    print_separator(t!("Flatpak System Packages"));
     if ctx.config().flatpak_use_sudo() || std::env::var("SSH_CLIENT").is_ok() {
         let mut update_args = vec!["update", "--system"];
         if yes {
@@ -924,11 +925,11 @@ pub fn run_flatpak(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_snap(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let snap = require("snap")?;
 
     if !PathBuf::from("/var/snapd.socket").exists() && !PathBuf::from("/run/snapd.socket").exists() {
-        return Err(SkipStep(String::from("Snapd socket does not exist")).into());
+        return Err(SkipStep(t!("Snapd socket does not exist").to_string()).into());
     }
     print_separator("snap");
 
@@ -936,7 +937,7 @@ pub fn run_snap(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_pihole_update(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let pihole = require("pihole")?;
     Path::new("/opt/pihole/update.sh").require()?;
 
@@ -970,7 +971,7 @@ pub fn run_distrobox_update(ctx: &ExecutionContext) -> Result<()> {
         ) {
             (r, Some(c)) => {
                 if c.is_empty() {
-                    return Err(SkipStep("You need to specify at least one container".to_string()).into());
+                    return Err(SkipStep(t!("You need to specify at least one container").to_string()).into());
                 }
                 r.args(c)
             }
@@ -985,7 +986,7 @@ pub fn run_distrobox_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_dkp_pacman_update(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let dkp_pacman = require("dkp-pacman")?;
 
     print_separator("Devkitpro pacman");
@@ -1008,20 +1009,20 @@ pub fn run_dkp_pacman_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     if ctx.config().yes(Step::ConfigUpdate) {
-        return Err(SkipStep("Skipped in --yes".to_string()).into());
+        return Err(SkipStep(t!("Skipped in --yes").to_string()).into());
     }
 
     if let Ok(etc_update) = require("etc-update") {
-        print_separator("Configuration update");
+        print_separator(t!("Configuration update"));
         ctx.run_type().execute(sudo).arg(etc_update).status_checked()?;
     } else if let Ok(pacdiff) = require("pacdiff") {
         if std::env::var("DIFFPROG").is_err() {
             require("vim")?;
         }
 
-        print_separator("Configuration update");
+        print_separator(t!("Configuration update"));
         ctx.execute_elevated(&pacdiff, false)?.status_checked()?;
     }
 
@@ -1045,7 +1046,7 @@ pub fn run_lure_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let waydroid = require("waydroid")?;
     let status = ctx.run_type().execute(&waydroid).arg("status").output_checked_utf8()?;
     // example output of `waydroid status`:
@@ -1069,17 +1070,20 @@ pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
         .stdout
         .lines()
         .find(|line| line.contains("Session:"))
-        .expect("the output of `waydroid status` should contain `Session:`");
+        .unwrap_or_else(|| panic!("the output of `waydroid status` should contain `Session:`"));
     let is_container_running = session.contains("RUNNING");
     let assume_yes = ctx.config().yes(Step::Waydroid);
 
     print_separator("Waydroid");
 
     if is_container_running && !assume_yes {
-        let update_allowed =
-            prompt_yesno("Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?")?;
+        let update_allowed = prompt_yesno(&t!(
+            "Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?"
+        ))?;
         if !update_allowed {
-            return Err(SkipStep("Skip the Waydroid step because the user don't want to proceed".to_string()).into());
+            return Err(
+                SkipStep(t!("Skip the Waydroid step because the user don't want to proceed").to_string()).into(),
+            );
         }
     }
     ctx.run_type()
@@ -1090,7 +1094,7 @@ pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_auto_cpufreq(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), REQUIRE_SUDO.to_string())?;
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let auto_cpu_freq = require("auto-cpufreq")?;
 
     print_separator("auto-cpufreq");
