@@ -126,7 +126,7 @@ impl<'a> TemporaryPowerOn<'a> {
     }
 }
 
-impl<'a> Drop for TemporaryPowerOn<'a> {
+impl Drop for TemporaryPowerOn<'_> {
     fn drop(&mut self) {
         let subcommand = if self.ctx.config().vagrant_always_suspend().unwrap_or(false) {
             "suspend"
