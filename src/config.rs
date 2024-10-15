@@ -1566,12 +1566,11 @@ impl Config {
     }
 
     pub fn enable_pipupgrade(&self) -> bool {
-        return self
-            .config_file
+        self.config_file
             .python
             .as_ref()
             .and_then(|python| python.enable_pipupgrade)
-            .unwrap_or(false);
+            .unwrap_or(false)
     }
     pub fn pipupgrade_arguments(&self) -> &str {
         self.config_file
@@ -1581,20 +1580,18 @@ impl Config {
             .unwrap_or("")
     }
     pub fn enable_pip_review(&self) -> bool {
-        return self
-            .config_file
+        self.config_file
             .python
             .as_ref()
             .and_then(|python| python.enable_pip_review)
-            .unwrap_or(false);
+            .unwrap_or(false)
     }
     pub fn enable_pip_review_local(&self) -> bool {
-        return self
-            .config_file
+        self.config_file
             .python
             .as_ref()
             .and_then(|python| python.enable_pip_review_local)
-            .unwrap_or(false);
+            .unwrap_or(false)
     }
 
     pub fn display_time(&self) -> bool {
