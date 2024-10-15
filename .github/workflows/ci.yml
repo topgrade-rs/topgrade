@@ -85,3 +85,21 @@ jobs:
         # ONLY run test with cargo
         if: matrix.use_cross == false
         run: cargo test --locked --target ${{ matrix.target }} 
+
+  openbsd:
+    needs: fmt
+    name: OpenBSD (check, clippy)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Test in OpenBSD
+        uses: vmactions/openbsd-vm@v1
+        with:
+          usesh: true
+          prepare: |
+            pkg_add rust rust-clippy
+          run: |
+            cargo check --locked
+            cargo clippy --locked --all-features -- -D warnings
