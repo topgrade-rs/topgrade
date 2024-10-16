@@ -116,7 +116,7 @@ _version: 2
   zh_TW: "Aura（<0.4.6）依賴 sudo 安裝 AUR 套件"
 "Pacman backup configuration files found:":
   en: "Pacman backup configuration files found:"
-  es: "Archivos de configuración de respaldo de Pacman encontados"
+  es: "Archivos de configuración de respaldo de Pacman encontrados"
   zh_TW: "找到 Pacman 設定備份檔："
 "The package audit was successful, but vulnerable packages still remain on the system":
   en: "The package audit was successful, but vulnerable packages still remain on the system"
@@ -216,19 +216,19 @@ _version: 2
   zh_TW: "無法取得 UTF-8 編碼的主機名稱"
 "Failed to get hostname: {err}":
   en: "Failed to get hostname: %{err}"
-  es: "Error al obtener el nombre de host: %{err}"
+  es: "Error al obtener el nombre del host: %{err}"
   zh_TW: "無法取得主機名稱：%{err}"
 "{python} is a Python 2, skip.":
   en: "%{python} is a Python 2, skip."
-  es: "%{python} es Python 2, omitir."
+  es: "%{python} es Python 2, omitiendo."
   zh_TW: "%{python} 是 Python 2，略過。"
 "{python} is a Python shim, skip.":
   en: "%{python} is a Python shim, skip."
-  es: "%{python} es una corrección de Python, omitir."
+  es: "%{python} es una corrección de Python, omitiendo."
   zh_TW: "%{python} 是 Python shim，略過。"
 "{key} failed:":
   en: "%{key} failed:"
-  es: "%{key} fallido:"
+  es: "%{key} ha fallado:"
   zh_TW: "%{key} 失敗："
 "{step_name} failed":
   en: "%{step_name} failed"
@@ -503,7 +503,7 @@ _version: 2
   zh_TW: "vim 執行檔可能為 nvim"
 "`{process}` failed: {exit_status}":
   en: "`%{process}` failed: %{exit_status}"
-  es: "`%{proceso}` falló: %{exit_status}"
+  es: "`%{process}` falló: %{exit_status}"
   zh_TW: "`%{process}` 失敗：%{exit_status}"
 "`{process}` failed: {exit_status} with {output}":
   en: "`%{process}` failed: %{exit_status} with %{output}"
@@ -523,7 +523,7 @@ _version: 2
   zh_TW: "偵測系統套件管理員失敗"
 "A step failed":
   en: "A step failed"
-  es: "Un paso falló"
+  es: "Un paso ha fallado"
   zh_TW: "某步驟執行失敗"
 "Dry running":
   en: "Dry running"
