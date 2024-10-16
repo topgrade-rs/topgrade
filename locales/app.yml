@@ -74,7 +74,7 @@ _version: 2
   zh_TW: "失敗"
 "pulling":
   en: "pulling"
-  es: "extrayendo"
+  es: "extracción"
   zh_TW: "正在拉取"
 "Changed":
   en: "Changed"
@@ -527,7 +527,7 @@ _version: 2
   zh_TW: "某步驟執行失敗"
 "Dry running":
   en: "Dry running"
-  es: "Funcionamiento en seco"
+  es: "Ejecución en seco"
   zh_TW: "模擬執行"
 "Topgrade Upgraded":
   en: "Topgrade Upgraded"
