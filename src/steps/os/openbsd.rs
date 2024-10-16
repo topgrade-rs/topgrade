@@ -4,16 +4,16 @@ use crate::terminal::print_separator;
 use crate::utils::{get_require_sudo_string, require_option};
 use color_eyre::eyre::Result;
 use rust_i18n::t;
+use std::fs;
 
 fn is_openbsd_current(ctx: &ExecutionContext) -> Result<bool> {
+    let motd_content = fs::read_to_string("/etc/motd")?;
+    let is_current = motd_content.contains("-current");
     if ctx.config().dry_run() {
         println!("Would check if OpenBSD is -current");
-        Ok(false) // Default to false for dry-run
+        Ok(is_current)
     } else {
-        let output = ctx.run_type().execute("uname").arg("-r").output_checked()?;
-
-        let version = String::from_utf8_lossy(&output.stdout);
-        Ok(version.trim().ends_with("-current"))
+        Ok(is_current)
     }
 }
 
@@ -21,13 +21,19 @@ pub fn upgrade_openbsd(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     print_separator(t!("OpenBSD Update"));
 
+    let is_current = is_openbsd_current(ctx)?;
+
     if ctx.config().dry_run() {
         println!("Would update the OpenBSD system");
+        if is_current {
+            println!("Would use -s flag when upgrading system");
+        }
         return Ok(());
     }
 
     let mut args = vec!["/usr/sbin/sysupgrade", "-n"];
-    if is_openbsd_current(ctx)? {
+    if is_current {
+        println!("OpenBSD is running -current, passing -s flag");
         args.push("-s");
     }
 
@@ -38,8 +44,13 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     print_separator(t!("OpenBSD Packages"));
 
+    let is_current = is_openbsd_current(ctx)?;
+
     if ctx.config().dry_run() {
         println!("Would update OpenBSD packages");
+        if is_current {
+            println!("Would use -Dsnap flag when upgrading packages");
+        }
         return Ok(());
     }
 
@@ -51,7 +62,8 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     }
 
     let mut args = vec!["/usr/sbin/pkg_add", "-u"];
-    if is_openbsd_current(ctx)? {
+    if is_current {
+        println!("OpenBSD is running -current, passing -Dsnap flag");
         args.push("-Dsnap");
     }
 
