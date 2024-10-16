@@ -26,7 +26,7 @@ _version: 2
   zh_TW: "將自行更新"
 "Pulling":
   en: "Pulling"
-  es: "Descargando"
+  es: "Extrayendo"
   zh_TW: "正在拉取"
 "No Breaking changes":
   en: "No Breaking changes"
