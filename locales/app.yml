@@ -523,7 +523,7 @@ _version: 2
   zh_TW: "偵測系統套件管理員失敗"
 "A step failed":
   en: "A step failed"
-  es: "Un paso ha fallado"
+  es: "Un paso fallido"
   zh_TW: "某步驟執行失敗"
 "Dry running":
   en: "Dry running"
