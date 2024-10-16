@@ -252,7 +252,7 @@ _version: 2
   zh_TW: "FreeBSD 套件"
 "FreeBSD Audit":
   en: "FreeBSD Audit"
-  en: "Auditoría FreeBSD"
+  es: "Auditoría FreeBSD"
   zh_TW: "FreeBSD 紀錄"
 "System update":
   en: "System update"
