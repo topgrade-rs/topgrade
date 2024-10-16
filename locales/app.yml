@@ -196,7 +196,7 @@ _version: 2
   zh_TW: "Topgrade 執行成功"
 "Topgrade {version_str} Breaking Changes":
   en: "Topgrade %{version_str} Breaking Changes"
-  es: "Topgrade {version_str} Cambios Importantes"
+  es: "Topgrade %{version_str} Cambios Importantes"
   zh_TW: "Topgrade %{version_str} 重大更改"
 "Path {path} expanded to {expanded}":
   en: "Path %{path} expanded to %{expanded}"
