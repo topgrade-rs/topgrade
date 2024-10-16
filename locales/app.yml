@@ -6,7 +6,7 @@ _version: 2
   zh_TW: "目前語言為 %{system_locale}"
 "Dry running: {program_name} {arguments}":
   en: "Dry running: %{program_name} %{arguments}"
-  es: "Ejecución en seco: %{program_name} %{arguments}"
+  es: "Simulando: %{program_name} %{arguments}"
   zh_TW: "正在模擬 %{program_name} %{arguments} 的執行過程"
 "in {directory}":
   en: "in %{directory}"
@@ -472,7 +472,7 @@ _version: 2
   zh_TW: "Git 來源"
 "Would pull {repo}":
   en: "Would pull %{repo}"
-  es: "Extraer %{repo}"
+  es: "Extrayendo %{repo}"
   zh_TW: "拉取 %{repo}"
 
 # aka npm
@@ -527,7 +527,7 @@ _version: 2
   zh_TW: "某步驟執行失敗"
 "Dry running":
   en: "Dry running"
-  es: "Ejecución en seco"
+  es: "Simulando"
   zh_TW: "模擬執行"
 "Topgrade Upgraded":
   en: "Topgrade Upgraded"
