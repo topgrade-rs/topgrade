@@ -116,7 +116,7 @@ _version: 2
   zh_TW: "Aura（<0.4.6）依賴 sudo 安裝 AUR 套件"
 "Pacman backup configuration files found:":
   en: "Pacman backup configuration files found:"
-  es: "Archivos de configuración de respaldo de Pacman encontrados"
+  es: "Archivos de respaldo de Pacman encontrados:"
   zh_TW: "找到 Pacman 設定備份檔："
 "The package audit was successful, but vulnerable packages still remain on the system":
   en: "The package audit was successful, but vulnerable packages still remain on the system"
@@ -208,7 +208,7 @@ _version: 2
   zh_TW: "路徑 %{path} 不存在"
 "Cannot find {binary_name} in PATH":
   en: "Cannot find %{binary_name} in PATH"
-  es: "No se puede encontrar %{binary_name} en PATH"
+  es: "No se pudo encontrar %{binary_name} en PATH"
   zh_TW: "在 $PATH 中找不到 %{binary_name} 執行檔"
 "Failed to get a UTF-8 encoded hostname":
   en: "Failed to get a UTF-8 encoded hostname"
