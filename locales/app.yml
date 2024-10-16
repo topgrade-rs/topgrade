@@ -300,7 +300,7 @@ _version: 2
   zh_TW: "將略過 `waydroid upgrade`，並且「停止」執行容器。是否繼續？"
 "Skip the Waydroid step because the user don't want to proceed":
   en: "Skip the Waydroid step because the user don't want to proceed"
-  es: "Omitir el paso de Waydroid porque el usuario no quiere continuar"
+  es: "Omitiendo el paso de Waydroid debido a que el usuario no quiere continuar"
   zh_TW: "使用者指定略過 Waydroid 程序"
 "macOS App Store":
   en: "macOS App Store"
@@ -432,7 +432,7 @@ _version: 2
   zh_TW: "Composer"
 "Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK.":
   en: "Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK."
-  es: "Error al ejecutar `dotnet tool list`. Esto se espera cuando se instala un tiempo de ejecución dotnet pero no hay un SDK."
+  es: "Error al ejecutar `dotnet tool list`. Esto es lo esperado cuando se instala un entorno de ejecución dotnet pero no un SDK."
   zh_TW: "執行 `dotnet tool list` 失敗。已安裝 dotnet 執行環境但未安裝 SDK"
 "No dotnet global tools installed":
   en: "No dotnet global tools installed"
