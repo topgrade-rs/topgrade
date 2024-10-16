@@ -495,7 +495,7 @@ _version: 2
   zh_TW: "Deno 安裝在 .deno 資料夾外"
 "The Ultimate vimrc":
   en: "The Ultimate vimrc"
-  en: "El vimrc definitivo (The Ultimate vimrc)"
+  es: "El vimrc definitivo (The Ultimate vimrc)"
   zh_TW: "終極 vimrc（The Ultimate vimrc）"
 "vim binary might be actually nvim":
   en: "vim binary might be actually nvim"
