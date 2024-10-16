@@ -74,7 +74,7 @@ _version: 2
   zh_TW: "失敗"
 "pulling":
   en: "pulling"
-  es: "extrayendo"
+  es: "extracción"
   zh_TW: "正在拉取"
 "Changed":
   en: "Changed"
