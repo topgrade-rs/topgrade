@@ -549,7 +549,7 @@ _version: 2
   zh_TW: "忽略"
 "SKIPPED":
   en: "SKIPPED"
-  en: "OMITIDO"
+  es: "OMITIDO"
   zh_TW: "略過"
 
 # 'Y' and 'N' have to stay the same characters. Eg for German the translation
