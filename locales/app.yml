@@ -2,69 +2,91 @@ _version: 2
 
 "Current system locale is {system_locale}":
   en: "Current system locale is %{system_locale}"
+  es_419: "La configuración regional del sistema es %{system_locale}"
   zh_TW: "目前語言為 %{system_locale}"
 "Dry running: {program_name} {arguments}":
   en: "Dry running: %{program_name} %{arguments}"
+  es_419: "Ejecución en seco: %{program_name} %{arguments}"
   zh_TW: "正在模擬 %{program_name} %{arguments} 的執行過程"
 "in {directory}":
   en: "in %{directory}"
+  es_419: "en %{directory}"
   zh_TW: "在 %{directory}"
 "Rebooting...":
   en: "Rebooting..."
+  es_419: "Reiniciando..."
   zh_TW: "正在重新啟動..."
 "Plugins upgraded":
   en: "Plugins upgraded"
+  es_419: "Plugins actualizados"
   zh_TW: "已更新所有擴充功能"
 "Would self-update":
   en: "Would self-update"
+  es_419: "Se actualizara automáticamente"
   zh_TW: "將自行更新"
 "Pulling":
   en: "Pulling"
+  es_419: "Descargando"
   zh_TW: "正在拉取"
 "No Breaking changes":
   en: "No Breaking changes"
+  es_419: "Sin Cambios Importantes"
   zh_TW: "無重大更改"
 "Dropping you to shell. Fix what you need and then exit the shell.":
   en: "Dropping you to shell. Fix what you need and then exit the shell."
+  es_419: "Cambiando al shell. Arregla lo que necesites y luego sal del shell."
   zh_TW: "已切換到終端殼層。修復完畢後請退出殼層以繼續。"
 "Topgrade launched in a new tmux session":
   en: "Topgrade launched in a new tmux session"
+  es_419: "Topgrade lanzado en una nueva sesión tmux"
   zh_TW: "Topgrade 已啟動新 tmux 程序"
 'Topgrade upgraded to {version}:\n':
   en: 'Topgrade upgraded to %{version}:\n'
+  es_419: 'Topgrade actualizado a %{version}:\n'
   zh_TW: '已將 Topgrade 更新至 %{version}：\n'
 "Topgrade is up-to-date":
   en: "Topgrade is up-to-date"
+  es_419: "Topgrade está actualizado"
   zh_TW: "Topgrade 為最新版本"
 "Updating modules...":
   en: "Updating modules..."
+  es_419: "Actualizando módulos..."
   zh_TW: "正在更新模組..."
 "Powershell Modules Update":
   en: "Powershell Modules Update"
+  es_419: "Actualización de módulos Powershell"
   zh_TW: "Powershell 模組更新"
 "Powershell is not installed":
   en: "Powershell is not installed"
+  es_419: "Powershell no está instalado"
   zh_TW: "未安裝 Powershell"
 "Error detecting current distribution: {error}":
   en: "Error detecting current distribution: %{error}"
+  es_419: "Error al detectar la distribución actual: %{error}"
   zh_TW: "無法偵測作業系統：%{error}"
 "Error: {error}":
   en: "Error: %{error}"
+  es_419: "Error: %{error}"
   zh_TW: "錯誤：%{error}"
 "Failed":
   en: "Failed"
+  es_419: "Fallido"
   zh_TW: "失敗"
 "pulling":
   en: "pulling"
+  es_419: "descargando"
   zh_TW: "正在拉取"
 "Changed":
   en: "Changed"
+  es_419: "Cambiado"
   zh_TW: "已更改"
 "Up-to-date":
   en: "Up-to-date"
+  es_419: "Actualizado"
   zh_TW: "已為最新版本"
 "Self update":
   en: "Self update"
+  es_419: "Auto-actualización"
   zh_TW: "自行更新"
 
 # The following 2 strings are used in the same sentence
@@ -73,82 +95,108 @@ _version: 2
 
 "Only":
   en: "Only"
+  es_419: "Solo"
   zh_TW: "將僅"
 "updated repositories will be shown...":
   en: "updated repositories will be shown..."
+  es_419: "se mostrarán los repositorios actualizados..."
   zh_TW: "顯示被更新的 git 來源..."
 
 "because it has no remotes":
   en: "because it has no remotes"
+  es_419: "porque no tiene fuentes remotas"
   zh_TW: "因為其沒有遠端來源"
 "Skipping":
   en: "Skipping"
+  es_419: "Omitiendo"
   zh_TW: "正在略過"
 "Aura(<0.4.6) requires sudo installed to work with AUR packages":
   en: "Aura(<0.4.6) requires sudo installed to work with AUR packages"
+  es_419: "Aura(<0.4.6) requiere tener sudo instalado para funcionar con paquetes AUR"
   zh_TW: "Aura（<0.4.6）依賴 sudo 安裝 AUR 套件"
 "Pacman backup configuration files found:":
   en: "Pacman backup configuration files found:"
+  es_419: "Archivos de configuración de respaldo de Pacman encontados"
   zh_TW: "找到 Pacman 設定備份檔："
 "The package audit was successful, but vulnerable packages still remain on the system":
   en: "The package audit was successful, but vulnerable packages still remain on the system"
+  es_419: "La auditoría del paquete fue exitosa, pero aún quedan paquetes vulnerables en el sistema"
   zh_TW: "雖然套件檢測成功，但系統仍然包含危險套件"
 "Syncing portage":
   en: "Syncing portage"
+  es_419: "Sincronizando portage"
   zh_TW: "正在同步 portage"
 "Finding available software":
   en: "Finding available software"
+  es_419: "Buscando software disponible"
   zh_TW: "正在尋找軟體"
 "A system update is available. Do you wish to install it?":
   en: "A system update is available. Do you wish to install it?"
+  es_419: "Hay una actualización del sistema disponible. ¿Desea instalarla?"
   zh_TW: "系統更新已就緒。是否現在安裝？"
 "No new software available.":
   en: "No new software available."
+  es_419: "No hay ningún software nuevo disponible".
   zh_TW: "沒有新軟體。"
 "No Xcode releases installed.":
   en: "No Xcode releases installed."
+  es_419: "No hay versiones de Xcode instaladas".
   zh_TW: "尚未安裝 Xcode 發行版。"
 "Would you like to move the former Xcode release to the trash?":
   en: "Would you like to move the former Xcode release to the trash?"
+  es_419: "¿Le gustaría mover la versión anterior de Xcode a la papelera?"
   zh_TW: "是否將舊版 Xcode 移至垃圾桶？"
 "New Xcode release detected:":
   en: "New Xcode release detected:"
+  es_419: "Nueva versión de Xcode detectada:"
   zh_TW: "有新的 Xcode 版本："
 "Would you like to install it?":
   en: "Would you like to install it?"
+  es_419: "¿Le gustaría instalarlo?
   zh_TW: "是否現在安裝？"
 "No global packages installed":
   en: "No global packages installed"
+  es_419: "No hay paquetes globales instalados"
   zh_TW: "尚未安裝全域套件"
 "Remote Topgrade launched in Tmux":
   en: "Remote Topgrade launched in Tmux"
+  es_419: "Topgrade remoto lanzado en Tmux"
   zh_TW: "已在 Tmux 中啟動遠端 Topgrade 程序"
 "Remote Topgrade launched in an external terminal":
   en: "Remote Topgrade launched in an external terminal"
+  es_419: "Topgrade remoto iniciado en una terminal externa"
   zh_TW: "已在新終端機視窗中啟動遠端 Topgrade"
 "Collecting Vagrant boxes":
   en: "Collecting Vagrant boxes"
+  es_419: "Recolectando cajas Vagrant"
   zh_TW: "正在蒐集 Vagrant 容器"
 "No Vagrant directories were specified in the configuration file":
   en: "No Vagrant directories were specified in the configuration file"
+  es_419: "No se especificaron directorios Vagrant en el archivo de configuración"
   zh_TW: "尚未在設定檔中指定 Vagrant 資料夾"
 "Vagrant boxes":
   en: "Vagrant boxes"
+  es_419: "Cajas Vagrant"
   zh_TW: "Vagrant 容器"
 "No outdated boxes":
   en: "No outdated boxes"
+  es_419: "Sin cajas obsoletas"
   zh_TW: "未有需要更新的容器"
 "Summary":
   en: "Summary"
+  es_419: "Resumen"
   zh_TW: "結果"
 "Topgrade finished with errors":
   en: "Topgrade finished with errors"
+  es_419: "Topgrade finalizado con errores"
   zh_TW: "Topgrade 執行部分成功"
 "Topgrade finished successfully":
   en: "Topgrade finished successfully"
+  es_419: "Topgrade finalizó exitosamente"
   zh_TW: "Topgrade 執行成功"
 "Topgrade {version_str} Breaking Changes":
   en: "Topgrade %{version_str} Breaking Changes"
+  es_419: "Topgrade {version_str} Cambios Importantes":
   zh_TW: "Topgrade %{version_str} 重大更改"
 "Path {path} expanded to {expanded}":
   en: "Path %{path} expanded to %{expanded}"
