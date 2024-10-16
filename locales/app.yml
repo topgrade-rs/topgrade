@@ -136,11 +136,11 @@ _version: 2
   zh_TW: "系統更新已就緒。是否現在安裝？"
 "No new software available.":
   en: "No new software available."
-  es: "No hay ningún software nuevo disponible".
+  es: "No hay ningún software nuevo disponible."
   zh_TW: "沒有新軟體。"
 "No Xcode releases installed.":
   en: "No Xcode releases installed."
-  es: "No hay versiones de Xcode instaladas".
+  es: "No hay versiones de Xcode instaladas."
   zh_TW: "尚未安裝 Xcode 發行版。"
 "Would you like to move the former Xcode release to the trash?":
   en: "Would you like to move the former Xcode release to the trash?"
@@ -152,7 +152,7 @@ _version: 2
   zh_TW: "有新的 Xcode 版本："
 "Would you like to install it?":
   en: "Would you like to install it?"
-  es: "¿Le gustaría instalarlo?
+  es: "¿Le gustaría instalarlo?"
   zh_TW: "是否現在安裝？"
 "No global packages installed":
   en: "No global packages installed"
@@ -196,7 +196,7 @@ _version: 2
   zh_TW: "Topgrade 執行成功"
 "Topgrade {version_str} Breaking Changes":
   en: "Topgrade %{version_str} Breaking Changes"
-  es: "Topgrade {version_str} Cambios Importantes":
+  es: "Topgrade {version_str} Cambios Importantes"
   zh_TW: "Topgrade %{version_str} 重大更改"
 "Path {path} expanded to {expanded}":
   en: "Path %{path} expanded to %{expanded}"
@@ -392,7 +392,7 @@ _version: 2
   zh_TW: "尚未在 WSL 內安裝 Topgrade"
 "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported.":
   en: "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."
-  es: "Considere instalar PSWindowsUpdate ya que no se admite el uso de Windows Update a través de USOClient".
+  es: "Considere instalar PSWindowsUpdate ya que no se admite el uso de Windows Update a través de USOClient."
   zh_TW: "目前不支援使用 USOClient 管理 Windows 更新。建議安裝 PSWindowsUpdate。"
 "USOClient not supported.":
   en: "USOClient not supported."
@@ -556,7 +556,7 @@ _version: 2
 # would look sth like "(Y) Ja / (N) Nein"
 "(Y)es/(N)o":
   en: "(Y)es/(N)o"
-  es: "(Y) Si / (N) No
+  es: "(Y) Si / (N) No"
   zh_TW: "(Y)是/(N)否"
 
 # 'y', 'N', 's', 'q' have to stay the same throughout all translations.
