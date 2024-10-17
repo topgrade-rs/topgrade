@@ -24,16 +24,12 @@ pub fn upgrade_openbsd(ctx: &ExecutionContext) -> Result<()> {
     let is_current = is_openbsd_current(ctx)?;
 
     if ctx.config().dry_run() {
-        println!("Would update the OpenBSD system");
-        if is_current {
-            println!("Would use -s flag when upgrading system");
-        }
+        println!("Would upgrade the OpenBSD system");
         return Ok(());
     }
 
     let mut args = vec!["/usr/sbin/sysupgrade", "-n"];
     if is_current {
-        println!("OpenBSD is running -current, passing -s flag");
         args.push("-s");
     }
 
@@ -47,10 +43,7 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     let is_current = is_openbsd_current(ctx)?;
 
     if ctx.config().dry_run() {
-        println!("Would update OpenBSD packages");
-        if is_current {
-            println!("Would use -Dsnap flag when upgrading packages");
-        }
+        println!("Would upgrade OpenBSD packages");
         return Ok(());
     }
 
@@ -63,7 +56,6 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
 
     let mut args = vec!["/usr/sbin/pkg_add", "-u"];
     if is_current {
-        println!("OpenBSD is running -current, passing -Dsnap flag");
         args.push("-Dsnap");
     }
 
