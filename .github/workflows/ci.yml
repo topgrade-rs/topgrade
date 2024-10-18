@@ -11,18 +11,32 @@ env:
   CARGO_NET_RETRY: 3
 
 jobs:
+
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Needed to fetch the full commit history
 
       - name: Run cargo fmt
         env:
           TERM: xterm-256color
         run: |
-          cargo fmt --all -- --check
+          cargo fmt --all
+      - name: Check for changes
+        id: git_diff
+        run: |
+          git diff --quiet HEAD || echo "::set-output name=changed::true"
+      - name: Commit and push changes
+        if: steps.git_diff.outputs.changed == 'true'
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git commit -am "Automatically format code with cargo fmt"
+          git push
 
   main:
     needs: fmt
@@ -84,4 +98,4 @@ jobs:
       - name: Run cargo test
         # ONLY run test with cargo
         if: matrix.use_cross == false
-        run: cargo test --locked --target ${{ matrix.target }} 
+        run: cargo test --locked --target ${{ matrix.target }}
