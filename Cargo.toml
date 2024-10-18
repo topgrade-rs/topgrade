@@ -5,7 +5,8 @@ categories = ["os"]
 keywords = ["upgrade", "update"]
 license = "GPL-3.0"
 repository = "https://github.com/topgrade-rs/topgrade"
-version = "15.0.0"
+rust-version = "1.76.0"
+version = "16.0.1"
 authors = ["Roey Darwish Dror <roey.ghost@gmail.com>", "Thomas Schönauer <t.schoenauer@hgs-wt.at>"]
 exclude = ["doc/screenshot.gif", "BREAKINGCHANGES_dev.md"]
 edition = "2021"
@@ -51,6 +52,8 @@ merge = "~0.1"
 regex-split = "~0.1"
 notify-rust = "~4.11"
 wildmatch = "2.3.0"
+rust-i18n = "3.0.1"
+sys-locale = "0.3.1"
 
 [package.metadata.generate-rpm]
 assets = [{ source = "target/release/topgrade", dest = "/usr/bin/topgrade" }]
@@ -59,7 +62,15 @@ assets = [{ source = "target/release/topgrade", dest = "/usr/bin/topgrade" }]
 git = "*"
 
 [package.metadata.deb]
-depends = "$auto,git"
+name = "topgrade"
+maintainer = "Chris Gelatt <kreeblah@gmail.com>"
+copyright = "2024, Topgrade Team"
+license-file = ["LICENSE", "0"]
+depends = "$auto"
+extended-description = "Keeping your system up to date usually involves invoking multiple package managers. This results in big, non-portable shell one-liners saved in your shell. To remedy this, Topgrade detects which tools you use and runs the appropriate commands to update them."
+section = "utils"
+priority = "optional"
+default-features = true
 
 [target.'cfg(unix)'.dependencies]
 nix = { version = "~0.29", features = ["hostname", "signal", "user"] }

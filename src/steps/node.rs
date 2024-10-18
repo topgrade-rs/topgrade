@@ -4,16 +4,17 @@ use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::utils::{require_option, REQUIRE_SUDO};
+use crate::utils::{get_require_sudo_string, require_option};
 use crate::HOME_DIR;
 use color_eyre::eyre::Result;
 #[cfg(target_os = "linux")]
 use nix::unistd::Uid;
+use rust_i18n::t;
 use semver::Version;
 use tracing::debug;
 
 use crate::command::CommandExt;
-use crate::terminal::print_separator;
+use crate::terminal::{print_info, print_separator};
 use crate::utils::{require, PathExt};
 use crate::{error::SkipStep, execution_context::ExecutionContext};
 
@@ -92,7 +93,7 @@ impl NPM {
     fn upgrade(&self, ctx: &ExecutionContext, use_sudo: bool) -> Result<()> {
         let args = ["update", self.global_location_arg()];
         if use_sudo {
-            let sudo = require_option(ctx.sudo().clone(), REQUIRE_SUDO.to_string())?;
+            let sudo = require_option(ctx.sudo().clone(), get_require_sudo_string())?;
             ctx.run_type()
                 .execute(sudo)
                 .arg(&self.command)
@@ -156,7 +157,7 @@ impl Yarn {
         let args = ["global", "upgrade"];
 
         if use_sudo {
-            let sudo = require_option(ctx.sudo().clone(), REQUIRE_SUDO.to_string())?;
+            let sudo = require_option(ctx.sudo().clone(), get_require_sudo_string())?;
             ctx.run_type()
                 .execute(sudo)
                 .arg(self.yarn.as_ref().unwrap_or(&self.command))
@@ -214,7 +215,7 @@ fn should_use_sudo_yarn(yarn: &Yarn, ctx: &ExecutionContext) -> Result<bool> {
 pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let npm = require("npm").map(|b| NPM::new(b, NPMVariant::Npm))?;
 
-    print_separator("Node Package Manager");
+    print_separator(t!("Node Package Manager"));
 
     #[cfg(target_os = "linux")]
     {
@@ -230,7 +231,7 @@ pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_pnpm_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let pnpm = require("pnpm").map(|b| NPM::new(b, NPMVariant::Pnpm))?;
 
-    print_separator("Performant Node Package Manager");
+    print_separator(t!("Performant Node Package Manager"));
 
     #[cfg(target_os = "linux")]
     {
@@ -251,7 +252,7 @@ pub fn run_yarn_upgrade(ctx: &ExecutionContext) -> Result<()> {
         return Ok(());
     }
 
-    print_separator("Yarn Package Manager");
+    print_separator(t!("Yarn Package Manager"));
 
     #[cfg(target_os = "linux")]
     {
@@ -269,10 +270,55 @@ pub fn deno_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let deno_dir = HOME_DIR.join(".deno");
 
     if !deno.canonicalize()?.is_descendant_of(&deno_dir) {
-        let skip_reason = SkipStep("Deno installed outside of .deno directory".to_string());
+        let skip_reason = SkipStep(t!("Deno installed outside of .deno directory").to_string());
         return Err(skip_reason.into());
     }
 
     print_separator("Deno");
     ctx.run_type().execute(&deno).arg("upgrade").status_checked()
+}
+
+/// There is no `volta upgrade` command, so we need to upgrade each package
+pub fn run_volta_packages_upgrade(ctx: &ExecutionContext) -> Result<()> {
+    let volta = require("volta")?;
+
+    print_separator("Volta");
+
+    if ctx.run_type().dry() {
+        print_info(t!("Updating Volta packages..."));
+        return Ok(());
+    }
+
+    let list_output = ctx
+        .run_type()
+        .execute(&volta)
+        .args(["list", "--format=plain"])
+        .output_checked_utf8()?
+        .stdout;
+
+    let installed_packages: Vec<&str> = list_output
+        .lines()
+        .filter_map(|line| {
+            // format is 'kind package@version ...'
+            let mut parts = line.split_whitespace();
+            parts.next();
+            let package_part = parts.next()?;
+            let version_index = package_part.rfind('@').unwrap_or(package_part.len());
+            Some(package_part[..version_index].trim())
+        })
+        .collect();
+
+    if installed_packages.is_empty() {
+        print_info(t!("No packages installed with Volta"));
+        return Ok(());
+    }
+
+    for package in installed_packages.iter() {
+        ctx.run_type()
+            .execute(&volta)
+            .args(["install", package])
+            .status_checked()?;
+    }
+
+    Ok(())
 }

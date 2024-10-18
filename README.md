@@ -29,17 +29,15 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 - NixOS: [Nixpkgs](https://search.nixos.org/packages?show=topgrade)
 - Void Linux: [XBPS](https://voidlinux.org/packages/?arch=x86_64&q=topgrade)
 - macOS: [Homebrew](https://formulae.brew.sh/formula/topgrade) or [MacPorts](https://ports.macports.org/port/topgrade/)
-- Windows: [Scoop][scoop] or [Winget][winget]
+- Windows: [Chocolatey][choco], [Scoop][scoop] or [Winget][winget]
 - PyPi: [pip](https://pypi.org/project/topgrade/)
 
+[choco]: https://community.chocolatey.org/packages/topgrade
 [scoop]: https://scoop.sh/#/apps?q=topgrade
 [winget]: https://winstall.app/apps/topgrade-rs.topgrade
 
 Other systems users can either use `cargo install` or the compiled binaries from the release page.
 The compiled binaries contain a self-upgrading feature.
-
-> Currently, Topgrade requires Rust 1.65 or above. In general, Topgrade tracks 
-> the latest stable toolchain.
 
 ## Usage
 

@@ -11,6 +11,7 @@ use crate::WINDOWS_DIRS;
 use crate::XDG_DIRS;
 use color_eyre::eyre::Result;
 use etcetera::base_strategy::BaseStrategy;
+use rust_i18n::t;
 use std::{
     env::var,
     fs::{read_to_string, OpenOptions},
@@ -45,7 +46,7 @@ impl FromStr for Version {
         // They cannot be all 0s
         assert!(
             !(major == 0 && minor == 0 && patch == 0),
-            "Version numbers can not be all 0s"
+            "Version numbers cannot be all 0s"
         );
 
         Ok(Self {
@@ -118,12 +119,15 @@ pub(crate) fn first_run_of_major_release() -> Result<bool> {
 
 /// Print breaking changes to the user.
 pub(crate) fn print_breaking_changes() {
-    let header = format!("Topgrade {VERSION_STR} Breaking Changes");
+    let header = format!(
+        "{}",
+        t!("Topgrade {version_str} Breaking Changes", version_str = VERSION_STR)
+    );
     print_separator(header);
     let contents = if BREAKINGCHANGES.is_empty() {
-        "No Breaking changes"
+        t!("No Breaking changes").to_string()
     } else {
-        BREAKINGCHANGES
+        BREAKINGCHANGES.to_string()
     };
     println!("{contents}\n");
 }
@@ -159,7 +163,7 @@ mod test {
     }
 
     #[test]
-    #[should_panic(expected = "Version numbers can not be all 0s")]
+    #[should_panic(expected = "Version numbers cannot be all 0s")]
     fn invalid_version() {
         let all_0 = "0.0.0";
         all_0.parse::<Version>().unwrap();

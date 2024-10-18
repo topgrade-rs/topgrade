@@ -4,6 +4,7 @@ use std::{fmt::Display, rc::Rc, str::FromStr};
 
 use color_eyre::eyre::Result;
 use regex::Regex;
+use rust_i18n::t;
 use strum::EnumString;
 use tracing::{debug, error};
 
@@ -125,7 +126,7 @@ impl<'a> TemporaryPowerOn<'a> {
     }
 }
 
-impl<'a> Drop for TemporaryPowerOn<'a> {
+impl Drop for TemporaryPowerOn<'_> {
     fn drop(&mut self) {
         let subcommand = if self.ctx.config().vagrant_always_suspend().unwrap_or(false) {
             "suspend"
@@ -151,14 +152,14 @@ impl<'a> Drop for TemporaryPowerOn<'a> {
 pub fn collect_boxes(ctx: &ExecutionContext) -> Result<Vec<VagrantBox>> {
     let directories = utils::require_option(
         ctx.config().vagrant_directories(),
-        String::from("No Vagrant directories were specified in the configuration file"),
+        String::from(t!("No Vagrant directories were specified in the configuration file")),
     )?;
     let vagrant = Vagrant {
         path: utils::require("vagrant")?,
     };
 
     print_separator("Vagrant");
-    println!("Collecting Vagrant boxes");
+    println!("{}", t!("Collecting Vagrant boxes"));
 
     let mut result = Vec::new();
 
@@ -183,7 +184,11 @@ pub fn topgrade_vagrant_box(ctx: &ExecutionContext, vagrant_box: &VagrantBox) ->
     let mut _poweron = None;
     if !vagrant_box.initial_status.powered_on() {
         if !(ctx.config().vagrant_power_on().unwrap_or(true)) {
-            return Err(SkipStep(format!("Skipping powered off box {vagrant_box}")).into());
+            return Err(SkipStep(format!(
+                "{}",
+                t!("Skipping powered off box {vagrant_box}", vagrant_box = vagrant_box)
+            ))
+            .into());
         } else {
             print_separator(seperator);
             _poweron = Some(vagrant.temporary_power_on(vagrant_box, ctx)?);
@@ -205,7 +210,7 @@ pub fn topgrade_vagrant_box(ctx: &ExecutionContext, vagrant_box: &VagrantBox) ->
 
 pub fn upgrade_vagrant_boxes(ctx: &ExecutionContext) -> Result<()> {
     let vagrant = utils::require("vagrant")?;
-    print_separator("Vagrant boxes");
+    print_separator(t!("Vagrant boxes"));
 
     let outdated = Command::new(&vagrant)
         .args(["box", "outdated", "--global"])
@@ -227,7 +232,7 @@ pub fn upgrade_vagrant_boxes(ctx: &ExecutionContext) -> Result<()> {
     }
 
     if !found {
-        println!("No outdated boxes")
+        println!("{}", t!("No outdated boxes"))
     } else {
         ctx.run_type()
             .execute(&vagrant)

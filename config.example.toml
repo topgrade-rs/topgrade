@@ -47,6 +47,12 @@
 # Run inside tmux (default: false)
 # run_in_tmux = true
 
+# Changes the way topgrade interacts with
+# the tmux session, creating the session
+# and only attaching to it if not inside tmux
+# (default: "attach_if_not_in_session", allowed values: "attach_if_not_in_session", "attach_always")
+# tmux_session_mode = "attach_if_not_in_session"
+
 # Cleanup temporary or old files (default: false)
 # cleanup = true
 
@@ -113,6 +119,12 @@
 # NOTE: the above entry `greedy_cask` contains this entry, though you can enable
 # both of them, they won't clash with each other.
 # greedy_latest = true
+
+# For the BrewCask step
+# If `Repo Cask Upgrade` does not exist, then use the `--greedy_auto_updates` option.
+# NOTE: the above entry `greedy_cask` contains this entry, though you can enable
+# both of them, they won't clash with each other.
+# greedy_auto_updates = true
 
 # For the BrewFormula step
 # Execute `brew autoremove` after the step.
@@ -244,9 +256,11 @@
 [containers]
 # Specify the containers to ignore while updating (Wildcard supported)
 # ignored_containers = ["ghcr.io/rancher-sandbox/rancher-desktop/rdx-proxy:latest", "docker.io*"]
+# Specify the runtime to use for containers (default: "docker", allowed values: "docker", "podman")
+# runtime = "podman"
 
 [lensfun]
-# If disabled, Topgrade invokes `lensfun‑update‑data` without root priviledge, 
+# If disabled, Topgrade invokes `lensfun‑update‑data` without root priviledge,
 # then the update will be only available to you. Otherwise, `sudo` is required,
 # and the update will be installed system-wide, i.e., available to all users.
 # (default: false)

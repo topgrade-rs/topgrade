@@ -5,6 +5,7 @@ use std::process::Command;
 
 use crate::config::Step;
 use color_eyre::eyre::{bail, Result};
+use rust_i18n::t;
 use self_update_crate::backends::github::Update;
 use self_update_crate::update::UpdateStatus;
 
@@ -15,10 +16,10 @@ use crate::error::Upgraded;
 use crate::execution_context::ExecutionContext;
 
 pub fn self_update(ctx: &ExecutionContext) -> Result<()> {
-    print_separator("Self update");
+    print_separator(t!("Self update"));
 
     if ctx.run_type().dry() {
-        println!("Would self-update");
+        println!("{}", t!("Would self-update"));
         Ok(())
     } else {
         let assume_yes = ctx.config().yes(Step::SelfUpdate);
@@ -38,17 +39,17 @@ pub fn self_update(ctx: &ExecutionContext) -> Result<()> {
             .update_extended()?;
 
         if let UpdateStatus::Updated(release) = &result {
-            println!("\nTopgrade upgraded to {}:\n", release.version);
+            println!("{}", t!("Topgrade upgraded to {version}:\n", version = release.version));
             if let Some(body) = &release.body {
                 println!("{body}");
             }
         } else {
-            println!("Topgrade is up-to-date");
+            println!("{}", t!("Topgrade is up-to-date"));
         }
 
         {
             if result.updated() {
-                print_info("Respawning...");
+                print_info(t!("Respawning..."));
                 let mut command = Command::new(current_exe?);
                 command.args(env::args().skip(1)).env("TOPGRADE_NO_SELF_UPGRADE", "");
 

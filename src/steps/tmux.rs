@@ -7,6 +7,8 @@ use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 
 use crate::command::CommandExt;
+use crate::config::TmuxConfig;
+use crate::config::TmuxSessionMode;
 use crate::terminal::print_separator;
 use crate::HOME_DIR;
 use crate::{
@@ -14,6 +16,7 @@ use crate::{
     utils::{which, PathExt},
 };
 
+use rust_i18n::t;
 #[cfg(unix)]
 use std::os::unix::process::CommandExt as _;
 
@@ -131,7 +134,7 @@ impl Tmux {
     }
 }
 
-pub fn run_in_tmux(args: Vec<String>) -> Result<()> {
+pub fn run_in_tmux(config: TmuxConfig) -> Result<()> {
     let command = {
         let mut command = vec![
             String::from("env"),
@@ -144,25 +147,39 @@ pub fn run_in_tmux(args: Vec<String>) -> Result<()> {
         shell_words::join(command)
     };
 
-    let tmux = Tmux::new(args);
+    let tmux = Tmux::new(config.args);
 
     // Find an unused session and run `topgrade` in it with the current command's arguments.
     let session_name = "topgrade";
     let window_name = "topgrade";
     let session = tmux.new_unique_session(session_name, window_name, &command)?;
 
-    // Only attach to the newly-created session if we're not currently in a tmux session.
-    if env::var("TMUX").is_err() {
-        let err = tmux.build().args(["attach-session", "-t", &session]).exec();
-        Err(eyre!("{err}")).context("Failed to `execvp(3)` tmux")
-    } else {
-        println!("Topgrade launched in a new tmux session");
-        Ok(())
-    }
+    let is_inside_tmux = env::var("TMUX").is_ok();
+    let err = match config.session_mode {
+        TmuxSessionMode::AttachIfNotInSession => {
+            if is_inside_tmux {
+                // Only attach to the newly-created session if we're not currently in a tmux session.
+                println!("{}", t!("Topgrade launched in a new tmux session"));
+                return Ok(());
+            } else {
+                tmux.build().args(["attach-session", "-t", &session]).exec()
+            }
+        }
+
+        TmuxSessionMode::AttachAlways => {
+            if is_inside_tmux {
+                tmux.build().args(["switch-client", "-t", &session]).exec()
+            } else {
+                tmux.build().args(["attach-session", "-t", &session]).exec()
+            }
+        }
+    };
+
+    Err(eyre!("{err}")).context("Failed to `execvp(3)` tmux")
 }
 
 pub fn run_command(ctx: &ExecutionContext, window_name: &str, command: &str) -> Result<()> {
-    let tmux = Tmux::new(ctx.config().tmux_arguments()?);
+    let tmux = Tmux::new(ctx.config().tmux_config()?.args);
 
     match ctx.get_tmux_session() {
         Some(session_name) => {

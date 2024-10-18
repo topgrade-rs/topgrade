@@ -1,0 +1,22 @@
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+name: Check i18n
+
+jobs:
+  check_locale:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install checker
+        # Build it with the dev profile as this is faster and the checker still works
+        run: |
+          cargo install --git https://github.com/topgrade-rs/topgrade_i18n_locale_checker --profile dev
+
+      - name: Run the checker
+        run: topgrade_i18n_locale_checker --locale-file ./locales/app.yml --rust-src-to-check ./src
