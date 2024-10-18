@@ -221,6 +221,14 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
     }
 }
 
+pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
+    let powershell = powershell::Powershell::windows_powershell();
+
+    print_separator(t!("Microsoft Store"));
+
+    powershell.microsoft_store(ctx)
+}
+
 pub fn reboot() -> Result<()> {
     // If this works, it won't return, but if it doesn't work, it may return a useful error
     // message.
