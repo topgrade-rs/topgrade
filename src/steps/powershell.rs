@@ -119,4 +119,43 @@ impl Powershell {
             .args(["-NoProfile", &install_windowsupdate_verbose, accept_all])
             .status_checked()
     }
+
+    #[cfg(windows)]
+    pub fn microsoft_store(&self, ctx: &ExecutionContext) -> Result<()> {
+        let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
+
+        let mut command = if let Some(sudo) = ctx.sudo() {
+            let mut command = ctx.run_type().execute(sudo);
+            command.arg(powershell);
+            command
+        } else {
+            ctx.run_type().execute(powershell)
+        };
+
+        println!("{}", t!("Scanning for updates..."));
+
+        // Scan for updates using the MDM UpdateScanMethod
+        // This method is also available for non-MDM devices
+        let update_command = "(Get-CimInstance -Namespace \"Root\\cimv2\\mdm\\dmmap\" -ClassName \"MDM_EnterpriseModernAppManagement_AppManagement01\" | Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue";
+
+        command.args(["-NoProfile", update_command]);
+
+        command
+            .output_checked_with_utf8(|output| {
+                if output.stdout.trim() == "0" {
+                    println!(
+                        "{}",
+                        t!("Success, Microsoft Store apps are being updated in the background")
+                    );
+                    Ok(())
+                } else {
+                    println!(
+                        "{}",
+                        t!("Unable to update Microsoft Store apps, manual intervention is required")
+                    );
+                    Err(())
+                }
+            })
+            .map(|_| ())
+    }
 }
