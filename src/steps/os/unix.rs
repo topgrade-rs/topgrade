@@ -13,8 +13,10 @@ use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use home;
 use ini::Ini;
+use lazy_static::lazy_static;
 #[cfg(target_os = "linux")]
 use nix::unistd::Uid;
+use regex::Regex;
 use rust_i18n::t;
 use semver::Version;
 use tracing::debug;
@@ -449,18 +451,44 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
         .stdout
         .lines()
         .next()
-        .expect("nix --version gives an empty output");
-    let splitted: Vec<&str> = get_version_cmd_first_line_stdout.split_whitespace().collect();
-    let version = if splitted.len() >= 3 {
-        Version::parse(splitted[2]).expect("invalid version")
-    } else {
-        panic!("nix --version output format changed, file an issue to Topgrade!")
+        .ok_or_else(|| eyre!("`nix --version` output is empty"))?;
+
+    let is_lix = get_version_cmd_first_line_stdout.contains("Lix");
+
+    debug!(
+        output=%get_version_cmd_output,
+        ?is_lix,
+        "`nix --version` output"
+    );
+
+    lazy_static! {
+        static ref NIX_VERSION_REGEX: Regex =
+            Regex::new(r#"^nix \([^)]*\) ([0-9.]+)"#).expect("Nix version regex always compiles");
+    }
+
+    if get_version_cmd_first_line_stdout.is_empty() {
+        return Err(eyre!("`nix --version` output was empty"));
+    }
+
+    let captures = NIX_VERSION_REGEX.captures(get_version_cmd_first_line_stdout);
+    let raw_version = match &captures {
+        None => {
+            return Err(eyre!(
+                "`nix --version` output was weird: {get_version_cmd_first_line_stdout:?}\n\
+                If the `nix --version` output format changed, please file an issue to Topgrade"
+            ));
+        }
+        Some(captures) => &captures[1],
     };
+
+    let version =
+        Version::parse(raw_version).wrap_err_with(|| format!("Unable to parse Nix version: {raw_version:?}"))?;
 
     debug!("Nix version: {:?}", version);
 
-    // Nix since 2.21.0 uses `--all --impure` rather than `.*` to upgrade all packages
-    let packages = if version >= Version::new(2, 21, 0) {
+    // Nix since 2.21.0 uses `--all --impure` rather than `.*` to upgrade all packages.
+    // Lix is based on Nix 2.18, so it doesn't!
+    let packages = if version >= Version::new(2, 21, 0) && !is_lix {
         vec!["--all", "--impure"]
     } else {
         vec![".*"]
