@@ -610,3 +610,15 @@ _version: 2
   en: "Windows Update"
   es: "Actualización de Windows"
   zh_TW: "Windows 更新"
+"Would check if OpenBSD is -current":
+  en: "Would check if OpenBSD is -current"
+  es: "Comprobaría si OpenBSD está en -current"
+  zh_TW: "會檢查 OpenBSD 是否為 -current"
+"Would upgrade the OpenBSD system":
+  en: "Would upgrade the OpenBSD system"
+  es: "Actualizaría el sistema OpenBSD"
+  zh_TW: "會升級 OpenBSD 系統"
+"Would upgrade OpenBSD packages":
+  en: "Would upgrade OpenBSD packages"
+  es: "Actualizaría los paquetes de OpenBSD"
+  zh_TW: "會升級 OpenBSD 套件"
