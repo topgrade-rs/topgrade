@@ -111,6 +111,7 @@ pub enum Step {
     Mas,
     Maza,
     Micro,
+    MicrosoftStore,
     Mise,
     Myrepos,
     Nix,

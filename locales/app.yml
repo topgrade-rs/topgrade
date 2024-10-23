@@ -622,3 +622,19 @@ _version: 2
   en: "Would upgrade OpenBSD packages"
   es: "Actualizaría los paquetes de OpenBSD"
   zh_TW: "會升級 OpenBSD 套件"
+"Microsoft Store":
+  en: "Microsoft Store"
+  es: "Tienda de Microsoft"
+  zh_TW: "Microsoft Store"
+"Scanning for updates...":
+  en: "Scanning for updates..."
+  es: "Buscando actualizaciones..."
+  zh_TW: "正在掃描更新..."
+"Success, Microsoft Store apps are being updated in the background":
+  en: "Success, Microsoft Store apps are being updated in the background"
+  es: "Éxito, las aplicaciones de Microsoft Store se están actualizando en segundo plano"
+  zh_TW: "成功，Microsoft Store 應用程式正在後台更新"
+"Unable to update Microsoft Store apps, manual intervention is required":
+  en: "Unable to update Microsoft Store apps, manual intervention is required"
+  es: "No se pueden actualizar las aplicaciones de Microsoft Store, se requiere intervención manual"
+  zh_TW: "無法更新 Microsoft Store 應用，需手動幹預"
