@@ -184,6 +184,32 @@ impl Yarn {
     }
 }
 
+struct Deno {
+    command: PathBuf,
+}
+
+impl Deno {
+    fn new(command: PathBuf) -> Self {
+        Self { command }
+    }
+
+    fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
+        let mut args = vec![];
+
+        let version = ctx.config().deno_version();
+        if let Some(version) = version {
+            args.push(version);
+        }
+
+        ctx.run_type()
+            .execute(&self.command)
+            .arg("upgrade")
+            .args(args)
+            .status_checked()?;
+        Ok(())
+    }
+}
+
 #[cfg(target_os = "linux")]
 fn should_use_sudo(npm: &NPM, ctx: &ExecutionContext) -> Result<bool> {
     if npm.should_use_sudo()? {
@@ -266,16 +292,16 @@ pub fn run_yarn_upgrade(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn deno_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let deno = require("deno")?;
+    let deno = require("deno").map(Deno::new)?;
     let deno_dir = HOME_DIR.join(".deno");
 
-    if !deno.canonicalize()?.is_descendant_of(&deno_dir) {
+    if !deno.command.canonicalize()?.is_descendant_of(&deno_dir) {
         let skip_reason = SkipStep(t!("Deno installed outside of .deno directory").to_string());
         return Err(skip_reason.into());
     }
 
     print_separator("Deno");
-    ctx.run_type().execute(&deno).arg("upgrade").status_checked()
+    deno.upgrade(ctx)
 }
 
 /// There is no `volta upgrade` command, so we need to upgrade each package

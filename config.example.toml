@@ -223,6 +223,11 @@
 # use_sudo = true
 
 
+[deno]
+# Upgrade deno executable to the given version.
+# version = stable
+
+
 [vim]
 # For `vim-plug`, execute `PlugUpdate!` instead of `PlugUpdate`
 # force_plug_update = true
