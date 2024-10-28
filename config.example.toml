@@ -225,7 +225,7 @@
 
 [deno]
 # Upgrade deno executable to the given version.
-# version = stable
+# version = "stable"
 
 
 [vim]
