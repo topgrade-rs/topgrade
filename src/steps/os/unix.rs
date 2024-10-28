@@ -653,12 +653,12 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("mise");
 
-    ctx.run_type().execute(&mise).arg("upgrade").status_checked()?;
-
     ctx.run_type()
         .execute(&mise)
         .args(["plugins", "update"])
-        .status_checked()
+        .status_checked()?;
+
+    ctx.run_type().execute(&mise).arg("upgrade").status_checked()
 }
 
 pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
