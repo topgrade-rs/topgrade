@@ -198,7 +198,46 @@ impl Deno {
 
         let version = ctx.config().deno_version();
         if let Some(version) = version {
-            args.push(version);
+            let bin_version = self.version()?;
+
+            if bin_version >= Version::new(2, 0, 0) {
+                args.push(version);
+            } else if bin_version >= Version::new(1, 6, 0) {
+                match version {
+                    "stable" => {}
+                    "rc" => {
+                        return Err(SkipStep("Deno v1.x cannot be upgraded to a release candidate".to_string()).into());
+                    }
+                    "canary" => args.push("--canary"),
+                    _ => {
+                        if Version::parse(version).is_err() {
+                            return Err(SkipStep("Invalid Deno version".to_string()).into());
+                        }
+
+                        args.push("--version");
+                        args.push(version);
+                    }
+                }
+            } else if bin_version >= Version::new(1, 0, 0) {
+                match version {
+                    "stable" | "rc" | "canary" => {
+                        // Prior to v1.6.0, `deno upgrade` is not able fetch the latest tag version.
+                        return Err(SkipStep("Deno v1.x cannot be upgraded to a named channel".to_string()).into());
+                    }
+                    _ => {
+                        if Version::parse(version).is_err() {
+                            return Err(SkipStep("Invalid Deno version".to_string()).into());
+                        }
+
+                        args.push("--version");
+                        args.push(version);
+                    }
+                }
+            } else {
+                // v0.x cannot be upgraded with `deno upgrade` to v1.x or v2.x
+                // nor can be upgraded to a specific version.
+                return Err(SkipStep("Unsupported Deno version".to_string()).into());
+            }
         }
 
         ctx.run_type()
@@ -207,6 +246,14 @@ impl Deno {
             .args(args)
             .status_checked()?;
         Ok(())
+    }
+
+    fn version(&self) -> Result<Version> {
+        let version_str = Command::new(&self.command)
+            .args(["-V"])
+            .output_checked_utf8()
+            .map(|s| s.stdout.trim().to_owned().split_off(5));
+        Version::parse(&version_str?).map_err(|err| err.into())
     }
 }
 
