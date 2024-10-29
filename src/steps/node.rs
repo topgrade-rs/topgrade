@@ -253,11 +253,19 @@ impl Deno {
         Ok(())
     }
 
+    /// Get the version of Deno.
+    ///
+    /// This function will return the version of Deno installed on the system.
+    /// The version is parsed from the output of `deno -V`.
+    ///
+    /// ```sh
+    /// deno -V # deno 1.6.0
+    /// ```
     fn version(&self) -> Result<Version> {
         let version_str = Command::new(&self.command)
             .args(["-V"])
             .output_checked_utf8()
-            .map(|s| s.stdout.trim().to_owned().split_off(5));
+            .map(|s| s.stdout.trim().to_owned().split_off(5)); // remove "deno " prefix
         Version::parse(&version_str?).map_err(|err| err.into())
     }
 }
