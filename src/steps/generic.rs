@@ -1032,15 +1032,20 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
     let uv_exec = require("uv")?;
     print_separator("uv");
 
-    ctx.run_type()
+    // try uv self --help first - if it succeeds, we call uv self update
+    let result = ctx
+        .run_type()
         .execute(&uv_exec)
-        .args(["self", "update"])
-        .status_checked()
-        .ok();
+        .args(["self", "--help"])
+        .output_checked();
 
-    // ignoring self-update errors, because they are likely due to uv's
-    // installation being managed by another package manager, in which
-    // case another step will handle the update.
+    if result.is_ok() {
+        return ctx
+            .run_type()
+            .execute(&uv_exec)
+            .args(["self", "update"])
+            .status_checked();
+    }
 
     ctx.run_type()
         .execute(&uv_exec)
