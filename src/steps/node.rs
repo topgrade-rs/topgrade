@@ -204,7 +204,7 @@ impl Deno {
                 args.push(version);
             } else if bin_version >= Version::new(1, 6, 0) {
                 match version {
-                    "stable" => {}
+                    "stable" => { /* do nothing, as stable is the default channel to upgrade */ }
                     "rc" => {
                         return Err(SkipStep(
                             "Deno (1.6.0-2.0.0) cannot be upgraded to a release candidate".to_string(),
