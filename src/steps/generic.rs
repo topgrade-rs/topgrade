@@ -1040,11 +1040,11 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         .output_checked();
 
     if result.is_ok() {
-        return ctx
-            .run_type()
+        ctx.run_type()
             .execute(&uv_exec)
             .args(["self", "update"])
-            .status_checked();
+            .status_checked()
+            .ok();
     }
 
     ctx.run_type()
