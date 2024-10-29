@@ -206,7 +206,10 @@ impl Deno {
                 match version {
                     "stable" => {}
                     "rc" => {
-                        return Err(SkipStep("Deno v1.x cannot be upgraded to a release candidate".to_string()).into());
+                        return Err(SkipStep(
+                            "Deno (1.6.0-2.0.0) cannot be upgraded to a release candidate".to_string(),
+                        )
+                        .into());
                     }
                     "canary" => args.push("--canary"),
                     _ => {
@@ -222,7 +225,9 @@ impl Deno {
                 match version {
                     "stable" | "rc" | "canary" => {
                         // Prior to v1.6.0, `deno upgrade` is not able fetch the latest tag version.
-                        return Err(SkipStep("Deno v1.x cannot be upgraded to a named channel".to_string()).into());
+                        return Err(
+                            SkipStep("Deno (1.0.0-1.6.0) cannot be upgraded to a named channel".to_string()).into(),
+                        );
                     }
                     _ => {
                         if Version::parse(version).is_err() {
