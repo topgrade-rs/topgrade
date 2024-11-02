@@ -64,24 +64,37 @@ impl Powershell {
 
     pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
         let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
-
+    
         print_separator(t!("Powershell Modules Update"));
-
-        let mut cmd = vec!["Update-Module"];
-
+    
+        let mut unload_cmd = vec!["Get-Module | Remove-Module -Force"];
+        let mut update_cmd = vec!["Update-Module"];
+        let mut reload_cmd = vec!["Get-Module -ListAvailable | Import-Module"];
+    
         if ctx.config().verbose() {
-            cmd.push("-Verbose")
+            update_cmd.push("-Verbose");
         }
-
+    
         if ctx.config().yes(Step::Powershell) {
-            cmd.push("-Force")
+            update_cmd.push("-Force");
         }
-
+    
+        println!("{}", t!("Unloading modules..."));
+        ctx.run_type()
+            .execute(powershell)
+            .args(["-NoProfile", "-Command", &unload_cmd.join(" ")])
+            .status_checked()?;
+    
         println!("{}", t!("Updating modules..."));
         ctx.run_type()
             .execute(powershell)
-            // This probably doesn't need `shell_words::join`.
-            .args(["-NoProfile", "-Command", &cmd.join(" ")])
+            .args(["-NoProfile", "-Command", &update_cmd.join(" ")])
+            .status_checked()?;
+    
+        println!("{}", t!("Reloading modules..."));
+        ctx.run_type()
+            .execute(powershell)
+            .args(["-NoProfile", "-Command", &reload_cmd.join(" ")])
             .status_checked()
     }
 
