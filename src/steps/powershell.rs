@@ -67,9 +67,9 @@ impl Powershell {
 
         print_separator(t!("Powershell Modules Update"));
 
-        let mut unload_cmd = vec!["Get-Module | Remove-Module -Force"];
+        let unload_cmd = ["Get-Module | Remove-Module -Force"];
         let mut update_cmd = vec!["Update-Module"];
-        let mut reload_cmd = vec!["Get-Module -ListAvailable | Import-Module"];
+        let reload_cmd = ["Get-Module -ListAvailable | Import-Module"];
 
         if ctx.config().verbose() {
             update_cmd.push("-Verbose");
