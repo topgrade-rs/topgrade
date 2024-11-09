@@ -111,6 +111,7 @@ pub enum Step {
     Mas,
     Maza,
     Micro,
+    MicrosoftStore,
     Mise,
     Myrepos,
     Nix,
@@ -252,6 +253,13 @@ pub struct Yarn {
 #[allow(clippy::upper_case_acronyms)]
 pub struct NPM {
     use_sudo: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
+pub struct Deno {
+    version: Option<String>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -489,6 +497,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     yarn: Option<Yarn>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    deno: Option<Deno>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     vim: Option<Vim>,
@@ -1523,6 +1534,10 @@ impl Config {
             .as_ref()
             .and_then(|yarn| yarn.use_sudo)
             .unwrap_or(false)
+    }
+
+    pub fn deno_version(&self) -> Option<&str> {
+        self.config_file.deno.as_ref().and_then(|deno| deno.version.as_deref())
     }
 
     #[cfg(target_os = "linux")]

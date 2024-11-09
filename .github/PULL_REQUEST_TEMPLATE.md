@@ -3,9 +3,10 @@
 
 ## Standards checklist
 
-- [ ] The PR title is descriptive.
+- [ ] The PR title is descriptive
 - [ ] I have read `CONTRIBUTING.md`
 - [ ] *Optional:* I have tested the code myself
+- [ ] If this PR introduces new user-facing messages they are translated
  
 ## For new steps
 

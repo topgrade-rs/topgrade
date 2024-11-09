@@ -10,7 +10,7 @@ fn is_openbsd_current(ctx: &ExecutionContext) -> Result<bool> {
     let motd_content = fs::read_to_string("/etc/motd")?;
     let is_current = motd_content.contains("-current");
     if ctx.config().dry_run() {
-        println!("Would check if OpenBSD is -current");
+        println!("{}", t!("Would check if OpenBSD is -current"));
         Ok(is_current)
     } else {
         Ok(is_current)
@@ -24,7 +24,7 @@ pub fn upgrade_openbsd(ctx: &ExecutionContext) -> Result<()> {
     let is_current = is_openbsd_current(ctx)?;
 
     if ctx.config().dry_run() {
-        println!("Would upgrade the OpenBSD system");
+        println!("{}", t!("Would upgrade the OpenBSD system"));
         return Ok(());
     }
 
@@ -43,7 +43,7 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     let is_current = is_openbsd_current(ctx)?;
 
     if ctx.config().dry_run() {
-        println!("Would upgrade OpenBSD packages");
+        println!("{}", t!("Would upgrade OpenBSD packages"));
         return Ok(());
     }
 

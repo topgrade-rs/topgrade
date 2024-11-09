@@ -129,6 +129,24 @@ $ cargo test
 
 Don't worry about other platforms, we have most of them covered in our CI.
 
+## I18n 
+
+If your PR introduces user-facing messages, we need to ensure they are translated. 
+Please add the translations to [`locales/app.yml`][app_yml]. For simple messages 
+without arguments (e.g., "hello world"), we can simply translate them according 
+(Tip: ChatGPT or similar LLMs is good at translation). If a message contains 
+arguments, e.g., "hello <NAME>", please follow this convention:
+
+```yml
+"hello {name}":        # key
+  en: "hello %{name}"  # translation
+```
+
+Arguments in the key should be in format `{argument_name}`, and they will have
+a preceeding `%` when used in translations.
+
+[app_yml]: https://github.com/topgrade-rs/topgrade/blob/main/locales/app.yml
+
 ## Some tips
 
 1. Locale

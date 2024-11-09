@@ -184,6 +184,92 @@ impl Yarn {
     }
 }
 
+struct Deno {
+    command: PathBuf,
+}
+
+impl Deno {
+    fn new(command: PathBuf) -> Self {
+        Self { command }
+    }
+
+    fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
+        let mut args = vec![];
+
+        let version = ctx.config().deno_version();
+        if let Some(version) = version {
+            let bin_version = self.version()?;
+
+            if bin_version >= Version::new(2, 0, 0) {
+                args.push(version);
+            } else if bin_version >= Version::new(1, 6, 0) {
+                match version {
+                    "stable" => { /* do nothing, as stable is the default channel to upgrade */ }
+                    "rc" => {
+                        return Err(SkipStep(
+                            "Deno (1.6.0-2.0.0) cannot be upgraded to a release candidate".to_string(),
+                        )
+                        .into());
+                    }
+                    "canary" => args.push("--canary"),
+                    _ => {
+                        if Version::parse(version).is_err() {
+                            return Err(SkipStep("Invalid Deno version".to_string()).into());
+                        }
+
+                        args.push("--version");
+                        args.push(version);
+                    }
+                }
+            } else if bin_version >= Version::new(1, 0, 0) {
+                match version {
+                    "stable" | "rc" | "canary" => {
+                        // Prior to v1.6.0, `deno upgrade` is not able fetch the latest tag version.
+                        return Err(
+                            SkipStep("Deno (1.0.0-1.6.0) cannot be upgraded to a named channel".to_string()).into(),
+                        );
+                    }
+                    _ => {
+                        if Version::parse(version).is_err() {
+                            return Err(SkipStep("Invalid Deno version".to_string()).into());
+                        }
+
+                        args.push("--version");
+                        args.push(version);
+                    }
+                }
+            } else {
+                // v0.x cannot be upgraded with `deno upgrade` to v1.x or v2.x
+                // nor can be upgraded to a specific version.
+                return Err(SkipStep("Unsupported Deno version".to_string()).into());
+            }
+        }
+
+        ctx.run_type()
+            .execute(&self.command)
+            .arg("upgrade")
+            .args(args)
+            .status_checked()?;
+        Ok(())
+    }
+
+    /// Get the version of Deno.
+    ///
+    /// This function will return the version of Deno installed on the system.
+    /// The version is parsed from the output of `deno -V`.
+    ///
+    /// ```sh
+    /// deno -V # deno 1.6.0
+    /// ```
+    fn version(&self) -> Result<Version> {
+        let version_str = Command::new(&self.command)
+            .args(["-V"])
+            .output_checked_utf8()
+            .map(|s| s.stdout.trim().to_owned().split_off(5)); // remove "deno " prefix
+        Version::parse(&version_str?).map_err(|err| err.into())
+    }
+}
+
 #[cfg(target_os = "linux")]
 fn should_use_sudo(npm: &NPM, ctx: &ExecutionContext) -> Result<bool> {
     if npm.should_use_sudo()? {
@@ -266,16 +352,16 @@ pub fn run_yarn_upgrade(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn deno_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let deno = require("deno")?;
+    let deno = require("deno").map(Deno::new)?;
     let deno_dir = HOME_DIR.join(".deno");
 
-    if !deno.canonicalize()?.is_descendant_of(&deno_dir) {
+    if !deno.command.canonicalize()?.is_descendant_of(&deno_dir) {
         let skip_reason = SkipStep(t!("Deno installed outside of .deno directory").to_string());
         return Err(skip_reason.into());
     }
 
     print_separator("Deno");
-    ctx.run_type().execute(&deno).arg("upgrade").status_checked()
+    deno.upgrade(ctx)
 }
 
 /// There is no `volta upgrade` command, so we need to upgrade each package
