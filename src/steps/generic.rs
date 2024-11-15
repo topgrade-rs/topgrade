@@ -910,7 +910,7 @@ pub fn update_julia_packages(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.run_type()
         .execute(julia)
-        .args(["-e", "using Pkg; Pkg.update()"])
+        .args(["--startup-file=no", "-e", "using Pkg; Pkg.update()"])
         .status_checked()
 }
 
