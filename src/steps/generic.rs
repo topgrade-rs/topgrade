@@ -908,10 +908,15 @@ pub fn update_julia_packages(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Julia Packages"));
 
-    ctx.run_type()
-        .execute(julia)
-        .args(["--startup-file=no", "-e", "using Pkg; Pkg.update()"])
-        .status_checked()
+    let mut executor = ctx.run_type().execute(julia);
+
+    executor.arg(if ctx.config().julia_use_startup_file() {
+        "--startup-file=yes"
+    } else {
+        "--startup-file=no"
+    });
+
+    executor.args(["-e", "using Pkg; Pkg.update()"]).status_checked()
 }
 
 pub fn run_helm_repo_update(ctx: &ExecutionContext) -> Result<()> {

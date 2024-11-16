@@ -270,3 +270,11 @@
 # and the update will be installed system-wide, i.e., available to all users.
 # (default: false)
 # use_sudo = false
+
+[julia]
+# If enabled, Topgrade invokes julia with the --startup-file=yes CLI option.
+#
+# This may be desirable to avoid loading outdated packages with "using" directives
+# in the startup file which would cause the update run to fail.
+# (default: true)
+# startup_file = true
