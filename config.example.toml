@@ -172,6 +172,11 @@
 
 # rpm_ostree = false
 
+# For Fedora/CentOS/RHEL Atomic variants, if `bootc` is available and this configuration entry is set to true, use
+# it to do the update.
+# (default: false)
+# bootc = false
+
 # nix_arguments = "--flake"
 
 # nix_env_arguments = "--prebuilt-only"

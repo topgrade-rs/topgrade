@@ -358,6 +358,7 @@ pub struct Linux {
     redhat_distro_sync: Option<bool>,
     suse_dup: Option<bool>,
     rpm_ostree: Option<bool>,
+    bootc: Option<bool>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     emerge_sync_flags: Option<String>,
@@ -1454,6 +1455,15 @@ impl Config {
             .linux
             .as_ref()
             .and_then(|linux| linux.rpm_ostree)
+            .unwrap_or(false)
+    }
+
+    /// Use bootc in *when bootc is detected* (default: false)
+    pub fn bootc(&self) -> bool {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|linux| linux.bootc)
             .unwrap_or(false)
     }
 
