@@ -453,6 +453,7 @@ pub struct Lensfun {
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 pub struct JuliaConfig {
     startup_file: Option<bool>,
 }
