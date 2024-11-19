@@ -173,7 +173,7 @@
 # rpm_ostree = false
 
 # For Fedora/CentOS/RHEL Atomic variants, if `bootc` is available and this configuration entry is set to true, use
-# it to do the update.
+# it to do the update - Will also supercede rpm-ostree if enabled
 # (default: false)
 # bootc = false
 
