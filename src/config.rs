@@ -454,6 +454,12 @@ pub struct Lensfun {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct JuliaConfig {
+    startup_file: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 /// Configuration file
 pub struct ConfigFile {
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
@@ -518,6 +524,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     lensfun: Option<Lensfun>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    julia: Option<JuliaConfig>,
 }
 
 fn config_directory() -> PathBuf {
@@ -1631,6 +1640,14 @@ impl Config {
             .as_ref()
             .and_then(|lensfun| lensfun.use_sudo)
             .unwrap_or(false)
+    }
+
+    pub fn julia_use_startup_file(&self) -> bool {
+        self.config_file
+            .julia
+            .as_ref()
+            .and_then(|julia| julia.startup_file)
+            .unwrap_or(true)
     }
 }
 
