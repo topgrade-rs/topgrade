@@ -1,5 +1,6 @@
 #![allow(unused_imports)]
 
+use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, path::Path};
@@ -1029,8 +1030,82 @@ pub fn run_lensfun_update_data(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
     let poetry = require("poetry")?;
+
+    #[cfg(unix)]
+    fn get_interpreter(poetry: &PathBuf) -> Result<PathBuf> {
+        use std::os::unix::ffi::OsStrExt;
+
+        let script = fs::read(poetry)?;
+        if let Some(r) = script.iter().position(|&b| b == b'\n') {
+            let first_line = &script[..r];
+            if first_line.starts_with(b"#!") {
+                return Ok(OsStr::from_bytes(&first_line[2..]).into());
+            }
+        }
+
+        Err(eyre!("Could not find shebang"))
+    }
+    #[cfg(windows)]
+    fn get_interpreter(poetry: &PathBuf) -> Result<PathBuf> {
+        let data = fs::read(poetry)?;
+
+        // https://bitbucket.org/vinay.sajip/simple_launcher/src/master/compare_launchers.py
+
+        let pos = match data.windows(4).rposition(|b| b == b"PK\x05\x06") {
+            Some(i) => i,
+            None => return Err(eyre!("Not a ZIP archive")),
+        };
+
+        let cdr_size = match data.get(pos + 12..pos + 16) {
+            Some(b) => u32::from_le_bytes(b.try_into().unwrap()) as usize,
+            None => return Err(eyre!("Invalid CDR size")),
+        };
+        let cdr_offset = match data.get(pos + 16..pos + 20) {
+            Some(b) => u32::from_le_bytes(b.try_into().unwrap()) as usize,
+            None => return Err(eyre!("Invalid CDR offset")),
+        };
+        if pos < cdr_size + cdr_offset {
+            return Err(eyre!("Invalid ZIP archive"));
+        }
+        let arc_pos = pos - cdr_size - cdr_offset;
+        let shebang = match data[..arc_pos].windows(2).rposition(|b| b == b"#!") {
+            Some(l) => &data[l + 2..arc_pos - 1],
+            None => return Err(eyre!("Could not find shebang")),
+        };
+
+        // shebang line is utf8
+        Ok(std::str::from_utf8(shebang)?.into())
+    }
+
+    let interpreter = match get_interpreter(&poetry) {
+        Ok(p) => p,
+        Err(e) => return Err(SkipStep(format!("Could not find interpreter for {}: {}", poetry.display(), e)).into()),
+    };
+    debug!("poetry interpreter: {}", interpreter.display());
+
+    let check_official_install_script =
+        "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
+    let output = Command::new(&interpreter)
+        .args(["-c", check_official_install_script])
+        .output_checked_utf8()?;
+    let stdout = output.stdout.trim();
+    let official_install = match stdout {
+        "N" => false,
+        "Y" => true,
+        _ => unreachable!("unexpected output from `check_official_install_script`"),
+    };
+
+    debug!("poetry is official install: {}", official_install);
+
+    if !official_install {
+        return Err(SkipStep("Not installed with the official script".to_string()).into());
+    }
+
     print_separator("Poetry");
-    ctx.run_type().execute(poetry).args(["self", "update"]).status_checked()
+    ctx.run_type()
+        .execute(&poetry)
+        .args(["self", "update"])
+        .status_checked()
 }
 
 pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
