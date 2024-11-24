@@ -103,6 +103,10 @@
 # enable_pipupgrade = true                         ###disabled by default
 # pipupgrade_arguments = "-y -u --pip-path pip"    ###disabled by default
 
+# Run `poetry self update` even if poetry was not installed with the official script
+# (default: false)
+# poetry_force_self_update = true
+
 
 [composer]
 # self_update = true

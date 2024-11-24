@@ -1077,28 +1077,34 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         Ok(std::str::from_utf8(shebang)?.into())
     }
 
-    let interpreter = match get_interpreter(&poetry) {
-        Ok(p) => p,
-        Err(e) => return Err(SkipStep(format!("Could not find interpreter for {}: {}", poetry.display(), e)).into()),
-    };
-    debug!("poetry interpreter: {}", interpreter.display());
+    if ctx.config().poetry_force_self_update() {
+        debug!("forcing poetry self update");
+    } else {
+        let interpreter = match get_interpreter(&poetry) {
+            Ok(p) => p,
+            Err(e) => {
+                return Err(SkipStep(format!("Could not find interpreter for {}: {}", poetry.display(), e)).into())
+            }
+        };
+        debug!("poetry interpreter: {}", interpreter.display());
 
-    let check_official_install_script =
+        let check_official_install_script =
         "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
-    let output = Command::new(&interpreter)
-        .args(["-c", check_official_install_script])
-        .output_checked_utf8()?;
-    let stdout = output.stdout.trim();
-    let official_install = match stdout {
-        "N" => false,
-        "Y" => true,
-        _ => unreachable!("unexpected output from `check_official_install_script`"),
-    };
+        let output = Command::new(&interpreter)
+            .args(["-c", check_official_install_script])
+            .output_checked_utf8()?;
+        let stdout = output.stdout.trim();
+        let official_install = match stdout {
+            "N" => false,
+            "Y" => true,
+            _ => unreachable!("unexpected output from `check_official_install_script`"),
+        };
 
-    debug!("poetry is official install: {}", official_install);
+        debug!("poetry is official install: {}", official_install);
 
-    if !official_install {
-        return Err(SkipStep("Not installed with the official script".to_string()).into());
+        if !official_install {
+            return Err(SkipStep("Not installed with the official script".to_string()).into());
+        }
     }
 
     print_separator("Poetry");

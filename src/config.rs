@@ -229,6 +229,7 @@ pub struct Python {
     enable_pip_review_local: Option<bool>,
     enable_pipupgrade: Option<bool>,
     pipupgrade_arguments: Option<String>,
+    poetry_force_self_update: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1625,6 +1626,13 @@ impl Config {
             .python
             .as_ref()
             .and_then(|python| python.enable_pip_review_local)
+            .unwrap_or(false)
+    }
+    pub fn poetry_force_self_update(&self) -> bool {
+        self.config_file
+            .python
+            .as_ref()
+            .and_then(|python| python.poetry_force_self_update)
             .unwrap_or(false)
     }
 
