@@ -103,6 +103,13 @@
 # enable_pipupgrade = true                         ###disabled by default
 # pipupgrade_arguments = "-y -u --pip-path pip"    ###disabled by default
 
+# For the poetry step, by default, Topgrade skips its update if poetry is not 
+# installed with the official script. This configuration entry forces Topgrade 
+# to run the update in this case.
+#
+# (default: false)
+# poetry_force_self_update = true
+
 
 [composer]
 # self_update = true
