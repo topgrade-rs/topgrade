@@ -64,6 +64,7 @@ pub enum Step {
     BrewFormula,
     Bun,
     BunPackages,
+    BunCompletions,
     Cargo,
     Certbot,
     Chezmoi,
