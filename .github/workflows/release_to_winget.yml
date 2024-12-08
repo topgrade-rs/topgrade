@@ -11,3 +11,22 @@ jobs:
           identifier: topgrade-rs.topgrade
           max-versions-to-keep: 5 # keep only latest 5 versions
           token: ${{ secrets.WINGET_TOKEN }}
+      - name: Get latest release information
+        id: get_release_info
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ReleaseInfo = Invoke-RestMethod `
+            -Uri 'https://api.github.com/repos/topgrade-rs/topgrade/releases/latest' `
+            -Headers @{ Authorization = "token $env:GITHUB_TOKEN" }
+          Write-Output "Release Info: $ReleaseInfo"
+          echo "::set-output name=version::$(echo $ReleaseInfo.tag_name -replace '^v')"
+          echo "::set-output name=urls::$(echo $ReleaseInfo.assets.Where({ $_.name -match '.(exe|msi|msix|appx)(bundle){0,1}$' }).browser_download_url -join ' ')"
+      - name: Update WinGet package
+        env:
+          KOMAC_FORK_OWNER: topgrade-rs
+          KOMAC_CREATED_WITH: WinGet Releaser
+          KOMAC_CREATED_WITH_URL: https://github.com/vedantmgoyal2009/winget-releaser
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          komac update 'topgrade-rs.topgrade' --version '${{ steps.get_release_info.outputs.version }}' --submit --urls '${{ steps.get_release_info.outputs.urls }}'
