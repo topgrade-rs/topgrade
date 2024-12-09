@@ -239,6 +239,9 @@
 # Upgrade deno executable to the given version.
 # version = "stable"
 
+[elan]
+# Disables elan self update
+# self_update = false
 
 [vim]
 # For `vim-plug`, execute `PlugUpdate!` instead of `PlugUpdate`
