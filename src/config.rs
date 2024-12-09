@@ -379,12 +379,6 @@ pub struct Composer {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
-pub struct Elan {
-    self_update: Option<bool>,
-}
-
-#[derive(Deserialize, Default, Debug, Merge)]
-#[serde(deny_unknown_fields)]
 pub struct Vim {
     force_plug_update: Option<bool>,
 }
@@ -514,9 +508,6 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     deno: Option<Deno>,
-
-    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
-    elan: Option<Elan>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     vim: Option<Vim>,
@@ -1252,15 +1243,6 @@ impl Config {
             .as_ref()
             .and_then(|c| c.self_update)
             .unwrap_or(false)
-    }
-
-    /// Whether Elan should update itself
-    pub fn elan_self_update(&self) -> bool {
-        self.config_file
-            .elan
-            .as_ref()
-            .and_then(|c| c.self_update)
-            .unwrap_or(true)
     }
 
     /// Whether to force plug update in Vim
