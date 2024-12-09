@@ -260,9 +260,9 @@ pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
     print_separator("elan");
     if ctx.config().elan_self_update() {
         ctx.run_type()
-            .execute(&elan)
-            .args(["self", "update"])
-            .status_checked()?;
+           .execute(&elan)
+           .args(["self", "update"])
+           .status_checked()?;
     }
     ctx.run_type().execute(&elan).arg("update").status_checked()
 }
