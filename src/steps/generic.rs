@@ -262,10 +262,7 @@ pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
     let disabled = "self-update is disabled";
     let mut success = true;
 
-    let res = ctx.run_type()
-               .execute(&elan)
-               .args(["self", "update"])
-               .output_checked();
+    let res = ctx.run_type().execute(&elan).args(["self", "update"]).output_checked();
 
     // Ignore failed self-update if it is disabled
     if let Err(e) = &res {
