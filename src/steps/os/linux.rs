@@ -230,7 +230,9 @@ fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
             let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
             return ctx.run_type().execute(sudo).arg(&bootc).arg("upgrade").status_checked();
         }
-    } else if let Some(ostree) = which("rpm-ostree") {
+    }
+
+    if let Some(ostree) = which("rpm-ostree") {
         if ctx.config().rpm_ostree() {
             let mut command = ctx.run_type().execute(ostree);
             command.arg("upgrade");
