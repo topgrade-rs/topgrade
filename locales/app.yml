@@ -65,6 +65,16 @@ _version: 2
   es: "Actualizando módulos..."
   fr: "Mise à jour des modules..."
   zh_TW: "正在更新模組..."
+"Unloading modules...":
+  en: "Unloading modules..."
+  es: "Descarga de módulos..."
+  fr: "Déchargement des modules..."
+  zh_TW: "正在卸載模組..."
+"Reloading modules...":
+  en: "Reloading modules..."
+  es: "Módulos de recarga..."
+  fr: "Modules de rechargement..."
+  zh_TW: "正在重裝模組..."
 "Powershell Modules Update":
   en: "Powershell Modules Update"
   es: "Actualización de módulos Powershell"
