@@ -1129,8 +1129,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         ctx.run_type()
             .execute(&uv_exec)
             .args(["self", "update"])
-            .status_checked()
-            .ok();
+            .status_checked()?;
     }
 
     ctx.run_type()
