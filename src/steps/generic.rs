@@ -260,20 +260,23 @@ pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
     print_separator("elan");
 
     let disabled = "self-update is disabled";
-    let mut exec = ctx.run_type().execute(&elan);
     let mut success = true;
-    if let Err(e) = exec.arg("self").arg("update").status_checked() {
-        error!("Self-update failed: {e}");
-        if let Err(e) = exec.output_checked_utf8() {
-            success = match e.downcast_ref::<TopgradeError>() {
-                Some(TopgradeError::ProcessFailedWithOutput(_, _, stderr)) => stderr.contains(disabled),
-                _ => false,
-            }
+
+    let res = ctx.run_type()
+               .execute(&elan)
+               .args(["self", "update"])
+               .output_checked();
+
+    // Ignore failed self-update if it is disabled
+    if let Err(e) = &res {
+        success = match e.downcast_ref::<TopgradeError>() {
+            Some(TopgradeError::ProcessFailedWithOutput(_, _, stderr)) => stderr.contains(disabled),
+            _ => false,
         }
     }
 
     if !success {
-        return Err(eyre!(StepFailed));
+        return Err(res.err().unwrap());
     }
 
     ctx.run_type().execute(&elan).arg("update").status_checked()
