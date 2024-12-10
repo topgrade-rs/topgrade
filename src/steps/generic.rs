@@ -19,12 +19,12 @@ use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
 use crate::terminal::{print_separator, shell};
 use crate::utils::{self, check_is_python_2_or_shim, get_require_sudo_string, require, require_option, which, PathExt};
-use crate::Step;
 use crate::HOME_DIR;
 use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
     terminal::print_warning,
 };
+use crate::{print_info, Step};
 
 #[cfg(target_os = "linux")]
 pub fn is_wsl() -> Result<bool> {
@@ -1154,4 +1154,43 @@ pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Bun");
 
     ctx.run_type().execute(bun).arg("upgrade").status_checked()
+}
+
+/// Pull all the installed LLMs.
+pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
+    let ollama = require("ollama")?;
+
+    print_separator("Ollama");
+
+    // Example output (stdout)
+    //
+    // ```
+    // NAME                ID              SIZE      MODIFIED
+    // gemma2:2b           8ccf136fdd52    1.6 GB    6 minutes ago
+    // moondream:latest    55fc3abd3867    1.7 GB    4 hours ago
+    // ```
+    //
+    // We use `std::process::Command` here so that we can still collect the model
+    // list even in dry run.
+    let ollama_list_output = Command::new(&ollama).arg("list").output_checked_utf8()?;
+    let ollama_list_stdout = ollama_list_output.stdout;
+    // trim the last new-line character, or `stdout.split('\n')` would give us an empty string
+    let ollama_list_stdout_trimmed = ollama_list_stdout.trim_end_matches(|char| char == '\n');
+    // skip(1) to skip the first `NAME ID SIZE MODIFIED` line
+    let model_lines = ollama_list_stdout_trimmed.split('\n').skip(1);
+    for model_line in model_lines {
+        let mut columns = model_line.split_whitespace();
+        let model_name = columns
+            .next()
+            .expect("The format of `ollama list` output has changed, file an issue to Topgrade!");
+        assert!(model_name.contains(':'), "a tag should be included in the model name");
+
+        print_info(t!("Pulling model '{model_name}'", model_name = model_name));
+        ctx.run_type()
+            .execute(&ollama)
+            .args(["pull", model_name])
+            .status_checked()?;
+    }
+
+    Ok(())
 }
