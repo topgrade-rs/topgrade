@@ -259,21 +259,32 @@ pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("elan");
 
-    let disabled = "self-update is disabled";
-    let mut success = true;
+    let disabled_error_msg = "self-update is disabled";
+    let executor_output = ctx.run_type().execute(&elan).args(["self", "update"]).output()?;
+    match executor_output {
+        ExecutorOutput::Wet(command_output) => {
+            if command_output.status.success() {
+                // Flush the captured output
+                std::io::stdout().lock().write(&command_output.stdout).unwrap();
+                std::io::stderr().lock().write(&command_output.stderr).unwrap();
+            } else {
+                let stderr_as_str = std::str::from_utf8(&command_output.stderr).unwrap();
+                if stderr_as_str.contains(disabled_error_msg) {
+                    // `elan` is externally managed, we cannot do the update. Users
+                    // won't see any error message because Topgrade captures them
+                    // all.
+                } else {
+                    // `elan` is NOT externally managed, `elan self update` can
+                    // be performed, but the invocation failed, so we report the
+                    // error to the user and error out.
+                    std::io::stdout().lock().write(&command_output.stdout).unwrap();
+                    std::io::stderr().lock().write(&command_output.stderr).unwrap();
 
-    let res = ctx.run_type().execute(&elan).args(["self", "update"]).output_checked();
-
-    // Ignore failed self-update if it is disabled
-    if let Err(e) = &res {
-        success = match e.downcast_ref::<TopgradeError>() {
-            Some(TopgradeError::ProcessFailedWithOutput(_, _, stderr)) => stderr.contains(disabled),
-            _ => false,
+                    return Err(StepFailed.into());
+                }
+            }
         }
-    }
-
-    if !success {
-        return Err(res.err().unwrap());
+        ExecutorOutput::Dry => { /* nothing needed because in a dry run */ }
     }
 
     ctx.run_type().execute(&elan).arg("update").status_checked()
