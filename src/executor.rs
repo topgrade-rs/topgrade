@@ -152,7 +152,10 @@ impl Executor {
         let result = match self {
             Executor::Wet(c) => {
                 debug!("Running {:?}", c);
-                c.spawn_checked().map(ExecutorChild::Wet)?
+                // We should use `spawn()` here rather than `spawn_checked()` since
+                // their semantics and behaviors are different.
+                #[allow(clippy::disallowed_methods)]
+                c.spawn().map(ExecutorChild::Wet)?
             }
             Executor::Dry(c) => {
                 c.dry_run();
@@ -166,7 +169,12 @@ impl Executor {
     /// See `std::process::Command::output`
     pub fn output(&mut self) -> Result<ExecutorOutput> {
         match self {
-            Executor::Wet(c) => Ok(ExecutorOutput::Wet(c.output_checked()?)),
+            Executor::Wet(c) => {
+                // We should use `output()` here rather than `output_checked()` since
+                // their semantics and behaviors are different.
+                #[allow(clippy::disallowed_methods)]
+                Ok(ExecutorOutput::Wet(c.output()?))
+            }
             Executor::Dry(c) => {
                 c.dry_run();
                 Ok(ExecutorOutput::Dry)
