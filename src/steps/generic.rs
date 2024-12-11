@@ -265,8 +265,8 @@ pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
         ExecutorOutput::Wet(command_output) => {
             if command_output.status.success() {
                 // Flush the captured output
-                std::io::stdout().lock().write(&command_output.stdout).unwrap();
-                std::io::stderr().lock().write(&command_output.stderr).unwrap();
+                std::io::stdout().lock().write_all(&command_output.stdout).unwrap();
+                std::io::stderr().lock().write_all(&command_output.stderr).unwrap();
             } else {
                 let stderr_as_str = std::str::from_utf8(&command_output.stderr).unwrap();
                 if stderr_as_str.contains(disabled_error_msg) {
@@ -277,8 +277,8 @@ pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
                     // `elan` is NOT externally managed, `elan self update` can
                     // be performed, but the invocation failed, so we report the
                     // error to the user and error out.
-                    std::io::stdout().lock().write(&command_output.stdout).unwrap();
-                    std::io::stderr().lock().write(&command_output.stderr).unwrap();
+                    std::io::stdout().lock().write_all(&command_output.stdout).unwrap();
+                    std::io::stderr().lock().write_all(&command_output.stderr).unwrap();
 
                     return Err(StepFailed.into());
                 }
