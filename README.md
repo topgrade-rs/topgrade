@@ -31,6 +31,7 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 - macOS: [Homebrew](https://formulae.brew.sh/formula/topgrade) or [MacPorts](https://ports.macports.org/port/topgrade/)
 - Windows: [Chocolatey][choco], [Scoop][scoop] or [Winget][winget]
 - PyPi: [pip](https://pypi.org/project/topgrade/)
+- Fedora: [Copr](https://copr.fedorainfracloud.org/coprs/lilay/topgrade/)
 
 [choco]: https://community.chocolatey.org/packages/topgrade
 [scoop]: https://scoop.sh/#/apps?q=topgrade
