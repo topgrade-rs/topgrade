@@ -258,10 +258,35 @@ pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
     let elan = require("elan")?;
 
     print_separator("elan");
-    ctx.run_type()
-        .execute(&elan)
-        .args(["self", "update"])
-        .status_checked()?;
+
+    let disabled_error_msg = "self-update is disabled";
+    let executor_output = ctx.run_type().execute(&elan).args(["self", "update"]).output()?;
+    match executor_output {
+        ExecutorOutput::Wet(command_output) => {
+            if command_output.status.success() {
+                // Flush the captured output
+                std::io::stdout().lock().write_all(&command_output.stdout).unwrap();
+                std::io::stderr().lock().write_all(&command_output.stderr).unwrap();
+            } else {
+                let stderr_as_str = std::str::from_utf8(&command_output.stderr).unwrap();
+                if stderr_as_str.contains(disabled_error_msg) {
+                    // `elan` is externally managed, we cannot do the update. Users
+                    // won't see any error message because Topgrade captures them
+                    // all.
+                } else {
+                    // `elan` is NOT externally managed, `elan self update` can
+                    // be performed, but the invocation failed, so we report the
+                    // error to the user and error out.
+                    std::io::stdout().lock().write_all(&command_output.stdout).unwrap();
+                    std::io::stderr().lock().write_all(&command_output.stderr).unwrap();
+
+                    return Err(StepFailed.into());
+                }
+            }
+        }
+        ExecutorOutput::Dry => { /* nothing needed because in a dry run */ }
+    }
+
     ctx.run_type().execute(&elan).arg("update").status_checked()
 }
 
