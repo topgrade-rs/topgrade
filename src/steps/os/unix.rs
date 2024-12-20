@@ -637,10 +637,33 @@ pub fn run_asdf(ctx: &ExecutionContext) -> Result<()> {
     let asdf = require("asdf")?;
 
     print_separator("asdf");
-    ctx.run_type()
-        .execute(&asdf)
-        .arg("update")
-        .status_checked_with_codes(&[42])?;
+
+    // asdf (>= 0.15.0) won't support the self-update command
+    //
+    // https://github.com/topgrade-rs/topgrade/issues/1007
+    let version_output = Command::new(&asdf).arg("version").output_checked_utf8()?;
+    // Example output
+    //
+    // ```
+    // $ asdf version
+    // v0.15.0-31e8c93
+    //
+    // ```
+    let version_stdout = version_output.stdout.trim();
+    // trim the starting 'v'
+    let mut remaining = version_stdout.trim_start_matches(|char| char == 'v');
+    let idx = remaining
+        .find(|char| char == '-')
+        .expect("the output of `asdf version` changed, please file an issue to Topgrade");
+    // remove the hash part
+    remaining = &remaining[..idx];
+    let version = Version::parse(remaining).expect("should be a valid version");
+    if version < Version::new(0, 15, 0) {
+        ctx.run_type()
+            .execute(&asdf)
+            .arg("update")
+            .status_checked_with_codes(&[42])?;
+    }
 
     ctx.run_type()
         .execute(&asdf)
