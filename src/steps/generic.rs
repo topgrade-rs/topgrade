@@ -400,9 +400,9 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
     command.args(["upgrade", "--no-dry-run"]).status_checked()
 }
 
-/// Make VSCOdium a separate step because:
+/// Make VSCodium a separate step because:
 ///
-/// 1. Users could use VSCode and VSCoium both
+/// 1. Users could use both VSCode and VSCoium
 /// 2. Just in case, VSCodium could have incompatible changes with VSCode
 pub fn run_vscodium_extensions_update(ctx: &ExecutionContext) -> Result<()> {
     // Calling vscodoe in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
