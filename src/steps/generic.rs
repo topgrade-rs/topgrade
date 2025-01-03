@@ -400,6 +400,48 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
     command.args(["upgrade", "--no-dry-run"]).status_checked()
 }
 
+/// Make VSCOdium a separate step because:
+///
+/// 1. Users could use VSCode and VSCoium both
+/// 2. Just in case, VSCodium could have incompatible changes with VSCode
+pub fn run_vscodium_extensions_update(ctx: &ExecutionContext) -> Result<()> {
+    // Calling vscodoe in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
+    if is_wsl()? {
+        return Err(SkipStep(String::from("Should not run in WSL")).into());
+    }
+
+    let vscodium = require("codium")?;
+
+    // VSCode has update command only since 1.86 version ("january 2024" update), disable the update for prior versions
+    // Use command `code --version` which returns 3 lines: version, git commit, instruction set. We parse only the first one
+    //
+    // This should apply to VSCodium as well.
+    let version: Result<Version> = match Command::new(&vscodium)
+        .arg("--version")
+        .output_checked_utf8()?
+        .stdout
+        .lines()
+        .next()
+    {
+        Some(item) => Version::parse(item).map_err(|err| err.into()),
+        _ => return Err(SkipStep(String::from("Cannot find vscodium version")).into()),
+    };
+
+    if !matches!(version, Ok(version) if version >= Version::new(1, 86, 0)) {
+        return Err(SkipStep(String::from(
+            "Too old vscodium version to have update extensions command",
+        ))
+        .into());
+    }
+
+    print_separator("VSCodium extensions");
+
+    ctx.run_type()
+        .execute(vscodium)
+        .arg("--update-extensions")
+        .status_checked()
+}
+
 pub fn run_vscode_extensions_update(ctx: &ExecutionContext) -> Result<()> {
     // Calling vscode in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
     if is_wsl()? {

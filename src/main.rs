@@ -372,6 +372,9 @@ fn run() -> Result<()> {
     runner.execute(Step::Vscode, "Visual Studio Code extensions", || {
         generic::run_vscode_extensions_update(&ctx)
     })?;
+    runner.execute(Step::Vscodium, "VSCodium extensions", || {
+        generic::run_vscodium_extensions_update(&ctx)
+    })?;
     runner.execute(Step::Conda, "conda", || generic::run_conda_update(&ctx))?;
     runner.execute(Step::Mamba, "mamba", || generic::run_mamba_update(&ctx))?;
     runner.execute(Step::Pixi, "pixi", || generic::run_pixi_update(&ctx))?;
