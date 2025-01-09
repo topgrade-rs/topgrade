@@ -163,6 +163,7 @@ pub enum Step {
     Vim,
     VoltaPackages,
     Vscode,
+    Vscodium,
     Waydroid,
     Winget,
     Wsl,
