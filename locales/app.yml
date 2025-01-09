@@ -793,3 +793,8 @@ _version: 2
   es: "No se pueden actualizar las aplicaciones de Microsoft Store, se requiere intervención manual"
   fr: "Impossible de mettre à jour les applications du Microsoft Store, une intervention manuelle est nécessaire"
   zh_TW: "無法更新 Microsoft Store 應用，需手動幹預"
+"Pulling model '{model_name}'":
+  en: "Pulling model '%{model_name}'"
+  es: "Extrayendo el modelo '%{model_name}'"
+  fr: "Récupération du modèle '%{model_name}'"
+  zh_TW: "正在拉取模型 '%{model_name}'"

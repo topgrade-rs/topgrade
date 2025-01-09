@@ -116,6 +116,7 @@ pub enum Step {
     Myrepos,
     Nix,
     Node,
+    Ollama,
     Opam,
     Pacdef,
     Pacstall,
