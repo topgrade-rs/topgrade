@@ -290,3 +290,9 @@
 # in the startup file, which might cause the update run to fail.
 # (default: true)
 # startup_file = true
+
+[vscode]
+# Specify the profile the extensions should be updated for.
+# If no profile is selected, the default one will be used.
+# (default: "")
+# profile = ""
