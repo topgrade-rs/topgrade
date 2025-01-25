@@ -1,6 +1,7 @@
 #![allow(unused_imports)]
 
 use std::ffi::OsStr;
+use std::ops::Deref;
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, path::Path};
@@ -9,6 +10,7 @@ use std::{fs, io::Write};
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use color_eyre::owo_colors::OwoColorize;
 use rust_i18n::t;
 use semver::Version;
 use tempfile::tempfile_in;
@@ -469,10 +471,19 @@ pub fn run_vscode_extensions_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Visual Studio Code extensions");
 
-    ctx.run_type()
-        .execute(vscode)
-        .arg("--update-extensions")
-        .status_checked()
+    if !ctx.config().vscode_profile().is_empty() {
+        ctx.run_type()
+            .execute(vscode)
+            .arg("--profile")
+            .arg(ctx.config().vscode_profile())
+            .arg("--update-extensions")
+            .status_checked()
+    } else {
+        ctx.run_type()
+            .execute(vscode)
+            .arg("--update-extensions")
+            .status_checked()
+    }
 }
 
 pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {

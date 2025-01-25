@@ -463,6 +463,12 @@ pub struct JuliaConfig {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct VscodeConfig {
+    profile: Option<String>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 /// Configuration file
 pub struct ConfigFile {
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
@@ -530,6 +536,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     julia: Option<JuliaConfig>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    vscode: Option<VscodeConfig>,
 }
 
 fn config_directory() -> PathBuf {
@@ -1667,6 +1676,14 @@ impl Config {
             .as_ref()
             .and_then(|julia| julia.startup_file)
             .unwrap_or(true)
+    }
+
+    pub fn vscode_profile(&self) -> &str {
+        self.config_file
+            .vscode
+            .as_ref()
+            .and_then(|vscode| vscode.profile.as_deref())
+            .unwrap_or("")
     }
 }
 
