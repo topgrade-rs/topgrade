@@ -40,8 +40,7 @@ pub fn is_wsl() -> Result<bool> {
 
 pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     let cargo_dir = env::var_os("CARGO_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| HOME_DIR.join(".cargo"))
+        .map_or_else(|| HOME_DIR.join(".cargo"), PathBuf::from)
         .require()?;
     require("cargo").or_else(|_| {
         require_option(
@@ -60,13 +59,12 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     let cargo_update = require("cargo-install-update")
         .ok()
         .or_else(|| cargo_dir.join("bin/cargo-install-update").if_exists());
-    let cargo_update = match cargo_update {
-        Some(e) => e,
-        None => {
-            let message = String::from("cargo-update isn't installed so Topgrade can't upgrade cargo packages.\nInstall cargo-update by running `cargo install cargo-update`");
-            print_warning(&message);
-            return Err(SkipStep(message).into());
-        }
+    let cargo_update = if let Some(e) = cargo_update {
+        e
+    } else {
+        let message = String::from("cargo-update isn't installed so Topgrade can't upgrade cargo packages.\nInstall cargo-update by running `cargo install cargo-update`");
+        print_warning(&message);
+        return Err(SkipStep(message).into());
     };
 
     ctx.run_type()
@@ -78,14 +76,11 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
         let cargo_cache = require("cargo-cache")
             .ok()
             .or_else(|| cargo_dir.join("bin/cargo-cache").if_exists());
-        match cargo_cache {
-            Some(e) => {
-                ctx.run_type().execute(e).args(["-a"]).status_checked()?;
-            }
-            None => {
-                let message = String::from("cargo-cache isn't installed so Topgrade can't cleanup cargo packages.\nInstall cargo-cache by running `cargo install cargo-cache`");
-                print_warning(message);
-            }
+        if let Some(e) = cargo_cache {
+            ctx.run_type().execute(e).args(["-a"]).status_checked()?;
+        } else {
+            let message = String::from("cargo-cache isn't installed so Topgrade can't cleanup cargo packages.\nInstall cargo-cache by running `cargo install cargo-cache`");
+            print_warning(message);
         }
     }
 
@@ -423,7 +418,7 @@ pub fn run_vscodium_extensions_update(ctx: &ExecutionContext) -> Result<()> {
         .lines()
         .next()
     {
-        Some(item) => Version::parse(item).map_err(|err| err.into()),
+        Some(item) => Version::parse(item).map_err(std::convert::Into::into),
         _ => return Err(SkipStep(String::from("Cannot find vscodium version")).into()),
     };
 
@@ -459,7 +454,7 @@ pub fn run_vscode_extensions_update(ctx: &ExecutionContext) -> Result<()> {
         .lines()
         .next()
     {
-        Some(item) => Version::parse(item).map_err(|err| err.into()),
+        Some(item) => Version::parse(item).map_err(std::convert::Into::into),
         _ => return Err(SkipStep(String::from("Cannot find vscode version")).into()),
     };
 
@@ -489,7 +484,7 @@ pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
         .map(|s| s.stdout.trim().to_owned());
     let version = Version::parse(&version_str?);
     if matches!(version, Ok(version) if version >= Version::new(1, 4, 0)) {
-        command_args.push("--quiet")
+        command_args.push("--quiet");
     }
 
     ctx.run_type().execute(pipx).args(command_args).status_checked()
@@ -555,7 +550,7 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
         (Ok(py), _) => py,
         (Err(_), Ok(py3)) => py3,
         (Err(py_err), Err(py3_err)) => {
-            return Err(SkipStep(format!("Skip due to following reasons: {} {}", py_err, py3_err)).into());
+            return Err(SkipStep(format!("Skip due to following reasons: {py_err} {py3_err}")).into());
         }
     };
 
@@ -904,7 +899,7 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
             .execute(&dotnet)
             .args(["tool", "update", package_name, "--global"])
             .status_checked()
-            .with_context(|| format!("Failed to update .NET package {:?}", package_name))?;
+            .with_context(|| format!("Failed to update .NET package {package_name:?}"))?;
     }
 
     Ok(())

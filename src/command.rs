@@ -45,13 +45,13 @@ impl TryFrom<&Output> for Utf8Output {
     type Error = eyre::Error;
 
     fn try_from(Output { status, stdout, stderr }: &Output) -> Result<Self, Self::Error> {
-        let stdout = String::from_utf8(stdout.to_vec()).map_err(|err| {
+        let stdout = String::from_utf8(stdout.clone()).map_err(|err| {
             eyre!(
                 "Stdout contained invalid UTF-8: {}",
                 String::from_utf8_lossy(err.as_bytes())
             )
         })?;
-        let stderr = String::from_utf8(stderr.to_vec()).map_err(|err| {
+        let stderr = String::from_utf8(stderr.clone()).map_err(|err| {
             eyre!(
                 "Stderr contained invalid UTF-8: {}",
                 String::from_utf8_lossy(err.as_bytes())

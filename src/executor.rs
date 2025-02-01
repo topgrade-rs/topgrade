@@ -188,7 +188,7 @@ impl Executor {
     pub fn status_checked_with_codes(&mut self, codes: &[i32]) -> Result<()> {
         match self {
             Executor::Wet(c) => c.status_checked_with(|status| {
-                if status.success() || status.code().as_ref().map(|c| codes.contains(c)).unwrap_or(false) {
+                if status.success() || status.code().as_ref().is_some_and(|c| codes.contains(c)) {
                     Ok(())
                 } else {
                     Err(())

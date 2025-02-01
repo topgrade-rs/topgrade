@@ -65,7 +65,7 @@ fn upgrade(command: &mut Executor, ctx: &ExecutionContext) -> Result<()> {
         if !status.success() {
             return Err(TopgradeError::ProcessFailed(command.get_program(), status).into());
         } else {
-            println!("{}", t!("Plugins upgraded"))
+            println!("{}", t!("Plugins upgraded"));
         }
     }
 

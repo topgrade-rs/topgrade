@@ -30,9 +30,7 @@ pub fn run_zr(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn zdotdir() -> PathBuf {
-    env::var("ZDOTDIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| HOME_DIR.clone())
+    env::var("ZDOTDIR").map_or_else(|_| HOME_DIR.clone(), PathBuf::from)
 }
 
 pub fn zshrc() -> PathBuf {
@@ -66,8 +64,7 @@ pub fn run_antigen(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
     let zshrc = zshrc().require()?;
     env::var("ADOTDIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| HOME_DIR.join("antigen.zsh"))
+        .map_or_else(|_| HOME_DIR.join("antigen.zsh"), PathBuf::from)
         .require()?;
 
     print_separator("antigen");
@@ -83,8 +80,7 @@ pub fn run_zgenom(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
     let zshrc = zshrc().require()?;
     env::var("ZGEN_SOURCE")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| HOME_DIR.join(".zgenom"))
+        .map_or_else(|_| HOME_DIR.join(".zgenom"), PathBuf::from)
         .require()?;
 
     print_separator("zgenom");
@@ -101,8 +97,7 @@ pub fn run_zplug(ctx: &ExecutionContext) -> Result<()> {
     zshrc().require()?;
 
     env::var("ZPLUG_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| HOME_DIR.join(".zplug"))
+        .map_or_else(|_| HOME_DIR.join(".zplug"), PathBuf::from)
         .require()?;
 
     print_separator("zplug");
@@ -118,8 +113,7 @@ pub fn run_zinit(ctx: &ExecutionContext) -> Result<()> {
     let zshrc = zshrc().require()?;
 
     env::var("ZINIT_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| XDG_DIRS.data_dir().join("zinit"))
+        .map_or_else(|_| XDG_DIRS.data_dir().join("zinit"), PathBuf::from)
         .require()?;
 
     print_separator("zinit");
@@ -153,8 +147,7 @@ pub fn run_zim(ctx: &ExecutionContext) -> Result<()> {
                 .output_checked_utf8()
                 .map(|o| o.stdout)
         })
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| HOME_DIR.join(".zim"))
+        .map_or_else(|_| HOME_DIR.join(".zim"), PathBuf::from)
         .require()?;
 
     print_separator("zim");

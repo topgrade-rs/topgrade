@@ -9,7 +9,7 @@ use rust_i18n::t;
 use self_update_crate::backends::github::Update;
 use self_update_crate::update::UpdateStatus;
 
-use super::terminal::*;
+use super::terminal::{print_info, print_separator};
 #[cfg(windows)]
 use crate::error::Upgraded;
 
