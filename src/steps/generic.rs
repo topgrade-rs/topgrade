@@ -1116,11 +1116,18 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
     }
     #[cfg(windows)]
     fn get_interpreter(poetry: &PathBuf) -> Result<(PathBuf, Option<OsString>)> {
+        // Parse the shebang line from scripts using https://bitbucket.org/vinay.sajip/simple_launcher,
+        // such as those created by pip. In contrast to Unix shebang lines, interpreter paths can
+        // contain spaces, if they are double-quoted.
+
         use std::str;
 
-        let data = fs::read(poetry)?;
+        lazy_static! {
+            static ref SHEBANG_REGEX: Regex =
+                Regex::new(r#"^#![ \t]*(?:"([^"\n]+)"|([^" \t\n]+))(?:[ \t]+([^\n]+)?)?"#).unwrap();
+        }
 
-        // https://bitbucket.org/vinay.sajip/simple_launcher/src/master/compare_launchers.py
+        let data = fs::read(poetry)?;
 
         let pos = match data.windows(4).rposition(|b| b == b"PK\x05\x06") {
             Some(i) => i,
@@ -1139,13 +1146,24 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
             return Err(eyre!("Invalid ZIP archive"));
         }
         let arc_pos = pos - cdr_size - cdr_offset;
-        let shebang = match data[..arc_pos].windows(2).rposition(|b| b == b"#!") {
-            Some(l) => &data[l + 2..arc_pos - 1],
-            None => return Err(eyre!("Could not find shebang")),
-        };
-
-        // shebang line is utf8
-        Ok((std::str::from_utf8(shebang)?.into(), None))
+        match data[..arc_pos].windows(2).rposition(|b| b == b"#!") {
+            Some(l) => {
+                let line = &data[l..arc_pos - 1];
+                if let Some(c) = SHEBANG_REGEX.captures(line) {
+                    let interpreter = c.get(1).or_else(|| c.get(2)).unwrap();
+                    // shebang line should be valid utf8
+                    let interpreter = str::from_utf8(interpreter.as_bytes())?.into();
+                    let args = match c.get(3) {
+                        Some(args) => Some(str::from_utf8(args.as_bytes())?.into()),
+                        None => None,
+                    };
+                    Ok((interpreter, args))
+                } else {
+                    Err(eyre!("Invalid shebang line"))
+                }
+            }
+            None => Err(eyre!("Could not find shebang")),
+        }
     }
 
     if ctx.config().poetry_force_self_update() {
