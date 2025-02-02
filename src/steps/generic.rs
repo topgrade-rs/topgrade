@@ -59,9 +59,8 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     let cargo_update = require("cargo-install-update")
         .ok()
         .or_else(|| cargo_dir.join("bin/cargo-install-update").if_exists());
-    let cargo_update = if let Some(e) = cargo_update {
-        e
-    } else {
+
+    let Some(cargo_update) = cargo_update else {
         let message = String::from("cargo-update isn't installed so Topgrade can't upgrade cargo packages.\nInstall cargo-update by running `cargo install cargo-update`");
         print_warning(&message);
         return Err(SkipStep(message).into());

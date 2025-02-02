@@ -25,15 +25,10 @@ use self::config::{CommandLineArgs, Config, Step};
 use self::error::StepFailed;
 #[cfg(all(windows, feature = "self-update"))]
 use self::error::Upgraded;
-use self::steps::{
-    containers, emacs, generic, git, go, kakoune, macos, node, powershell, reboot,
-    remote::{ssh, vagrant},
-    tmux, unix, vim, zsh,
-};
-use self::terminal::{
-    display_time, get_key, notify_desktop, print_info, print_result, print_separator, prompt_yesno, run_shell,
-    set_desktop_notifications, set_title,
-};
+#[allow(clippy::wildcard_imports)]
+use self::steps::{remote::*, *};
+#[allow(clippy::wildcard_imports)]
+use self::terminal::*;
 
 use self::utils::{hostname, install_color_eyre, install_tracing, update_tracing};
 
@@ -65,6 +60,7 @@ pub(crate) static WINDOWS_DIRS: Lazy<Windows> = Lazy::new(|| Windows::new().expe
 // Init and load the i18n files
 i18n!("locales", fallback = "en");
 
+#[allow(clippy::too_many_lines)]
 fn run() -> Result<()> {
     install_color_eyre()?;
     ctrlc::set_handler();

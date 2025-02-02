@@ -209,9 +209,9 @@ impl RepoStep {
             }
             Err(e) => {
                 if e.kind() == io::ErrorKind::NotFound {
-                    debug!("{} does not exist", path.as_ref().display())
+                    debug!("{} does not exist", path.as_ref().display());
                 } else {
-                    error!("Error looking for {}: {e}", path.as_ref().display(),)
+                    error!("Error looking for {}: {e}", path.as_ref().display());
                 }
             }
         }
