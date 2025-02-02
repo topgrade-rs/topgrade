@@ -1,6 +1,6 @@
 #![allow(unused_imports)]
 
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, path::Path};
@@ -9,6 +9,8 @@ use std::{fs, io::Write};
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use lazy_static::lazy_static;
+use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
 use tempfile::tempfile_in;
@@ -1093,21 +1095,29 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
     let poetry = require("poetry")?;
 
     #[cfg(unix)]
-    fn get_interpreter(poetry: &PathBuf) -> Result<PathBuf> {
+    fn get_interpreter(poetry: &PathBuf) -> Result<(PathBuf, Option<OsString>)> {
+        // Parse the standard Unix shebang line: #!interpreter [optional-arg]
+        // Spaces and tabs on either side of interpreter are ignored.
+
         use std::os::unix::ffi::OsStrExt;
 
+        lazy_static! {
+            static ref SHEBANG_REGEX: Regex = Regex::new(r"^#![ \t]*([^ \t\n]+)(?:[ \t]+([^\n]+)?)?").unwrap();
+        }
+
         let script = fs::read(poetry)?;
-        if let Some(r) = script.iter().position(|&b| b == b'\n') {
-            let first_line = &script[..r];
-            if first_line.starts_with(b"#!") {
-                return Ok(OsStr::from_bytes(&first_line[2..]).into());
-            }
+        if let Some(c) = SHEBANG_REGEX.captures(&script) {
+            let interpreter = OsStr::from_bytes(&c[1]).into();
+            let args = c.get(2).map(|args| OsStr::from_bytes(args.as_bytes()).into());
+            return Ok((interpreter, args));
         }
 
         Err(eyre!("Could not find shebang"))
     }
     #[cfg(windows)]
-    fn get_interpreter(poetry: &PathBuf) -> Result<PathBuf> {
+    fn get_interpreter(poetry: &PathBuf) -> Result<(PathBuf, Option<OsString>)> {
+        use std::str;
+
         let data = fs::read(poetry)?;
 
         // https://bitbucket.org/vinay.sajip/simple_launcher/src/master/compare_launchers.py
@@ -1135,23 +1145,23 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         };
 
         // shebang line is utf8
-        Ok(std::str::from_utf8(shebang)?.into())
+        Ok((std::str::from_utf8(shebang)?.into(), None))
     }
 
     if ctx.config().poetry_force_self_update() {
         debug!("forcing poetry self update");
     } else {
-        let interpreter = match get_interpreter(&poetry) {
-            Ok(p) => p,
-            Err(e) => {
-                return Err(SkipStep(format!("Could not find interpreter for {}: {}", poetry.display(), e)).into())
-            }
-        };
-        debug!("poetry interpreter: {}", interpreter.display());
+        let (interp, interp_args) = get_interpreter(&poetry)
+            .map_err(|e| SkipStep(format!("Could not find interpreter for {}: {}", poetry.display(), e)))?;
+        debug!("poetry interpreter: {:?}, args: {:?}", interp, interp_args);
 
         let check_official_install_script =
         "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
-        let output = Command::new(&interpreter)
+        let mut command = Command::new(&interp);
+        if let Some(args) = interp_args {
+            command.arg(args);
+        }
+        let output = command
             .args(["-c", check_official_install_script])
             .output_checked_utf8()?;
         let stdout = output.stdout.trim();
