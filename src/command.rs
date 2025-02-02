@@ -149,6 +149,7 @@ pub trait CommandExt {
     /// Like [`Command::spawn`], but gives a nice error message if the command fails to
     /// execute.
     #[track_caller]
+    #[allow(dead_code)]
     fn spawn_checked(&mut self) -> eyre::Result<Self::Child>;
 }
 
