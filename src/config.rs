@@ -561,7 +561,7 @@ impl ConfigFile {
         ];
 
         // Search for the main config file
-        for path in possible_config_paths.iter() {
+        for path in &possible_config_paths {
             if path.exists() {
                 debug!("Configuration at {}", path.display());
                 res.0.clone_from(path);
@@ -1475,8 +1475,7 @@ impl Config {
             .misc
             .as_ref()
             .and_then(|misc| misc.ignore_failures.as_ref())
-            .map(|v| v.contains(&step))
-            .unwrap_or(false)
+            .is_some_and(|v| v.contains(&step))
     }
 
     pub fn use_predefined_git_repos(&self) -> bool {
@@ -1694,40 +1693,40 @@ mod test {
 
     #[test]
     fn test_should_execute_remote_different_hostname() {
-        assert!(config().should_execute_remote(Ok("hostname".to_string()), "remote_hostname"))
+        assert!(config().should_execute_remote(Ok("hostname".to_string()), "remote_hostname"));
     }
 
     #[test]
     fn test_should_execute_remote_different_hostname_with_user() {
-        assert!(config().should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"))
+        assert!(config().should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"));
     }
 
     #[test]
     fn test_should_execute_remote_unknown_hostname() {
-        assert!(config().should_execute_remote(Err(eyre!("failed to get hostname")), "remote_hostname"))
+        assert!(config().should_execute_remote(Err(eyre!("failed to get hostname")), "remote_hostname"));
     }
 
     #[test]
     fn test_should_not_execute_remote_same_hostname() {
-        assert!(!config().should_execute_remote(Ok("hostname".to_string()), "hostname"))
+        assert!(!config().should_execute_remote(Ok("hostname".to_string()), "hostname"));
     }
 
     #[test]
     fn test_should_not_execute_remote_same_hostname_with_user() {
-        assert!(!config().should_execute_remote(Ok("hostname".to_string()), "user@hostname"))
+        assert!(!config().should_execute_remote(Ok("hostname".to_string()), "user@hostname"));
     }
 
     #[test]
     fn test_should_execute_remote_matching_limit() {
         let mut config = config();
         config.opt = CommandLineArgs::parse_from(["topgrade", "--remote-host-limit", "remote_hostname"]);
-        assert!(config.should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"))
+        assert!(config.should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"));
     }
 
     #[test]
     fn test_should_not_execute_remote_not_matching_limit() {
         let mut config = config();
         config.opt = CommandLineArgs::parse_from(["topgrade", "--remote-host-limit", "other_hostname"]);
-        assert!(!config.should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"))
+        assert!(!config.should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"));
     }
 }

@@ -232,7 +232,7 @@ pub fn upgrade_vagrant_boxes(ctx: &ExecutionContext) -> Result<()> {
     }
 
     if !found {
-        println!("{}", t!("No outdated boxes"))
+        println!("{}", t!("No outdated boxes"));
     } else {
         ctx.run_type()
             .execute(&vagrant)

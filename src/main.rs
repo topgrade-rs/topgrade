@@ -25,7 +25,9 @@ use self::config::{CommandLineArgs, Config, Step};
 use self::error::StepFailed;
 #[cfg(all(windows, feature = "self-update"))]
 use self::error::Upgraded;
+#[allow(clippy::wildcard_imports)]
 use self::steps::{remote::*, *};
+#[allow(clippy::wildcard_imports)]
 use self::terminal::*;
 
 use self::utils::{hostname, install_color_eyre, install_tracing, update_tracing};
@@ -58,6 +60,7 @@ pub(crate) static WINDOWS_DIRS: Lazy<Windows> = Lazy::new(|| Windows::new().expe
 // Init and load the i18n files
 i18n!("locales", fallback = "en");
 
+#[allow(clippy::too_many_lines)]
 fn run() -> Result<()> {
     install_color_eyre()?;
     ctrlc::set_handler();
@@ -494,13 +497,13 @@ fn run() -> Result<()> {
         print_info(t!("\n(R)eboot\n(S)hell\n(Q)uit"));
         loop {
             match get_key() {
-                Ok(Key::Char('s')) | Ok(Key::Char('S')) => {
+                Ok(Key::Char('s' | 'S')) => {
                     run_shell().context("Failed to execute shell")?;
                 }
-                Ok(Key::Char('r')) | Ok(Key::Char('R')) => {
+                Ok(Key::Char('r' | 'R')) => {
                     reboot().context("Failed to reboot")?;
                 }
-                Ok(Key::Char('q')) | Ok(Key::Char('Q')) => (),
+                Ok(Key::Char('q' | 'Q')) => (),
                 _ => {
                     continue;
                 }
@@ -519,7 +522,7 @@ fn run() -> Result<()> {
                 t!("Topgrade finished successfully")
             },
             Some(Duration::from_secs(10)),
-        )
+        );
     }
 
     if failed {
