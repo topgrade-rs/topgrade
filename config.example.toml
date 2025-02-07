@@ -297,10 +297,11 @@
 # (default: false)
 # set_default = false
 
-# Specifies the version string passed to zigup.
-# This may be a pinned version such as "0.13.0" or a branch such as "master".
-# (default: "master")
-# target_version = "master"
+# Version strings passed to zigup.
+# These may be pinned versions such as "0.13.0" or branches such as "master".
+# Each one will be updated in its own zigup invocation.
+# (default: ["master"])
+# target_versions = ["master", "0.13.0"]
 
 # Specifies the directory that the zig files will be installed to.
 # If defined, passed with the --install-dir command line flag.
@@ -315,6 +316,7 @@
 # (default: not defined)
 # path_link = "/home/user/.bin/zig"
 
-# If enabled, run `zigup clean` after updating the version.
+# If enabled, run `zigup clean` after updating all versions.
+# If enabled, each updated version above will be marked with `zigup keep`.
 # (default: false)
 # cleanup = false

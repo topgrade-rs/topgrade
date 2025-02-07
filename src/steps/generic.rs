@@ -1218,32 +1218,42 @@ pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
     let zigup = require("zigup")?;
+    let config = ctx.config();
 
     print_separator("zigup");
 
-    let mut runner = ctx.run_type().execute(&zigup);
+    for zig_version in config.zigup_target_versions() {
+        let mut args: Vec<&OsStr> = Vec::new();
+        if let Some(path) = config.zigup_path_link() {
+            args.push("--path-link".as_ref());
+            args.push(path.as_os_str());
+        }
+        if let Some(path) = config.zigup_install_dir() {
+            args.push("--install-dir".as_ref());
+            args.push(path.as_os_str());
+        }
 
-    let mut runner = if !ctx.config().zigup_set_default() {
-        runner.arg("fetch")
-    } else {
-        &mut runner
-    };
-    runner = if let Some(path) = ctx.config().zigup_path_link() {
-        runner.arg("--path-link").arg(path)
-    } else {
-        runner
-    };
-    runner = if let Some(path) = ctx.config().zigup_install_dir() {
-        runner.arg("--install-dir").arg(path)
-    } else {
-        runner
-    };
+        let mut cmd = ctx.run_type().execute(&zigup);
 
-    runner.arg(ctx.config().zigup_target_version()).status_checked()?;
+        if config.zigup_set_default() {
+            cmd.args(&args).arg(&zig_version)
+        } else {
+            cmd.args(&args).arg("fetch").arg(&zig_version)
+        }
+        .status_checked()?;
 
-    if ctx.config().zigup_cleanup() {
-        ctx.run_type().execute(zigup).arg("clean").status_checked()
-    } else {
-        Ok(())
+        if config.zigup_cleanup() {
+            ctx.run_type()
+                .execute(&zigup)
+                .arg("keep")
+                .arg(&zig_version)
+                .status_checked()?;
+        }
     }
+
+    if config.zigup_cleanup() {
+        ctx.run_type().execute(zigup).arg("clean").status_checked()?;
+    }
+
+    Ok(())
 }

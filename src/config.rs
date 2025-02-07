@@ -466,7 +466,7 @@ pub struct JuliaConfig {
 #[serde(deny_unknown_fields)]
 pub struct Zigup {
     set_default: Option<bool>,
-    target_version: Option<String>,
+    target_versions: Option<Vec<String>>,
     install_dir: Option<PathBuf>,
     path_link: Option<PathBuf>,
     cleanup: Option<bool>,
@@ -1690,12 +1690,12 @@ impl Config {
             .unwrap_or(false)
     }
 
-    pub fn zigup_target_version(&self) -> &str {
+    pub fn zigup_target_versions(&self) -> Vec<String> {
         self.config_file
             .zigup
             .as_ref()
-            .and_then(|zigup| zigup.target_version.as_deref())
-            .unwrap_or("master")
+            .and_then(|zigup| zigup.target_versions.clone())
+            .unwrap_or(vec!["master".to_owned()])
     }
 
     pub fn zigup_install_dir(&self) -> Option<&Path> {
