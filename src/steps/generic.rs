@@ -1221,7 +1221,7 @@ pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zigup");
 
-    let mut runner = ctx.run_type().execute(zigup);
+    let mut runner = ctx.run_type().execute(&zigup);
 
     let mut runner = if !ctx.config().zigup_set_default() {
         runner.arg("fetch")
@@ -1239,5 +1239,11 @@ pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
         runner
     };
 
-    runner.arg(ctx.config().zigup_target_version()).status_checked()
+    runner.arg(ctx.config().zigup_target_version()).status_checked()?;
+
+    if ctx.config().zigup_cleanup() {
+        ctx.run_type().execute(zigup).arg("clean").status_checked()
+    } else {
+        Ok(())
+    }
 }

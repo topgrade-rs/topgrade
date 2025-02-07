@@ -469,6 +469,7 @@ pub struct Zigup {
     target_version: Option<String>,
     install_dir: Option<PathBuf>,
     path_link: Option<PathBuf>,
+    cleanup: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1709,6 +1710,14 @@ impl Config {
             .zigup
             .as_ref()
             .and_then(|zigup| zigup.path_link.as_deref())
+    }
+
+    pub fn zigup_cleanup(&self) -> bool {
+        self.config_file
+            .zigup
+            .as_ref()
+            .and_then(|zigup| zigup.cleanup)
+            .unwrap_or(false)
     }
 }
 

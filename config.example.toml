@@ -314,3 +314,7 @@
 # This is not meaningful if set_default is not enabled.
 # (default: not defined)
 # path_link = "/home/user/.bin/zig"
+
+# If enabled, run `zigup clean` after updating the version.
+# (default: false)
+# cleanup = false
