@@ -290,3 +290,27 @@
 # in the startup file, which might cause the update run to fail.
 # (default: true)
 # startup_file = true
+
+[zigup]
+# If disabled, Topgrade invokes zigup with `zigup fetch`.
+# This will prevent it from overriding the default zig version.
+# (default: false)
+# set_default = false
+
+# Specifies the version string passed to zigup.
+# This may be a pinned version such as "0.13.0" or a branch such as "master".
+# (default: "master")
+# target_version = "master"
+
+# Specifies the directory that the zig files will be installed to.
+# If defined, passed with the --install-dir command line flag.
+# If not defined, zigup will use its default behaviour.
+# (default: not defined)
+# install_dir = "/home/user/.zig"
+
+# Specifies the path of the symlink which will be set to point at the default compiler version.
+# If defined, passed with the --path-link command line flag.
+# If not defined, zigup will use its default behaviour.
+# This is not meaningful if set_default is not enabled.
+# (default: not defined)
+# path_link = "/home/user/.bin/zig"

@@ -1221,5 +1221,23 @@ pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zigup");
 
-    ctx.run_type().execute(zigup).arg("master").status_checked()
+    let mut runner = ctx.run_type().execute(zigup);
+
+    let mut runner = if !ctx.config().zigup_set_default() {
+        runner.arg("fetch")
+    } else {
+        &mut runner
+    };
+    runner = if let Some(path) = ctx.config().zigup_path_link() {
+        runner.arg("--path-link").arg(path)
+    } else {
+        runner
+    };
+    runner = if let Some(path) = ctx.config().zigup_install_dir() {
+        runner.arg("--install-dir").arg(path)
+    } else {
+        runner
+    };
+
+    runner.arg(ctx.config().zigup_target_version()).status_checked()
 }

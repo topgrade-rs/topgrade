@@ -464,6 +464,15 @@ pub struct JuliaConfig {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct Zigup {
+    set_default: Option<bool>,
+    target_version: Option<String>,
+    install_dir: Option<PathBuf>,
+    path_link: Option<PathBuf>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 /// Configuration file
 pub struct ConfigFile {
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
@@ -531,6 +540,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     julia: Option<JuliaConfig>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    zigup: Option<Zigup>,
 }
 
 fn config_directory() -> PathBuf {
@@ -1667,6 +1679,36 @@ impl Config {
             .as_ref()
             .and_then(|julia| julia.startup_file)
             .unwrap_or(true)
+    }
+
+    pub fn zigup_set_default(&self) -> bool {
+        self.config_file
+            .zigup
+            .as_ref()
+            .and_then(|zigup| zigup.set_default)
+            .unwrap_or(false)
+    }
+
+    pub fn zigup_target_version(&self) -> &str {
+        self.config_file
+            .zigup
+            .as_ref()
+            .and_then(|zigup| zigup.target_version.as_deref())
+            .unwrap_or("master")
+    }
+
+    pub fn zigup_install_dir(&self) -> Option<&Path> {
+        self.config_file
+            .zigup
+            .as_ref()
+            .and_then(|zigup| zigup.install_dir.as_deref())
+    }
+
+    pub fn zigup_path_link(&self) -> Option<&Path> {
+        self.config_file
+            .zigup
+            .as_ref()
+            .and_then(|zigup| zigup.path_link.as_deref())
     }
 }
 
