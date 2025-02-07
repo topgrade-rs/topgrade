@@ -292,11 +292,6 @@
 # startup_file = true
 
 [zigup]
-# If disabled, Topgrade invokes zigup with `zigup fetch`.
-# This will prevent it from overriding the default zig version.
-# (default: false)
-# set_default = false
-
 # Version strings passed to zigup.
 # These may be pinned versions such as "0.13.0" or branches such as "master".
 # Each one will be updated in its own zigup invocation.

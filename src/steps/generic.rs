@@ -1233,14 +1233,12 @@ pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
             args.push(path.as_os_str());
         }
 
-        let mut cmd = ctx.run_type().execute(&zigup);
-
-        if config.zigup_set_default() {
-            cmd.args(&args).arg(&zig_version)
-        } else {
-            cmd.args(&args).arg("fetch").arg(&zig_version)
-        }
-        .status_checked()?;
+        ctx.run_type()
+            .execute(&zigup)
+            .args(args)
+            .arg("fetch")
+            .arg(&zig_version)
+            .status_checked()?;
 
         if config.zigup_cleanup() {
             ctx.run_type()

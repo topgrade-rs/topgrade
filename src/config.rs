@@ -465,7 +465,6 @@ pub struct JuliaConfig {
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Zigup {
-    set_default: Option<bool>,
     target_versions: Option<Vec<String>>,
     install_dir: Option<PathBuf>,
     path_link: Option<PathBuf>,
@@ -1680,14 +1679,6 @@ impl Config {
             .as_ref()
             .and_then(|julia| julia.startup_file)
             .unwrap_or(true)
-    }
-
-    pub fn zigup_set_default(&self) -> bool {
-        self.config_file
-            .zigup
-            .as_ref()
-            .and_then(|zigup| zigup.set_default)
-            .unwrap_or(false)
     }
 
     pub fn zigup_target_versions(&self) -> Vec<String> {
