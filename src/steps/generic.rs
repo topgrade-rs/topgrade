@@ -1222,20 +1222,20 @@ pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zigup");
 
-    for zig_version in config.zigup_target_versions() {
-        let mut args: Vec<&OsStr> = Vec::new();
-        if let Some(path) = config.zigup_path_link() {
-            args.push("--path-link".as_ref());
-            args.push(path.as_os_str());
-        }
-        if let Some(path) = config.zigup_install_dir() {
-            args.push("--install-dir".as_ref());
-            args.push(path.as_os_str());
-        }
+    let mut path_args: Vec<&OsStr> = Vec::new();
+    if let Some(path) = config.zigup_path_link() {
+        path_args.push("--path-link".as_ref());
+        path_args.push(path.as_os_str());
+    }
+    if let Some(path) = config.zigup_install_dir() {
+        path_args.push("--install-dir".as_ref());
+        path_args.push(path.as_os_str());
+    }
 
+    for zig_version in config.zigup_target_versions() {
         ctx.run_type()
             .execute(&zigup)
-            .args(args)
+            .args(&path_args)
             .arg("fetch")
             .arg(&zig_version)
             .status_checked()?;
@@ -1243,6 +1243,7 @@ pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
         if config.zigup_cleanup() {
             ctx.run_type()
                 .execute(&zigup)
+                .args(&path_args)
                 .arg("keep")
                 .arg(&zig_version)
                 .status_checked()?;
@@ -1250,7 +1251,11 @@ pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
     }
 
     if config.zigup_cleanup() {
-        ctx.run_type().execute(zigup).arg("clean").status_checked()?;
+        ctx.run_type()
+            .execute(zigup)
+            .args(&path_args)
+            .arg("clean")
+            .status_checked()?;
     }
 
     Ok(())
