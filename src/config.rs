@@ -171,6 +171,7 @@ pub enum Step {
     Xcodes,
     Yadm,
     Yarn,
+    Zigup,
     Zvm,
 }
 

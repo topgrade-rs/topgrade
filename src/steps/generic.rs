@@ -1215,3 +1215,11 @@ pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.run_type().execute(bun).arg("upgrade").status_checked()
 }
+
+pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
+    let zigup = require("zigup")?;
+
+    print_separator("zigup");
+
+    ctx.run_type().execute(zigup).arg("master").status_checked()
+}
