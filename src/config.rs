@@ -171,6 +171,7 @@ pub enum Step {
     Xcodes,
     Yadm,
     Yarn,
+    Zigup,
     Zvm,
 }
 
@@ -463,6 +464,15 @@ pub struct JuliaConfig {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct Zigup {
+    target_versions: Option<Vec<String>>,
+    install_dir: Option<String>,
+    path_link: Option<String>,
+    cleanup: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 /// Configuration file
 pub struct ConfigFile {
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
@@ -530,6 +540,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     julia: Option<JuliaConfig>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    zigup: Option<Zigup>,
 }
 
 fn config_directory() -> PathBuf {
@@ -1666,6 +1679,36 @@ impl Config {
             .as_ref()
             .and_then(|julia| julia.startup_file)
             .unwrap_or(true)
+    }
+
+    pub fn zigup_target_versions(&self) -> Vec<String> {
+        self.config_file
+            .zigup
+            .as_ref()
+            .and_then(|zigup| zigup.target_versions.clone())
+            .unwrap_or(vec!["master".to_owned()])
+    }
+
+    pub fn zigup_install_dir(&self) -> Option<&str> {
+        self.config_file
+            .zigup
+            .as_ref()
+            .and_then(|zigup| zigup.install_dir.as_deref())
+    }
+
+    pub fn zigup_path_link(&self) -> Option<&str> {
+        self.config_file
+            .zigup
+            .as_ref()
+            .and_then(|zigup| zigup.path_link.as_deref())
+    }
+
+    pub fn zigup_cleanup(&self) -> bool {
+        self.config_file
+            .zigup
+            .as_ref()
+            .and_then(|zigup| zigup.cleanup)
+            .unwrap_or(false)
     }
 }
 

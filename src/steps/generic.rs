@@ -1221,3 +1221,48 @@ pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.run_type().execute(bun).arg("upgrade").status_checked()
 }
+
+pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
+    let zigup = require("zigup")?;
+    let config = ctx.config();
+
+    print_separator("zigup");
+
+    let mut path_args = Vec::new();
+    if let Some(path) = config.zigup_path_link() {
+        path_args.push("--path-link".to_owned());
+        path_args.push(shellexpand::tilde(path).into_owned());
+    }
+    if let Some(path) = config.zigup_install_dir() {
+        path_args.push("--install-dir".to_owned());
+        path_args.push(shellexpand::tilde(path).into_owned());
+    }
+
+    for zig_version in config.zigup_target_versions() {
+        ctx.run_type()
+            .execute(&zigup)
+            .args(&path_args)
+            .arg("fetch")
+            .arg(&zig_version)
+            .status_checked()?;
+
+        if config.zigup_cleanup() {
+            ctx.run_type()
+                .execute(&zigup)
+                .args(&path_args)
+                .arg("keep")
+                .arg(&zig_version)
+                .status_checked()?;
+        }
+    }
+
+    if config.zigup_cleanup() {
+        ctx.run_type()
+            .execute(zigup)
+            .args(&path_args)
+            .arg("clean")
+            .status_checked()?;
+    }
+
+    Ok(())
+}

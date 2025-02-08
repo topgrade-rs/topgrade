@@ -290,3 +290,28 @@
 # in the startup file, which might cause the update run to fail.
 # (default: true)
 # startup_file = true
+
+[zigup]
+# Version strings passed to zigup.
+# These may be pinned versions such as "0.13.0" or branches such as "master".
+# Each one will be updated in its own zigup invocation.
+# (default: ["master"])
+# target_versions = ["master", "0.13.0"]
+
+# Specifies the directory that the zig files will be installed to.
+# If defined, passed with the --install-dir command line flag.
+# If not defined, zigup will use its default behaviour.
+# (default: not defined)
+# install_dir = "~/.zig"
+
+# Specifies the path of the symlink which will be set to point at the default compiler version.
+# If defined, passed with the --path-link command line flag.
+# If not defined, zigup will use its default behaviour.
+# This is not meaningful if set_default is not enabled.
+# (default: not defined)
+# path_link = "~/.bin/zig"
+
+# If enabled, run `zigup clean` after updating all versions.
+# If enabled, each updated version above will be marked with `zigup keep`.
+# (default: false)
+# cleanup = false
