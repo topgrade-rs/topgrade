@@ -402,7 +402,7 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
 
 /// Make VSCodium a separate step because:
 ///
-/// 1. Users could use both VSCode and VSCoium
+/// 1. Users could use both VSCode and VSCodium
 /// 2. Just in case, VSCodium could have incompatible changes with VSCode
 pub fn run_vscodium_extensions_update(ctx: &ExecutionContext) -> Result<()> {
     // Calling vscodoe in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
