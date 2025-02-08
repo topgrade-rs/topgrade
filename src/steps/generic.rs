@@ -296,7 +296,13 @@ pub fn run_juliaup(ctx: &ExecutionContext) -> Result<()> {
             .status_checked()?;
     }
 
-    ctx.run_type().execute(&juliaup).arg("update").status_checked()
+    ctx.run_type().execute(&juliaup).arg("update").status_checked()?;
+
+    if ctx.config().cleanup() {
+        ctx.run_type().execute(&juliaup).arg("gc").status_checked()?;
+    }
+
+    Ok(())
 }
 
 pub fn run_choosenim(ctx: &ExecutionContext) -> Result<()> {
