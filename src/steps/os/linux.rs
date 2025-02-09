@@ -1299,4 +1299,9 @@ mod tests {
     fn test_bluefin() {
         test_template(include_str!("os_release/bluefin"), Distribution::FedoraImmutable);
     }
+
+    #[test]
+    fn test_bazzite() {
+        test_template(include_str!("os_release/bazzite"), Distribution::FedoraImmutable);
+    }
 }
