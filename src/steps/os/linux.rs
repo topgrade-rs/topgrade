@@ -72,7 +72,6 @@ impl Distribution {
                     Ok(Distribution::Fedora)
                 };
             }
-
             Some("nilrt") => Distribution::NILRT,
             Some("nobara") => Distribution::Nobara,
             Some("void") => Distribution::Void,
@@ -86,6 +85,7 @@ impl Distribution {
             Some("neon") => Distribution::KDENeon,
             Some("openmandriva") => Distribution::OpenMandriva,
             Some("pclinuxos") => Distribution::PCLinuxOS,
+            Some("bazzite") => Distribution::FedoraImmutable,
             _ => {
                 if let Some(name) = name {
                     if name.contains("Vanilla") {
@@ -1287,5 +1287,10 @@ mod tests {
     #[test]
     fn test_nilrt() {
         test_template(include_str!("os_release/nilrt"), Distribution::NILRT);
+    }
+
+    #[test]
+    fn test_bazzite() {
+        test_template(include_str!("os_release/bazzite"), Distribution::FedoraImmutable);
     }
 }
