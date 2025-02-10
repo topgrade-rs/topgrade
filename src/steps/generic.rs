@@ -1,7 +1,6 @@
 #![allow(unused_imports)]
 
 use std::ffi::OsStr;
-use std::ops::Deref;
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, path::Path};
@@ -10,7 +9,6 @@ use std::{fs, io::Write};
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use color_eyre::owo_colors::OwoColorize;
 use rust_i18n::t;
 use semver::Version;
 use tempfile::tempfile_in;
