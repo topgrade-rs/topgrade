@@ -9,7 +9,7 @@ use rust_i18n::t;
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::terminal::{is_dumb, print_separator};
-use crate::utils::{require_option, which, PathExt};
+use crate::utils::{require_option, which};
 use crate::Step;
 
 pub struct Powershell {
@@ -30,7 +30,7 @@ impl Powershell {
                 .args(["-NoProfile", "-Command", "Split-Path $profile"])
                 .output_checked_utf8()
                 .map(|output| PathBuf::from(output.stdout.trim()))
-                .and_then(|p| p.require())
+                .and_then(super::super::utils::PathExt::require)
                 .ok()
         });
 
@@ -70,11 +70,11 @@ impl Powershell {
         let mut cmd = vec!["Update-Module"];
 
         if ctx.config().verbose() {
-            cmd.push("-Verbose")
+            cmd.push("-Verbose");
         }
 
         if ctx.config().yes(Step::Powershell) {
-            cmd.push("-Force")
+            cmd.push("-Force");
         }
 
         println!("{}", t!("Updating modules..."));

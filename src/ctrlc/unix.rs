@@ -4,7 +4,7 @@ use nix::sys::signal::{sigaction, SaFlags, SigAction, SigHandler, SigSet, Signal
 
 /// Handle SIGINT. Set the interruption flag.
 extern "C" fn handle_sigint(_: i32) {
-    set_interrupted()
+    set_interrupted();
 }
 
 /// Set the necessary signal handlers.

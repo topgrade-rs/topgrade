@@ -40,8 +40,7 @@ pub fn is_wsl() -> Result<bool> {
 
 pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     let cargo_dir = env::var_os("CARGO_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| HOME_DIR.join(".cargo"))
+        .map_or_else(|| HOME_DIR.join(".cargo"), PathBuf::from)
         .require()?;
     require("cargo").or_else(|_| {
         require_option(
@@ -60,13 +59,11 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     let cargo_update = require("cargo-install-update")
         .ok()
         .or_else(|| cargo_dir.join("bin/cargo-install-update").if_exists());
-    let cargo_update = match cargo_update {
-        Some(e) => e,
-        None => {
-            let message = String::from("cargo-update isn't installed so Topgrade can't upgrade cargo packages.\nInstall cargo-update by running `cargo install cargo-update`");
-            print_warning(&message);
-            return Err(SkipStep(message).into());
-        }
+
+    let Some(cargo_update) = cargo_update else {
+        let message = String::from("cargo-update isn't installed so Topgrade can't upgrade cargo packages.\nInstall cargo-update by running `cargo install cargo-update`");
+        print_warning(&message);
+        return Err(SkipStep(message).into());
     };
 
     ctx.run_type()
@@ -78,14 +75,11 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
         let cargo_cache = require("cargo-cache")
             .ok()
             .or_else(|| cargo_dir.join("bin/cargo-cache").if_exists());
-        match cargo_cache {
-            Some(e) => {
-                ctx.run_type().execute(e).args(["-a"]).status_checked()?;
-            }
-            None => {
-                let message = String::from("cargo-cache isn't installed so Topgrade can't cleanup cargo packages.\nInstall cargo-cache by running `cargo install cargo-cache`");
-                print_warning(message);
-            }
+        if let Some(e) = cargo_cache {
+            ctx.run_type().execute(e).args(["-a"]).status_checked()?;
+        } else {
+            let message = String::from("cargo-cache isn't installed so Topgrade can't cleanup cargo packages.\nInstall cargo-cache by running `cargo install cargo-cache`");
+            print_warning(message);
         }
     }
 
@@ -302,7 +296,13 @@ pub fn run_juliaup(ctx: &ExecutionContext) -> Result<()> {
             .status_checked()?;
     }
 
-    ctx.run_type().execute(&juliaup).arg("update").status_checked()
+    ctx.run_type().execute(&juliaup).arg("update").status_checked()?;
+
+    if ctx.config().cleanup() {
+        ctx.run_type().execute(&juliaup).arg("gc").status_checked()?;
+    }
+
+    Ok(())
 }
 
 pub fn run_choosenim(ctx: &ExecutionContext) -> Result<()> {
@@ -402,7 +402,7 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
 
 /// Make VSCodium a separate step because:
 ///
-/// 1. Users could use both VSCode and VSCoium
+/// 1. Users could use both VSCode and VSCodium
 /// 2. Just in case, VSCodium could have incompatible changes with VSCode
 pub fn run_vscodium_extensions_update(ctx: &ExecutionContext) -> Result<()> {
     // Calling vscodoe in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
@@ -423,7 +423,7 @@ pub fn run_vscodium_extensions_update(ctx: &ExecutionContext) -> Result<()> {
         .lines()
         .next()
     {
-        Some(item) => Version::parse(item).map_err(|err| err.into()),
+        Some(item) => Version::parse(item).map_err(std::convert::Into::into),
         _ => return Err(SkipStep(String::from("Cannot find vscodium version")).into()),
     };
 
@@ -459,7 +459,7 @@ pub fn run_vscode_extensions_update(ctx: &ExecutionContext) -> Result<()> {
         .lines()
         .next()
     {
-        Some(item) => Version::parse(item).map_err(|err| err.into()),
+        Some(item) => Version::parse(item).map_err(std::convert::Into::into),
         _ => return Err(SkipStep(String::from("Cannot find vscode version")).into()),
     };
 
@@ -498,7 +498,7 @@ pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
         .map(|s| s.stdout.trim().to_owned());
     let version = Version::parse(&version_str?);
     if matches!(version, Ok(version) if version >= Version::new(1, 4, 0)) {
-        command_args.push("--quiet")
+        command_args.push("--quiet");
     }
 
     ctx.run_type().execute(pipx).args(command_args).status_checked()
@@ -564,7 +564,7 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
         (Ok(py), _) => py,
         (Err(_), Ok(py3)) => py3,
         (Err(py_err), Err(py3_err)) => {
-            return Err(SkipStep(format!("Skip due to following reasons: {} {}", py_err, py3_err)).into());
+            return Err(SkipStep(format!("Skip due to following reasons: {py_err} {py3_err}")).into());
         }
     };
 
@@ -913,7 +913,7 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
             .execute(&dotnet)
             .args(["tool", "update", package_name, "--global"])
             .status_checked()
-            .with_context(|| format!("Failed to update .NET package {:?}", package_name))?;
+            .with_context(|| format!("Failed to update .NET package {package_name:?}"))?;
     }
 
     Ok(())
@@ -1229,4 +1229,49 @@ pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Bun");
 
     ctx.run_type().execute(bun).arg("upgrade").status_checked()
+}
+
+pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
+    let zigup = require("zigup")?;
+    let config = ctx.config();
+
+    print_separator("zigup");
+
+    let mut path_args = Vec::new();
+    if let Some(path) = config.zigup_path_link() {
+        path_args.push("--path-link".to_owned());
+        path_args.push(shellexpand::tilde(path).into_owned());
+    }
+    if let Some(path) = config.zigup_install_dir() {
+        path_args.push("--install-dir".to_owned());
+        path_args.push(shellexpand::tilde(path).into_owned());
+    }
+
+    for zig_version in config.zigup_target_versions() {
+        ctx.run_type()
+            .execute(&zigup)
+            .args(&path_args)
+            .arg("fetch")
+            .arg(&zig_version)
+            .status_checked()?;
+
+        if config.zigup_cleanup() {
+            ctx.run_type()
+                .execute(&zigup)
+                .args(&path_args)
+                .arg("keep")
+                .arg(&zig_version)
+                .status_checked()?;
+        }
+    }
+
+    if config.zigup_cleanup() {
+        ctx.run_type()
+            .execute(zigup)
+            .args(&path_args)
+            .arg("clean")
+            .status_checked()?;
+    }
+
+    Ok(())
 }

@@ -52,9 +52,7 @@ impl Terminal {
         Self {
             width: term.size_checked().map(|(_, w)| w),
             term,
-            prefix: env::var("TOPGRADE_PREFIX")
-                .map(|prefix| format!("({prefix}) "))
-                .unwrap_or_else(|_| String::new()),
+            prefix: env::var("TOPGRADE_PREFIX").map_or_else(|_| String::new(), |prefix| format!("({prefix}) ")),
             set_title: true,
             display_time: true,
             desktop_notification: false,
@@ -62,15 +60,15 @@ impl Terminal {
     }
 
     fn set_desktop_notifications(&mut self, desktop_notifications: bool) {
-        self.desktop_notification = desktop_notifications
+        self.desktop_notification = desktop_notifications;
     }
 
     fn set_title(&mut self, set_title: bool) {
-        self.set_title = set_title
+        self.set_title = set_title;
     }
 
     fn display_time(&mut self, display_time: bool) {
-        self.display_time = display_time
+        self.display_time = display_time;
     }
 
     fn notify_desktop<P: AsRef<str>>(&self, message: P, timeout: Option<Duration>) {
@@ -223,8 +221,8 @@ impl Terminal {
 
         let answer = loop {
             match self.term.read_key() {
-                Ok(Key::Char('y')) | Ok(Key::Char('Y')) => break Ok(true),
-                Ok(Key::Char('s')) | Ok(Key::Char('S')) => {
+                Ok(Key::Char('y' | 'Y')) => break Ok(true),
+                Ok(Key::Char('s' | 'S')) => {
                     println!(
                         "\n\n{}\n",
                         t!("Dropping you to shell. Fix what you need and then exit the shell.")
@@ -235,12 +233,12 @@ impl Terminal {
                         break Ok(true);
                     }
                 }
-                Ok(Key::Char('n')) | Ok(Key::Char('N')) | Ok(Key::Enter) => break Ok(false),
+                Ok(Key::Char('n' | 'N') | Key::Enter) => break Ok(false),
                 Err(e) => {
                     error!("Error reading from terminal: {}", e);
                     break Ok(false);
                 }
-                Ok(Key::Char('q')) | Ok(Key::Char('Q')) => {
+                Ok(Key::Char('q' | 'Q')) => {
                     return Err(io::Error::from(io::ErrorKind::Interrupted)).context("Quit from user input")
                 }
                 _ => (),
@@ -268,26 +266,26 @@ pub fn should_retry(interrupted: bool, step_name: &str) -> eyre::Result<bool> {
 }
 
 pub fn print_separator<P: AsRef<str>>(message: P) {
-    TERMINAL.lock().unwrap().print_separator(message)
+    TERMINAL.lock().unwrap().print_separator(message);
 }
 
 #[allow(dead_code)]
 pub fn print_error<P: AsRef<str>, Q: AsRef<str>>(key: Q, message: P) {
-    TERMINAL.lock().unwrap().print_error(key, message)
+    TERMINAL.lock().unwrap().print_error(key, message);
 }
 
 #[allow(dead_code)]
 pub fn print_warning<P: AsRef<str>>(message: P) {
-    TERMINAL.lock().unwrap().print_warning(message)
+    TERMINAL.lock().unwrap().print_warning(message);
 }
 
 #[allow(dead_code)]
 pub fn print_info<P: AsRef<str>>(message: P) {
-    TERMINAL.lock().unwrap().print_info(message)
+    TERMINAL.lock().unwrap().print_info(message);
 }
 
 pub fn print_result<P: AsRef<str>>(key: P, result: &StepResult) {
-    TERMINAL.lock().unwrap().print_result(key, result)
+    TERMINAL.lock().unwrap().print_result(key, result);
 }
 
 /// Tells whether the terminal is dumb.
@@ -316,7 +314,7 @@ pub fn prompt_yesno(question: &str) -> Result<bool, io::Error> {
 }
 
 pub fn notify_desktop<P: AsRef<str>>(message: P, timeout: Option<Duration>) {
-    TERMINAL.lock().unwrap().notify_desktop(message, timeout)
+    TERMINAL.lock().unwrap().notify_desktop(message, timeout);
 }
 
 pub fn display_time(display_time: bool) {
