@@ -1678,12 +1678,15 @@ impl Config {
             .unwrap_or(true)
     }
 
-    pub fn vscode_profile(&self) -> &str {
-        self.config_file
-            .vscode
-            .as_ref()
-            .and_then(|vscode| vscode.profile.as_deref())
-            .unwrap_or("")
+    pub fn vscode_profile(&self) -> Option<&str> {
+        let vscode_cfg = self.config_file.vscode.as_ref()?;
+        let profile = vscode_cfg.profile.as_ref()?;
+
+        if profile.is_empty() {
+            None
+        } else {
+            Some(profile.as_str())
+        }
     }
 }
 

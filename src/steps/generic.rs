@@ -469,11 +469,11 @@ pub fn run_vscode_extensions_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Visual Studio Code extensions");
 
-    if !ctx.config().vscode_profile().is_empty() {
+    if let Some(profile) =ctx.config().vscode_profile() {
         ctx.run_type()
             .execute(vscode)
             .arg("--profile")
-            .arg(ctx.config().vscode_profile())
+            .arg(profile)
             .arg("--update-extensions")
             .status_checked()
     } else {
