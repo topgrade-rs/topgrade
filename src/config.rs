@@ -473,6 +473,12 @@ pub struct Zigup {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct VscodeConfig {
+    profile: Option<String>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 /// Configuration file
 pub struct ConfigFile {
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
@@ -543,6 +549,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     zigup: Option<Zigup>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    vscode: Option<VscodeConfig>,
 }
 
 fn config_directory() -> PathBuf {
@@ -1709,6 +1718,17 @@ impl Config {
             .as_ref()
             .and_then(|zigup| zigup.cleanup)
             .unwrap_or(false)
+    }
+
+    pub fn vscode_profile(&self) -> Option<&str> {
+        let vscode_cfg = self.config_file.vscode.as_ref()?;
+        let profile = vscode_cfg.profile.as_ref()?;
+
+        if profile.is_empty() {
+            None
+        } else {
+            Some(profile.as_str())
+        }
     }
 }
 

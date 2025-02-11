@@ -469,10 +469,19 @@ pub fn run_vscode_extensions_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Visual Studio Code extensions");
 
-    ctx.run_type()
-        .execute(vscode)
-        .arg("--update-extensions")
-        .status_checked()
+    if let Some(profile) = ctx.config().vscode_profile() {
+        ctx.run_type()
+            .execute(vscode)
+            .arg("--profile")
+            .arg(profile)
+            .arg("--update-extensions")
+            .status_checked()
+    } else {
+        ctx.run_type()
+            .execute(vscode)
+            .arg("--update-extensions")
+            .status_checked()
+    }
 }
 
 pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {

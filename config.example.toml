@@ -103,8 +103,8 @@
 # enable_pipupgrade = true                         ###disabled by default
 # pipupgrade_arguments = "-y -u --pip-path pip"    ###disabled by default
 
-# For the poetry step, by default, Topgrade skips its update if poetry is not 
-# installed with the official script. This configuration entry forces Topgrade 
+# For the poetry step, by default, Topgrade skips its update if poetry is not
+# installed with the official script. This configuration entry forces Topgrade
 # to run the update in this case.
 #
 # (default: false)
@@ -315,3 +315,9 @@
 # If enabled, each updated version above will be marked with `zigup keep`.
 # (default: false)
 # cleanup = false
+
+[vscode]
+# If this is set and is a non-empty string, it specifies the profile the
+# extensions should be updated for.
+# (default: this won't be set by default)
+# profile = ""
