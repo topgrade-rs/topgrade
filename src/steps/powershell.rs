@@ -116,7 +116,12 @@ impl Powershell {
         };
 
         command
-            .args(["-ExecutionPolicy RemoteSigned", "-NoProfile", &install_windowsupdate_verbose, accept_all])
+            .args([
+                "-ExecutionPolicy RemoteSigned",
+                "-NoProfile",
+                &install_windowsupdate_verbose,
+                accept_all,
+            ])
             .status_checked()
     }
 
