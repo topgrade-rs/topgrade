@@ -120,6 +120,21 @@ impl Powershell {
 }
 
 #[cfg(windows)]
+impl Powershell {
+    pub fn supports_windows_update(&self) -> bool {
+        windows::supports_windows_update(self)
+    }
+
+    pub fn windows_update(&self, ctx: &ExecutionContext) -> Result<()> {
+        windows::windows_update(self, ctx)
+    }
+
+    pub fn microsoft_store(&self, ctx: &ExecutionContext) -> Result<()> {
+        windows::microsoft_store(self, ctx)
+    }
+}
+
+#[cfg(windows)]
 mod windows {
     use super::*;
 
@@ -135,7 +150,7 @@ mod windows {
         debug_assert!(supports_windows_update(powershell));
         let mut cmd = powershell.build_command_internal(ctx, &["Install-WindowsUpdate -Verbose"])?;
         if ctx.config().accept_all_windows_updates() {
-            cmd.arg("-AcceptAll");
+            cmd.args(&["-AcceptAll"]);
         }
         cmd.status_checked()
     }
