@@ -44,6 +44,51 @@ fn run_command(ctx: &ExecutionContext, tool: &str, args: &[&str], step: Step) ->
     command.status_checked()
 }
 
+fn is_wsl_installed() -> Result<bool> {
+    if let Some(wsl) = which("wsl") {
+        let output = Command::new(wsl).arg("-l").output()?;
+        if output.status.success() {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
+    let output = Command::new(wsl).args(WSL_LIST).output_checked_utf8()?.stdout;
+    Ok(output
+        .lines()
+        .filter(|s| !s.is_empty())
+        .map(|x| x.replace(['\u{0}', '\r'], ""))
+        .collect())
+}
+
+fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> Result<()> {
+    let topgrade = Command::new(wsl)
+        .args(["-d", dist, "bash", "-lc", "which topgrade"])
+        .output_checked_utf8()
+        .map_err(|_| SkipStep(t!("Could not find Topgrade installed in WSL").to_string()))?
+        .stdout
+        .trim_end()
+        .to_owned();
+
+    let mut command = ctx.run_type().execute(wsl);
+    let mut args = String::new();
+    if ctx.config().verbose() {
+        args.push_str("-v");
+    }
+
+    command
+        .args(["-d", dist, "bash", "-c"])
+        .arg(format!("TOPGRADE_PREFIX={dist} exec {topgrade} {args}"));
+
+    if ctx.config().yes(Step::Wsl) {
+        command.arg("-y");
+    }
+
+    command.status_checked()
+}
+
 pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
     run_command(ctx, "choco", UPGRADE_ALL, Step::Chocolatey)
 }
@@ -89,51 +134,6 @@ pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
     }
     wsl_command.status_checked()?;
     Ok(())
-}
-
-fn is_wsl_installed() -> Result<bool> {
-    if let Some(wsl) = which("wsl") {
-        let output = Command::new(wsl).arg("-l").output()?;
-        if output.status.success() {
-            return Ok(true);
-        }
-    }
-    Ok(false)
-}
-
-fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
-    let output = Command::new(wsl).args(WSL_LIST).output_checked_utf8()?.stdout;
-    Ok(output
-        .lines()
-        .filter(|s| !s.is_empty())
-        .map(|x| x.replace(['\u{0}', '\r'], ""))
-        .collect())
-}
-
-fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> Result<()> {
-    let topgrade = Command::new(wsl)
-        .args(["-d", dist, "bash", "-lc", "which topgrade"])
-        .output_checked_utf8()
-        .map_err(|_| SkipStep(t!("Could not find Topgrade installed in WSL").to_string()))?
-        .stdout
-        .trim_end()
-        .to_owned();
-
-    let mut command = ctx.run_type().execute(wsl);
-    let mut args = String::new();
-    if ctx.config().verbose() {
-        args.push_str("-v");
-    }
-
-    command
-        .args(["-d", dist, "bash", "-c"])
-        .arg(format!("TOPGRADE_PREFIX={dist} exec {topgrade} {args}"));
-
-    if ctx.config().yes(Step::Wsl) {
-        command.arg("-y");
-    }
-
-    command.status_checked()
 }
 
 pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
