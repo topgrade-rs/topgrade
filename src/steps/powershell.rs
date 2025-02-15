@@ -38,9 +38,12 @@ impl Powershell {
 
     #[cfg(windows)]
     pub fn has_module(powershell: &Path, command: &str) -> bool {
-        Self::run_command(powershell, &["-Command", &format!("Get-Module -ListAvailable {command}")])
-            .map(|result| !result.stdout.is_empty())
-            .unwrap_or(false)
+        Self::run_command(
+            powershell,
+            &["-Command", &format!("Get-Module -ListAvailable {command}")],
+        )
+        .map(|result| !result.stdout.is_empty())
+        .unwrap_or(false)
     }
 
     pub fn profile(&self) -> Option<&PathBuf> {
@@ -118,10 +121,16 @@ impl Powershell {
         self.execute_command(ctx, powershell, &[update_command])
             .and_then(|output| {
                 if output.stdout.trim() == "0" {
-                    println!("{}", t!("Success, Microsoft Store apps are being updated in the background"));
+                    println!(
+                        "{}",
+                        t!("Success, Microsoft Store apps are being updated in the background")
+                    );
                     Ok(())
                 } else {
-                    println!("{}", t!("Unable to update Microsoft Store apps, manual intervention is required"));
+                    println!(
+                        "{}",
+                        t!("Unable to update Microsoft Store apps, manual intervention is required")
+                    );
                     Err(())
                 }
             })
