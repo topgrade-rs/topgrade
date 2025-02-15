@@ -184,7 +184,7 @@ mod windows {
 
     fn has_module(powershell: &PathBuf, command: &str) -> bool {
         Command::new(powershell)
-            .args(&[
+            .args([
                 "-NoProfile",
                 "-Command",
                 &format!("Get-Module -ListAvailable {}", command),
