@@ -94,6 +94,16 @@ impl Powershell {
     }
 
     #[cfg(windows)]
+    fn execution_policy_args() -> &'static [&'static str] {
+        &["-ExecutionPolicy", "RemoteSigned", "-Scope", "Process"]
+    }
+
+    #[cfg(windows)]
+    fn common_args() -> &'static [&'static str] {
+        &["-NoProfile"]
+    }
+
+    #[cfg(windows)]
     pub fn windows_update(&self, ctx: &ExecutionContext) -> Result<()> {
         let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
 
@@ -116,12 +126,9 @@ impl Powershell {
         };
 
         command
-            .args([
-                "-ExecutionPolicy RemoteSigned",
-                "-NoProfile",
-                &install_windowsupdate_verbose,
-                accept_all,
-            ])
+            .args(Self::execution_policy_args())
+            .args(Self::common_args())
+            .args([&install_windowsupdate_verbose, accept_all])
             .status_checked()
     }
 
@@ -143,7 +150,10 @@ impl Powershell {
         // This method is also available for non-MDM devices
         let update_command = "(Get-CimInstance -Namespace \"Root\\cimv2\\mdm\\dmmap\" -ClassName \"MDM_EnterpriseModernAppManagement_AppManagement01\" | Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue";
 
-        command.args(["-NoProfile", update_command]);
+        command
+            .args(Self::execution_policy_args())
+            .args(Self::common_args())
+            .args([update_command]);
 
         command
             .output_checked_with_utf8(|output| {
