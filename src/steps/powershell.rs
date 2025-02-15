@@ -150,7 +150,7 @@ mod windows {
         debug_assert!(supports_windows_update(powershell));
         let mut cmd = powershell.build_command_internal(ctx, &["Install-WindowsUpdate -Verbose"])?;
         if ctx.config().accept_all_windows_updates() {
-            cmd.args(&["-AcceptAll"]);
+            cmd.arg("-AcceptAll");
         }
         cmd.status_checked()
     }
