@@ -112,7 +112,7 @@ impl Powershell {
         debug_assert!(self.supports_windows_update());
 
         let mut command = self.build_powershell_command(ctx, powershell);
-        command = Self::add_common_args(command, &["Install-WindowsUpdate -Verbose"]);
+        command = self.add_common_args(command, &["Install-WindowsUpdate -Verbose"]);
 
         if ctx.config().accept_all_windows_updates() {
             command.arg("-AcceptAll");
@@ -163,7 +163,7 @@ impl Powershell {
     }
 
     #[cfg(windows)]
-    fn add_common_args(mut command: Command, additional_args: &[&str]) -> Command {
+    fn add_common_args(&self, mut command: Command, additional_args: &[&str]) -> Command {
         // Add execution policy if needed.
         if let Some(args) = self.execution_policy_args_if_needed() {
             command.args(args);
