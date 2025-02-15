@@ -18,7 +18,7 @@ pub struct Powershell {
 impl Powershell {
     pub fn new() -> Self {
         let path = which("pwsh").or_else(|| which("powershell")).filter(|_| !is_dumb());
-        let profile = Self::get_profile(&path);
+        let profile = path.as_ref().and_then(Self::get_profile);
         Powershell { path, profile }
     }
 
@@ -30,23 +30,28 @@ impl Powershell {
         }
     }
 
-    // Added getter method for profile.
     pub fn profile(&self) -> Option<&PathBuf> {
         self.profile.as_ref()
     }
 
-    fn get_profile(path: &Option<PathBuf>) -> Option<PathBuf> {
-        path.as_ref().and_then(|path| {
-            Command::new(path)
-                .args(["-NoProfile", "-Command", "Split-Path $profile"])
-                .output_checked_utf8()
-                .map(|output| PathBuf::from(output.stdout.trim()))
-                .and_then(super::super::utils::PathExt::require)
-                .ok()
+    fn get_profile(path: &PathBuf) -> Option<PathBuf> {
+        Self::execute_with_command(path, &["-NoProfile", "-Command", "Split-Path $PROFILE"], |stdout| {
+            Ok(stdout)
         })
+        .ok() // Convert the Result<String> to Option<String>
+        .and_then(|s| super::super::utils::PathExt::require(PathBuf::from(s)).ok())
     }
 
-    /// Shared logic to build a command, with support for sudo and common arguments.
+    fn execute_with_command<F>(path: &PathBuf, args: &[&str], f: F) -> Result<String>
+    where
+        F: FnOnce(String) -> Result<String>,
+    {
+        let output = Command::new(path).args(args).output_checked_utf8()?;
+        let stdout = output.stdout.trim().to_string();
+        f(stdout)
+    }
+
+    /// Builds a command with common arguments and optional sudo support.
     fn build_command_internal<'a>(
         &self,
         ctx: &'a ExecutionContext,
@@ -62,7 +67,6 @@ impl Powershell {
             executor.execute(powershell)
         };
 
-        // Windows-specific extensions are applied separately.
         #[cfg(windows)]
         {
             if let Some(policy_args) = self.execution_policy_args_if_needed() {
@@ -76,15 +80,14 @@ impl Powershell {
 
     pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
         print_separator(t!("Powershell Modules Update"));
-
         let mut cmd_args = vec!["Update-Module"];
+
         if ctx.config().verbose() {
             cmd_args.push("-Verbose");
         }
         if ctx.config().yes(Step::Powershell) {
             cmd_args.push("-Force");
         }
-
         println!("{}", t!("Updating modules..."));
         self.build_command_internal(ctx, &cmd_args)?.status_checked()
     }
@@ -94,15 +97,7 @@ impl Powershell {
     }
 
     #[cfg(windows)]
-    pub fn supports_windows_update(&self) -> bool {
-        self.path
-            .as_ref()
-            .map(|p| Self::has_module(p, "PSWindowsUpdate"))
-            .unwrap_or(false)
-    }
-
-    #[cfg(windows)]
-    fn execution_policy_args_if_needed(&self) -> Option<&'static [&'static str]> {
+    pub fn execution_policy_args_if_needed(&self) -> Option<&'static [&'static str]> {
         if self.is_execution_policy_set("RemoteSigned") {
             None
         } else {
@@ -116,37 +111,42 @@ impl Powershell {
             let output = Command::new(powershell)
                 .args(["-NoProfile", "-Command", "Get-ExecutionPolicy -Scope Process"])
                 .output_checked_utf8();
-
             if let Ok(output) = output {
                 return output.stdout.trim() == policy;
             }
         }
         false
     }
+}
 
-    #[cfg(windows)]
-    pub fn windows_update(&self, ctx: &ExecutionContext) -> Result<()> {
-        debug_assert!(self.supports_windows_update());
+#[cfg(windows)]
+mod windows {
+    use super::*;
 
-        // Windows-specific command to update Windows
-        self.build_command_internal(ctx, &["Install-WindowsUpdate -Verbose"])
-            .map(|mut cmd| {
-                if ctx.config().accept_all_windows_updates() {
-                    cmd.arg("-AcceptAll");
-                }
-                cmd
-            })?
-            .status_checked()
+    pub fn supports_windows_update(powershell: &Powershell) -> bool {
+        powershell
+            .path
+            .as_ref()
+            .map(|p| has_module(p, "PSWindowsUpdate"))
+            .unwrap_or(false)
     }
 
-    #[cfg(windows)]
-    pub fn microsoft_store(&self, ctx: &ExecutionContext) -> Result<()> {
-        println!("{}", t!("Scanning for updates..."));
+    pub fn windows_update(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
+        debug_assert!(supports_windows_update(powershell));
+        let mut cmd = powershell.build_command_internal(ctx, &["Install-WindowsUpdate -Verbose"])?;
+        if ctx.config().accept_all_windows_updates() {
+            cmd.arg("-AcceptAll");
+        }
+        cmd.status_checked()
+    }
 
+    pub fn microsoft_store(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
+        println!("{}", t!("Scanning for updates..."));
         let update_command = "(Get-CimInstance -Namespace \"Root\\cimv2\\mdm\\dmmap\" \
                                  -ClassName \"MDM_EnterpriseModernAppManagement_AppManagement01\" | \
                                  Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue";
-        self.build_command_internal(ctx, &["-Command", update_command])?
+        powershell
+            .build_command_internal(ctx, &["-Command", update_command])?
             .output_checked_with_utf8(|output| {
                 if output.stdout.trim() == "0" {
                     println!(
@@ -165,7 +165,6 @@ impl Powershell {
             .map(|_| ())
     }
 
-    #[cfg(windows)]
     fn has_module(powershell: &PathBuf, command: &str) -> bool {
         Command::new(powershell)
             .args(&[
