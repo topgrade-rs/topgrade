@@ -47,7 +47,7 @@ impl Powershell {
     }
 
     // Changed return type to impl CommandExt to match the type returned by executor.execute().
-    fn build_command<'a>(&self, ctx: &'a ExecutionContext, additional_args: &[&str]) -> Result<impl CommandExt> {
+    fn build_command(&self, ctx: &ExecutionContext, additional_args: &[&str]) -> Result<impl CommandExt> {
         let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
         let executor = &mut ctx.run_type();
         let mut command = if let Some(sudo) = ctx.sudo() {
