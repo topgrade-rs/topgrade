@@ -111,15 +111,8 @@ impl Powershell {
         let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
         debug_assert!(self.supports_windows_update());
 
-        let install_windowsupdate_verbose = "Install-WindowsUpdate -Verbose".to_string();
-        let mut command = self.prepare_command(ctx, powershell);
-
-        if let Some(args) = self.execution_policy_args_if_needed() {
-            command.args(args);
-        }
-
-        command.args(Self::common_args());
-        command.arg(&install_windowsupdate_verbose);
+        let mut command = self.build_powershell_command(ctx, powershell);
+        command = Self::add_common_args(command, &["Install-WindowsUpdate -Verbose"]);
 
         if ctx.config().accept_all_windows_updates() {
             command.arg("-AcceptAll");
@@ -131,17 +124,13 @@ impl Powershell {
     #[cfg(windows)]
     pub fn microsoft_store(&self, ctx: &ExecutionContext) -> Result<()> {
         let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
-        let mut command = self.prepare_command(ctx, powershell);
+        let mut command = self.build_powershell_command(ctx, powershell);
 
         println!("{}", t!("Scanning for updates..."));
 
         let update_command = "(Get-CimInstance -Namespace \"Root\\cimv2\\mdm\\dmmap\" -ClassName \"MDM_EnterpriseModernAppManagement_AppManagement01\" | Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue";
 
-        if let Some(args) = self.execution_policy_args_if_needed() {
-            command.args(args);
-        }
-
-        command.args(Self::common_args()).args([update_command]);
+        command = self.add_common_args(command, &[update_command]);
 
         command
             .output_checked_with_utf8(|output| {
@@ -163,7 +152,7 @@ impl Powershell {
     }
 
     #[cfg(windows)]
-    fn prepare_command(&self, ctx: &ExecutionContext, powershell: &Path) -> Command {
+    fn build_powershell_command(&self, ctx: &ExecutionContext, powershell: &Path) -> Command {
         if let Some(sudo) = ctx.sudo() {
             let mut command = ctx.run_type().execute(sudo);
             command.arg(powershell);
@@ -171,6 +160,16 @@ impl Powershell {
         } else {
             ctx.run_type().execute(powershell)
         }
+    }
+
+    #[cfg(windows)]
+    fn add_common_args(mut command: Command, additional_args: &[&str]) -> Command {
+        // Add execution policy if needed.
+        if let Some(args) = self.execution_policy_args_if_needed() {
+            command.args(args);
+        }
+        command.args(Self::common_args()).args(additional_args);
+        command
     }
 
     #[cfg(windows)]
