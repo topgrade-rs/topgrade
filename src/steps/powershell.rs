@@ -19,7 +19,6 @@ impl Powershell {
     pub fn new() -> Self {
         let path = which("pwsh").or_else(|| which("powershell")).filter(|_| !is_dumb());
         let profile = Self::get_profile(&path);
-
         Powershell { path, profile }
     }
 
@@ -29,6 +28,11 @@ impl Powershell {
             path: which("powershell").filter(|_| !is_dumb()),
             profile: None,
         }
+    }
+
+    // Added getter method for profile.
+    pub fn profile(&self) -> Option<&PathBuf> {
+        self.profile.as_ref()
     }
 
     fn get_profile(path: &Option<PathBuf>) -> Option<PathBuf> {
@@ -42,12 +46,12 @@ impl Powershell {
         })
     }
 
-    pub fn profile(&self) -> Option<&PathBuf> {
-        self.profile.as_ref()
-    }
-
-    // Changed return type to impl CommandExt to match the type returned by executor.execute().
-    fn build_command(&self, ctx: &ExecutionContext, additional_args: &[&str]) -> Result<impl CommandExt> {
+    /// Shared logic to build a command, with support for sudo and common arguments.
+    fn build_command_internal<'a>(
+        &self,
+        ctx: &'a ExecutionContext,
+        additional_args: &[&str],
+    ) -> Result<impl CommandExt + 'a> {
         let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
         let executor = &mut ctx.run_type();
         let mut command = if let Some(sudo) = ctx.sudo() {
@@ -58,9 +62,12 @@ impl Powershell {
             executor.execute(powershell)
         };
 
+        // Windows-specific extensions are applied separately.
         #[cfg(windows)]
-        if let Some(policy_args) = self.execution_policy_args_if_needed() {
-            command.args(policy_args);
+        {
+            if let Some(policy_args) = self.execution_policy_args_if_needed() {
+                command.args(policy_args);
+            }
         }
 
         command.args(Self::common_args()).args(additional_args);
@@ -79,7 +86,7 @@ impl Powershell {
         }
 
         println!("{}", t!("Updating modules..."));
-        self.build_command(ctx, &cmd_args)?.status_checked()
+        self.build_command_internal(ctx, &cmd_args)?.status_checked()
     }
 
     fn common_args() -> &'static [&'static str] {
@@ -121,23 +128,25 @@ impl Powershell {
     pub fn windows_update(&self, ctx: &ExecutionContext) -> Result<()> {
         debug_assert!(self.supports_windows_update());
 
-        let mut cmd = self.build_command(ctx, &["Install-WindowsUpdate -Verbose"])?;
-        if ctx.config().accept_all_windows_updates() {
-            cmd.arg("-AcceptAll");
-        }
-        cmd.status_checked()
+        // Windows-specific command to update Windows
+        self.build_command_internal(ctx, &["Install-WindowsUpdate -Verbose"])
+            .map(|mut cmd| {
+                if ctx.config().accept_all_windows_updates() {
+                    cmd.arg("-AcceptAll");
+                }
+                cmd
+            })?
+            .status_checked()
     }
 
     #[cfg(windows)]
     pub fn microsoft_store(&self, ctx: &ExecutionContext) -> Result<()> {
         println!("{}", t!("Scanning for updates..."));
 
-        // Command to scan for updates.
         let update_command = "(Get-CimInstance -Namespace \"Root\\cimv2\\mdm\\dmmap\" \
-                             -ClassName \"MDM_EnterpriseModernAppManagement_AppManagement01\" | \
-                             Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue";
-        // Fixed: Prepend "-Command" flag to properly pass the command.
-        self.build_command(ctx, &["-Command", update_command])?
+                                 -ClassName \"MDM_EnterpriseModernAppManagement_AppManagement01\" | \
+                                 Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue";
+        self.build_command_internal(ctx, &["-Command", update_command])?
             .output_checked_with_utf8(|output| {
                 if output.stdout.trim() == "0" {
                     println!(
