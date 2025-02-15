@@ -81,7 +81,8 @@ impl Powershell {
         ctx.run_type()
             .execute(powershell)
             // This probably doesn't need `shell_words::join`.
-            .args(["-NoProfile", "-Command", &cmd.join(" ")])
+            .args(Self::common_args())
+            .args(["-Command", &cmd.join(" ")])
             .status_checked()
     }
 
@@ -94,8 +95,26 @@ impl Powershell {
     }
 
     #[cfg(windows)]
-    fn execution_policy_args() -> &'static [&'static str] {
-        &["-ExecutionPolicy", "RemoteSigned", "-Scope", "Process"]
+    fn execution_policy_args_if_needed(&self) -> Option<&'static [&'static str]> {
+        if self.is_execution_policy_set("RemoteSigned") {
+            None
+        } else {
+            Some(&["-ExecutionPolicy", "RemoteSigned", "-Scope", "Process"])
+        }
+    }
+
+    #[cfg(windows)]
+    fn is_execution_policy_set(&self, policy: &str) -> bool {
+        if let Some(powershell) = &self.path {
+            let output = Command::new(powershell)
+                .args(["-NoProfile", "-Command", "Get-ExecutionPolicy -Scope Process"])
+                .output_checked_utf8();
+
+            if let Ok(output) = output {
+                return output.stdout.trim() == policy;
+            }
+        }
+        false
     }
 
     #[cfg(windows)]
@@ -125,8 +144,11 @@ impl Powershell {
             ctx.run_type().execute(powershell)
         };
 
+        if let Some(args) = self.execution_policy_args_if_needed() {
+            command.args(args);
+        }
+
         command
-            .args(Self::execution_policy_args())
             .args(Self::common_args())
             .args([&install_windowsupdate_verbose, accept_all])
             .status_checked()
@@ -150,10 +172,11 @@ impl Powershell {
         // This method is also available for non-MDM devices
         let update_command = "(Get-CimInstance -Namespace \"Root\\cimv2\\mdm\\dmmap\" -ClassName \"MDM_EnterpriseModernAppManagement_AppManagement01\" | Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue";
 
-        command
-            .args(Self::execution_policy_args())
-            .args(Self::common_args())
-            .args([update_command]);
+        if let Some(args) = self.execution_policy_args_if_needed() {
+            command.args(args);
+        }
+
+        command.args(Self::common_args()).args([update_command]);
 
         command
             .output_checked_with_utf8(|output| {
