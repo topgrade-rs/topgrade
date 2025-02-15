@@ -148,11 +148,13 @@ mod windows {
 
     pub fn windows_update(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
         debug_assert!(supports_windows_update(powershell));
-        let mut cmd = powershell.build_command_internal(ctx, &["Install-WindowsUpdate -Verbose"])?;
+
+        let mut args = vec!["Install-WindowsUpdate", "-Verbose"];
         if ctx.config().accept_all_windows_updates() {
-            cmd.arg("-AcceptAll");
+            args.push("-AcceptAll");
         }
-        cmd.status_checked()
+
+        powershell.build_command_internal(ctx, &args)?.status_checked()
     }
 
     pub fn microsoft_store(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
