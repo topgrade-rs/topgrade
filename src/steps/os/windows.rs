@@ -64,19 +64,9 @@ fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
 }
 
 fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> Result<()> {
-    let topgrade = Command::new(wsl)
-        .args(["-d", dist, "bash", "-lc", "which topgrade"])
-        .output_checked_utf8()
-        .map_err(|_| SkipStep(t!("Could not find Topgrade installed in WSL").to_string()))?
-        .stdout
-        .trim_end()
-        .to_owned();
-
+    let topgrade = find_topgrade_in_wsl(wsl, dist)?;
     let mut command = ctx.run_type().execute(wsl);
-    let mut args = String::new();
-    if ctx.config().verbose() {
-        args.push_str("-v");
-    }
+    let args = if ctx.config().verbose() { "-v" } else { "" };
 
     command
         .args(["-d", dist, "bash", "-c"])
@@ -87,6 +77,16 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     }
 
     command.status_checked()
+}
+
+fn find_topgrade_in_wsl(wsl: &Path, dist: &str) -> Result<String> {
+    Command::new(wsl)
+        .args(["-d", dist, "bash", "-lc", "which topgrade"])
+        .output_checked_utf8()
+        .map_err(|_| SkipStep(t!("Could not find Topgrade installed in WSL").to_string()))?
+        .stdout
+        .trim_end()
+        .to_owned()
 }
 
 pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
@@ -102,15 +102,23 @@ pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Scoop");
 
-    ctx.run_type().execute(&scoop).args(UPDATE).status_checked()?;
-    ctx.run_type().execute(&scoop).args(&["update", "*"]).status_checked()?;
+    execute_scoop_commands(ctx, &scoop)?;
 
     if ctx.config().cleanup() {
-        ctx.run_type().execute(&scoop).args(CLEANUP).status_checked()?;
-        ctx.run_type().execute(&scoop).args(CACHE_RM).status_checked()?;
+        cleanup_scoop(ctx, &scoop)?;
     }
 
     Ok(())
+}
+
+fn execute_scoop_commands(ctx: &ExecutionContext, scoop: &Path) -> Result<()> {
+    ctx.run_type().execute(scoop).args(UPDATE).status_checked()?;
+    ctx.run_type().execute(scoop).args(&["update", "*"]).status_checked()
+}
+
+fn cleanup_scoop(ctx: &ExecutionContext, scoop: &Path) -> Result<()> {
+    ctx.run_type().execute(scoop).args(CLEANUP).status_checked()?;
+    ctx.run_type().execute(scoop).args(CACHE_RM).status_checked()
 }
 
 pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
