@@ -113,24 +113,24 @@ impl Powershell {
         if let Some(powershell) = &self.path {
             // These policies are ordered from most restrictive to least restrictive
             let valid_policies = ["Restricted", "AllSigned", "RemoteSigned", "Unrestricted", "Bypass"];
-            
+
             // Find the index of our target policy
             let target_idx = valid_policies.iter().position(|&p| p == policy);
-            
+
             let output = Command::new(powershell)
                 .args(["-NoProfile", "-Command", "Get-ExecutionPolicy"])
                 .output_checked_utf8();
-                
+
             if let Ok(output) = output {
                 let current_policy = output.stdout.trim();
-                
+
                 // Find the index of the current policy
                 let current_idx = valid_policies.iter().position(|&p| p == current_policy);
-                
+
                 // Check if current policy exists and is at least as permissive as the target
                 return match (current_idx, target_idx) {
                     (Some(current), Some(target)) => current >= target,
-                    _ => false
+                    _ => false,
                 };
             }
         }
@@ -187,7 +187,7 @@ mod windows {
             '(Get-CimInstance -Namespace \"Root\\cimv2\\mdm\\dmmap\" \
             -ClassName \"MDM_EnterpriseModernAppManagement_AppManagement01\" | \
             Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue'";
-            
+
         powershell
             .build_command_internal(ctx, &["-Command", update_command])?
             .status_checked()
