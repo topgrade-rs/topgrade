@@ -183,27 +183,14 @@ mod windows {
 
     pub fn microsoft_store(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
         println!("{}", t!("Scanning for updates..."));
-        let update_command = "(Get-CimInstance -Namespace \"Root\\cimv2\\mdm\\dmmap\" \
-                                 -ClassName \"MDM_EnterpriseModernAppManagement_AppManagement01\" | \
-                                 Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue";
+        let update_command = "Start-Process powershell -Verb RunAs -ArgumentList '-Command', \
+            '(Get-CimInstance -Namespace \"Root\\cimv2\\mdm\\dmmap\" \
+            -ClassName \"MDM_EnterpriseModernAppManagement_AppManagement01\" | \
+            Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue'";
+            
         powershell
             .build_command_internal(ctx, &["-Command", update_command])?
-            .output_checked_with_utf8(|output| {
-                if output.stdout.trim() == "0" {
-                    println!(
-                        "{}",
-                        t!("Success, Microsoft Store apps are being updated in the background")
-                    );
-                    Ok(())
-                } else {
-                    println!(
-                        "{}",
-                        t!("Unable to update Microsoft Store apps, manual intervention is required")
-                    );
-                    Err(())
-                }
-            })
-            .map(|_| ())
+            .status_checked()
     }
 
     fn has_module(powershell: &PathBuf, command: &str) -> bool {
