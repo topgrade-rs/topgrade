@@ -60,19 +60,7 @@ impl Distribution {
             Some("wolfi") => Distribution::Wolfi,
             Some("centos") | Some("rhel") | Some("ol") => Distribution::CentOS,
             Some("clear-linux-os") => Distribution::ClearLinux,
-            Some("fedora") => {
-                return if let Some(variant) = variant {
-                    match variant {
-                        "Silverblue" | "Kinoite" | "Sericea" | "Onyx" | "IoT Edition" | "Sway Atomic" => {
-                            Ok(Distribution::FedoraImmutable)
-                        }
-                        _ => Ok(Distribution::Fedora),
-                    }
-                } else {
-                    Ok(Distribution::Fedora)
-                };
-            }
-
+            Some("fedora") => Distribution::match_fedora_variant(&variant),
             Some("nilrt") => Distribution::NILRT,
             Some("nobara") => Distribution::Nobara,
             Some("void") => Distribution::Void,
@@ -109,12 +97,20 @@ impl Distribution {
                     } else if id_like.contains(&"alpine") {
                         return Ok(Distribution::Alpine);
                     } else if id_like.contains(&"fedora") {
-                        return Ok(Distribution::Fedora);
+                        return Ok(Distribution::match_fedora_variant(&variant));
                     }
                 }
                 return Err(TopgradeError::UnknownLinuxDistribution.into());
             }
         })
+    }
+
+    fn match_fedora_variant(variant: &Option<&str>) -> Self {
+        if let Some("Silverblue" | "Kinoite" | "Sericea" | "Onyx" | "IoT Edition" | "Sway Atomic" | "CoreOS") = variant {
+            Distribution::FedoraImmutable
+        } else {
+            Distribution::Fedora
+        }
     }
 
     pub fn detect() -> Result<Self> {
