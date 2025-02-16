@@ -106,7 +106,8 @@ impl Distribution {
     }
 
     fn match_fedora_variant(variant: &Option<&str>) -> Self {
-        if let Some("Silverblue" | "Kinoite" | "Sericea" | "Onyx" | "IoT Edition" | "Sway Atomic" | "CoreOS") = variant {
+        if let Some("Silverblue" | "Kinoite" | "Sericea" | "Onyx" | "IoT Edition" | "Sway Atomic" | "CoreOS") = variant
+        {
             Distribution::FedoraImmutable
         } else {
             Distribution::Fedora
