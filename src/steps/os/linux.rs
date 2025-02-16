@@ -1284,4 +1284,19 @@ mod tests {
     fn test_nilrt() {
         test_template(include_str!("os_release/nilrt"), Distribution::NILRT);
     }
+
+    #[test]
+    fn test_coreos() {
+        test_template(include_str!("os_release/coreos"), Distribution::FedoraImmutable);
+    }
+
+    #[test]
+    fn test_aurora() {
+        test_template(include_str!("os_release/aurora"), Distribution::FedoraImmutable);
+    }
+
+    #[test]
+    fn test_bluefin() {
+        test_template(include_str!("os_release/bluefin"), Distribution::FedoraImmutable);
+    }
 }
