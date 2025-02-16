@@ -87,7 +87,7 @@ impl NPM {
             .args(["--version"])
             .output_checked_utf8()
             .map(|s| s.stdout.trim().to_owned());
-        Version::parse(&version_str?).map_err(|err| err.into())
+        Version::parse(&version_str?).map_err(std::convert::Into::into)
     }
 
     fn upgrade(&self, ctx: &ExecutionContext, use_sudo: bool) -> Result<()> {
@@ -266,7 +266,7 @@ impl Deno {
             .args(["-V"])
             .output_checked_utf8()
             .map(|s| s.stdout.trim().to_owned().split_off(5)); // remove "deno " prefix
-        Version::parse(&version_str?).map_err(|err| err.into())
+        Version::parse(&version_str?).map_err(std::convert::Into::into)
     }
 }
 
@@ -399,7 +399,7 @@ pub fn run_volta_packages_upgrade(ctx: &ExecutionContext) -> Result<()> {
         return Ok(());
     }
 
-    for package in installed_packages.iter() {
+    for package in &installed_packages {
         ctx.run_type()
             .execute(&volta)
             .args(["install", package])

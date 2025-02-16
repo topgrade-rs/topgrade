@@ -2770,7 +2770,7 @@ dependencies = [
 
 [[package]]
 name = "topgrade"
-version = "16.0.1"
+version = "16.0.2"
 dependencies = [
  "cfg-if",
  "chrono",

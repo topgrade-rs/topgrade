@@ -152,7 +152,10 @@ impl Executor {
         let result = match self {
             Executor::Wet(c) => {
                 debug!("Running {:?}", c);
-                c.spawn_checked().map(ExecutorChild::Wet)?
+                // We should use `spawn()` here rather than `spawn_checked()` since
+                // their semantics and behaviors are different.
+                #[allow(clippy::disallowed_methods)]
+                c.spawn().map(ExecutorChild::Wet)?
             }
             Executor::Dry(c) => {
                 c.dry_run();
@@ -166,7 +169,12 @@ impl Executor {
     /// See `std::process::Command::output`
     pub fn output(&mut self) -> Result<ExecutorOutput> {
         match self {
-            Executor::Wet(c) => Ok(ExecutorOutput::Wet(c.output_checked()?)),
+            Executor::Wet(c) => {
+                // We should use `output()` here rather than `output_checked()` since
+                // their semantics and behaviors are different.
+                #[allow(clippy::disallowed_methods)]
+                Ok(ExecutorOutput::Wet(c.output()?))
+            }
             Executor::Dry(c) => {
                 c.dry_run();
                 Ok(ExecutorOutput::Dry)
@@ -180,7 +188,7 @@ impl Executor {
     pub fn status_checked_with_codes(&mut self, codes: &[i32]) -> Result<()> {
         match self {
             Executor::Wet(c) => c.status_checked_with(|status| {
-                if status.success() || status.code().as_ref().map(|c| codes.contains(c)).unwrap_or(false) {
+                if status.success() || status.code().as_ref().is_some_and(|c| codes.contains(c)) {
                     Ok(())
                 } else {
                     Err(())

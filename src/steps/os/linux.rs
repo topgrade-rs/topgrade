@@ -225,6 +225,13 @@ fn upgrade_wolfi_linux(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
+    if let Some(bootc) = which("bootc") {
+        if ctx.config().bootc() {
+            let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
+            return ctx.run_type().execute(sudo).arg(&bootc).arg("upgrade").status_checked();
+        }
+    }
+
     if let Some(ostree) = which("rpm-ostree") {
         if ctx.config().rpm_ostree() {
             let mut command = ctx.run_type().execute(ostree);
@@ -298,6 +305,13 @@ fn upgrade_nilrt(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_fedora_immutable(ctx: &ExecutionContext) -> Result<()> {
+    if let Some(bootc) = which("bootc") {
+        if ctx.config().bootc() {
+            let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
+            return ctx.run_type().execute(sudo).arg(&bootc).arg("upgrade").status_checked();
+        }
+    }
+
     let ostree = require("rpm-ostree")?;
     let mut command = ctx.run_type().execute(ostree);
     command.arg("upgrade");

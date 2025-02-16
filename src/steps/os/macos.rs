@@ -203,7 +203,7 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
                     .execute(&xcodes)
                     .args([
                         "uninstall",
-                        releases_new_installed.iter().next().cloned().unwrap_or_default(),
+                        releases_new_installed.iter().next().copied().unwrap_or_default(),
                     ])
                     .status_checked();
             }
@@ -216,12 +216,7 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
 pub fn process_xcodes_releases(releases_filtered: Vec<String>, should_ask: bool, ctx: &ExecutionContext) -> Result<()> {
     let xcodes = require("xcodes")?;
 
-    if releases_filtered
-        .last()
-        .map(|s| !s.contains("(Installed)"))
-        .unwrap_or(true)
-        && !releases_filtered.is_empty()
-    {
+    if releases_filtered.last().map_or(true, |s| !s.contains("(Installed)")) && !releases_filtered.is_empty() {
         println!(
             "{} {}",
             t!("New Xcode release detected:"),

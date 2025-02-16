@@ -140,7 +140,7 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
         list_containers(&crt, ctx.config().containers_ignored_tags()).context("Failed to list Docker containers")?;
     debug!("Containers to inspect: {:?}", containers);
 
-    for container in containers.iter() {
+    for container in &containers {
         debug!("Pulling container '{}'", container);
         let args = vec![
             "pull",
