@@ -679,7 +679,14 @@ pub fn run_nix_helper(ctx: &ExecutionContext) -> Result<()> {
     if nixos_cfg.is_ok_and(|x| x.contains(&format!(r#""{hostname}""#))) {
         print_separator("nh os");
 
-        run_type.execute(&nix_helper).arg("os").arg("switch").status_checked()?;
+        let mut cmd = run_type.execute(&nix_helper);
+        cmd.arg("os");
+        cmd.arg("switch");
+
+        if !ctx.config().yes(Step::NixHelper) {
+            cmd.arg("--ask");
+        }
+        cmd.status_checked()?;
     }
 
     if let Ok(home_cfg) = home_cfg {
@@ -687,11 +694,14 @@ pub fn run_nix_helper(ctx: &ExecutionContext) -> Result<()> {
         if home_cfg.contains(&format!(r#""{username}""#)) || home_cfg.contains(&username_at_hostname) {
             print_separator("nh home");
 
-            run_type
-                .execute(&nix_helper)
-                .arg("home")
-                .arg("switch")
-                .status_checked()?;
+            let mut cmd = run_type.execute(&nix_helper);
+            cmd.arg("home");
+            cmd.arg("switch");
+
+            if !ctx.config().yes(Step::NixHelper) {
+                cmd.arg("--ask");
+            }
+            cmd.status_checked()?;
         }
     }
 
