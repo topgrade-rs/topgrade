@@ -177,10 +177,11 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
     if ctx.config().cleanup() {
         // Remove dangling images
         debug!("Removing dangling images");
+        let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
         if let Err(e) = ctx
             .run_type()
-            .execute(&crt)
-            .args(["image", "prune", "-f"])
+            .execute(sudo)
+            .args([&crt, "image", "prune", "-f"])
             .status_checked()
         {
             error!("Removing dangling images failed: {}", e);
