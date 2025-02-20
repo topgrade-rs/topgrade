@@ -517,12 +517,23 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Conda");
 
-    let mut command = ctx.run_type().execute(conda);
+    let mut command = ctx.run_type().execute(&conda);
     command.args(["update", "--all", "-n", "base"]);
     if ctx.config().yes(Step::Conda) {
         command.arg("--yes");
     }
-    command.status_checked()
+    command.status_checked()?;
+
+    if ctx.config().cleanup() {
+        let mut command = ctx.run_type().execute(conda);
+        command.args(["clean", "--all"]);
+        if ctx.config().yes(Step::Conda) {
+            command.arg("--yes");
+        }
+        command.status_checked()?;
+    }
+
+    Ok(())
 }
 
 pub fn run_pixi_update(ctx: &ExecutionContext) -> Result<()> {
