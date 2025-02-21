@@ -111,6 +111,19 @@
 # poetry_force_self_update = true
 
 
+[conda]
+# Additional named conda environments to update (`conda env update -n env_name`)
+# env_names = [
+#     "Toolbox",
+#     "PyTorch"
+# ]
+# Additional conda environment paths to pull (`conda env update -p env_path`)
+# env_paths = [
+#     "~/webserver/.conda/",
+#     "~/experiments/.conda/"
+# ]
+
+
 [composer]
 # self_update = true
 
