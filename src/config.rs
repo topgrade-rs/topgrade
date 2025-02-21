@@ -238,6 +238,16 @@ pub struct Python {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct Conda {
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    env_names: Option<Vec<String>>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    env_paths: Option<Vec<String>>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct Distrobox {
     use_root: Option<bool>,
@@ -497,6 +507,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::commands_merge_opt)]
     commands: Option<Commands>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    conda: Option<Conda>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     python: Option<Python>,
@@ -958,6 +971,22 @@ impl Config {
     /// The list of custom steps.
     pub fn commands(&self) -> &Option<Commands> {
         &self.config_file.commands
+    }
+
+    /// The list of additional named conda environments.
+    pub fn conda_env_names(&self) -> Option<&Vec<String>> {
+        self.config_file
+            .conda
+            .as_ref()
+            .and_then(|conda| conda.env_names.as_ref())
+    }
+
+    /// The list of additional git repositories to pull.
+    pub fn conda_env_paths(&self) -> Option<&Vec<String>> {
+        self.config_file
+            .conda
+            .as_ref()
+            .and_then(|conda| conda.env_paths.as_ref())
     }
 
     /// The list of additional git repositories to pull.
