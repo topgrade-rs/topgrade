@@ -548,12 +548,23 @@ pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Mamba");
 
-    let mut command = ctx.run_type().execute(mamba);
+    let mut command = ctx.run_type().execute(&mamba);
     command.args(["update", "--all", "-n", "base"]);
     if ctx.config().yes(Step::Mamba) {
         command.arg("--yes");
     }
-    command.status_checked()
+    command.status_checked()?;
+
+    if ctx.config().cleanup() {
+        let mut command = ctx.run_type().execute(&mamba);
+        command.args(["clean", "--all"]);
+        if ctx.config().yes(Step::Mamba) {
+            command.arg("--yes");
+        }
+        command.status_checked()?;
+    }
+
+    Ok(())
 }
 
 pub fn run_miktex_packages_update(ctx: &ExecutionContext) -> Result<()> {
