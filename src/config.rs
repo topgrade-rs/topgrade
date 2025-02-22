@@ -981,7 +981,7 @@ impl Config {
             .and_then(|conda| conda.env_names.as_ref())
     }
 
-    /// The list of additional git repositories to pull.
+    /// The list of additional conda environment paths.
     pub fn conda_env_paths(&self) -> Option<&Vec<String>> {
         self.config_file
             .conda
