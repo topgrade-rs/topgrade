@@ -506,6 +506,16 @@ pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(pipx).args(command_args).status_checked()
 }
 
+pub fn run_pipxu_update(ctx: &ExecutionContext) -> Result<()> {
+    let pipxu = require("pipxu")?;
+    print_separator("pipxu");
+
+    ctx.run_type()
+        .execute(pipxu)
+        .args(["upgrade", "--all"])
+        .status_checked()
+}
+
 pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
     let conda = require("conda")?;
 

@@ -125,6 +125,7 @@ pub enum Step {
     PipReviewLocal,
     Pipupgrade,
     Pipx,
+    Pipxu,
     Pixi,
     Pkg,
     Pkgin,
