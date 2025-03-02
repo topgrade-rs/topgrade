@@ -1303,3 +1303,36 @@ pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
 
     Ok(())
 }
+
+pub fn run_ldcup(ctx: &ExecutionContext) -> Result<()> {
+    let ldcup = require("ldcup")?;
+    let config = ctx.config();
+
+    print_separator("ldcup");
+
+    let mut path_args = Vec::new();
+
+    if let Some(path) = config.ldcup_install_dir() {
+        path_args.push(format!("--install-dir={}", shellexpand::tilde(path).into_owned()));
+    }
+
+    for ldc_version in config.ldcup_target_versions() {
+        ctx.run_type()
+            .execute(&ldcup)
+            .args(&path_args)
+            .arg("install")
+            .arg(&ldc_version)
+            .status_checked()?;
+
+        if config.ldcup_cleanup() {
+            ctx.run_type()
+                .execute(&ldcup)
+                .args(&path_args)
+                .arg("uninstall")
+                .arg(&ldc_version)
+                .status_checked()?;
+        }
+    }
+
+    Ok(())
+}
