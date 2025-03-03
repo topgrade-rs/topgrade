@@ -1309,5 +1309,8 @@ pub fn run_cinnamon_spices_updater(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Cinnamon spices");
 
-    ctx.run_type().execute(cinnamon_spice_updater).arg("--update-all").status_checked()
+    ctx.run_type()
+        .execute(cinnamon_spice_updater)
+        .arg("--update-all")
+        .status_checked()
 }
