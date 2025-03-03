@@ -69,6 +69,7 @@ pub enum Step {
     Chezmoi,
     Chocolatey,
     Choosenim,
+    CinnamonSpices,
     ClamAvDb,
     Composer,
     Conda,
