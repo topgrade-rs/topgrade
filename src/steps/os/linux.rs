@@ -1117,6 +1117,17 @@ pub fn run_auto_cpufreq(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
+pub fn run_cinnamon_spices_updater(ctx: &ExecutionContext) -> Result<()> {
+    let cinnamon_spice_updater = require("cinnamon-spice-updater")?;
+
+    print_separator("Cinnamon spices");
+
+    ctx.run_type()
+        .execute(cinnamon_spice_updater)
+        .arg("--update-all")
+        .status_checked()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
