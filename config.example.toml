@@ -316,6 +316,24 @@
 # (default: false)
 # cleanup = false
 
+[ldcup]
+# Version strings passed to ldcup.
+# These may be pinned versions such as "1.40.0" branches such as "master" or "latest".
+# Each one will be updated in its own ldcup invocation.
+# (default: ["ldc2-master"])
+# target_versions = ["ldc2-master", "ldc2-latest", "opend-latest", "ldc2-1.40.0"]
+
+# Specifies the directory that the ldc2 files will be installed to.
+# If defined, passed with the --install-dir command line flag.
+# If not defined, ldcup will use its default behaviour.
+# (default: not defined)
+# install_dir = "~/.dlang"
+
+# If enabled, run `ldcup uninstall` after updating all versions.
+# (default: false)
+# cleanup = false
+
+
 [vscode]
 # If this is set and is a non-empty string, it specifies the profile the
 # extensions should be updated for.
