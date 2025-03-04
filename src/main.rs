@@ -375,6 +375,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Opam, "opam", || generic::run_opam_update(&ctx))?;
     runner.execute(Step::Vcpkg, "vcpkg", || generic::run_vcpkg_update(&ctx))?;
     runner.execute(Step::Pipx, "pipx", || generic::run_pipx_update(&ctx))?;
+    runner.execute(Step::Pipxu, "pipxu", || generic::run_pipxu_update(&ctx))?;
     runner.execute(Step::Vscode, "Visual Studio Code extensions", || {
         generic::run_vscode_extensions_update(&ctx)
     })?;
