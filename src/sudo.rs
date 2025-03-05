@@ -22,12 +22,26 @@ pub struct Sudo {
 }
 
 impl Sudo {
+    /// Get the `sudo` binary or the `gsudo` binary in the case of `gsudo`
+    /// masquerading as the `sudo` binary.
+    fn detect_gsudo_as_sudo(sudo_p: PathBuf) -> (PathBuf, SudoKind) {
+        match which("gsudo") {
+            Some(gsudo_p) => {
+                match std::fs::canonicalize(&gsudo_p).unwrap() == std::fs::canonicalize(&sudo_p).unwrap() {
+                    true => (gsudo_p, SudoKind::Gsudo),
+                    false => (sudo_p, SudoKind::Sudo),
+                }
+            }
+            None => (sudo_p, SudoKind::Sudo),
+        }
+    }
+
     /// Get the `sudo` binary for this platform.
     pub fn detect() -> Option<Self> {
         which("doas")
             .map(|p| (p, SudoKind::Doas))
+            .or_else(|| which("sudo").map(|p| Self::detect_gsudo_as_sudo(p)))
             .or_else(|| which("gsudo").map(|p| (p, SudoKind::Gsudo)))
-            .or_else(|| which("sudo").map(|p| (p, SudoKind::Sudo)))
             .or_else(|| which("pkexec").map(|p| (p, SudoKind::Pkexec)))
             .or_else(|| which("please").map(|p| (p, SudoKind::Please)))
             .map(|(path, kind)| Self { path, kind })
@@ -65,9 +79,11 @@ impl Sudo {
                 cmd.arg("-v");
             }
             SudoKind::Gsudo => {
-                // Shows current user, cache and console status.
+                // `gsudo` doesn't have anything like `sudo -v` to cache credentials,
+                // so we just execute a dummy `echo` command so we have something
+                // unobtrusive to run.
                 // See: https://gerardog.github.io/gsudo/docs/usage
-                cmd.arg("status");
+                cmd.arg("echo");
             }
             SudoKind::Pkexec => {
                 // I don't think this does anything; `pkexec` usually asks for
