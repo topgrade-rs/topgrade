@@ -24,7 +24,7 @@ pub struct Sudo {
 impl Sudo {
     /// Get the `sudo` binary or the `gsudo` binary in the case of `gsudo`
     /// masquerading as the `sudo` binary.
-    fn detect_gsudo_as_sudo(sudo_p: PathBuf) -> (PathBuf, SudoKind) {
+    fn determine_sudo_variant(sudo_p: PathBuf) -> (PathBuf, SudoKind) {
         match which("gsudo") {
             Some(gsudo_p) => {
                 match std::fs::canonicalize(&gsudo_p).unwrap() == std::fs::canonicalize(&sudo_p).unwrap() {
@@ -40,7 +40,7 @@ impl Sudo {
     pub fn detect() -> Option<Self> {
         which("doas")
             .map(|p| (p, SudoKind::Doas))
-            .or_else(|| which("sudo").map(|p| Self::detect_gsudo_as_sudo(p)))
+            .or_else(|| which("sudo").map(Self::determine_sudo_variant))
             .or_else(|| which("gsudo").map(|p| (p, SudoKind::Gsudo)))
             .or_else(|| which("pkexec").map(|p| (p, SudoKind::Pkexec)))
             .or_else(|| which("please").map(|p| (p, SudoKind::Please)))
