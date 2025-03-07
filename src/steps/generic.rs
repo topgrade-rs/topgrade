@@ -1,5 +1,6 @@
 #![allow(unused_imports)]
 
+use std::ffi::{OsStr, OsString};
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, path::Path};
@@ -8,6 +9,8 @@ use std::{fs, io::Write};
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use lazy_static::lazy_static;
+use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
 use tempfile::tempfile_in;
@@ -39,8 +42,7 @@ pub fn is_wsl() -> Result<bool> {
 
 pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     let cargo_dir = env::var_os("CARGO_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| HOME_DIR.join(".cargo"))
+        .map_or_else(|| HOME_DIR.join(".cargo"), PathBuf::from)
         .require()?;
     require("cargo").or_else(|_| {
         require_option(
@@ -59,13 +61,11 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     let cargo_update = require("cargo-install-update")
         .ok()
         .or_else(|| cargo_dir.join("bin/cargo-install-update").if_exists());
-    let cargo_update = match cargo_update {
-        Some(e) => e,
-        None => {
-            let message = String::from("cargo-update isn't installed so Topgrade can't upgrade cargo packages.\nInstall cargo-update by running `cargo install cargo-update`");
-            print_warning(&message);
-            return Err(SkipStep(message).into());
-        }
+
+    let Some(cargo_update) = cargo_update else {
+        let message = String::from("cargo-update isn't installed so Topgrade can't upgrade cargo packages.\nInstall cargo-update by running `cargo install cargo-update`");
+        print_warning(&message);
+        return Err(SkipStep(message).into());
     };
 
     ctx.run_type()
@@ -77,14 +77,11 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
         let cargo_cache = require("cargo-cache")
             .ok()
             .or_else(|| cargo_dir.join("bin/cargo-cache").if_exists());
-        match cargo_cache {
-            Some(e) => {
-                ctx.run_type().execute(e).args(["-a"]).status_checked()?;
-            }
-            None => {
-                let message = String::from("cargo-cache isn't installed so Topgrade can't cleanup cargo packages.\nInstall cargo-cache by running `cargo install cargo-cache`");
-                print_warning(message);
-            }
+        if let Some(e) = cargo_cache {
+            ctx.run_type().execute(e).args(["-a"]).status_checked()?;
+        } else {
+            let message = String::from("cargo-cache isn't installed so Topgrade can't cleanup cargo packages.\nInstall cargo-cache by running `cargo install cargo-cache`");
+            print_warning(message);
         }
     }
 
@@ -257,10 +254,35 @@ pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
     let elan = require("elan")?;
 
     print_separator("elan");
-    ctx.run_type()
-        .execute(&elan)
-        .args(["self", "update"])
-        .status_checked()?;
+
+    let disabled_error_msg = "self-update is disabled";
+    let executor_output = ctx.run_type().execute(&elan).args(["self", "update"]).output()?;
+    match executor_output {
+        ExecutorOutput::Wet(command_output) => {
+            if command_output.status.success() {
+                // Flush the captured output
+                std::io::stdout().lock().write_all(&command_output.stdout).unwrap();
+                std::io::stderr().lock().write_all(&command_output.stderr).unwrap();
+            } else {
+                let stderr_as_str = std::str::from_utf8(&command_output.stderr).unwrap();
+                if stderr_as_str.contains(disabled_error_msg) {
+                    // `elan` is externally managed, we cannot do the update. Users
+                    // won't see any error message because Topgrade captures them
+                    // all.
+                } else {
+                    // `elan` is NOT externally managed, `elan self update` can
+                    // be performed, but the invocation failed, so we report the
+                    // error to the user and error out.
+                    std::io::stdout().lock().write_all(&command_output.stdout).unwrap();
+                    std::io::stderr().lock().write_all(&command_output.stderr).unwrap();
+
+                    return Err(StepFailed.into());
+                }
+            }
+        }
+        ExecutorOutput::Dry => { /* nothing needed because in a dry run */ }
+    }
+
     ctx.run_type().execute(&elan).arg("update").status_checked()
 }
 
@@ -276,7 +298,13 @@ pub fn run_juliaup(ctx: &ExecutionContext) -> Result<()> {
             .status_checked()?;
     }
 
-    ctx.run_type().execute(&juliaup).arg("update").status_checked()
+    ctx.run_type().execute(&juliaup).arg("update").status_checked()?;
+
+    if ctx.config().cleanup() {
+        ctx.run_type().execute(&juliaup).arg("gc").status_checked()?;
+    }
+
+    Ok(())
 }
 
 pub fn run_choosenim(ctx: &ExecutionContext) -> Result<()> {
@@ -374,6 +402,48 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
     command.args(["upgrade", "--no-dry-run"]).status_checked()
 }
 
+/// Make VSCodium a separate step because:
+///
+/// 1. Users could use both VSCode and VSCodium
+/// 2. Just in case, VSCodium could have incompatible changes with VSCode
+pub fn run_vscodium_extensions_update(ctx: &ExecutionContext) -> Result<()> {
+    // Calling vscodoe in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
+    if is_wsl()? {
+        return Err(SkipStep(String::from("Should not run in WSL")).into());
+    }
+
+    let vscodium = require("codium")?;
+
+    // VSCode has update command only since 1.86 version ("january 2024" update), disable the update for prior versions
+    // Use command `code --version` which returns 3 lines: version, git commit, instruction set. We parse only the first one
+    //
+    // This should apply to VSCodium as well.
+    let version: Result<Version> = match Command::new(&vscodium)
+        .arg("--version")
+        .output_checked_utf8()?
+        .stdout
+        .lines()
+        .next()
+    {
+        Some(item) => Version::parse(item).map_err(std::convert::Into::into),
+        _ => return Err(SkipStep(String::from("Cannot find vscodium version")).into()),
+    };
+
+    if !matches!(version, Ok(version) if version >= Version::new(1, 86, 0)) {
+        return Err(SkipStep(String::from(
+            "Too old vscodium version to have update extensions command",
+        ))
+        .into());
+    }
+
+    print_separator("VSCodium extensions");
+
+    ctx.run_type()
+        .execute(vscodium)
+        .arg("--update-extensions")
+        .status_checked()
+}
+
 pub fn run_vscode_extensions_update(ctx: &ExecutionContext) -> Result<()> {
     // Calling vscode in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
     if is_wsl()? {
@@ -391,7 +461,7 @@ pub fn run_vscode_extensions_update(ctx: &ExecutionContext) -> Result<()> {
         .lines()
         .next()
     {
-        Some(item) => Version::parse(item).map_err(|err| err.into()),
+        Some(item) => Version::parse(item).map_err(std::convert::Into::into),
         _ => return Err(SkipStep(String::from("Cannot find vscode version")).into()),
     };
 
@@ -401,10 +471,19 @@ pub fn run_vscode_extensions_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Visual Studio Code extensions");
 
-    ctx.run_type()
-        .execute(vscode)
-        .arg("--update-extensions")
-        .status_checked()
+    if let Some(profile) = ctx.config().vscode_profile() {
+        ctx.run_type()
+            .execute(vscode)
+            .arg("--profile")
+            .arg(profile)
+            .arg("--update-extensions")
+            .status_checked()
+    } else {
+        ctx.run_type()
+            .execute(vscode)
+            .arg("--update-extensions")
+            .status_checked()
+    }
 }
 
 pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
@@ -421,10 +500,20 @@ pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
         .map(|s| s.stdout.trim().to_owned());
     let version = Version::parse(&version_str?);
     if matches!(version, Ok(version) if version >= Version::new(1, 4, 0)) {
-        command_args.push("--quiet")
+        command_args.push("--quiet");
     }
 
     ctx.run_type().execute(pipx).args(command_args).status_checked()
+}
+
+pub fn run_pipxu_update(ctx: &ExecutionContext) -> Result<()> {
+    let pipxu = require("pipxu")?;
+    print_separator("pipxu");
+
+    ctx.run_type()
+        .execute(pipxu)
+        .args(["upgrade", "--all"])
+        .status_checked()
 }
 
 pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
@@ -440,19 +529,39 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Conda");
 
-    let mut command = ctx.run_type().execute(conda);
+    let mut command = ctx.run_type().execute(&conda);
     command.args(["update", "--all", "-n", "base"]);
     if ctx.config().yes(Step::Conda) {
         command.arg("--yes");
     }
-    command.status_checked()
+    command.status_checked()?;
+
+    if ctx.config().cleanup() {
+        let mut command = ctx.run_type().execute(conda);
+        command.args(["clean", "--all"]);
+        if ctx.config().yes(Step::Conda) {
+            command.arg("--yes");
+        }
+        command.status_checked()?;
+    }
+
+    Ok(())
 }
 
 pub fn run_pixi_update(ctx: &ExecutionContext) -> Result<()> {
     let pixi = require("pixi")?;
     print_separator("Pixi");
 
-    ctx.run_type().execute(pixi).args(["self-update"]).status_checked()
+    ctx.run_type()
+        .execute(&pixi)
+        .args(["self-update"])
+        .status_checked()
+        .ok();
+
+    ctx.run_type()
+        .execute(&pixi)
+        .args(["global", "update"])
+        .status_checked()
 }
 
 pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
@@ -460,12 +569,23 @@ pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Mamba");
 
-    let mut command = ctx.run_type().execute(mamba);
+    let mut command = ctx.run_type().execute(&mamba);
     command.args(["update", "--all", "-n", "base"]);
     if ctx.config().yes(Step::Mamba) {
         command.arg("--yes");
     }
-    command.status_checked()
+    command.status_checked()?;
+
+    if ctx.config().cleanup() {
+        let mut command = ctx.run_type().execute(&mamba);
+        command.args(["clean", "--all"]);
+        if ctx.config().yes(Step::Mamba) {
+            command.arg("--yes");
+        }
+        command.status_checked()?;
+    }
+
+    Ok(())
 }
 
 pub fn run_miktex_packages_update(ctx: &ExecutionContext) -> Result<()> {
@@ -487,7 +607,7 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
         (Ok(py), _) => py,
         (Err(_), Ok(py3)) => py3,
         (Err(py_err), Err(py3_err)) => {
-            return Err(SkipStep(format!("Skip due to following reasons: {} {}", py_err, py3_err)).into());
+            return Err(SkipStep(format!("Skip due to following reasons: {py_err} {py3_err}")).into());
         }
     };
 
@@ -836,7 +956,7 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
             .execute(&dotnet)
             .args(["tool", "update", package_name, "--global"])
             .status_checked()
-            .with_context(|| format!("Failed to update .NET package {:?}", package_name))?;
+            .with_context(|| format!("Failed to update .NET package {package_name:?}"))?;
     }
 
     Ok(())
@@ -908,10 +1028,15 @@ pub fn update_julia_packages(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Julia Packages"));
 
-    ctx.run_type()
-        .execute(julia)
-        .args(["-e", "using Pkg; Pkg.update()"])
-        .status_checked()
+    let mut executor = ctx.run_type().execute(julia);
+
+    executor.arg(if ctx.config().julia_use_startup_file() {
+        "--startup-file=yes"
+    } else {
+        "--startup-file=no"
+    });
+
+    executor.args(["-e", "using Pkg; Pkg.update()"]).status_checked()
 }
 
 pub fn run_helm_repo_update(ctx: &ExecutionContext) -> Result<()> {
@@ -1024,8 +1149,114 @@ pub fn run_lensfun_update_data(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
     let poetry = require("poetry")?;
+
+    #[cfg(unix)]
+    fn get_interpreter(poetry: &PathBuf) -> Result<(PathBuf, Option<OsString>)> {
+        // Parse the standard Unix shebang line: #!interpreter [optional-arg]
+        // Spaces and tabs on either side of interpreter are ignored.
+
+        use std::os::unix::ffi::OsStrExt;
+
+        lazy_static! {
+            static ref SHEBANG_REGEX: Regex = Regex::new(r"^#![ \t]*([^ \t\n]+)(?:[ \t]+([^\n]+)?)?").unwrap();
+        }
+
+        let script = fs::read(poetry)?;
+        if let Some(c) = SHEBANG_REGEX.captures(&script) {
+            let interpreter = OsStr::from_bytes(&c[1]).into();
+            let args = c.get(2).map(|args| OsStr::from_bytes(args.as_bytes()).into());
+            return Ok((interpreter, args));
+        }
+
+        Err(eyre!("Could not find shebang"))
+    }
+    #[cfg(windows)]
+    fn get_interpreter(poetry: &PathBuf) -> Result<(PathBuf, Option<OsString>)> {
+        // Parse the shebang line from scripts using https://bitbucket.org/vinay.sajip/simple_launcher,
+        // such as those created by pip. In contrast to Unix shebang lines, interpreter paths can
+        // contain spaces, if they are double-quoted.
+
+        use std::str;
+
+        lazy_static! {
+            static ref SHEBANG_REGEX: Regex =
+                Regex::new(r#"^#![ \t]*(?:"([^"\n]+)"|([^" \t\n]+))(?:[ \t]+([^\n]+)?)?"#).unwrap();
+        }
+
+        let data = fs::read(poetry)?;
+
+        let pos = match data.windows(4).rposition(|b| b == b"PK\x05\x06") {
+            Some(i) => i,
+            None => return Err(eyre!("Not a ZIP archive")),
+        };
+
+        let cdr_size = match data.get(pos + 12..pos + 16) {
+            Some(b) => u32::from_le_bytes(b.try_into().unwrap()) as usize,
+            None => return Err(eyre!("Invalid CDR size")),
+        };
+        let cdr_offset = match data.get(pos + 16..pos + 20) {
+            Some(b) => u32::from_le_bytes(b.try_into().unwrap()) as usize,
+            None => return Err(eyre!("Invalid CDR offset")),
+        };
+        if pos < cdr_size + cdr_offset {
+            return Err(eyre!("Invalid ZIP archive"));
+        }
+        let arc_pos = pos - cdr_size - cdr_offset;
+        match data[..arc_pos].windows(2).rposition(|b| b == b"#!") {
+            Some(l) => {
+                let line = &data[l..arc_pos - 1];
+                if let Some(c) = SHEBANG_REGEX.captures(line) {
+                    let interpreter = c.get(1).or_else(|| c.get(2)).unwrap();
+                    // shebang line should be valid utf8
+                    let interpreter = str::from_utf8(interpreter.as_bytes())?.into();
+                    let args = match c.get(3) {
+                        Some(args) => Some(str::from_utf8(args.as_bytes())?.into()),
+                        None => None,
+                    };
+                    Ok((interpreter, args))
+                } else {
+                    Err(eyre!("Invalid shebang line"))
+                }
+            }
+            None => Err(eyre!("Could not find shebang")),
+        }
+    }
+
+    if ctx.config().poetry_force_self_update() {
+        debug!("forcing poetry self update");
+    } else {
+        let (interp, interp_args) = get_interpreter(&poetry)
+            .map_err(|e| SkipStep(format!("Could not find interpreter for {}: {}", poetry.display(), e)))?;
+        debug!("poetry interpreter: {:?}, args: {:?}", interp, interp_args);
+
+        let check_official_install_script =
+        "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
+        let mut command = Command::new(&interp);
+        if let Some(args) = interp_args {
+            command.arg(args);
+        }
+        let output = command
+            .args(["-c", check_official_install_script])
+            .output_checked_utf8()?;
+        let stdout = output.stdout.trim();
+        let official_install = match stdout {
+            "N" => false,
+            "Y" => true,
+            _ => unreachable!("unexpected output from `check_official_install_script`"),
+        };
+
+        debug!("poetry is official install: {}", official_install);
+
+        if !official_install {
+            return Err(SkipStep("Not installed with the official script".to_string()).into());
+        }
+    }
+
     print_separator("Poetry");
-    ctx.run_type().execute(poetry).args(["self", "update"]).status_checked()
+    ctx.run_type()
+        .execute(&poetry)
+        .args(["self", "update"])
+        .status_checked()
 }
 
 pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
@@ -1043,8 +1274,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         ctx.run_type()
             .execute(&uv_exec)
             .args(["self", "update"])
-            .status_checked()
-            .ok();
+            .status_checked()?;
     }
 
     ctx.run_type()
@@ -1068,4 +1298,49 @@ pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Bun");
 
     ctx.run_type().execute(bun).arg("upgrade").status_checked()
+}
+
+pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
+    let zigup = require("zigup")?;
+    let config = ctx.config();
+
+    print_separator("zigup");
+
+    let mut path_args = Vec::new();
+    if let Some(path) = config.zigup_path_link() {
+        path_args.push("--path-link".to_owned());
+        path_args.push(shellexpand::tilde(path).into_owned());
+    }
+    if let Some(path) = config.zigup_install_dir() {
+        path_args.push("--install-dir".to_owned());
+        path_args.push(shellexpand::tilde(path).into_owned());
+    }
+
+    for zig_version in config.zigup_target_versions() {
+        ctx.run_type()
+            .execute(&zigup)
+            .args(&path_args)
+            .arg("fetch")
+            .arg(&zig_version)
+            .status_checked()?;
+
+        if config.zigup_cleanup() {
+            ctx.run_type()
+                .execute(&zigup)
+                .args(&path_args)
+                .arg("keep")
+                .arg(&zig_version)
+                .status_checked()?;
+        }
+    }
+
+    if config.zigup_cleanup() {
+        ctx.run_type()
+            .execute(zigup)
+            .args(&path_args)
+            .arg("clean")
+            .status_checked()?;
+    }
+
+    Ok(())
 }

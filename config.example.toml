@@ -103,6 +103,13 @@
 # enable_pipupgrade = true                         ###disabled by default
 # pipupgrade_arguments = "-y -u --pip-path pip"    ###disabled by default
 
+# For the poetry step, by default, Topgrade skips its update if poetry is not
+# installed with the official script. This configuration entry forces Topgrade
+# to run the update in this case.
+#
+# (default: false)
+# poetry_force_self_update = true
+
 
 [composer]
 # self_update = true
@@ -171,6 +178,11 @@
 # suse_dup = false
 
 # rpm_ostree = false
+
+# For Fedora/CentOS/RHEL Atomic variants, if `bootc` is available and this configuration entry is set to true, use
+# it to do the update - Will also supercede rpm-ostree if enabled
+# (default: false)
+# bootc = false
 
 # nix_arguments = "--flake"
 
@@ -270,3 +282,42 @@
 # and the update will be installed system-wide, i.e., available to all users.
 # (default: false)
 # use_sudo = false
+
+[julia]
+# If disabled, Topgrade invokes julia with the --startup-file=no CLI option.
+#
+# This may be desirable to avoid loading outdated packages with "using" directives
+# in the startup file, which might cause the update run to fail.
+# (default: true)
+# startup_file = true
+
+[zigup]
+# Version strings passed to zigup.
+# These may be pinned versions such as "0.13.0" or branches such as "master".
+# Each one will be updated in its own zigup invocation.
+# (default: ["master"])
+# target_versions = ["master", "0.13.0"]
+
+# Specifies the directory that the zig files will be installed to.
+# If defined, passed with the --install-dir command line flag.
+# If not defined, zigup will use its default behaviour.
+# (default: not defined)
+# install_dir = "~/.zig"
+
+# Specifies the path of the symlink which will be set to point at the default compiler version.
+# If defined, passed with the --path-link command line flag.
+# If not defined, zigup will use its default behaviour.
+# This is not meaningful if set_default is not enabled.
+# (default: not defined)
+# path_link = "~/.bin/zig"
+
+# If enabled, run `zigup clean` after updating all versions.
+# If enabled, each updated version above will be marked with `zigup keep`.
+# (default: false)
+# cleanup = false
+
+[vscode]
+# If this is set and is a non-empty string, it specifies the profile the
+# extensions should be updated for.
+# (default: this won't be set by default)
+# profile = ""

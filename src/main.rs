@@ -25,7 +25,9 @@ use self::config::{CommandLineArgs, Config, Step};
 use self::error::StepFailed;
 #[cfg(all(windows, feature = "self-update"))]
 use self::error::Upgraded;
+#[allow(clippy::wildcard_imports)]
 use self::steps::{remote::*, *};
+#[allow(clippy::wildcard_imports)]
 use self::terminal::*;
 
 use self::utils::{hostname, install_color_eyre, install_tracing, update_tracing};
@@ -58,6 +60,7 @@ pub(crate) static WINDOWS_DIRS: Lazy<Windows> = Lazy::new(|| Windows::new().expe
 // Init and load the i18n files
 i18n!("locales", fallback = "en");
 
+#[allow(clippy::too_many_lines)]
 fn run() -> Result<()> {
     install_color_eyre()?;
     ctrlc::set_handler();
@@ -248,6 +251,9 @@ fn run() -> Result<()> {
         runner.execute(Step::Lure, "LURE", || linux::run_lure_update(&ctx))?;
         runner.execute(Step::Waydroid, "Waydroid", || linux::run_waydroid(&ctx))?;
         runner.execute(Step::AutoCpufreq, "auto-cpufreq", || linux::run_auto_cpufreq(&ctx))?;
+        runner.execute(Step::CinnamonSpices, "Cinnamon spices", || {
+            linux::run_cinnamon_spices_updater(&ctx)
+        })?;
     }
 
     #[cfg(target_os = "macos")]
@@ -369,8 +375,12 @@ fn run() -> Result<()> {
     runner.execute(Step::Opam, "opam", || generic::run_opam_update(&ctx))?;
     runner.execute(Step::Vcpkg, "vcpkg", || generic::run_vcpkg_update(&ctx))?;
     runner.execute(Step::Pipx, "pipx", || generic::run_pipx_update(&ctx))?;
+    runner.execute(Step::Pipxu, "pipxu", || generic::run_pipxu_update(&ctx))?;
     runner.execute(Step::Vscode, "Visual Studio Code extensions", || {
         generic::run_vscode_extensions_update(&ctx)
+    })?;
+    runner.execute(Step::Vscodium, "VSCodium extensions", || {
+        generic::run_vscodium_extensions_update(&ctx)
     })?;
     runner.execute(Step::Conda, "conda", || generic::run_conda_update(&ctx))?;
     runner.execute(Step::Mamba, "mamba", || generic::run_mamba_update(&ctx))?;
@@ -435,6 +445,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Zvm, "ZVM", || generic::run_zvm(&ctx))?;
     runner.execute(Step::Aqua, "aqua", || generic::run_aqua(&ctx))?;
     runner.execute(Step::Bun, "bun", || generic::run_bun(&ctx))?;
+    runner.execute(Step::Zigup, "zigup", || generic::run_zigup(&ctx))?;
 
     if should_run_powershell {
         runner.execute(Step::Powershell, "Powershell Modules Update", || {
@@ -491,13 +502,13 @@ fn run() -> Result<()> {
         print_info(t!("\n(R)eboot\n(S)hell\n(Q)uit"));
         loop {
             match get_key() {
-                Ok(Key::Char('s')) | Ok(Key::Char('S')) => {
+                Ok(Key::Char('s' | 'S')) => {
                     run_shell().context("Failed to execute shell")?;
                 }
-                Ok(Key::Char('r')) | Ok(Key::Char('R')) => {
+                Ok(Key::Char('r' | 'R')) => {
                     reboot().context("Failed to reboot")?;
                 }
-                Ok(Key::Char('q')) | Ok(Key::Char('Q')) => (),
+                Ok(Key::Char('q' | 'Q')) => (),
                 _ => {
                     continue;
                 }
@@ -516,7 +527,7 @@ fn run() -> Result<()> {
                 t!("Topgrade finished successfully")
             },
             Some(Duration::from_secs(10)),
-        )
+        );
     }
 
     if failed {

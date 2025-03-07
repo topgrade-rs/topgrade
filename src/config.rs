@@ -69,6 +69,7 @@ pub enum Step {
     Chezmoi,
     Chocolatey,
     Choosenim,
+    CinnamonSpices,
     ClamAvDb,
     Composer,
     Conda,
@@ -125,6 +126,7 @@ pub enum Step {
     PipReviewLocal,
     Pipupgrade,
     Pipx,
+    Pipxu,
     Pixi,
     Pkg,
     Pkgin,
@@ -163,6 +165,7 @@ pub enum Step {
     Vim,
     VoltaPackages,
     Vscode,
+    Vscodium,
     Waydroid,
     Winget,
     Wsl,
@@ -170,6 +173,7 @@ pub enum Step {
     Xcodes,
     Yadm,
     Yarn,
+    Zigup,
     Zvm,
 }
 
@@ -229,6 +233,7 @@ pub struct Python {
     enable_pip_review_local: Option<bool>,
     enable_pipupgrade: Option<bool>,
     pipupgrade_arguments: Option<String>,
+    poetry_force_self_update: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -358,6 +363,7 @@ pub struct Linux {
     redhat_distro_sync: Option<bool>,
     suse_dup: Option<bool>,
     rpm_ostree: Option<bool>,
+    bootc: Option<bool>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     emerge_sync_flags: Option<String>,
@@ -454,6 +460,27 @@ pub struct Lensfun {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct JuliaConfig {
+    startup_file: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct Zigup {
+    target_versions: Option<Vec<String>>,
+    install_dir: Option<String>,
+    path_link: Option<String>,
+    cleanup: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct VscodeConfig {
+    profile: Option<String>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 /// Configuration file
 pub struct ConfigFile {
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
@@ -518,6 +545,15 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     lensfun: Option<Lensfun>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    julia: Option<JuliaConfig>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    zigup: Option<Zigup>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    vscode: Option<VscodeConfig>,
 }
 
 fn config_directory() -> PathBuf {
@@ -549,7 +585,7 @@ impl ConfigFile {
         ];
 
         // Search for the main config file
-        for path in possible_config_paths.iter() {
+        for path in &possible_config_paths {
             if path.exists() {
                 debug!("Configuration at {}", path.display());
                 res.0.clone_from(path);
@@ -1448,14 +1484,22 @@ impl Config {
             .unwrap_or(false)
     }
 
+    /// Use bootc in *when bootc is detected* (default: false)
+    pub fn bootc(&self) -> bool {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|linux| linux.bootc)
+            .unwrap_or(false)
+    }
+
     /// Determine if we should ignore failures for this step
     pub fn ignore_failure(&self, step: Step) -> bool {
         self.config_file
             .misc
             .as_ref()
             .and_then(|misc| misc.ignore_failures.as_ref())
-            .map(|v| v.contains(&step))
-            .unwrap_or(false)
+            .is_some_and(|v| v.contains(&step))
     }
 
     pub fn use_predefined_git_repos(&self) -> bool {
@@ -1608,6 +1652,13 @@ impl Config {
             .and_then(|python| python.enable_pip_review_local)
             .unwrap_or(false)
     }
+    pub fn poetry_force_self_update(&self) -> bool {
+        self.config_file
+            .python
+            .as_ref()
+            .and_then(|python| python.poetry_force_self_update)
+            .unwrap_or(false)
+    }
 
     pub fn display_time(&self) -> bool {
         self.config_file
@@ -1631,6 +1682,55 @@ impl Config {
             .as_ref()
             .and_then(|lensfun| lensfun.use_sudo)
             .unwrap_or(false)
+    }
+
+    pub fn julia_use_startup_file(&self) -> bool {
+        self.config_file
+            .julia
+            .as_ref()
+            .and_then(|julia| julia.startup_file)
+            .unwrap_or(true)
+    }
+
+    pub fn zigup_target_versions(&self) -> Vec<String> {
+        self.config_file
+            .zigup
+            .as_ref()
+            .and_then(|zigup| zigup.target_versions.clone())
+            .unwrap_or(vec!["master".to_owned()])
+    }
+
+    pub fn zigup_install_dir(&self) -> Option<&str> {
+        self.config_file
+            .zigup
+            .as_ref()
+            .and_then(|zigup| zigup.install_dir.as_deref())
+    }
+
+    pub fn zigup_path_link(&self) -> Option<&str> {
+        self.config_file
+            .zigup
+            .as_ref()
+            .and_then(|zigup| zigup.path_link.as_deref())
+    }
+
+    pub fn zigup_cleanup(&self) -> bool {
+        self.config_file
+            .zigup
+            .as_ref()
+            .and_then(|zigup| zigup.cleanup)
+            .unwrap_or(false)
+    }
+
+    pub fn vscode_profile(&self) -> Option<&str> {
+        let vscode_cfg = self.config_file.vscode.as_ref()?;
+        let profile = vscode_cfg.profile.as_ref()?;
+
+        if profile.is_empty() {
+            None
+        } else {
+            Some(profile.as_str())
+        }
     }
 }
 
@@ -1658,40 +1758,40 @@ mod test {
 
     #[test]
     fn test_should_execute_remote_different_hostname() {
-        assert!(config().should_execute_remote(Ok("hostname".to_string()), "remote_hostname"))
+        assert!(config().should_execute_remote(Ok("hostname".to_string()), "remote_hostname"));
     }
 
     #[test]
     fn test_should_execute_remote_different_hostname_with_user() {
-        assert!(config().should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"))
+        assert!(config().should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"));
     }
 
     #[test]
     fn test_should_execute_remote_unknown_hostname() {
-        assert!(config().should_execute_remote(Err(eyre!("failed to get hostname")), "remote_hostname"))
+        assert!(config().should_execute_remote(Err(eyre!("failed to get hostname")), "remote_hostname"));
     }
 
     #[test]
     fn test_should_not_execute_remote_same_hostname() {
-        assert!(!config().should_execute_remote(Ok("hostname".to_string()), "hostname"))
+        assert!(!config().should_execute_remote(Ok("hostname".to_string()), "hostname"));
     }
 
     #[test]
     fn test_should_not_execute_remote_same_hostname_with_user() {
-        assert!(!config().should_execute_remote(Ok("hostname".to_string()), "user@hostname"))
+        assert!(!config().should_execute_remote(Ok("hostname".to_string()), "user@hostname"));
     }
 
     #[test]
     fn test_should_execute_remote_matching_limit() {
         let mut config = config();
         config.opt = CommandLineArgs::parse_from(["topgrade", "--remote-host-limit", "remote_hostname"]);
-        assert!(config.should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"))
+        assert!(config.should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"));
     }
 
     #[test]
     fn test_should_not_execute_remote_not_matching_limit() {
         let mut config = config();
         config.opt = CommandLineArgs::parse_from(["topgrade", "--remote-host-limit", "other_hostname"]);
-        assert!(!config.should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"))
+        assert!(!config.should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"));
     }
 }

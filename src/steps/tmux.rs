@@ -128,7 +128,7 @@ impl Tmux {
             .output_checked_utf8()?
             .stdout
             .lines()
-            .map(|l| l.parse())
+            .map(str::parse)
             .collect::<Result<Vec<usize>, _>>()
             .context("Failed to compute tmux windows")
     }
@@ -181,19 +181,16 @@ pub fn run_in_tmux(config: TmuxConfig) -> Result<()> {
 pub fn run_command(ctx: &ExecutionContext, window_name: &str, command: &str) -> Result<()> {
     let tmux = Tmux::new(ctx.config().tmux_config()?.args);
 
-    match ctx.get_tmux_session() {
-        Some(session_name) => {
-            let indices = tmux.window_indices(&session_name)?;
-            let last_window = indices
-                .iter()
-                .last()
-                .ok_or_else(|| eyre!("tmux session {session_name} has no windows"))?;
-            tmux.new_window(&session_name, &format!("{last_window}"), command)?;
-        }
-        None => {
-            let name = tmux.new_unique_session("topgrade", window_name, command)?;
-            ctx.set_tmux_session(name);
-        }
+    if let Some(session_name) = ctx.get_tmux_session() {
+        let indices = tmux.window_indices(&session_name)?;
+        let last_window = indices
+            .iter()
+            .last()
+            .ok_or_else(|| eyre!("tmux session {session_name} has no windows"))?;
+        tmux.new_window(&session_name, &format!("{last_window}"), command)?;
+    } else {
+        let name = tmux.new_unique_session("topgrade", window_name, command)?;
+        ctx.set_tmux_session(name);
     }
     Ok(())
 }

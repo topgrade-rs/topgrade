@@ -105,7 +105,7 @@ pub fn run_git_pull(ctx: &ExecutionContext) -> Result<()> {
         print_warning(t!(
             "Path {pattern} did not contain any git repositories",
             pattern = pattern
-        ))
+        ));
     });
 
     if repos.is_repos_empty() {
@@ -207,10 +207,13 @@ impl RepoStep {
 
                 return output;
             }
-            Err(e) => match e.kind() {
-                io::ErrorKind::NotFound => debug!("{} does not exist", path.as_ref().display()),
-                _ => error!("Error looking for {}: {e}", path.as_ref().display(),),
-            },
+            Err(e) => {
+                if e.kind() == io::ErrorKind::NotFound {
+                    debug!("{} does not exist", path.as_ref().display());
+                } else {
+                    error!("Error looking for {}: {e}", path.as_ref().display());
+                }
+            }
         }
 
         None
@@ -321,7 +324,7 @@ impl RepoStep {
             .output()
             .await?;
         let result = output_checked_utf8(pull_output)
-            .and_then(|_| output_checked_utf8(submodule_output))
+            .and_then(|()| output_checked_utf8(submodule_output))
             .wrap_err_with(|| format!("Failed to pull {}", repo.as_ref().display()));
 
         if result.is_err() {
@@ -359,7 +362,7 @@ impl RepoStep {
             }
         }
 
-        result.map(|_| ())
+        result
     }
 
     /// Pull the repositories specified in `self.repos`.
@@ -410,7 +413,7 @@ impl RepoStep {
         let basic_rt = runtime::Runtime::new()?;
         let results = basic_rt.block_on(async { stream_of_futures.collect::<Vec<Result<()>>>().await });
 
-        let error = results.into_iter().find(|r| r.is_err());
+        let error = results.into_iter().find(std::result::Result::is_err);
         error.unwrap_or(Ok(()))
     }
 }

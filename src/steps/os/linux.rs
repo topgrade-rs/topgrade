@@ -60,19 +60,7 @@ impl Distribution {
             Some("wolfi") => Distribution::Wolfi,
             Some("centos") | Some("rhel") | Some("ol") => Distribution::CentOS,
             Some("clear-linux-os") => Distribution::ClearLinux,
-            Some("fedora") => {
-                return if let Some(variant) = variant {
-                    match variant {
-                        "Silverblue" | "Kinoite" | "Sericea" | "Onyx" | "IoT Edition" | "Sway Atomic" => {
-                            Ok(Distribution::FedoraImmutable)
-                        }
-                        _ => Ok(Distribution::Fedora),
-                    }
-                } else {
-                    Ok(Distribution::Fedora)
-                };
-            }
-
+            Some("fedora") => Distribution::match_fedora_variant(&variant),
             Some("nilrt") => Distribution::NILRT,
             Some("nobara") => Distribution::Nobara,
             Some("void") => Distribution::Void,
@@ -109,12 +97,21 @@ impl Distribution {
                     } else if id_like.contains(&"alpine") {
                         return Ok(Distribution::Alpine);
                     } else if id_like.contains(&"fedora") {
-                        return Ok(Distribution::Fedora);
+                        return Ok(Distribution::match_fedora_variant(&variant));
                     }
                 }
                 return Err(TopgradeError::UnknownLinuxDistribution.into());
             }
         })
+    }
+
+    fn match_fedora_variant(variant: &Option<&str>) -> Self {
+        if let Some("Silverblue" | "Kinoite" | "Sericea" | "Onyx" | "IoT Edition" | "Sway Atomic" | "CoreOS") = variant
+        {
+            Distribution::FedoraImmutable
+        } else {
+            Distribution::Fedora
+        }
     }
 
     pub fn detect() -> Result<Self> {
@@ -225,6 +222,13 @@ fn upgrade_wolfi_linux(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
+    if let Some(bootc) = which("bootc") {
+        if ctx.config().bootc() {
+            let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
+            return ctx.run_type().execute(sudo).arg(&bootc).arg("upgrade").status_checked();
+        }
+    }
+
     if let Some(ostree) = which("rpm-ostree") {
         if ctx.config().rpm_ostree() {
             let mut command = ctx.run_type().execute(ostree);
@@ -298,6 +302,13 @@ fn upgrade_nilrt(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_fedora_immutable(ctx: &ExecutionContext) -> Result<()> {
+    if let Some(bootc) = which("bootc") {
+        if ctx.config().bootc() {
+            let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
+            return ctx.run_type().execute(sudo).arg(&bootc).arg("upgrade").status_checked();
+        }
+    }
+
     let ostree = require("rpm-ostree")?;
     let mut command = ctx.run_type().execute(ostree);
     command.arg("upgrade");
@@ -1106,6 +1117,17 @@ pub fn run_auto_cpufreq(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
+pub fn run_cinnamon_spices_updater(ctx: &ExecutionContext) -> Result<()> {
+    let cinnamon_spice_updater = require("cinnamon-spice-updater")?;
+
+    print_separator("Cinnamon spices");
+
+    ctx.run_type()
+        .execute(cinnamon_spice_updater)
+        .arg("--update-all")
+        .status_checked()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1273,5 +1295,25 @@ mod tests {
     #[test]
     fn test_nilrt() {
         test_template(include_str!("os_release/nilrt"), Distribution::NILRT);
+    }
+
+    #[test]
+    fn test_coreos() {
+        test_template(include_str!("os_release/coreos"), Distribution::FedoraImmutable);
+    }
+
+    #[test]
+    fn test_aurora() {
+        test_template(include_str!("os_release/aurora"), Distribution::FedoraImmutable);
+    }
+
+    #[test]
+    fn test_bluefin() {
+        test_template(include_str!("os_release/bluefin"), Distribution::FedoraImmutable);
+    }
+
+    #[test]
+    fn test_bazzite() {
+        test_template(include_str!("os_release/bazzite"), Distribution::FedoraImmutable);
     }
 }

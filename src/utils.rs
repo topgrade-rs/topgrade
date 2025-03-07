@@ -86,7 +86,7 @@ pub fn editor() -> Vec<String> {
     env::var("EDITOR")
         .unwrap_or_else(|_| String::from(if cfg!(windows) { "notepad" } else { "vi" }))
         .split_whitespace()
-        .map(|s| s.to_owned())
+        .map(std::borrow::ToOwned::to_owned)
         .collect()
 }
 

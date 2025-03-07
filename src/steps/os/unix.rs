@@ -463,7 +463,7 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
 
     lazy_static! {
         static ref NIX_VERSION_REGEX: Regex =
-            Regex::new(r#"^nix \([^)]*\) ([0-9.]+)"#).expect("Nix version regex always compiles");
+            Regex::new(r"^nix \([^)]*\) ([0-9.]+)").expect("Nix version regex always compiles");
     }
 
     if get_version_cmd_first_line_stdout.is_empty() {
@@ -611,8 +611,7 @@ fn nix_profile_dir(nix: &Path) -> Result<Option<PathBuf>> {
         if user_env
             .file_name()
             .and_then(|name| name.to_str())
-            .map(|name| name.ends_with("user-environment"))
-            .unwrap_or(false)
+            .is_some_and(|name| name.ends_with("user-environment"))
         {
             Some(profile_dir)
         } else {
@@ -637,10 +636,33 @@ pub fn run_asdf(ctx: &ExecutionContext) -> Result<()> {
     let asdf = require("asdf")?;
 
     print_separator("asdf");
-    ctx.run_type()
-        .execute(&asdf)
-        .arg("update")
-        .status_checked_with_codes(&[42])?;
+
+    // asdf (>= 0.15.0) won't support the self-update command
+    //
+    // https://github.com/topgrade-rs/topgrade/issues/1007
+    let version_output = Command::new(&asdf).arg("version").output_checked_utf8()?;
+    // Example output
+    //
+    // ```
+    // $ asdf version
+    // v0.15.0-31e8c93
+    //
+    // ```
+    let version_stdout = version_output.stdout.trim();
+    // trim the starting 'v'
+    let mut remaining = version_stdout.trim_start_matches('v');
+    let idx = remaining
+        .find('-')
+        .expect("the output of `asdf version` changed, please file an issue to Topgrade");
+    // remove the hash part
+    remaining = &remaining[..idx];
+    let version = Version::parse(remaining).expect("should be a valid version");
+    if version < Version::new(0, 15, 0) {
+        ctx.run_type()
+            .execute(&asdf)
+            .arg("update")
+            .status_checked_with_codes(&[42])?;
+    }
 
     ctx.run_type()
         .execute(&asdf)
@@ -694,9 +716,7 @@ pub fn run_pyenv(ctx: &ExecutionContext) -> Result<()> {
     let pyenv = require("pyenv")?;
     print_separator("pyenv");
 
-    let pyenv_dir = var("PYENV_ROOT")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| HOME_DIR.join(".pyenv"));
+    let pyenv_dir = var("PYENV_ROOT").map_or_else(|_| HOME_DIR.join(".pyenv"), PathBuf::from);
 
     if !pyenv_dir.exists() {
         return Err(SkipStep(t!("Pyenv is installed, but $PYENV_ROOT is not set correctly").to_string()).into());
@@ -717,8 +737,7 @@ pub fn run_sdkman(ctx: &ExecutionContext) -> Result<()> {
     let bash = require("bash")?;
 
     let sdkman_init_path = var("SDKMAN_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| HOME_DIR.join(".sdkman"))
+        .map_or_else(|_| HOME_DIR.join(".sdkman"), PathBuf::from)
         .join("bin")
         .join("sdkman-init.sh")
         .require()
@@ -727,8 +746,7 @@ pub fn run_sdkman(ctx: &ExecutionContext) -> Result<()> {
     print_separator("SDKMAN!");
 
     let sdkman_config_path = var("SDKMAN_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| HOME_DIR.join(".sdkman"))
+        .map_or_else(|_| HOME_DIR.join(".sdkman"), PathBuf::from)
         .join("etc")
         .join("config")
         .require()?;
@@ -781,9 +799,7 @@ pub fn run_bun_packages(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Bun Packages"));
 
-    let mut package_json: PathBuf = var("BUN_INSTALL")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| HOME_DIR.join(".bun"));
+    let mut package_json: PathBuf = var("BUN_INSTALL").map_or_else(|_| HOME_DIR.join(".bun"), PathBuf::from);
     package_json.push("install/global/package.json");
 
     if !package_json.exists() {
