@@ -73,7 +73,7 @@ $systemModules = @("PSReadLine", "Microsoft.PowerShell.Host", "PowerShellGet", "
 
 # Get information about system modules
 $systemModuleInfo = $systemModules | ForEach-Object {
-    $currentModule = $_
+    $cclurrentModule = $_
     try {
         $installedVersions = Get-Module -Name $currentModule -ListAvailable | 
             Select-Object -ExpandProperty Version | 
