@@ -69,7 +69,8 @@ impl Powershell {
 
         let unload_cmd = ["Get-Module | Remove-Module -Force"];
         let mut update_cmd = vec!["Update-Module"];
-        let reload_cmd = ["Get-Module -ListAvailable | Import-Module"];
+        let reload_cmd =
+            ["Get-Module -ListAvailable | ForEach-Object { if (Test-Path $_.ModuleBase) { Import-Module $_.Name } }"];
 
         if ctx.config().verbose() {
             update_cmd.push("-Verbose");
