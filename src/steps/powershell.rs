@@ -10,7 +10,6 @@ use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::terminal::{is_dumb, print_separator};
 use crate::utils::{require_option, which};
-use crate::Step;
 
 pub struct Powershell {
     path: Option<PathBuf>,
@@ -257,11 +256,8 @@ Get-Module -ListAvailable | Where-Object {
         if ctx.config().verbose() {
             update_args.push("-Verbose");
         }
-        
-        ctx.run_type()
-            .execute(powershell)
-            .args(update_args)
-            .status_checked()?;
+
+        ctx.run_type().execute(powershell).args(update_args).status_checked()?;
 
         // Step 3: Update system modules if needed
         println!("{}", t!("Handling system modules..."));
@@ -276,11 +272,8 @@ Get-Module -ListAvailable | Where-Object {
         if ctx.config().verbose() {
             reload_args.push("-Verbose");
         }
-        
-        ctx.run_type()
-            .execute(powershell)
-            .args(reload_args)
-            .status_checked()
+
+        ctx.run_type().execute(powershell).args(reload_args).status_checked()
     }
 
     #[cfg(windows)]
