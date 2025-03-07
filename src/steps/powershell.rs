@@ -72,13 +72,11 @@ impl Powershell {
         let reload_cmd = ["Get-Module -ListAvailable | Import-Module"];
 
         if ctx.config().verbose() {
-          feature/update-modules-unload-reload
             update_cmd.push("-Verbose");
         }
 
         if ctx.config().yes(Step::Powershell) {
             update_cmd.push("-Force");
-          main
         }
 
         println!("{}", t!("Unloading modules..."));
