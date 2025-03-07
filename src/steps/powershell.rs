@@ -67,219 +67,34 @@ impl Powershell {
 
         print_separator(t!("Powershell Modules Update"));
 
-        // Define core system modules that need special handling
-        let system_modules_update_script = r#"
-# List of system/core modules that need special handling
-$systemModules = @("PSReadLine", "Microsoft.PowerShell.Host", "PowerShellGet", "PackageManagement")
+        let unload_cmd = ["Get-Module | Remove-Module -Force"];
+        let mut update_cmd = vec!["Update-Module"];
+        let reload_cmd = ["Get-Module -ListAvailable | Import-Module"];
 
-# Get information about system modules
-$systemModuleInfo = $systemModules | ForEach-Object {
-    $currentModule = $_
-    try {
-        $installedVersions = Get-Module -Name $currentModule -ListAvailable | 
-            Select-Object -ExpandProperty Version | 
-            Sort-Object -Descending | 
-            Select-Object -First 1
-        
-        $onlineInfo = Find-Module -Name $currentModule -ErrorAction SilentlyContinue
-        
-        if ($onlineInfo -and ($onlineInfo.Version -gt $installedVersions)) {
-            [PSCustomObject]@{
-                Name = $currentModule
-                InstalledVersion = $installedVersions
-                OnlineVersion = $onlineInfo.Version
-                NeedsUpdate = $true
-            }
-        } else {
-            [PSCustomObject]@{
-                Name = $currentModule
-                InstalledVersion = $installedVersions
-                OnlineVersion = $onlineInfo.Version
-                NeedsUpdate = $false
-            }
-        }
-    } catch {
-        Write-Host "Error checking module $currentModule`: $_" -ForegroundColor Yellow
-        $null
-    }
-} | Where-Object { $_ -ne $null }
-
-# Display information about system modules
-Write-Host "System modules status:" -ForegroundColor Cyan
-$systemModuleInfo | Format-Table -AutoSize
-
-# Ask if the user wants to update system modules (this will require restart)
-$systemModulesToUpdate = $systemModuleInfo | Where-Object { $_.NeedsUpdate }
-if ($systemModulesToUpdate) {
-    Write-Host "The following system modules can be updated, but will require restarting PowerShell:" -ForegroundColor Yellow
-    $systemModulesToUpdate | Format-Table Name, InstalledVersion, OnlineVersion -AutoSize
-    
-    Write-Host "System modules will be updated separately after regular module updates." -ForegroundColor Cyan
-}
-"#;
-
-        // Regular module update script
-        let regular_update_script = r#"
-# Set error preferences
-$ErrorActionPreference = 'Continue'
-$ProgressPreference = 'SilentlyContinue'  # Hide progress bars for faster execution
-
-# First try to unload non-critical modules
-Write-Host "Unloading non-critical modules..." -ForegroundColor Cyan
-Get-Module | Where-Object { 
-    $_.Name -notin @("PSReadLine", "Microsoft.PowerShell.Host", "PowerShellGet", "PackageManagement") 
-} | ForEach-Object {
-    try {
-        Remove-Module -Name $_.Name -Force -ErrorAction Stop
-        Write-Verbose "Successfully unloaded module: $($_.Name)"
-    } catch {
-        Write-Verbose "Could not unload module: $($_.Name) - $($_.Exception.Message)"
-    }
-}
-
-# Get list of installed regular modules (excluding system modules)
-Write-Host "Scanning for updatable modules..." -ForegroundColor Cyan
-$regularModules = Get-Module -ListAvailable | Where-Object { 
-    $_.Name -notin @("PSReadLine", "Microsoft.PowerShell.Host", "PowerShellGet", "PackageManagement") 
-} | Group-Object -Property Name | ForEach-Object { 
-    $_.Group | Sort-Object Version -Descending | Select-Object -First 1 
-}
-
-# Update regular modules
-$updated = 0
-$failed = 0
-$skipped = 0
-$total = $regularModules.Count
-
-Write-Host "Found $total non-system modules to process" -ForegroundColor Cyan
-
-foreach ($module in $regularModules) {
-    $moduleName = $module.Name
-    Write-Host "Processing [$($updated+$failed+$skipped+1)/$total] $moduleName... " -NoNewline
-    
-    try {
-        # Check for permissions or special modules we should skip
-        if ($moduleName -eq "PSCompletions" -or $moduleName -like "Az.*" -or
-            $moduleName -eq "CompletionPredictor") {
-            Write-Host "SKIPPED (special module)" -ForegroundColor Yellow
-            $skipped++
-            continue
-        }
-        
-        # Try to update the module
-        Update-Module -Name $moduleName -Force -ErrorAction Stop
-        Write-Host "UPDATED" -ForegroundColor Green
-        $updated++
-    }
-    catch {
-        # Check if it's just because the module is already at the latest version
-        if ($_.Exception.Message -like "*because no newer module exists*") {
-            Write-Host "OK (latest version)" -ForegroundColor Green
-            $updated++ # Count as success
-        }
-        else {
-            Write-Host "FAILED - $($_.Exception.Message)" -ForegroundColor Red
-            $failed++
-        }
-    }
-}
-
-# Show summary for regular modules
-Write-Host "`nRegular module update summary:" -ForegroundColor Cyan
-Write-Host "  Updated/Current: $updated" -ForegroundColor Green
-if ($failed -gt 0) {
-    Write-Host "  Failed: $failed" -ForegroundColor Red
-}
-if ($skipped -gt 0) {
-    Write-Host "  Skipped: $skipped" -ForegroundColor Yellow
-}
-"#;
-
-        // System modules update script (if needed will be run separately)
-        let system_update_script = r#"
-# Update system modules that need updates
-$updatedSystem = 0
-$failedSystem = 0
-
-foreach ($module in $systemModulesToUpdate) {
-    $moduleName = $module.Name
-    Write-Host "Updating system module $moduleName... " -NoNewline
-    
-    try {
-        # Special handling for critical system modules
-        # For these, we use Install-Module with -Force and -AllowClobber
-        # which is more reliable than Update-Module for system components
-        Install-Module -Name $moduleName -Force -AllowClobber -SkipPublisherCheck -ErrorAction Stop
-        Write-Host "UPDATED" -ForegroundColor Green
-        $updatedSystem++
-    }
-    catch {
-        Write-Host "FAILED - $($_.Exception.Message)" -ForegroundColor Red
-        $failedSystem++
-    }
-}
-
-if ($updatedSystem -gt 0) {
-    Write-Host "`nSystem modules were updated. You should restart PowerShell to use the new versions." -ForegroundColor Yellow
-}
-"#;
-
-        // Final reloading script
-        let reload_script = r#"
-# Reload regular modules, avoiding problematic ones
-Write-Host "Reloading modules..." -ForegroundColor Cyan
-Get-Module -ListAvailable | Where-Object {
-    # Skip system modules (they're already loaded) and problematic modules
-    $_.Name -notin @(
-        "PSReadLine", "Microsoft.PowerShell.Host", "PowerShellGet", "PackageManagement",
-        "PSCompletions", "CompletionPredictor"
-    )
-} | Sort-Object -Property Name -Unique | ForEach-Object {
-    try {
-        Import-Module $_.Name -DisableNameChecking -Global -ErrorAction Stop
-        Write-Verbose "Reloaded module: $($_.Name)"
-    } catch {
-        Write-Verbose "Could not reload module $($_.Name): $($_.Exception.Message)"
-    }
-}
-"#;
-
-        // Step 1: Check system modules
-        println!("{}", t!("Checking PowerShell modules..."));
-        ctx.run_type()
-            .execute(powershell)
-            .args(["-NoProfile", "-Command", system_modules_update_script])
-            .status_checked()?;
-
-        // Step 2: Update regular modules
-        println!("{}", t!("Updating regular modules..."));
-        let mut update_args = vec!["-NoProfile", "-Command", regular_update_script];
         if ctx.config().verbose() {
-            update_args.push("-Verbose");
+            update_cmd.push("-Verbose");
         }
-        
+
+        if ctx.config().yes(Step::Powershell) {
+            update_cmd.push("-Force");
+        }
+
+        println!("{}", t!("Unloading modules..."));
         ctx.run_type()
             .execute(powershell)
-            .args(update_args)
+            .args(["-NoProfile", "-Command", &unload_cmd.join(" ")])
             .status_checked()?;
 
-        // Step 3: Update system modules if needed
-        println!("{}", t!("Handling system modules..."));
+        println!("{}", t!("Updating modules..."));
         ctx.run_type()
             .execute(powershell)
-            .args(["-NoProfile", "-Command", system_update_script])
+            .args(["-NoProfile", "-Command", &update_cmd.join(" ")])
             .status_checked()?;
 
-        // Step 4: Reload modules
         println!("{}", t!("Reloading modules..."));
-        let mut reload_args = vec!["-NoProfile", "-Command", reload_script];
-        if ctx.config().verbose() {
-            reload_args.push("-Verbose");
-        }
-        
         ctx.run_type()
             .execute(powershell)
-            .args(reload_args)
+            .args(["-NoProfile", "-Command", &reload_cmd.join(" ")])
             .status_checked()
     }
 
