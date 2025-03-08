@@ -81,6 +81,7 @@ impl Powershell {
             "    }",
             "  }",
             "}",
+            "}",
         ];
 
         if ctx.config().verbose() {
