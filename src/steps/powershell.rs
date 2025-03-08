@@ -88,17 +88,17 @@ impl Powershell {
             "      ",
             "      # Update the module",
             "      Write-Host \"  Updating module: $moduleName\" -ForegroundColor Cyan",
-            "      Update-Module -Name $moduleName",
+            "      $updateParams = @{}",
+            "      if ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('Force')) {",
+            "        $updateParams['Force'] = $true",
+            "      }",
+            "      Update-Module -Name $moduleName @updateParams",
         ];
 
         let mut script = update_script.clone();
 
         if ctx.config().verbose() {
             script.push("        -Verbose");
-        }
-
-        if ctx.config().yes(Step::Powershell) {
-            script.push("        -Force");
         }
 
         script.extend_from_slice(&[
