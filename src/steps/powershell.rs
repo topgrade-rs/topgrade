@@ -67,8 +67,37 @@ impl Powershell {
 
         print_separator(t!("Powershell Modules Update"));
 
-        let unload_cmd = ["Get-Module | Remove-Module -Force"];
-        let mut update_cmd = vec!["Update-Module"];
+        let unload_cmd = [
+            "Get-Module | ForEach-Object {",
+            "  $moduleName = $_.Name",
+            "  Write-Host \"Unloading module: $moduleName\" -ForegroundColor Yellow",
+            "  Remove-Module -Name $moduleName -Force",
+            "}",
+        ];
+
+        let mut update_cmd = vec![
+            "Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {",
+            "  $moduleName = $_.Name",
+            "  try {",
+            "    Write-Host \"Updating module: $moduleName\" -ForegroundColor Cyan",
+            "    Update-Module -Name $moduleName",
+        ];
+
+        if ctx.config().verbose() {
+            update_cmd.push("    -Verbose");
+        }
+
+        if ctx.config().yes(Step::Powershell) {
+            update_cmd.push("    -Force");
+        }
+
+        update_cmd.push("  } catch {");
+        update_cmd.push(
+            "    Write-Host \"Failed to update module: $moduleName - $($_.Exception.Message)\" -ForegroundColor Red",
+        );
+        update_cmd.push("  }");
+        update_cmd.push("}");
+
         let reload_cmd = [
             "Get-Module -ListAvailable | ForEach-Object {",
             "  if (Test-Path $_.ModuleBase) {",
@@ -80,16 +109,8 @@ impl Powershell {
             "      # or modules requiring specific PowerShell hosts",
             "    }",
             "  }",
-            "}"
+            "}",
         ];
-
-        if ctx.config().verbose() {
-            update_cmd.push("-Verbose");
-        }
-
-        if ctx.config().yes(Step::Powershell) {
-            update_cmd.push("-Force");
-        }
 
         println!("{}", t!("Unloading modules..."));
         ctx.run_type()
