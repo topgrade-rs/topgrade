@@ -1446,9 +1446,9 @@ checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 
 [[package]]
 name = "jetbrains-toolbox-updater"
-version = "1.2.1"
+version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef5a4c871f576e9e5b12e22573a7993bb2d31ba201d4d48effa1a09fdcfb23df"
+checksum = "056c4787eec790d1ad630a3505339eff77aa8e1eccb89586add054e1646bc269"
 dependencies = [
  "dirs 6.0.0",
  "json",
