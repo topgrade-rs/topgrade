@@ -46,9 +46,9 @@ fn run_command(ctx: &ExecutionContext, tool: &str, args: &[&str], step: Step) ->
 
 fn is_wsl_installed() -> Result<bool> {
     if let Some(wsl) = which("wsl") {
-        let output = Command::new(wsl).arg("-l").output()?;
-        if output.status.success() {
-            return Ok(true);
+        let result = Command::new(wsl).arg("-l").output_checked();
+        if let Ok(output) = result {
+            return Ok(output.status.success());
         }
     }
     Ok(false)
