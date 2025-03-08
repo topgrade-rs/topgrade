@@ -67,16 +67,22 @@ impl Powershell {
 
         print_separator(t!("Powershell Modules Update"));
 
-        let unload_cmd = [
-            "Get-Module | ForEach-Object {",
-            "  $moduleName = $_.Name",
-            "  Write-Host \"Unloading module: $moduleName\" -ForegroundColor Yellow",
-            "  Remove-Module -Name $moduleName -Force",
-            "}",
-        ]
-        .join("\n");
+        // Combine all commands into a single script
+        let mut script_commands = Vec::new();
 
+        // Unload modules
+        script_commands.push(concat!(
+            "Write-Host \"Unloading modules...\" -ForegroundColor Yellow\n",
+            "Get-Module | ForEach-Object {\n",
+            "  $moduleName = $_.Name\n",
+            "  Write-Host \"Unloading module: $moduleName\" -ForegroundColor Yellow\n",
+            "  Remove-Module -Name $moduleName -Force\n",
+            "}"
+        ));
+
+        // Update modules
         let mut update_cmd = vec![
+            "Write-Host \"Updating modules...\" -ForegroundColor Cyan",
             "Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {",
             "  $moduleName = $_.Name",
             "  try {",
@@ -103,49 +109,45 @@ impl Powershell {
             "  }",
             "}",
         ]);
-        let update_cmd = update_cmd.join("\n");
+        script_commands.push(update_cmd.join("\n"));
 
-        let reload_cmd = [
-            "Get-Module -ListAvailable | ForEach-Object {",
-            "  if (Test-Path $_.ModuleBase) {",
-            "    try {",
-            "      Import-Module $_.Name -ErrorAction Stop",
-            "      Write-Host \"Successfully imported module: $($_.Name)\" -ForegroundColor Green",
-            "    } catch {",
-            "      # Silently ignore import failures - these are often expected for modules with dependencies",
-            "      # or modules requiring specific PowerShell hosts",
-            "    }",
-            "  }",
-            "}",
-        ]
-        .join("\n");
+        // Reload modules
+        script_commands.push(concat!(
+            "Write-Host \"Reloading modules...\" -ForegroundColor Green\n",
+            "Get-Module -ListAvailable | ForEach-Object {\n",
+            "  if (Test-Path $_.ModuleBase) {\n",
+            "    try {\n",
+            "      Import-Module $_.Name -ErrorAction Stop\n",
+            "      Write-Host \"Successfully imported module: $($_.Name)\" -ForegroundColor Green\n",
+            "    } catch {\n",
+            "      # Silently ignore import failures - these are often expected for modules with dependencies\n",
+            "      # or modules requiring specific PowerShell hosts\n",
+            "    }\n",
+            "  }\n",
+            "}"
+        ));
 
-        // Helper function to execute PowerShell commands
-        let execute_ps_command = |message: &str, command: &str| -> Result<()> {
-            println!("{}", t!(message));
+        // Join all commands with semicolons for a single execution
+        let full_script = script_commands.join(";\n\n");
 
-            #[cfg(windows)]
-            {
-                let mut cmd = if let Some(sudo) = ctx.sudo() {
-                    let mut cmd = ctx.run_type().execute(sudo);
-                    cmd.arg(&powershell);
-                    cmd
-                } else {
-                    ctx.run_type().execute(&powershell)
-                };
-                return cmd.args(["-NoProfile", "-Command", command]).status_checked();
-            }
+        // Execute the combined script with a single elevation request
+        #[cfg(windows)]
+        {
+            let mut cmd = if let Some(sudo) = ctx.sudo() {
+                let mut cmd = ctx.run_type().execute(sudo);
+                cmd.arg(&powershell);
+                cmd
+            } else {
+                ctx.run_type().execute(&powershell)
+            };
+            return cmd.args(["-NoProfile", "-Command", &full_script]).status_checked();
+        }
 
-            #[cfg(not(windows))]
-            ctx.run_type()
-                .execute(&powershell)
-                .args(["-NoProfile", "-Command", command])
-                .status_checked()
-        };
-
-        execute_ps_command("Unloading modules...", &unload_cmd)?;
-        execute_ps_command("Updating modules...", &update_cmd)?;
-        execute_ps_command("Reloading modules...", &reload_cmd)
+        #[cfg(not(windows))]
+        ctx.run_type()
+            .execute(&powershell)
+            .args(["-NoProfile", "-Command", &full_script])
+            .status_checked()
     }
 
     #[cfg(windows)]
