@@ -126,14 +126,13 @@ impl Powershell {
         {
             let mut cmd = if let Some(sudo) = ctx.sudo() {
                 let mut cmd = ctx.run_type().execute(sudo);
-                cmd.arg(&powershell);
+                cmd.arg(powershell);
                 cmd
             } else {
-                ctx.run_type().execute(&powershell)
+                ctx.run_type().execute(powershell)
             };
-            return cmd
-                .args(["-NoProfile", "-NoLogo", "-NonInteractive", "-Command", &full_script])
-                .status_checked();
+            cmd.args(["-NoProfile", "-NoLogo", "-NonInteractive", "-Command", &full_script])
+                .status_checked()
         }
 
         #[cfg(not(windows))]
