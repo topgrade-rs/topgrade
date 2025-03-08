@@ -94,19 +94,19 @@ impl Powershell {
         println!("{}", t!("Unloading modules..."));
         ctx.run_type()
             .execute(powershell)
-            .args(["-NoProfile", "-Command", &unload_cmd.join(" ")])
+            .args(["-NoProfile", "-Command", &unload_cmd.join("\n")])
             .status_checked()?;
 
         println!("{}", t!("Updating modules..."));
         ctx.run_type()
             .execute(powershell)
-            .args(["-NoProfile", "-Command", &update_cmd.join(" ")])
+            .args(["-NoProfile", "-Command", &update_cmd.join("\n")])
             .status_checked()?;
 
         println!("{}", t!("Reloading modules..."));
         ctx.run_type()
             .execute(powershell)
-            .args(["-NoProfile", "-Command", &reload_cmd.join(" ")])
+            .args(["-NoProfile", "-Command", &reload_cmd.join("\n")])
             .status_checked()
     }
 
