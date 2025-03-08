@@ -63,11 +63,11 @@ impl Powershell {
 
     pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
         let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
-
+    
         print_separator(t!("Powershell Modules Update"));
-
+    
         let mut script_commands = Vec::<String>::new();
-
+    
         // Only process modules that were installed via Install-Module
         let update_script = vec![
             "Write-Host \"Processing PowerShell modules...\" -ForegroundColor Cyan",
@@ -87,40 +87,40 @@ impl Powershell {
             "      ",
             "      # Update the module",
             "      Write-Host \"  Updating module: $moduleName\" -ForegroundColor Cyan",
-            "      $updateParams = @{}",
-            "      if ($PSCmdlet.MyInvocation.BoundParameters.ContainsKey('Force')) {",
-            "        $updateParams['Force'] = $true",
-            "      }",
-            "      Update-Module -Name $moduleName @updateParams",
         ];
-
+    
         let mut script = update_script.clone();
-
+        
+        // Simplify the update command to avoid $PSCmdlet reference
         if ctx.config().verbose() {
-            script.push("        -Verbose");
+            script.push("      Update-Module -Name $moduleName -Verbose");
+        } else {
+            script.push("      Update-Module -Name $moduleName");
         }
-
+    
         script.extend_from_slice(&[
-                    "      ",
-                    "      # Reload the module",
-                    "      try {",
-                    "        Write-Host \"  Reloading module: $moduleName\" -ForegroundColor Green",
-                    "        Import-Module $moduleName -ErrorAction Stop",
-                    "        Write-Host \"  Successfully imported module: $moduleName\" -ForegroundColor Green",
-                    "      } catch {",
-                    "        Write-Host \"  Could not reload module: $moduleName - $($_.Exception.Message)\" -ForegroundColor Yellow",
-                    "      }",
-                    "    }",
-                    "  } catch {",
-                    "    Write-Host \"Failed to process module: $moduleName - $($_.Exception.Message)\" -ForegroundColor Red",
-                    "  }",
-                    "}",
-                    "Write-Host \"PowerShell module processing complete.\" -ForegroundColor Green"
-                ]);
-
+            "      ",
+            "      # Reload the module",
+            "      try {",
+            "        Write-Host \"  Reloading module: $moduleName\" -ForegroundColor Green",
+            "        Import-Module $moduleName -ErrorAction Stop",
+            "        Write-Host \"  Successfully imported module: $moduleName\" -ForegroundColor Green",
+            "      } catch {",
+            "        Write-Host \"  Could not reload module: $moduleName - $($_.Exception.Message)\" -ForegroundColor Yellow",
+            "      }",
+            "    }",
+            "  } catch {",
+            "    Write-Host \"Failed to process module: $moduleName - $($_.Exception.Message)\" -ForegroundColor Red",
+            "  }",
+            "}",
+            "Write-Host \"PowerShell module processing complete.\" -ForegroundColor Green"
+        ]);
+    
         script_commands.push(script.join("\n"));
         let full_script = script_commands.join(";\n\n");
-
+    
+        // Rest of the function remains unchanged...
+        
         #[cfg(windows)]
         {
             let mut cmd = if let Some(sudo) = ctx.sudo() {
@@ -133,10 +133,10 @@ impl Powershell {
             cmd.args(["-NoProfile", "-NoLogo", "-NonInteractive", "-Command", &full_script])
                 .status_checked()
         }
-
+    
         #[cfg(not(windows))]
         ctx.run_type()
-            .execute(powershell) // Remove the & to pass the value directly
+            .execute(powershell)
             .args(["-NoProfile", "-NoLogo", "-NonInteractive", "-Command", &full_script])
             .status_checked()
     }
