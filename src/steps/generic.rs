@@ -1,6 +1,6 @@
 #![allow(unused_imports)]
 
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, path::Path};
@@ -9,6 +9,8 @@ use std::{fs, io::Write};
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use lazy_static::lazy_static;
+use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
 use tempfile::tempfile_in;
@@ -504,6 +506,16 @@ pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(pipx).args(command_args).status_checked()
 }
 
+pub fn run_pipxu_update(ctx: &ExecutionContext) -> Result<()> {
+    let pipxu = require("pipxu")?;
+    print_separator("pipxu");
+
+    ctx.run_type()
+        .execute(pipxu)
+        .args(["upgrade", "--all"])
+        .status_checked()
+}
+
 pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
     let conda = require("conda")?;
 
@@ -517,19 +529,39 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Conda");
 
-    let mut command = ctx.run_type().execute(conda);
+    let mut command = ctx.run_type().execute(&conda);
     command.args(["update", "--all", "-n", "base"]);
     if ctx.config().yes(Step::Conda) {
         command.arg("--yes");
     }
-    command.status_checked()
+    command.status_checked()?;
+
+    if ctx.config().cleanup() {
+        let mut command = ctx.run_type().execute(conda);
+        command.args(["clean", "--all"]);
+        if ctx.config().yes(Step::Conda) {
+            command.arg("--yes");
+        }
+        command.status_checked()?;
+    }
+
+    Ok(())
 }
 
 pub fn run_pixi_update(ctx: &ExecutionContext) -> Result<()> {
     let pixi = require("pixi")?;
     print_separator("Pixi");
 
-    ctx.run_type().execute(pixi).args(["self-update"]).status_checked()
+    ctx.run_type()
+        .execute(&pixi)
+        .args(["self-update"])
+        .status_checked()
+        .ok();
+
+    ctx.run_type()
+        .execute(&pixi)
+        .args(["global", "update"])
+        .status_checked()
 }
 
 pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
@@ -537,12 +569,23 @@ pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Mamba");
 
-    let mut command = ctx.run_type().execute(mamba);
+    let mut command = ctx.run_type().execute(&mamba);
     command.args(["update", "--all", "-n", "base"]);
     if ctx.config().yes(Step::Mamba) {
         command.arg("--yes");
     }
-    command.status_checked()
+    command.status_checked()?;
+
+    if ctx.config().cleanup() {
+        let mut command = ctx.run_type().execute(&mamba);
+        command.args(["clean", "--all"]);
+        if ctx.config().yes(Step::Mamba) {
+            command.arg("--yes");
+        }
+        command.status_checked()?;
+    }
+
+    Ok(())
 }
 
 pub fn run_miktex_packages_update(ctx: &ExecutionContext) -> Result<()> {
@@ -1108,24 +1151,39 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
     let poetry = require("poetry")?;
 
     #[cfg(unix)]
-    fn get_interpreter(poetry: &PathBuf) -> Result<PathBuf> {
+    fn get_interpreter(poetry: &PathBuf) -> Result<(PathBuf, Option<OsString>)> {
+        // Parse the standard Unix shebang line: #!interpreter [optional-arg]
+        // Spaces and tabs on either side of interpreter are ignored.
+
         use std::os::unix::ffi::OsStrExt;
 
+        lazy_static! {
+            static ref SHEBANG_REGEX: Regex = Regex::new(r"^#![ \t]*([^ \t\n]+)(?:[ \t]+([^\n]+)?)?").unwrap();
+        }
+
         let script = fs::read(poetry)?;
-        if let Some(r) = script.iter().position(|&b| b == b'\n') {
-            let first_line = &script[..r];
-            if first_line.starts_with(b"#!") {
-                return Ok(OsStr::from_bytes(&first_line[2..]).into());
-            }
+        if let Some(c) = SHEBANG_REGEX.captures(&script) {
+            let interpreter = OsStr::from_bytes(&c[1]).into();
+            let args = c.get(2).map(|args| OsStr::from_bytes(args.as_bytes()).into());
+            return Ok((interpreter, args));
         }
 
         Err(eyre!("Could not find shebang"))
     }
     #[cfg(windows)]
-    fn get_interpreter(poetry: &PathBuf) -> Result<PathBuf> {
-        let data = fs::read(poetry)?;
+    fn get_interpreter(poetry: &PathBuf) -> Result<(PathBuf, Option<OsString>)> {
+        // Parse the shebang line from scripts using https://bitbucket.org/vinay.sajip/simple_launcher,
+        // such as those created by pip. In contrast to Unix shebang lines, interpreter paths can
+        // contain spaces, if they are double-quoted.
 
-        // https://bitbucket.org/vinay.sajip/simple_launcher/src/master/compare_launchers.py
+        use std::str;
+
+        lazy_static! {
+            static ref SHEBANG_REGEX: Regex =
+                Regex::new(r#"^#![ \t]*(?:"([^"\n]+)"|([^" \t\n]+))(?:[ \t]+([^\n]+)?)?"#).unwrap();
+        }
+
+        let data = fs::read(poetry)?;
 
         let pos = match data.windows(4).rposition(|b| b == b"PK\x05\x06") {
             Some(i) => i,
@@ -1144,29 +1202,40 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
             return Err(eyre!("Invalid ZIP archive"));
         }
         let arc_pos = pos - cdr_size - cdr_offset;
-        let shebang = match data[..arc_pos].windows(2).rposition(|b| b == b"#!") {
-            Some(l) => &data[l + 2..arc_pos - 1],
-            None => return Err(eyre!("Could not find shebang")),
-        };
-
-        // shebang line is utf8
-        Ok(std::str::from_utf8(shebang)?.into())
+        match data[..arc_pos].windows(2).rposition(|b| b == b"#!") {
+            Some(l) => {
+                let line = &data[l..arc_pos - 1];
+                if let Some(c) = SHEBANG_REGEX.captures(line) {
+                    let interpreter = c.get(1).or_else(|| c.get(2)).unwrap();
+                    // shebang line should be valid utf8
+                    let interpreter = str::from_utf8(interpreter.as_bytes())?.into();
+                    let args = match c.get(3) {
+                        Some(args) => Some(str::from_utf8(args.as_bytes())?.into()),
+                        None => None,
+                    };
+                    Ok((interpreter, args))
+                } else {
+                    Err(eyre!("Invalid shebang line"))
+                }
+            }
+            None => Err(eyre!("Could not find shebang")),
+        }
     }
 
     if ctx.config().poetry_force_self_update() {
         debug!("forcing poetry self update");
     } else {
-        let interpreter = match get_interpreter(&poetry) {
-            Ok(p) => p,
-            Err(e) => {
-                return Err(SkipStep(format!("Could not find interpreter for {}: {}", poetry.display(), e)).into())
-            }
-        };
-        debug!("poetry interpreter: {}", interpreter.display());
+        let (interp, interp_args) = get_interpreter(&poetry)
+            .map_err(|e| SkipStep(format!("Could not find interpreter for {}: {}", poetry.display(), e)))?;
+        debug!("poetry interpreter: {:?}, args: {:?}", interp, interp_args);
 
         let check_official_install_script =
         "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
-        let output = Command::new(&interpreter)
+        let mut command = Command::new(&interp);
+        if let Some(args) = interp_args {
+            command.arg(args);
+        }
+        let output = command
             .args(["-c", check_official_install_script])
             .output_checked_utf8()?;
         let stdout = output.stdout.trim();
