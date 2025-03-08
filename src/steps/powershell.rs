@@ -118,18 +118,63 @@ impl Powershell {
         ];
 
         println!("{}", t!("Unloading modules..."));
+        #[cfg(windows)]
+        {
+            let mut command = if let Some(sudo) = ctx.sudo() {
+                let mut cmd = ctx.run_type().execute(sudo);
+                cmd.arg(powershell);
+                cmd
+            } else {
+                ctx.run_type().execute(powershell)
+            };
+            command
+                .args(["-NoProfile", "-Command", &unload_cmd.join("\n")])
+                .status_checked()?;
+        }
+
+        #[cfg(not(windows))]
         ctx.run_type()
             .execute(powershell)
             .args(["-NoProfile", "-Command", &unload_cmd.join("\n")])
             .status_checked()?;
 
         println!("{}", t!("Updating modules..."));
+        #[cfg(windows)]
+        {
+            let mut command = if let Some(sudo) = ctx.sudo() {
+                let mut cmd = ctx.run_type().execute(sudo);
+                cmd.arg(powershell);
+                cmd
+            } else {
+                ctx.run_type().execute(powershell)
+            };
+            command
+                .args(["-NoProfile", "-Command", &update_cmd.join("\n")])
+                .status_checked()?;
+        }
+
+        #[cfg(not(windows))]
         ctx.run_type()
             .execute(powershell)
             .args(["-NoProfile", "-Command", &update_cmd.join("\n")])
             .status_checked()?;
 
         println!("{}", t!("Reloading modules..."));
+        #[cfg(windows)]
+        {
+            let mut command = if let Some(sudo) = ctx.sudo() {
+                let mut cmd = ctx.run_type().execute(sudo);
+                cmd.arg(powershell);
+                cmd
+            } else {
+                ctx.run_type().execute(powershell)
+            };
+            command
+                .args(["-NoProfile", "-Command", &reload_cmd.join("\n")])
+                .status_checked()
+        }
+
+        #[cfg(not(windows))]
         ctx.run_type()
             .execute(powershell)
             .args(["-NoProfile", "-Command", &reload_cmd.join("\n")])
