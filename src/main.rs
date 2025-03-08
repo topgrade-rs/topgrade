@@ -251,6 +251,9 @@ fn run() -> Result<()> {
         runner.execute(Step::Lure, "LURE", || linux::run_lure_update(&ctx))?;
         runner.execute(Step::Waydroid, "Waydroid", || linux::run_waydroid(&ctx))?;
         runner.execute(Step::AutoCpufreq, "auto-cpufreq", || linux::run_auto_cpufreq(&ctx))?;
+        runner.execute(Step::CinnamonSpices, "Cinnamon spices", || {
+            linux::run_cinnamon_spices_updater(&ctx)
+        })?;
     }
 
     #[cfg(target_os = "macos")]
@@ -372,6 +375,7 @@ fn run() -> Result<()> {
     runner.execute(Step::Opam, "opam", || generic::run_opam_update(&ctx))?;
     runner.execute(Step::Vcpkg, "vcpkg", || generic::run_vcpkg_update(&ctx))?;
     runner.execute(Step::Pipx, "pipx", || generic::run_pipx_update(&ctx))?;
+    runner.execute(Step::Pipxu, "pipxu", || generic::run_pipxu_update(&ctx))?;
     runner.execute(Step::Vscode, "Visual Studio Code extensions", || {
         generic::run_vscode_extensions_update(&ctx)
     })?;
