@@ -75,7 +75,7 @@ impl Powershell {
             "    try {",
             "      Import-Module $_.Name -ErrorAction Stop",
             "    } catch {",
-            "      Write-Host \"Failed to import module: $_.Name\"",
+            "      Write-Host \"Failed to import module: $_.Name - $_.Exception.Message\"",
             "    }",
             "  }",
             "}",
