@@ -80,13 +80,13 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
 }
 
 fn find_topgrade_in_wsl(wsl: &Path, dist: &str) -> Result<String> {
-    Command::new(wsl)
+    Ok(Command::new(wsl)
         .args(["-d", dist, "bash", "-lc", "which topgrade"])
         .output_checked_utf8()
         .map_err(|_| SkipStep(t!("Could not find Topgrade installed in WSL").to_string()))?
         .stdout
         .trim_end()
-        .to_owned()
+        .to_owned())
 }
 
 pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
