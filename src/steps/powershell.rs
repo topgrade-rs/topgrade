@@ -102,22 +102,22 @@ impl Powershell {
         }
 
         script.extend_from_slice(&[
-            "      ",
-            "      # Reload the module",
-            "      try {",
-            "        Write-Host \"  Reloading module: $moduleName\" -ForegroundColor Green",
-            "        Import-Module $moduleName -ErrorAction Stop",
-            "        Write-Host \"  Successfully imported module: $moduleName\" -ForegroundColor Green",
-            "      } catch {",
-            "        Write-Host \"  Could not reload module: $moduleName - $($_.Exception.Message)\" -ForegroundColor Yellow",
-            "      }",
-            "    }",
-            "  } catch {",
-            "    Write-Host \"Failed to process module: $moduleName - $($_.Exception.Message)\" -ForegroundColor Red",
-            "  }",
-            "}",
-            "Write-Host \"PowerShell module processing complete.\" -ForegroundColor Green"
-        ]);
+                    "      ",
+                    "      # Reload the module",
+                    "      try {",
+                    "        Write-Host \"  Reloading module: $moduleName\" -ForegroundColor Green",
+                    "        Import-Module $moduleName -ErrorAction Stop",
+                    "        Write-Host \"  Successfully imported module: $moduleName\" -ForegroundColor Green",
+                    "      } catch {",
+                    "        Write-Host \"  Could not reload module: $moduleName - $($_.Exception.Message)\" -ForegroundColor Yellow",
+                    "      }",
+                    "    }",
+                    "  } catch {",
+                    "    Write-Host \"Failed to process module: $moduleName - $($_.Exception.Message)\" -ForegroundColor Red",
+                    "  }",
+                    "}",
+                    "Write-Host \"PowerShell module processing complete.\" -ForegroundColor Green"
+                ]);
 
         script_commands.push(script.join("\n"));
         let full_script = script_commands.join(";\n\n");
@@ -131,13 +131,15 @@ impl Powershell {
             } else {
                 ctx.run_type().execute(&powershell)
             };
-            return cmd.args(["-NoProfile", "-Command", &full_script]).status_checked();
+            return cmd
+                .args(["-NoProfile", "-NoLogo", "-NonInteractive", "-Command", &full_script])
+                .status_checked();
         }
 
         #[cfg(not(windows))]
         ctx.run_type()
             .execute(&powershell)
-            .args(["-NoProfile", "-Command", &full_script])
+            .args(["-NoProfile", "-NoLogo", "-NonInteractive", "-Command", &full_script])
             .status_checked()
     }
 
