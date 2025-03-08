@@ -79,18 +79,23 @@ impl Powershell {
             "Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {",
             "  $moduleName = $_.Name",
             "  try {",
-            "    Write-Host \"Updating module: $moduleName\" -ForegroundColor Cyan",
-            "    Update-Module -Name $moduleName",
+            "    # Check if module was installed via Install-Module before attempting to update",
+            "    if (Get-InstalledModule -Name $moduleName -ErrorAction SilentlyContinue) {",
+            "      Write-Host \"Updating module: $moduleName\" -ForegroundColor Cyan",
+            "      Update-Module -Name $moduleName",
         ];
 
         if ctx.config().verbose() {
-            update_cmd.push("    -Verbose");
+            update_cmd.push("      -Verbose");
         }
 
         if ctx.config().yes(Step::Powershell) {
-            update_cmd.push("    -Force");
+            update_cmd.push("      -Force");
         }
 
+        update_cmd.push("    } else {");
+        update_cmd.push("      Write-Host \"Skipping module: $moduleName (not installed via Install-Module)\" -ForegroundColor Yellow");
+        update_cmd.push("    }");
         update_cmd.push("  } catch {");
         update_cmd.push(
             "    Write-Host \"Failed to update module: $moduleName - $($_.Exception.Message)\" -ForegroundColor Red",
