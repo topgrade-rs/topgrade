@@ -67,76 +67,61 @@ impl Powershell {
 
         print_separator(t!("Powershell Modules Update"));
 
-        // Combine all commands into a single script - use String instead of &str
         let mut script_commands = Vec::<String>::new();
 
-        // Unload modules - convert to String
-        script_commands.push(
-            concat!(
-                "Write-Host \"Unloading modules...\" -ForegroundColor Yellow\n",
-                "Get-Module | ForEach-Object {\n",
-                "  $moduleName = $_.Name\n",
-                "  Write-Host \"Unloading module: $moduleName\" -ForegroundColor Yellow\n",
-                "  Remove-Module -Name $moduleName -Force\n",
-                "}"
-            )
-            .to_string(),
-        );
-
-        // Update modules
-        let mut update_cmd = vec![
-            "Write-Host \"Updating modules...\" -ForegroundColor Cyan",
+        // Only process modules that were installed via Install-Module
+        let update_script = vec![
+            "Write-Host \"Processing PowerShell modules...\" -ForegroundColor Cyan",
             "Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {",
             "  $moduleName = $_.Name",
             "  try {",
-            "    # Check if module was installed via Install-Module before attempting to update",
+            "    # Only process modules installed via Install-Module",
             "    if (Get-InstalledModule -Name $moduleName -ErrorAction SilentlyContinue) {",
-            "      Write-Host \"Updating module: $moduleName\" -ForegroundColor Cyan",
+            "      # Process each module individually - unload, update, reload",
+            "      Write-Host \"Processing module: $moduleName\" -ForegroundColor Cyan",
+            "      ",
+            "      # Unload the module if it's loaded",
+            "      if (Get-Module -Name $moduleName -ErrorAction SilentlyContinue) {",
+            "        Write-Host \"  Unloading module: $moduleName\" -ForegroundColor Yellow",
+            "        Remove-Module -Name $moduleName -Force -ErrorAction SilentlyContinue",
+            "      }",
+            "      ",
+            "      # Update the module",
+            "      Write-Host \"  Updating module: $moduleName\" -ForegroundColor Cyan",
             "      Update-Module -Name $moduleName",
         ];
 
+        let mut script = update_script.clone();
+
         if ctx.config().verbose() {
-            update_cmd.push("      -Verbose");
+            script.push("        -Verbose");
         }
 
         if ctx.config().yes(Step::Powershell) {
-            update_cmd.push("      -Force");
+            script.push("        -Force");
         }
 
-        update_cmd.extend_from_slice(&[
-            "    } else {",
-            "      Write-Host \"Skipping module: $moduleName (not installed via Install-Module)\" -ForegroundColor Yellow",
+        script.extend_from_slice(&[
+            "      ",
+            "      # Reload the module",
+            "      try {",
+            "        Write-Host \"  Reloading module: $moduleName\" -ForegroundColor Green",
+            "        Import-Module $moduleName -ErrorAction Stop",
+            "        Write-Host \"  Successfully imported module: $moduleName\" -ForegroundColor Green",
+            "      } catch {",
+            "        Write-Host \"  Could not reload module: $moduleName - $($_.Exception.Message)\" -ForegroundColor Yellow",
+            "      }",
             "    }",
             "  } catch {",
-            "    Write-Host \"Failed to update module: $moduleName - $($_.Exception.Message)\" -ForegroundColor Red",
+            "    Write-Host \"Failed to process module: $moduleName - $($_.Exception.Message)\" -ForegroundColor Red",
             "  }",
             "}",
+            "Write-Host \"PowerShell module processing complete.\" -ForegroundColor Green"
         ]);
-        script_commands.push(update_cmd.join("\n"));
 
-        // Reload modules - convert to String
-        script_commands.push(
-            concat!(
-                "Write-Host \"Reloading modules...\" -ForegroundColor Green\n",
-                "Get-Module -ListAvailable | ForEach-Object {\n",
-                "  if (Test-Path $_.ModuleBase) {\n",
-                "    try {\n",
-                "      Import-Module $_.Name -ErrorAction Stop\n",
-                "      Write-Host \"Successfully imported module: $($_.Name)\" -ForegroundColor Green\n",
-                "    } catch {\n",
-                "      # Silently ignore import failures - these are often expected for modules with dependencies\n",
-                "      # or modules requiring specific PowerShell hosts\n",
-                "    }\n",
-                "  }\n",
-                "}"
-            )
-            .to_string(),
-        );
-
-        // Join all commands with semicolons for a single execution
+        script_commands.push(script.join("\n"));
         let full_script = script_commands.join(";\n\n");
 
-        // Rest of the code remains the same...
         #[cfg(windows)]
         {
             let mut cmd = if let Some(sudo) = ctx.sudo() {
