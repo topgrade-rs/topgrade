@@ -73,7 +73,8 @@ impl Powershell {
             "  Write-Host \"Unloading module: $moduleName\" -ForegroundColor Yellow",
             "  Remove-Module -Name $moduleName -Force",
             "}",
-        ];
+        ]
+        .join("\n");
 
         let mut update_cmd = vec![
             "Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {",
@@ -93,15 +94,16 @@ impl Powershell {
             update_cmd.push("      -Force");
         }
 
-        update_cmd.push("    } else {");
-        update_cmd.push("      Write-Host \"Skipping module: $moduleName (not installed via Install-Module)\" -ForegroundColor Yellow");
-        update_cmd.push("    }");
-        update_cmd.push("  } catch {");
-        update_cmd.push(
+        update_cmd.extend_from_slice(&[
+            "    } else {",
+            "      Write-Host \"Skipping module: $moduleName (not installed via Install-Module)\" -ForegroundColor Yellow",
+            "    }",
+            "  } catch {",
             "    Write-Host \"Failed to update module: $moduleName - $($_.Exception.Message)\" -ForegroundColor Red",
-        );
-        update_cmd.push("  }");
-        update_cmd.push("}");
+            "  }",
+            "}",
+        ]);
+        let update_cmd = update_cmd.join("\n");
 
         let reload_cmd = [
             "Get-Module -ListAvailable | ForEach-Object {",
@@ -115,70 +117,35 @@ impl Powershell {
             "    }",
             "  }",
             "}",
-        ];
+        ]
+        .join("\n");
 
-        println!("{}", t!("Unloading modules..."));
-        #[cfg(windows)]
-        {
-            let mut command = if let Some(sudo) = ctx.sudo() {
-                let mut cmd = ctx.run_type().execute(sudo);
-                cmd.arg(powershell);
-                cmd
-            } else {
-                ctx.run_type().execute(powershell)
-            };
-            command
-                .args(["-NoProfile", "-Command", &unload_cmd.join("\n")])
-                .status_checked()?;
-        }
+        // Helper function to execute PowerShell commands
+        let execute_ps_command = |message: &str, command: &str| -> Result<()> {
+            println!("{}", t!(message));
 
-        #[cfg(not(windows))]
-        ctx.run_type()
-            .execute(powershell)
-            .args(["-NoProfile", "-Command", &unload_cmd.join("\n")])
-            .status_checked()?;
+            #[cfg(windows)]
+            {
+                let mut cmd = if let Some(sudo) = ctx.sudo() {
+                    let mut cmd = ctx.run_type().execute(sudo);
+                    cmd.arg(&powershell);
+                    cmd
+                } else {
+                    ctx.run_type().execute(&powershell)
+                };
+                return cmd.args(["-NoProfile", "-Command", command]).status_checked();
+            }
 
-        println!("{}", t!("Updating modules..."));
-        #[cfg(windows)]
-        {
-            let mut command = if let Some(sudo) = ctx.sudo() {
-                let mut cmd = ctx.run_type().execute(sudo);
-                cmd.arg(powershell);
-                cmd
-            } else {
-                ctx.run_type().execute(powershell)
-            };
-            command
-                .args(["-NoProfile", "-Command", &update_cmd.join("\n")])
-                .status_checked()?;
-        }
-
-        #[cfg(not(windows))]
-        ctx.run_type()
-            .execute(powershell)
-            .args(["-NoProfile", "-Command", &update_cmd.join("\n")])
-            .status_checked()?;
-
-        println!("{}", t!("Reloading modules..."));
-        #[cfg(windows)]
-        {
-            let mut command = if let Some(sudo) = ctx.sudo() {
-                let mut cmd = ctx.run_type().execute(sudo);
-                cmd.arg(powershell);
-                cmd
-            } else {
-                ctx.run_type().execute(powershell)
-            };
-            command
-                .args(["-NoProfile", "-Command", &reload_cmd.join("\n")])
+            #[cfg(not(windows))]
+            ctx.run_type()
+                .execute(&powershell)
+                .args(["-NoProfile", "-Command", command])
                 .status_checked()
-        }
+        };
 
-        #[cfg(not(windows))]
-        ctx.run_type()
-            .execute(powershell)
-            .args(["-NoProfile", "-Command", &reload_cmd.join("\n")])
-            .status_checked()
+        execute_ps_command("Unloading modules...", &unload_cmd)?;
+        execute_ps_command("Updating modules...", &update_cmd)?;
+        execute_ps_command("Reloading modules...", &reload_cmd)
     }
 
     #[cfg(windows)]
