@@ -113,7 +113,7 @@ pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
 
 fn execute_scoop_commands(ctx: &ExecutionContext, scoop: &Path) -> Result<()> {
     ctx.run_type().execute(scoop).args(UPDATE).status_checked()?;
-    ctx.run_type().execute(scoop).args(&["update", "*"]).status_checked()
+    ctx.run_type().execute(scoop).args(["update", "*"]).status_checked()
 }
 
 fn cleanup_scoop(ctx: &ExecutionContext, scoop: &Path) -> Result<()> {
