@@ -1,5 +1,59 @@
 _version: 2
 
+"Processing PowerShell modules...":
+  en: "Processing PowerShell modules..."
+  es: "Procesando módulos de PowerShell..."
+  fr: "Traitement des modules PowerShell..."
+  zh_TW: "正在處理 PowerShell 模組..."
+
+"Processing module: {moduleName}":
+  en: "Processing module: %{moduleName}"
+  es: "Procesando módulo: %{moduleName}"
+  fr: "Traitement du module : %{moduleName}"
+  zh_TW: "正在處理模組：%{moduleName}"
+
+"Unloading module: {moduleName}":
+  en: "Unloading module: %{moduleName}"
+  es: "Descargando módulo: %{moduleName}"
+  fr: "Déchargement du module : %{moduleName}"
+  zh_TW: "正在卸載模組：%{moduleName}"
+
+"Updating module: {moduleName}":
+  en: "Updating module: %{moduleName}"
+  es: "Actualizando módulo: %{moduleName}"
+  fr: "Mise à jour du module : %{moduleName}"
+  zh_TW: "正在更新模組：%{moduleName}"
+
+"Reloading module: {moduleName}":
+  en: "Reloading module: %{moduleName}"
+  es: "Recargando módulo: %{moduleName}"
+  fr: "Rechargement du module : %{moduleName}"
+  zh_TW: "正在重新載入模組：%{moduleName}"
+
+"Successfully imported module: {moduleName}":
+  en: "Successfully imported module: %{moduleName}"
+  es: "Módulo importado con éxito: %{moduleName}"
+  fr: "Module importé avec succès : %{moduleName}"
+  zh_TW: "成功導入模組：%{moduleName}"
+
+"Could not reload module: {moduleName} - {error}":
+  en: "Could not reload module: %{moduleName} - %{error}"
+  es: "No se pudo recargar el módulo: %{moduleName} - %{error}"
+  fr: "Impossible de recharger le module : %{moduleName} - %{error}"
+  zh_TW: "無法重新載入模組：%{moduleName} - %{error}"
+
+"Failed to process module: {moduleName} - {error}":
+  en: "Failed to process module: %{moduleName} - %{error}"
+  es: "Error al procesar el módulo: %{moduleName} - %{error}"
+  fr: "Échec du traitement du module : %{moduleName} - %{error}"
+  zh_TW: "處理模組失敗：%{moduleName} - %{error}"
+
+"PowerShell module processing complete.":
+  en: "PowerShell module processing complete."
+  es: "Procesamiento de módulos de PowerShell completo."
+  fr: "Traitement des modules PowerShell terminé."
+  zh_TW: "PowerShell 模組處理完成。"
+
 "Current system locale is {system_locale}":
   en: "Current system locale is %{system_locale}"
   es: "La configuración regional del sistema es %{system_locale}"
@@ -60,21 +114,6 @@ _version: 2
   es: "Topgrade está actualizado"
   fr: "Topgrade est à jour"
   zh_TW: "Topgrade 為最新版本"
-"Updating modules...":
-  en: "Updating modules..."
-  es: "Actualizando módulos..."
-  fr: "Mise à jour des modules..."
-  zh_TW: "正在更新模組..."
-"Unloading modules...":
-  en: "Unloading modules..."
-  es: "Descarga de módulos..."
-  fr: "Déchargement des modules..."
-  zh_TW: "正在卸載模組..."
-"Reloading modules...":
-  en: "Reloading modules..."
-  es: "Módulos de recarga..."
-  fr: "Modules de rechargement..."
-  zh_TW: "正在重裝模組..."
 "Powershell Modules Update":
   en: "Powershell Modules Update"
   es: "Actualización de módulos Powershell"
