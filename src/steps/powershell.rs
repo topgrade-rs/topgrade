@@ -67,18 +67,21 @@ impl Powershell {
 
         print_separator(t!("Powershell Modules Update"));
 
-        // Combine all commands into a single script
-        let mut script_commands = Vec::new();
+        // Combine all commands into a single script - use String instead of &str
+        let mut script_commands = Vec::<String>::new();
 
-        // Unload modules
-        script_commands.push(concat!(
-            "Write-Host \"Unloading modules...\" -ForegroundColor Yellow\n",
-            "Get-Module | ForEach-Object {\n",
-            "  $moduleName = $_.Name\n",
-            "  Write-Host \"Unloading module: $moduleName\" -ForegroundColor Yellow\n",
-            "  Remove-Module -Name $moduleName -Force\n",
-            "}"
-        ));
+        // Unload modules - convert to String
+        script_commands.push(
+            concat!(
+                "Write-Host \"Unloading modules...\" -ForegroundColor Yellow\n",
+                "Get-Module | ForEach-Object {\n",
+                "  $moduleName = $_.Name\n",
+                "  Write-Host \"Unloading module: $moduleName\" -ForegroundColor Yellow\n",
+                "  Remove-Module -Name $moduleName -Force\n",
+                "}"
+            )
+            .to_string(),
+        );
 
         // Update modules
         let mut update_cmd = vec![
@@ -111,26 +114,29 @@ impl Powershell {
         ]);
         script_commands.push(update_cmd.join("\n"));
 
-        // Reload modules
-        script_commands.push(concat!(
-            "Write-Host \"Reloading modules...\" -ForegroundColor Green\n",
-            "Get-Module -ListAvailable | ForEach-Object {\n",
-            "  if (Test-Path $_.ModuleBase) {\n",
-            "    try {\n",
-            "      Import-Module $_.Name -ErrorAction Stop\n",
-            "      Write-Host \"Successfully imported module: $($_.Name)\" -ForegroundColor Green\n",
-            "    } catch {\n",
-            "      # Silently ignore import failures - these are often expected for modules with dependencies\n",
-            "      # or modules requiring specific PowerShell hosts\n",
-            "    }\n",
-            "  }\n",
-            "}"
-        ));
+        // Reload modules - convert to String
+        script_commands.push(
+            concat!(
+                "Write-Host \"Reloading modules...\" -ForegroundColor Green\n",
+                "Get-Module -ListAvailable | ForEach-Object {\n",
+                "  if (Test-Path $_.ModuleBase) {\n",
+                "    try {\n",
+                "      Import-Module $_.Name -ErrorAction Stop\n",
+                "      Write-Host \"Successfully imported module: $($_.Name)\" -ForegroundColor Green\n",
+                "    } catch {\n",
+                "      # Silently ignore import failures - these are often expected for modules with dependencies\n",
+                "      # or modules requiring specific PowerShell hosts\n",
+                "    }\n",
+                "  }\n",
+                "}"
+            )
+            .to_string(),
+        );
 
         // Join all commands with semicolons for a single execution
         let full_script = script_commands.join(";\n\n");
 
-        // Execute the combined script with a single elevation request
+        // Rest of the code remains the same...
         #[cfg(windows)]
         {
             let mut cmd = if let Some(sudo) = ctx.sudo() {
