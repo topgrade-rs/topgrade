@@ -80,8 +80,7 @@ impl Powershell {
             "      # or modules requiring specific PowerShell hosts",
             "    }",
             "  }",
-            "}",
-            "}",
+            "}"
         ];
 
         if ctx.config().verbose() {
