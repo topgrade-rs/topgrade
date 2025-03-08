@@ -137,7 +137,7 @@ impl Powershell {
 
         #[cfg(not(windows))]
         ctx.run_type()
-            .execute(&powershell)
+            .execute(powershell) // Remove the & to pass the value directly
             .args(["-NoProfile", "-NoLogo", "-NonInteractive", "-Command", &full_script])
             .status_checked()
     }
