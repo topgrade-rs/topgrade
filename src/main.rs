@@ -320,6 +320,9 @@ fn run() -> Result<()> {
         runner.execute(Step::Mise, "mise", || unix::run_mise(&ctx))?;
         runner.execute(Step::Pkgin, "pkgin", || unix::run_pkgin(&ctx))?;
         runner.execute(Step::BunPackages, "bun-packages", || unix::run_bun_packages(&ctx))?;
+        runner.execute(Step::BunCompletions, "bun-completions", || {
+            unix::run_bun_completions(&ctx)
+        })?;
         runner.execute(Step::Shell, "zr", || zsh::run_zr(&ctx))?;
         runner.execute(Step::Shell, "antibody", || zsh::run_antibody(&ctx))?;
         runner.execute(Step::Shell, "antidote", || zsh::run_antidote(&ctx))?;
