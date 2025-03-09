@@ -13,22 +13,29 @@ use crate::{error::SkipStep, steps::git::RepoStep};
 use crate::{powershell, Step};
 use rust_i18n::t;
 
-pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
-    let choco = require("choco")?;
-    let yes = ctx.config().yes(Step::Chocolatey);
+const UPGRADE_ALL: &[&str] = &["upgrade", "all"];
+const UPDATE: &[&str] = &["update"];
+const CLEANUP: &[&str] = &["cleanup", "*"];
+const CACHE_RM: &[&str] = &["cache", "rm", "-a"];
+const WSL_UPDATE: &[&str] = &["--update"];
+const WSL_LIST: &[&str] = &["--list", "-q"];
 
-    print_separator("Chocolatey");
+fn run_command(ctx: &ExecutionContext, tool: &str, args: &[&str], step: Step) -> Result<()> {
+    let tool_path = require(tool)?;
+    let yes = ctx.config().yes(step);
+
+    print_separator(tool);
 
     let mut command = match ctx.sudo() {
         Some(sudo) => {
             let mut command = ctx.run_type().execute(sudo);
-            command.arg(choco);
+            command.arg(tool_path);
             command
         }
-        None => ctx.run_type().execute(choco),
+        None => ctx.run_type().execute(tool_path),
     };
 
-    command.args(["upgrade", "all"]);
+    command.args(args);
 
     if yes {
         command.arg("--yes");
@@ -37,15 +44,57 @@ pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
     command.status_checked()
 }
 
+fn is_wsl_installed() -> Result<bool> {
+    if let Some(wsl) = which("wsl") {
+        let result = Command::new(wsl).arg("-l").output_checked();
+        if let Ok(output) = result {
+            return Ok(output.status.success());
+        }
+    }
+    Ok(false)
+}
+
+fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
+    let output = Command::new(wsl).args(WSL_LIST).output_checked_utf8()?.stdout;
+    Ok(output
+        .lines()
+        .filter(|s| !s.is_empty())
+        .map(|x| x.replace(['\u{0}', '\r'], ""))
+        .collect())
+}
+
+fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> Result<()> {
+    let topgrade = find_topgrade_in_wsl(wsl, dist)?;
+    let mut command = ctx.run_type().execute(wsl);
+    let args = if ctx.config().verbose() { "-v" } else { "" };
+
+    command
+        .args(["-d", dist, "bash", "-c"])
+        .arg(format!("TOPGRADE_PREFIX={dist} exec {topgrade} {args}"));
+
+    if ctx.config().yes(Step::Wsl) {
+        command.arg("-y");
+    }
+
+    command.status_checked()
+}
+
+fn find_topgrade_in_wsl(wsl: &Path, dist: &str) -> Result<String> {
+    Ok(Command::new(wsl)
+        .args(["-d", dist, "bash", "-lc", "which topgrade"])
+        .output_checked_utf8()
+        .map_err(|_| SkipStep(t!("Could not find Topgrade installed in WSL").to_string()))?
+        .stdout
+        .trim_end()
+        .to_owned())
+}
+
+pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
+    run_command(ctx, "choco", UPGRADE_ALL, Step::Chocolatey)
+}
+
 pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
-    let winget = require("winget")?;
-
-    print_separator("winget");
-
-    ctx.run_type()
-        .execute(winget)
-        .args(["upgrade", "--all"])
-        .status_checked()
+    run_command(ctx, "winget", &["upgrade", "--all"], Step::Winget)
 }
 
 pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
@@ -53,18 +102,23 @@ pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Scoop");
 
-    ctx.run_type().execute(&scoop).args(["update"]).status_checked()?;
-    ctx.run_type().execute(&scoop).args(["update", "*"]).status_checked()?;
+    execute_scoop_commands(ctx, &scoop)?;
 
     if ctx.config().cleanup() {
-        ctx.run_type().execute(&scoop).args(["cleanup", "*"]).status_checked()?;
-        ctx.run_type()
-            .execute(&scoop)
-            .args(["cache", "rm", "-a"])
-            .status_checked()?
+        cleanup_scoop(ctx, &scoop)?;
     }
 
     Ok(())
+}
+
+fn execute_scoop_commands(ctx: &ExecutionContext, scoop: &Path) -> Result<()> {
+    ctx.run_type().execute(scoop).args(UPDATE).status_checked()?;
+    ctx.run_type().execute(scoop).args(["update", "*"]).status_checked()
+}
+
+fn cleanup_scoop(ctx: &ExecutionContext, scoop: &Path) -> Result<()> {
+    ctx.run_type().execute(scoop).args(CLEANUP).status_checked()?;
+    ctx.run_type().execute(scoop).args(CACHE_RM).status_checked()
 }
 
 pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
@@ -77,101 +131,17 @@ pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
     print_separator(t!("Update WSL"));
 
     let mut wsl_command = ctx.run_type().execute(wsl);
-    wsl_command.args(["--update"]);
+    wsl_command.args(WSL_UPDATE);
 
     if ctx.config().wsl_update_pre_release() {
-        wsl_command.args(["--pre-release"]);
+        wsl_command.arg("--pre-release");
     }
 
     if ctx.config().wsl_update_use_web_download() {
-        wsl_command.args(["--web-download"]);
+        wsl_command.arg("--web-download");
     }
     wsl_command.status_checked()?;
     Ok(())
-}
-
-/// Detect if WSL is installed or not.
-///
-/// For WSL, we cannot simply check if command `wsl` is installed as on newer
-/// versions of Windows (since windows 10 version 2004), this commmand is
-/// installed by default.
-///
-/// If the command is installed and the user hasn't installed any Linux distros
-/// on it, command `wsl -l` would print a help message and exit with failure, we
-/// use this to check whether WSL is install or not.
-fn is_wsl_installed() -> Result<bool> {
-    if let Some(wsl) = which("wsl") {
-        // Don't use `output_checked` as an execution failure log is not wanted
-        #[allow(clippy::disallowed_methods)]
-        let output = Command::new(wsl).arg("-l").output()?;
-        let status = output.status;
-
-        if status.success() {
-            return Ok(true);
-        }
-    }
-
-    Ok(false)
-}
-
-fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
-    let output = Command::new(wsl).args(["--list", "-q"]).output_checked_utf8()?.stdout;
-    Ok(output
-        .lines()
-        .filter(|s| !s.is_empty())
-        .map(|x| x.replace(['\u{0}', '\r'], ""))
-        .collect())
-}
-
-fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> Result<()> {
-    let topgrade = Command::new(wsl)
-        .args(["-d", dist, "bash", "-lc", "which topgrade"])
-        .output_checked_utf8()
-        .map_err(|_| SkipStep(t!("Could not find Topgrade installed in WSL").to_string()))?
-        .stdout // The normal output from `which topgrade` appends a newline, so we trim it here.
-        .trim_end()
-        .to_owned();
-
-    let mut command = ctx.run_type().execute(wsl);
-
-    // The `arg` method automatically quotes its arguments.
-    // This means we can't append additional arguments to `topgrade` in WSL
-    // by calling `arg` successively.
-    //
-    // For example:
-    //
-    // ```rust
-    // command
-    //  .args(["-d", dist, "bash", "-c"])
-    //  .arg(format!("TOPGRADE_PREFIX={dist} exec {topgrade}"));
-    // ```
-    //
-    // creates a command string like:
-    // > `C:\WINDOWS\system32\wsl.EXE -d Ubuntu bash -c 'TOPGRADE_PREFIX=Ubuntu exec /bin/topgrade'`
-    //
-    // Adding the following:
-    //
-    // ```rust
-    // command.arg("-v");
-    // ```
-    //
-    // appends the next argument like so:
-    // > `C:\WINDOWS\system32\wsl.EXE -d Ubuntu bash -c 'TOPGRADE_PREFIX=Ubuntu exec /bin/topgrade' -v`
-    // which means `-v` isn't passed to `topgrade`.
-    let mut args = String::new();
-    if ctx.config().verbose() {
-        args.push_str("-v");
-    }
-
-    command
-        .args(["-d", dist, "bash", "-c"])
-        .arg(format!("TOPGRADE_PREFIX={dist} exec {topgrade} {args}"));
-
-    if ctx.config().yes(Step::Wsl) {
-        command.arg("-y");
-    }
-
-    command.status_checked()
 }
 
 pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
@@ -199,7 +169,7 @@ pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     if ran {
         Ok(())
     } else {
-        Err(SkipStep(t!("Could not find Topgrade in any WSL disribution").to_string()).into())
+        Err(SkipStep(t!("Could not find Topgrade in any WSL distribution").to_string()).into())
     }
 }
 
@@ -210,13 +180,11 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
 
     if powershell.supports_windows_update() {
         println!("The installer will request to run as administrator, expect a prompt.");
-
         powershell.windows_update(ctx)
     } else {
         print_warning(t!(
             "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."
         ));
-
         Err(SkipStep(t!("USOClient not supported.").to_string()).into())
     }
 }
@@ -230,8 +198,6 @@ pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn reboot() -> Result<()> {
-    // If this works, it won't return, but if it doesn't work, it may return a useful error
-    // message.
     Command::new("shutdown").args(["/R", "/T", "0"]).status_checked()
 }
 
