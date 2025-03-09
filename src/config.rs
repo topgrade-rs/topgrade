@@ -116,6 +116,7 @@ pub enum Step {
     Mise,
     Myrepos,
     Nix,
+    NixHelper,
     Node,
     Opam,
     Pacdef,
