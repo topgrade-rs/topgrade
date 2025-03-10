@@ -8,9 +8,7 @@ use std::fs;
 
 fn is_openbsd_current(ctx: &ExecutionContext) -> Result<bool> {
     let motd_content = fs::read_to_string("/etc/motd")?;
-    let is_current = ["-current", "-beta"]
-        .iter()
-        .any(|&s| motd_content.contains(s));
+    let is_current = ["-current", "-beta"].iter().any(|&s| motd_content.contains(s));
     if ctx.config().dry_run() {
         println!("{}", t!("Would check if OpenBSD is -current"));
         Ok(is_current)
