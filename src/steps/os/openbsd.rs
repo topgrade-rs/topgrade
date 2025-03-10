@@ -8,7 +8,9 @@ use std::fs;
 
 fn is_openbsd_current(ctx: &ExecutionContext) -> Result<bool> {
     let motd_content = fs::read_to_string("/etc/motd")?;
-    let is_current = motd_content.contains("-current");
+    let is_current = ["-current", "-beta"]
+        .iter()
+        .any(|&s| motd_content.contains(s));
     if ctx.config().dry_run() {
         println!("{}", t!("Would check if OpenBSD is -current"));
         Ok(is_current)
@@ -28,10 +30,11 @@ pub fn upgrade_openbsd(ctx: &ExecutionContext) -> Result<()> {
         return Ok(());
     }
 
-    let mut args = vec!["/usr/sbin/sysupgrade", "-n"];
-    if is_current {
-        args.push("-s");
-    }
+    let args = if is_current {
+        vec!["/usr/sbin/sysupgrade", "-sn"]
+    } else {
+        vec!["/usr/sbin/syspatch"]
+    };
 
     ctx.run_type().execute(sudo).args(&args).status_checked()
 }
