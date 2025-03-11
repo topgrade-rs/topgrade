@@ -6,20 +6,21 @@ on:
   #   types:
   #     - completed
   release:
-    types: [ created ]
+    types: [created]
 
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
-        target: [ 
-          "aarch64-unknown-linux-gnu", 
-          "armv7-unknown-linux-gnueabihf", 
-          "x86_64-unknown-linux-musl", 
-          "aarch64-unknown-linux-musl", 
-          "x86_64-unknown-freebsd",  
-        ]
+        target:
+          [
+            "aarch64-unknown-linux-gnu",
+            "armv7-unknown-linux-gnueabihf",
+            "x86_64-unknown-linux-musl",
+            "aarch64-unknown-linux-musl",
+            "x86_64-unknown-freebsd",
+          ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,9 +30,14 @@ jobs:
         if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
         shell: bash
 
+      - name: Install cargo-deb cross compilation dependencies for armv7
+        run: sudo apt-get install libc6-armhf-cross libgcc-s1-armhf-cross
+        if: ${{ matrix.target == 'armv7-unknown-linux-gnueabihf' }}
+        shell: bash
+
       - name: Install cargo-deb
         run: cargo install cargo-deb
-        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
+        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'armv7-unknown-linux-gnueabihf' }}
         shell: bash
 
       - name: install targets
@@ -68,21 +74,18 @@ jobs:
           ls .
 
       - name: Build Debian-based system package without autoupdate feature
-        # First remove the binary built by previous steps
-        # because we don't want the auto-update feature,
-        # then build the new binary without auto-updating.
         run: |
           rm -rf target/${{matrix.target}}
           cross build --release --target ${{matrix.target}}
           cargo deb --target=${{matrix.target}} --no-build --no-strip
-        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
+        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'armv7-unknown-linux-gnueabihf' }}
         shell: bash
 
       - name: Move Debian-based system package
         run: |
           mkdir -p assets
           mv target/${{matrix.target}}/debian/*.deb assets
-        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
+        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'armv7-unknown-linux-gnueabihf' }}
         shell: bash
 
       - name: Release
