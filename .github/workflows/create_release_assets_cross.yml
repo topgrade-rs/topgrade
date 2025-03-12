@@ -74,6 +74,9 @@ jobs:
           ls .
 
       - name: Build Debian-based system package without autoupdate feature
+        # First remove the binary built by previous steps
+        # because we don't want the auto-update feature,
+        # then build the new binary without auto-updating.
         run: |
           rm -rf target/${{matrix.target}}
           cross build --release --target ${{matrix.target}}
