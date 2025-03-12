@@ -43,6 +43,7 @@ impl Sudo {
             .or_else(|| which("sudo").map(Self::determine_sudo_variant))
             .or_else(|| which("gsudo").map(|p| (p, SudoKind::Gsudo)))
             .or_else(|| which("pkexec").map(|p| (p, SudoKind::Pkexec)))
+            .or_else(|| which("run0").map(|p| (p, SudoKind::Run0)))
             .or_else(|| which("please").map(|p| (p, SudoKind::Please)))
             .map(|(path, kind)| Self { path, kind })
     }
@@ -95,6 +96,13 @@ impl Sudo {
                 // See: https://linux.die.net/man/1/pkexec
                 cmd.arg("echo");
             }
+            SudoKind::Run0 => {
+                // `run0` uses polkit for authentication
+                // and thus has the same issues as `pkexec`.
+                //
+                // See: https://www.freedesktop.org/software/systemd/man/devel/run0.html
+                cmd.arg("echo");
+            }
             SudoKind::Please => {
                 // From `man please`
                 //   -w, --warm
@@ -131,6 +139,7 @@ pub enum SudoKind {
     Sudo,
     Gsudo,
     Pkexec,
+    Run0,
     Please,
 }
 
