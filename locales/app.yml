@@ -2,6 +2,7 @@ _version: 2
 
 "Current system locale is {system_locale}":
   en: "Current system locale is %{system_locale}"
+  lt: "Dabartinė sistemos lokalė yra %{system_locale}"
   es: "La configuración regional del sistema es %{system_locale}"
   fr: "Le paramètre linguistique actuel du système est %{system_locale}"
   zh_CN: "目前语言为 %{system_locale}"
@@ -9,6 +10,7 @@ _version: 2
   de: "Aktuelle Systemsprache ist %{system_locale}"
 "Dry running: {program_name} {arguments}":
   en: "Dry running: %{program_name} %{arguments}"
+  lt: "Bandomas paleidimas: %{program_name} %{arguments}"
   es: "Simulando: %{program_name} %{arguments}"
   fr: "Simulation : %{program_name} %{arguments}"
   zh_CN: "正在模拟 %{program_name} %{arguments} 的运行过程"
@@ -16,6 +18,7 @@ _version: 2
   de: "Testlauf: %{program_name} %{arguments}"
 "in {directory}":
   en: "in %{directory}"
+  lt: "kataloge %{directory}"
   es: "en %{directory}"
   fr: "dans %{directory}"
   zh_CN: "在 %{directory}"
@@ -23,6 +26,7 @@ _version: 2
   de: "in %{directory}"
 "Rebooting...":
   en: "Rebooting..."
+  lt: "Perkraunama..."
   es: "Reiniciando..."
   fr: "Redémarrage..."
   zh_CN: "正在重新启动..."
@@ -30,6 +34,7 @@ _version: 2
   de: "Neustart..."
 "Plugins upgraded":
   en: "Plugins upgraded"
+  lt: "Įskiepiai atnaujinti"
   es: "Plugins actualizados"
   fr: "Plugins mis à jour"
   zh_CN: "已更新所有插件"
@@ -37,6 +42,7 @@ _version: 2
   de: "Plugins aktualisiert"
 "Would self-update":
   en: "Would self-update"
+  lt: "Atnaujintų save"
   es: "Se actualizara automáticamente"
   fr: "Se mettrait à jour lui-même"
   zh_CN: "将自我更新"
@@ -44,6 +50,7 @@ _version: 2
   de: "Würde sich selbst aktualisieren"
 "Pulling":
   en: "Pulling"
+  lt: "Traukiama"
   es: "Extrayendo"
   fr: "Récupération"
   zh_CN: "正在拉取"
@@ -51,6 +58,7 @@ _version: 2
   de: "Abrufen"
 "No Breaking changes":
   en: "No Breaking changes"
+  lt: "Nėra esminių pakeitimų"
   es: "Sin Cambios Importantes"
   fr: "Pas de changement cassant"
   zh_CN: "无破坏性变更"
@@ -58,6 +66,7 @@ _version: 2
   de: "Keine inkompatiblen Änderungen"
 "Dropping you to shell. Fix what you need and then exit the shell.":
   en: "Dropping you to shell. Fix what you need and then exit the shell."
+  lt: "Perjungiama į komandų eilutę. Pataisykite, kas reikia, ir tada išeikite."
   es: "Cambiando al shell. Arregla lo que necesites y luego sal del shell."
   fr: "Ouverture d'un shell. Réparez ce dont vous avez besoin et quittez le shell."
   zh_CN: "已切换到 Shell 环境。请修复需要的内容，完成后退出 Shell 。"
@@ -65,6 +74,7 @@ _version: 2
   de: "Wechsel zur Shell. Beheben Sie die Probleme und verlassen Sie dann die Shell."
 "Topgrade launched in a new tmux session":
   en: "Topgrade launched in a new tmux session"
+  lt: "Topgrade paleistas naujoje tmux sesijoje"
   es: "Topgrade lanzado en una nueva sesión tmux"
   fr: "Topgrade lancé dans une nouvelle session tmux"
   zh_CN: "Topgrade 已在新的 tmux 会话中启动"
@@ -72,6 +82,7 @@ _version: 2
   de: "Topgrade in einer neuen tmux-Sitzung gestartet"
 'Topgrade upgraded to {version}:\n':
   en: 'Topgrade upgraded to %{version}:\n'
+  lt: "Topgrade atnaujintas iki %{version}:\n"
   es: 'Topgrade actualizado a %{version}:\n'
   fr: 'Topgrade mis à jour vers %{version}:\n'
   zh_CN: '已将 Topgrade 更新至 %{version}: \n'
@@ -79,6 +90,7 @@ _version: 2
   de: 'Topgrade auf Version %{version} aktualisiert:\n'
 "Topgrade is up-to-date":
   en: "Topgrade is up-to-date"
+  lt: "Topgrade yra naujausia"
   es: "Topgrade está actualizado"
   fr: "Topgrade est à jour"
   zh_CN: "Topgrade 为最新版本"
@@ -86,6 +98,7 @@ _version: 2
   de: "Topgrade ist auf dem neuesten Stand"
 "Updating modules...":
   en: "Updating modules..."
+  lt: "Atnaujinami moduliai..."
   es: "Actualizando módulos..."
   fr: "Mise à jour des modules..."
   zh_CN: "正在更新模块..."
@@ -93,6 +106,7 @@ _version: 2
   de: "Module werden aktualisiert..."
 "Powershell Modules Update":
   en: "Powershell Modules Update"
+  lt: "PowerShell modulių atnaujinimas"
   es: "Actualización de módulos Powershell"
   fr: "Mise à jour des modules Powershell"
   zh_CN: "Powershell 模块更新"
@@ -100,6 +114,7 @@ _version: 2
   de: "Powershell-Module Aktualisierung"
 "Powershell is not installed":
   en: "Powershell is not installed"
+  lt: "PowerShell nėra įdiegtas"
   es: "Powershell no está instalado"
   fr: "Powershell n'est pas installé"
   zh_CN: "未安装 Powershell"
@@ -107,6 +122,7 @@ _version: 2
   de: "Powershell ist nicht installiert"
 "Error detecting current distribution: {error}":
   en: "Error detecting current distribution: %{error}"
+  lt: "Klaida nustatant dabartinę distribuciją: %{error}"
   es: "Error al detectar la distribución actual: %{error}"
   fr: "Erreur lors de la détection de la distribution acutelle: %{error}"
   zh_CN: "无法检测当前操作系统：%{error}"
@@ -114,6 +130,7 @@ _version: 2
   de: "Fehler bei der Erkennung der aktuellen Distribution: %{error}"
 "Error: {error}":
   en: "Error: %{error}"
+  lt: "Klaida: %{error}"
   es: "Error: %{error}"
   fr: "Erreur: %{error}"
   zh_CN: "错误：%{error}"
@@ -121,6 +138,7 @@ _version: 2
   de: "Fehler: %{error}"
 "Failed":
   en: "Failed"
+  lt: "Nepavyko"
   es: "Fallido"
   fr: "Échec"
   zh_CN: "失败"
@@ -128,6 +146,7 @@ _version: 2
   de: "Fehlgeschlagen"
 "pulling":
   en: "pulling"
+  lt: "traukiama"
   es: "extracción"
   fr: "récupérer"
   zh_CN: "正在拉取"
@@ -135,6 +154,7 @@ _version: 2
   de: "abrufen"
 "Changed":
   en: "Changed"
+  lt: "Pakeista"
   es: "Cambiado"
   fr: "Modifié"
   zh_CN: "已更改"
@@ -142,6 +162,7 @@ _version: 2
   de: "Geändert"
 "Up-to-date":
   en: "Up-to-date"
+  lt: "Atnaujinta"
   es: "Actualizado"
   fr: "À jour"
   zh_CN: "已为最新版本"
@@ -149,6 +170,7 @@ _version: 2
   de: "Aktuell"
 "Self update":
   en: "Self update"
+  lt: "Savarankiškas atnaujinimas"
   es: "Autoactualización"
   fr: "Auto mise à jour"
   zh_CN: "自我更新"
@@ -161,6 +183,7 @@ _version: 2
 
 "Only":
   en: "Only"
+  lt: "Tik"
   es: "Solo"
   fr: "Seulement"
   zh_CN: "将仅"
@@ -168,6 +191,7 @@ _version: 2
   de: "Nur"
 "updated repositories will be shown...":
   en: "updated repositories will be shown..."
+  lt: "bus rodomos atnaujintos saugyklos..."
   es: "se mostrarán los repositorios actualizados..."
   fr: "les dépôts mis à jour seront affichés..."
   zh_CN: "显示被更新的 git 仓库..."
@@ -176,6 +200,7 @@ _version: 2
 
 "because it has no remotes":
   en: "because it has no remotes"
+  lt: "nes neturi nuotolinių saugyklų"
   es: "porque no tiene fuentes remotas"
   fr: "parce qu'il n'a aucun dépôt distant"
   zh_CN: "因为其没有远程来源"
@@ -183,6 +208,7 @@ _version: 2
   de: "da keine Remote-Quellen vorhanden sind"
 "Skipping":
   en: "Skipping"
+  lt: "Praleidžiama"
   es: "Omitiendo"
   fr: "Ignoré"
   zh_CN: "正在跳过"
@@ -190,6 +216,7 @@ _version: 2
   de: "Überspringe"
 "Aura(<0.4.6) requires sudo installed to work with AUR packages":
   en: "Aura(<0.4.6) requires sudo installed to work with AUR packages"
+  lt: "Aura (<0.4.6) reikalauja sudo įdiegimo, kad galėtų naudoti AUR paketus"
   es: "Aura(<0.4.6) requiere tener sudo instalado para funcionar con paquetes AUR"
   fr: "Aura(<0.4.6) nécessite sudo pour fonctionner avec les paquets AUR"
   zh_CN: "Aura(<0.4.6) 依赖 sudo 安装 AUR 软件包。"
@@ -197,6 +224,7 @@ _version: 2
   de: "Aura(<0.4.6) benötigt sudo zur Verwendung von AUR-Paketen"
 "Pacman backup configuration files found:":
   en: "Pacman backup configuration files found:"
+  lt: "Rasti Pacman atsarginės konfigūracijos failai:"
   es: "Archivos de respaldo de Pacman encontrados:"
   fr: "Fichiers de configuration de sauvegarde de Pacman trouvés :"
   zh_CN: "找到 Pacman 配置备份："
@@ -204,6 +232,7 @@ _version: 2
   de: "Pacman-Backup-Konfigurationsdateien gefunden:"
 "The package audit was successful, but vulnerable packages still remain on the system":
   en: "The package audit was successful, but vulnerable packages still remain on the system"
+  lt: "Paketų patikra buvo sėkminga, tačiau sistemoje vis dar yra pažeidžiamų paketų"
   es: "La auditoría del paquete fue exitosa, pero aún quedan paquetes vulnerables en el sistema"
   fr: "L'audit des paquets a réussi, mais des paquets vulnérables restent toujours sur le système"
   zh_CN: "软件包审计已通过，但系统中仍存在含漏洞的软件包"
@@ -211,6 +240,7 @@ _version: 2
   de: "Das Paket-Audit war erfolgreich, aber es befinden sich noch anfällige Pakete im System"
 "Syncing portage":
   en: "Syncing portage"
+  lt: "Sinchronizuojamas portage"
   es: "Sincronizando portage"
   fr: "Synchronisation du portage"
   zh_CN: "正在同步 portage"
@@ -218,6 +248,7 @@ _version: 2
   de: "Synchronisiere Portage"
 "Finding available software":
   en: "Finding available software"
+  lt: "Ieškoma prieinamos programinės įrangos"
   es: "Buscando software disponible"
   fr: "Recherche de logiciels disponible"
   zh_CN: "正在寻找可用的软件"
@@ -225,6 +256,7 @@ _version: 2
   de: "Suche nach verfügbarer Software"
 "A system update is available. Do you wish to install it?":
   en: "A system update is available. Do you wish to install it?"
+  lt: "Yra sistemos atnaujinimas. Ar norite jį įdiegti?"
   es: "Hay una actualización del sistema disponible. ¿Desea instalarla?"
   fr: "Une mise à jour du système est disponible. Voulez-vous l'installer ?"
   zh_CN: "系统更新可用。是否立即安装？"
@@ -232,6 +264,7 @@ _version: 2
   de: "Ein System-Update ist verfügbar. Möchten Sie es installieren?"
 "No new software available.":
   en: "No new software available."
+  lt: "Nėra naujos programinės įrangos."
   es: "No hay ningún software nuevo disponible."
   fr: "Aucun nouveau logiciel disponible."
   zh_CN: "没有新的可用的软件包"
@@ -239,6 +272,7 @@ _version: 2
   de: "Keine neue Software verfügbar."
 "No Xcode releases installed.":
   en: "No Xcode releases installed."
+  lt: "Nėra įdiegtų Xcode versijų."
   es: "No hay versiones de Xcode instaladas."
   fr: "Aucune version de Xcode installée."
   zh_CN: "尚未安装 Xcode 发行版"
@@ -246,6 +280,7 @@ _version: 2
   de: "Keine Xcode-Versionen installiert."
 "Would you like to move the former Xcode release to the trash?":
   en: "Would you like to move the former Xcode release to the trash?"
+  lt: "Ar norėtumėte perkelti ankstesnę Xcode versiją į šiukšliadėžę?"
   es: "¿Le gustaría mover la versión anterior de Xcode a la papelera?"
   fr: "Voulez-vous déplacer la précédente version de Xcode à la corbeille ?"
   zh_CN: "是否将旧版 Xcode 移至垃圾桶？"
@@ -253,6 +288,7 @@ _version: 2
   de: "Möchten Sie die frühere Xcode-Version in den Papierkorb verschieben?"
 "New Xcode release detected:":
   en: "New Xcode release detected:"
+  lt: "Nustatyta nauja Xcode versija:"
   es: "Nueva versión de Xcode detectada:"
   fr: "Nouvelle version de Xcode détectée :"
   zh_CN: "有新的 Xcode 版本："
@@ -260,6 +296,7 @@ _version: 2
   de: "Neue Xcode-Version erkannt:"
 "Would you like to install it?":
   en: "Would you like to install it?"
+  lt: "Ar norite ją įdiegti?"
   es: "¿Le gustaría instalarlo?"
   fr: "Voulez-vous l'installer ?"
   zh_CN: "是否立即安装？"
@@ -267,6 +304,7 @@ _version: 2
   de: "Möchten Sie sie installieren?"
 "No global packages installed":
   en: "No global packages installed"
+  lt: "Nėra įdiegtų globalių paketų."
   es: "No hay paquetes globales instalados"
   fr: "Aucun paquet global n'est installé"
   zh_CN: "尚未安装全局软件包"
@@ -274,6 +312,7 @@ _version: 2
   de: "Keine globalen Pakete installiert"
 "Remote Topgrade launched in Tmux":
   en: "Remote Topgrade launched in Tmux"
+  lt: "Nuotolinis Topgrade paleistas Tmux sesijoje"
   es: "Topgrade remoto lanzado en Tmux"
   fr: "Topgrade distant lancé dans Tmux"
   zh_CN: "已在 Tmux 中启动远程 Topgrade"
@@ -281,6 +320,7 @@ _version: 2
   de: "Remote-Topgrade in Tmux gestartet"
 "Remote Topgrade launched in an external terminal":
   en: "Remote Topgrade launched in an external terminal"
+  lt: "Nuotolinis Topgrade paleistas išoriniame terminale"
   es: "Topgrade remoto iniciado en una terminal externa"
   fr: "Topgrade distant lancé dans un terminal externe"
   zh_CN: "已在新终端窗口中启动远程 Topgrade"
@@ -288,6 +328,7 @@ _version: 2
   de: "Remote-Topgrade in einem externen Terminal gestartet"
 "Collecting Vagrant boxes":
   en: "Collecting Vagrant boxes"
+  lt: "Renkamos Vagrant dėžutės"
   es: "Recolectando cajas Vagrant"
   fr: "Collecte des boîtes Vagrant"
   zh_CN: "正在收集 Vagrant 容器"
@@ -295,6 +336,7 @@ _version: 2
   de: "Sammle Vagrant-Boxen"
 "No Vagrant directories were specified in the configuration file":
   en: "No Vagrant directories were specified in the configuration file"
+  lt: "Konfigūracijos faile nebuvo nurodyta jokių Vagrant katalogų."
   es: "No se especificaron directorios Vagrant en el archivo de configuración"
   fr: "Aucun répertoire Vagrant n'est spécifié dans le fichier de configuration"
   zh_CN: "尚未在配置中指定 Vagrant 目录"
@@ -302,6 +344,7 @@ _version: 2
   de: "In der Konfigurationsdatei wurden keine Vagrant-Verzeichnisse angegeben"
 "Vagrant boxes":
   en: "Vagrant boxes"
+  lt: "Vagrant dėžutės"
   es: "Cajas Vagrant"
   fr: "Boîtes Vagrant"
   zh_CN: "Vagrant 容器"
@@ -309,6 +352,7 @@ _version: 2
   de: "Vagrant-Boxen"
 "No outdated boxes":
   en: "No outdated boxes"
+  lt: "Nėra pasenusių dėžučių"
   es: "Sin cajas obsoletas"
   fr: "Aucune boîte obsolète"
   zh_CN: "没有需要更新的容器"
@@ -316,6 +360,7 @@ _version: 2
   de: "Keine veralteten Boxen"
 "Summary":
   en: "Summary"
+  lt: "Santrauka"
   es: "Resumen"
   fr: "Résumé"
   zh_CN: "结果"
@@ -323,6 +368,7 @@ _version: 2
   de: "Zusammenfassung"
 "Topgrade finished with errors":
   en: "Topgrade finished with errors"
+  lt: "Topgrade užbaigtas su klaidomis"
   es: "Topgrade finalizado con errores"
   fr: "Topgrade terminé avec des erreurs"
   zh_CN: "Topgrade 运行完成，但存在错误"
@@ -330,6 +376,7 @@ _version: 2
   de: "Topgrade wurde mit Fehlern beendet"
 "Topgrade finished successfully":
   en: "Topgrade finished successfully"
+  lt: "Topgrade sėkmingai užbaigtas"
   es: "Topgrade finalizó exitosamente"
   fr: "Topgrade terminé avec succès"
   zh_CN: "Topgrade 运行成功"
@@ -337,6 +384,7 @@ _version: 2
   de: "Topgrade wurde erfolgreich beendet"
 "Topgrade {version_str} Breaking Changes":
   en: "Topgrade %{version_str} Breaking Changes"
+  lt: "Topgrade %{version_str} esminiai pakeitimai"
   es: "Topgrade %{version_str} Cambios Importantes"
   fr: "Topgrade %{version_str} Changements Cassants"
   zh_CN: "Topgrade %{version_str} 破坏性更改"
@@ -344,6 +392,7 @@ _version: 2
   de: "Topgrade %{version_str} Inkompatible Änderungen"
 "Path {path} expanded to {expanded}":
   en: "Path %{path} expanded to %{expanded}"
+  lt: "Kelias %{path} išplėstas į %{expanded}"
   es: "Ruta %{path} expandida a %{expanded}"
   fr: "Le chemin %{path} a été transformé en %{expanded}"
   zh_CN: "已扩展 %{path} 至 %{expanded}"
@@ -351,6 +400,7 @@ _version: 2
   de: "Pfad %{path} erweitert zu %{expanded}"
 "Path {path} doesn't exist":
   en: "Path %{path} doesn't exist"
+  lt: "Kelias %{path} neegzistuoja"
   es: "La ruta %{path} no existe"
   fr: "Le chemin %{path} n'existe pas"
   zh_CN: "路径 %{path} 不存在"
@@ -358,6 +408,7 @@ _version: 2
   de: "Pfad %{path} existiert nicht"
 "Cannot find {binary_name} in PATH":
   en: "Cannot find %{binary_name} in PATH"
+  lt: "Nepavyksta rasti %{binary_name} PATH aplanke"
   es: "No se pudo encontrar %{binary_name} en PATH"
   fr: "Impossible de trouver %{binary_name} dans le PATH"
   zh_CN: "在 $PATH 中找不到 %{binary_name} 二进制"
@@ -365,6 +416,7 @@ _version: 2
   de: "Kann %{binary_name} nicht im PATH finden"
 "Failed to get a UTF-8 encoded hostname":
   en: "Failed to get a UTF-8 encoded hostname"
+  lt: "Nepavyko gauti UTF-8 koduoto kompiuterio pavadinimo"
   es: "Error al obtener un nombre de host codificado en UTF-8"
   fr: "Échec de l'obtention d'un nom d'hôte encodé en UTF-8"
   zh_CN: "无法获取 UTF-8 编码的主机名称"
@@ -372,6 +424,7 @@ _version: 2
   de: "Fehler beim Abrufen eines UTF-8-kodierten Hostnamens"
 "Failed to get hostname: {err}":
   en: "Failed to get hostname: %{err}"
+  lt: "Nepavyko gauti kompiuterio pavadinimo: %{err}"
   es: "Error al obtener el nombre del host: %{err}"
   fr: "Échec de l'obtention d'un nom d'hôte: %{err}"
   zh_CN: "无法获取主机名称：%{err}"
@@ -379,6 +432,7 @@ _version: 2
   de: "Fehler beim Abrufen des Hostnamens: %{err}"
 "{python} is a Python 2, skip.":
   en: "%{python} is a Python 2, skip."
+  lt: "%{python} yra Python 2, praleidžiama."
   es: "%{python} es Python 2, omitiendo."
   fr: "%{python} est un Python 2, ignoré."
   zh_CN: "%{python} 是 Python 2，跳过。"
@@ -386,6 +440,7 @@ _version: 2
   de: "%{python} ist Python 2, überspringe."
 "{python} is a Python shim, skip.":
   en: "%{python} is a Python shim, skip."
+  lt: "%{python} yra Python tarpinė, praleidžiama."
   es: "%{python} es una corrección de Python, omitiendo."
   fr: "%{python} est un shim Python, ignoré."
   zh_CN: "%{python} 是 Python shim，跳过。"
@@ -393,6 +448,7 @@ _version: 2
   de: "%{python} ist ein Python-Shim, überspringe."
 "{key} failed:":
   en: "%{key} failed:"
+  lt: "%{key} nepavyko:"
   es: "%{key} ha fallado:"
   fr: "%{key} a échoué :"
   zh_CN: "%{key} 失败"
@@ -400,6 +456,7 @@ _version: 2
   de: "%{key} fehlgeschlagen:"
 "{step_name} failed":
   en: "%{step_name} failed"
+  lt: "%{step_name} nepavyko."
   es: "%{step_name} fallido"
   fr: "%{step_name} a échoué"
   zh_CN: "%{step_name} 失败"
@@ -407,6 +464,7 @@ _version: 2
   de: "%{step_name} fehlgeschlagen"
 "DragonFly BSD Packages":
   en: "DragonFly BSD Packages"
+  lt: "DragonFly BSD paketai"
   es: "Paquetes BSD de DragonFly"
   fr: "Paquets DragonFly BSD"
   zh_CN: "DragonFly BSD 软件包"
@@ -414,6 +472,7 @@ _version: 2
   de: "DragonFly BSD Pakete"
 "DragonFly BSD Audit":
   en: "DragonFly BSD Audit"
+  lt: "DragonFly BSD auditas"
   es: "Auditoría de DragonFly BSD"
   fr: "Audit de DragonFly BSD"
   zh_CN: "DragonFly BSD 审计"
@@ -421,6 +480,7 @@ _version: 2
   de: "DragonFly BSD Audit"
 "FreeBSD Update":
   en: "FreeBSD Update"
+  lt: "FreeBSD atnaujinimas"
   es: "Actualización de FreeBSD"
   fr: "Mise à jour de FreeBSD"
   zh_CN: "FreeBSD 更新"
@@ -428,6 +488,7 @@ _version: 2
   de: "FreeBSD Update"
 "FreeBSD Packages":
   en: "FreeBSD Packages"
+  lt: "FreeBSD paketai"
   es: "Paquetes FreeBSD"
   fr: "Paquets FreeBSD"
   zh_CN: "FreeBSD 软件包"
@@ -435,6 +496,7 @@ _version: 2
   de: "FreeBSD Pakete"
 "FreeBSD Audit":
   en: "FreeBSD Audit"
+  lt: "FreeBSD auditas"
   es: "Auditoría FreeBSD"
   fr: "Audit de FreeBSD"
   zh_CN: "FreeBSD 审计"
@@ -442,6 +504,7 @@ _version: 2
   de: "FreeBSD Audit"
 "System update":
   en: "System update"
+  lt: "Sistemos atnaujinimas"
   es: "Actualización del sistema"
   fr: "Mise à jour du système"
   zh_CN: "系统更新"
@@ -449,6 +512,7 @@ _version: 2
   de: "System-Update"
 "needrestart will be ran by the package manager":
   en: "needrestart will be ran by the package manager"
+  lt: "needrestart paleistas paketų tvarkyklės"
   es: "needrestart será ejecutado por el administrador de paquetes"
   fr: "needrestart sera exécuté par le gestionnaire de paquets"
   zh_CN: "neddrestart 将被包管理器运行"
@@ -456,6 +520,7 @@ _version: 2
   de: "needrestart wird vom Paketmanager ausgeführt"
 "Check for needed restarts":
   en: "Check for needed restarts"
+  lt: "Tikrinama, ar reikia perkrauti sistemą"
   es: "Comprobando si es necesario reiniciar el sistema"
   fr: "Vérification des redémarrages nécessaires"
   zh_CN: "正在检查是否需要重新启动系统"
@@ -463,6 +528,7 @@ _version: 2
   de: "Überprüfe auf notwendige Neustarts"
 "Should not run in WSL":
   en: "Should not run in WSL"
+  lt: "Neturėtų būti paleista WSL aplinkoje"
   es: "No se debe ejecutar en WSL"
   fr: "Ne doit pas être exécuté dans WSL"
   zh_CN: "不应在 WSL 中运行"
@@ -470,6 +536,7 @@ _version: 2
   de: "Sollte nicht in WSL ausgeführt werden"
 "Firmware upgrades":
   en: "Firmware upgrades"
+  lt: "Firmware atnaujinimai"
   es: "Actualizaciones de firmware"
   fr: "Mises à jour du firmware"
   zh_CN: "固件升级"
@@ -477,6 +544,7 @@ _version: 2
   de: "Firmware-Updates"
 "Flatpak System Packages":
   en: "Flatpak System Packages"
+  lt: "Flatpak sistemos paketai"
   es: "Paquetes del sistema Flatpak"
   fr: "Paquets système Flatpak"
   zh_CN: "Flatpak 系统软件包"
@@ -484,6 +552,7 @@ _version: 2
   de: "Flatpak Systempakete"
 "Snapd socket does not exist":
   en: "Snapd socket does not exist"
+  lt: "Snapd lizdas neegzistuoja"
   es: "El socket Snapd no existe"
   fr: "Le socket Snapd n'existe pas"
   zh_CN: "找不到 Snapd 程序"
@@ -491,6 +560,7 @@ _version: 2
   de: "Snapd-Socket existiert nicht"
 "You need to specify at least one container":
   en: "You need to specify at least one container"
+  lt: "Turite nurodyti bent vieną konteinerį"
   es: "Necesita especificar al menos un contenedor"
   fr: "Vous devez spécifier au moins un conteneur"
   zh_CN: "必须指定至少一个容器"
@@ -498,6 +568,7 @@ _version: 2
   de: "Sie müssen mindestens einen Container angeben"
 "Skipped in --yes":
   en: "Skipped in --yes"
+  lt: "Praleista naudojant --yes"
   es: "Omitido por --yes"
   fr: "Ignoré avec --yes"
   zh_CN: "已指定 --yes，跳过"
@@ -505,6 +576,7 @@ _version: 2
   de: "Übersprungen mit --yes"
 "Configuration update":
   en: "Configuration update"
+  lt: "Konfigūracijos atnaujinimas"
   es: "Actualización de configuración"
   fr: "Mise à jour de la configuration"
   zh_CN: "配置更新"
@@ -512,6 +584,7 @@ _version: 2
   de: "Konfigurationsaktualisierung"
 "Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?":
   en: "Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?"
+  lt: "Vykdysime `waydroid upgrade`, kuris sustabdys veikiančią konteinerį, ar tai priimtina?"
   es: "Se ejecutará `waydroid update`, lo que DETENDRÁ el contenedor en ejecución. ¿Está bien?"
   fr: "`waydroid upgrade` va s'exécuter, ce qui ARRÊTERA le conteneur en cours d'exécution, est-ce ok ?"
   zh_CN: "将跳过 `waydroid upgrade`，并且“停止”运行容器。是否继续？"
@@ -519,6 +592,7 @@ _version: 2
   de: "`waydroid upgrade` wird ausgeführt, was den laufenden Container STOPPEN würde. Ist das in Ordnung?"
 "Skip the Waydroid step because the user don't want to proceed":
   en: "Skip the Waydroid step because the user don't want to proceed"
+  lt: "Praleisti Waydroid žingsnį, nes vartotojas nenori tęsti"
   es: "Omitiendo el paso de Waydroid debido a que el usuario no quiere continuar"
   fr: "Passer l'étape Waydroid car l'utilisateur ne souhaite pas l'exécuter"
   zh_CN: "使用者指定跳过 Waydroid 程序"
@@ -526,6 +600,7 @@ _version: 2
   de: "Überspringe den Waydroid-Schritt, da der Benutzer nicht fortfahren möchte"
 "macOS App Store":
   en: "macOS App Store"
+  lt: "macOS programų parduotuvė"
   es: "Tienda de aplicaciones macOS"
   fr: "macOS App Store"
   zh_CN: "macOS App Store"
@@ -533,6 +608,7 @@ _version: 2
   de: "macOS App Store"
 "macOS system update":
   en: "macOS system update"
+  lt: "macOS sistemos atnaujinimas"
   es: "Actualización del sistema macOS"
   fr: "Mise à jour du système macOS"
   zh_CN: "macOS 系统更新"
@@ -540,6 +616,7 @@ _version: 2
   de: "macOS Systemupdate"
 "OpenBSD Update":
   en: "OpenBSD Update"
+  lt: "OpenBSD atnaujinimas"
   es: "Actualización de OpenBSD"
   fr: "Mise à jour d'OpenBSD"
   zh_CN: "OpenBSD 更新"
@@ -547,6 +624,7 @@ _version: 2
   de: "OpenBSD Update"
 "OpenBSD Packages":
   en: "OpenBSD Packages"
+  lt: "OpenBSD paketai"
   es: "Paquetes OpenBSD"
   fr: "Paquets OpenBSD"
   zh_CN: "OpenBSD 软件包"
@@ -554,6 +632,7 @@ _version: 2
   de: "OpenBSD Pakete"
 "`fisher` is not defined in `fish`":
   en: "`fisher` is not defined in `fish`"
+  lt: "`fisher` nėra apibrėžtas `fish` aplinkoje"
   es: "`fisher` no está definido en `fish`"
   fr: "`fisher` n'est pas reconnu dans `fish`"
   zh_CN: "`fisher` 未在 `fish` 中指定"
@@ -561,6 +640,7 @@ _version: 2
   de: "`fisher` ist in `fish` nicht definiert"
 "`fish_plugins` path doesn't exist: {err}":
   en: "`fish_plugins` path doesn't exist: %{err}"
+  lt: "`fish_plugins` kelias neegzistuoja: %{err}"
   es: "La ruta `fish_plugins` no existe: %{err}"
   fr: "Le chemin `fish_plugins` n'existe pas : %{err}"
   zh_CN: "不存在 `fish_plugins` 路径：%{err}"
@@ -568,6 +648,7 @@ _version: 2
   de: "Der Pfad `fish_plugins` existiert nicht: %{err}"
 "`fish_update_completions` is not available":
   en: "`fish_update_completions` is not available"
+  lt: "`fish_update_completions` nėra prieinamas"
   es: "`fish_update_completions` no está disponible"
   fr: "`fish_update_completions` n'est pas disponible"
   zh_CN: "无法使用 `fish_update_completions`"
@@ -575,6 +656,7 @@ _version: 2
   de: "`fish_update_completions` ist nicht verfügbar"
 "Desktop doest not appear to be gnome":
   en: "Desktop doest not appear to be gnome"
+  lt: "Darbalaukis, matyt, nėra Gnome"
   es: "El escritorio no parece ser Gnome"
   fr: "Le bureau ne semble pas être Gnome"
   zh_CN: "桌面环境不是 Gnome"
@@ -582,6 +664,7 @@ _version: 2
   de: "Desktop scheint nicht GNOME zu sein"
 "Gnome shell extensions are unregistered in DBus":
   en: "Gnome shell extensions are unregistered in DBus"
+  lt: "Gnome Shell priedai nėra užregistruoti DBus'e"
   es: "Las extensiones de Gnome Shell no están registradas en DBus"
   fr: "Les extensions de Gnome Shell ne sont pas enregistrées dans DBus"
   zh_CN: "Gnome Shell 扩展在 DBus中未被注册"
@@ -589,6 +672,7 @@ _version: 2
   de: "GNOME-Shell-Erweiterungen sind im DBus nicht registriert"
 "Gnome Shell extensions":
   en: "Gnome Shell extensions"
+  lt: "Gnome Shell priedai"
   es: "Extensiones de Gnome Shell"
   fr: "Extensions de Gnome Shell"
   zh_CN: "Gnome Shell 扩展"
@@ -596,6 +680,7 @@ _version: 2
   de: "GNOME-Shell-Erweiterungen"
 "Not a custom brew for macOS":
   en: "Not a custom brew for macOS"
+  lt: "Nėra pritaikyto macOS brew"
   es: "No es un brew personalizado para macOS"
   fr: "Pas une version de brew personnalisée pour macOS"
   zh_CN: "不是专用的 macOS brew"
@@ -603,6 +688,7 @@ _version: 2
   de: "Kein angepasstes Brew für macOS"
 "Guix Pull Failed, Skipping":
   en: "Guix Pull Failed, Skipping"
+  lt: "Guix traukti nepavyko, praleidžiama"
   es: "Guix Pull Fallido, omitiendo"
   fr: "Échec de Guix Pull, ignoré"
   zh_CN: "Guix 拉取失败，跳过"
@@ -610,6 +696,7 @@ _version: 2
   de: "Guix Pull fehlgeschlagen, überspringe"
 "Nix-darwin on macOS must be upgraded via darwin-rebuild switch":
   en: "Nix-darwin on macOS must be upgraded via darwin-rebuild switch"
+  lt: "Nix-darwin macOS turi būti atnaujintas per darwin-rebuild perjungiklį"
   es: "Nix-darwin en macOS debe actualizarse mediante el interruptor darwin-rebuild"
   fr: "Nix-darwin sur macOS doit être mis à niveau via l'option darwin-rebuild"
   zh_CN: "Nix-darwin 在 macOS 上必须使用 darwin-rebuild 更新"
@@ -617,6 +704,7 @@ _version: 2
   de: "Nix-darwin auf macOS muss über darwin-rebuild switch aktualisiert werden"
 "`nix upgrade-nix` can only be used on macOS or non-NixOS Linux":
   en: "`nix upgrade-nix` can only be used on macOS or non-NixOS Linux"
+  lt: "`nix upgrade-nix` gali būti naudojamas tik macOS arba Linux, kuris nėra NixOS"
   es: "`nix update-nix` solo puede usarse en macOS o Linux que no sea NixOS"
   fr: "`nix upgrade-nix` ne peut être utilisée que sur macOS ou Linux non-NixOS"
   zh_CN: "`nix upgrade-nix` 仅能在 macOS 或非 NixOS 的 Linux 上使用"
@@ -624,6 +712,7 @@ _version: 2
   de: "`nix upgrade-nix` kann nur auf macOS oder nicht-NixOS-Linux verwendet werden"
 "`nix upgrade-nix` cannot be run when Nix is installed in a profile":
   en: "`nix upgrade-nix` cannot be run when Nix is installed in a profile"
+  lt: "`nix upgrade-nix` negali būti paleistas, kai Nix įdiegtas vartotojo aplinkoje"
   es: "`nix Upgrade-nix` no puede ejecutarse cuando Nix está instalado en un perfil"
   fr: "`nix upgrade-nix` ne peut pas être exécutée lorsque Nix est installé dans un profil"
   zh_CN: "`nix upgrade-nix` 无法在已将 Nix 安装在用户配置文件的系统上运行"
@@ -631,6 +720,7 @@ _version: 2
   de: "`nix upgrade-nix` kann nicht ausgeführt werden, wenn Nix in einem Profil installiert ist"
 "Nix (self-upgrade)":
   en: "Nix (self-upgrade)"
+  lt: "Nix (savarankiškas atnaujinimas)"
   es: "Nix (autoactualización)"
   fr: "Nix (auto mise à niveau)"
   zh_CN: "Nix（自我更新）"
@@ -638,6 +728,7 @@ _version: 2
   de: "Nix (Selbst-Aktualisierung)"
 "Pyenv is installed, but $PYENV_ROOT is not set correctly":
   en: "Pyenv is installed, but $PYENV_ROOT is not set correctly"
+  lt: "Pyenv įdiegtas, tačiau $PYENV_ROOT nustatymas neteisingas"
   es: "Pyenv está instalado, pero $PYENV_ROOT no está configurado correctamente"
   fr: "Pyenv est installé, mais $PYENV_ROOT n'est pas défini correctement"
   zh_CN: "已安装 Pyenv 但尚未正确设置 $PYENV_ROOT"
@@ -645,6 +736,7 @@ _version: 2
   de: "Pyenv ist installiert, aber $PYENV_ROOT ist nicht korrekt gesetzt"
 "pyenv is not a git repository":
   en: "pyenv is not a git repository"
+  lt: "pyenv nėra git saugykla"
   es: "pyenv no es un repositorio git"
   fr: "pyenv n'est pas un dépôt Git"
   zh_CN: "pyenv 不是 git 仓库"
@@ -652,6 +744,7 @@ _version: 2
   de: "pyenv ist kein Git-Repository"
 "Bun Packages":
   en: "Bun Packages"
+  lt: "Bun paketai"
   es: "Paquetes Bun"
   fr: "Paquets Bun"
   zh_CN: "Bun 软件包"
@@ -659,6 +752,7 @@ _version: 2
   de: "Bun-Pakete"
 "WSL not installed":
   en: "WSL not installed"
+  lt: "WSL nėra įdiegtas"
   es: "WSL no instalado"
   fr: "WSL n'est pas installé"
   zh_CN: "未安装 WSL"
@@ -666,6 +760,7 @@ _version: 2
   de: "WSL nicht installiert"
 "Update WSL":
   en: "Update WSL"
+  lt: "Atnaujinti WSL"
   es: "Actualizando WSL"
   fr: "Mise à jour du WSL"
   zh_CN: "更新 WSL"
@@ -673,6 +768,7 @@ _version: 2
   de: "WSL aktualisieren"
 "Could not find Topgrade installed in WSL":
   en: "Could not find Topgrade installed in WSL"
+  lt: "Nepavyko rasti Topgrade įdiegto WSL aplinkoje"
   es: "Topgrade no se ha instalado dentro de WSL"
   fr: "Impossible de trouver Topgrade installé dans WSL"
   zh_CN: "无法找到安装在 WSL 中的 Topgrade"
@@ -680,6 +776,7 @@ _version: 2
   de: "Konnte Topgrade nicht in WSL finden"
 "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported.":
   en: "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."
+  lt: "Apsvarstykite PSWindowsUpdate įdiegimą, nes Windows Update per USOClient nepalaikomas."
   es: "Considere instalar PSWindowsUpdate ya que no se admite el uso de Windows Update a través de USOClient."
   fr: "Envisagez d'installer PSWindowsUpdate car l'utilisation de Windows Update via USOClient n'est pas prise en charge."
   zh_CN: "目前不支持使用 USOClient 管理 Windows 更新。建议安装 PSWindowsUpdate。"
@@ -687,6 +784,7 @@ _version: 2
   de: "Erwägen Sie die Installation von PSWindowsUpdate, da die Verwendung von Windows Update über USOClient nicht unterstützt wird."
 "USOClient not supported.":
   en: "USOClient not supported."
+  lt: "USOClient nepalaikomas."
   es: "USOClient no es admitido."
   fr: "USOClient n'est pas pris en charge."
   zh_CN: "不支持 USOClient"
@@ -694,6 +792,7 @@ _version: 2
   de: "USOClient wird nicht unterstützt."
 "Connecting to {hostname}...":
   en: "Connecting to %{hostname}..."
+  lt: "Jungiamasi prie %{hostname}..."
   es: "Conectándose a %{hostname}..."
   fr: "Connexion à %{hostname}..."
   zh_CN: "正在连接 %{hostname}..."
@@ -701,6 +800,7 @@ _version: 2
   de: "Verbinde mit %{hostname}..."
 "Skipping powered off box {vagrant_box}":
   en: "Skipping powered off box %{vagrant_box}"
+  lt: "Praleidžiama išjungta dėžutė %{vagrant_box}"
   es: "Omitiendo el contenedor apagado %{vagrant_box}"
   fr: "Ingorer la boîte éteinte %{vagrant_box}"
   zh_CN: "正在跳过已关机的容器 %{vagrant_box}"
@@ -708,6 +808,7 @@ _version: 2
   de: "Überspringe ausgeschaltete Box %{vagrant_box}"
 "`{repo_tag}` for `{platform}`":
   en: "`%{repo_tag}` for `%{platform}`"
+  lt: "`%{repo_tag}` skirtas `%{platform}`"
   es: "`%{repo_tag}` para `%{platform}`"
   fr: "`%{repo_tag}` pour `%{platform}`"
   zh_CN: "`%{repo_tag}` 给 `%{platform}`"
@@ -715,6 +816,7 @@ _version: 2
   de: "`%{repo_tag}` für `%{platform}`"
 "Containers":
   en: "Containers"
+  lt: "Konteineriai"
   es: "Contenedores"
   fr: "Conteneurs"
   zh_CN: "容器"
@@ -722,6 +824,7 @@ _version: 2
   de: "Container"
 "Emacs directory does not exist":
   en: "Emacs directory does not exist"
+  lt: "Emacs katalogas neegzistuoja"
   es: "El directorio Emacs no existe"
   fr: "Le répertoire Emacs n'existe pas"
   zh_CN: "找不到 Emacs 目录"
@@ -729,6 +832,7 @@ _version: 2
   de: "Emacs-Verzeichnis existiert nicht"
 "Error getting the composer directory: {error}":
   en: "Error getting the composer directory: %{error}"
+  lt: "Klaida gaunant Composer katalogą: %{error}"
   es: "Error al obtener el directorio de composer: %{error}"
   fr: "Erreur lors de la récupération du répertoire de Composer : %{error}"
   zh_CN: "无法获取 Composer 目录：%{error}"
@@ -736,6 +840,7 @@ _version: 2
   de: "Fehler beim Abrufen des Composer-Verzeichnisses: %{error}"
 "Composer directory {composer_home} isn't a descendant of the user's home directory":
   en: "Composer directory %{composer_home} isn't a descendant of the user's home directory"
+  lt: "Composer katalogas %{composer_home} nėra vartotojo namų katalogo palikuonis"
   es: "El directorio de composer %{composer_home} no es descendiente del directorio de inicio del usuario"
   fr: "Le répertoire de Composer %{composer_home} n'est pas un descendant du répertoire home de l'utilisateur"
   zh_CN: "Composer 目录 %{composer_home} 不在主目录下"
@@ -743,6 +848,7 @@ _version: 2
   de: "Composer-Verzeichnis %{composer_home} ist kein Unterverzeichnis des Benutzer-Heimatverzeichnisses"
 "Composer":
   en: "Composer"
+  lt: "Composer"
   es: "Composer"
   fr: "Composer"
   zh_CN: "Composer"
@@ -750,6 +856,7 @@ _version: 2
   de: "Composer"
 "Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK.":
   en: "Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK."
+  lt: "Klaida vykdant `dotnet tool list`. Tai tikėtina, kai įdiegtas dotnet vykdymo aplinkas, bet nėra SDK."
   es: "Error al ejecutar `dotnet tool list`. Esto es lo esperado cuando se instala un entorno de ejecución dotnet pero no un SDK."
   fr: "Erreur lors de l'exécution de `dotnet tool list`. Ce comportement est attendu lorsque le runtime dotnet est installé mais pas le SDK."
   zh_CN: "运行 `dotnet tool list` 失败。已安装 dotnet 运行时但未安装 SDK"
@@ -757,6 +864,7 @@ _version: 2
   de: "Fehler bei der Ausführung von `dotnet tool list`. Dies ist zu erwarten, wenn eine dotnet-Laufzeit, aber kein SDK installiert ist."
 "No dotnet global tools installed":
   en: "No dotnet global tools installed"
+  lt: "Nėra įdiegtų dotnet globalių įrankių."
   es: "No hay herramientas globales dotnet instaladas"
   fr: "Aucun outil global dotnet installé"
   zh_CN: "尚未安装全局 dotnet 工具"
@@ -764,6 +872,7 @@ _version: 2
   de: "Keine globalen dotnet-Tools installiert"
 "Racket Package Manager":
   en: "Racket Package Manager"
+  lt: "Racket paketų tvarkyklė"
   es: "Administrador de paquetes Racket"
   fr: "Gestionnaire de paquets Racket"
   zh_CN: "Racket 包管理器"
@@ -771,6 +880,7 @@ _version: 2
   de: "Racket Paketmanager"
 "GH failed":
   en: "GH failed"
+  lt: "GH nepavyko"
   es: "GH fallido"
   fr: "Échec de GH"
   zh_CN: "GH 失败"
@@ -778,6 +888,7 @@ _version: 2
   de: "GH fehlgeschlagen"
 "GitHub CLI Extensions":
   en: "GitHub CLI Extensions"
+  lt: "GitHub CLI plėtiniai"
   es: "Extensiones de GitHub CLI"
   fr: "Extensions de Github CLI"
   zh_CN: "GitHub CLI 扩展"
@@ -785,6 +896,7 @@ _version: 2
   de: "GitHub CLI-Erweiterungen"
 "Julia Packages":
   en: "Julia Packages"
+  lt: "Julia paketai"
   es: "Paquetes Julia"
   fr: "Paquets Julia"
   zh_CN: "Julia 软件包"
@@ -792,6 +904,7 @@ _version: 2
   de: "Julia-Pakete"
 "Update ClamAV Database(FreshClam)":
   en: "Update ClamAV Database(FreshClam)"
+  lt: "Atnaujinti ClamAV duomenų bazę (FreshClam)"
   es: "Actualizando base de datos ClamAV (FreshClam)"
   fr: "Mise à jour de la base de données ClamAV (FreshClam)"
   zh_CN: "更新 ClamAV 数据库（FreshClam）"
@@ -799,6 +912,7 @@ _version: 2
   de: "ClamAV-Datenbank aktualisieren (FreshClam)"
 "Path {pattern} did not contain any git repositories":
   en: "Path %{pattern} did not contain any git repositories"
+  lt: "Kelias %{pattern} neturi jokių git saugyklų"
   es: "La ruta %{pattern} no contenía ningún repositorio git"
   fr: "Le chemin %{pattern} ne contenait aucun dépôt Git"
   zh_CN: "路径 %{pattern} 中没有任何 git 仓库"
@@ -806,6 +920,7 @@ _version: 2
   de: "Pfad %{pattern} enthielt keine Git-Repositories"
 "No repositories to pull":
   en: "No repositories to pull"
+  lt: "Nėra saugyklų, kurias traukti"
   es: "No hay repositorios que extraer"
   fr: "Aucun dépôt à récupérer"
   zh_CN: "没有仓库可以拉取"
@@ -813,6 +928,7 @@ _version: 2
   de: "Keine Repositories zum Abrufen"
 "Git repositories":
   en: "Git repositories"
+  lt: "Git saugyklos"
   es: "Repositorios Git"
   fr: "Dépôts Git"
   zh_CN: "Git 仓库"
@@ -820,6 +936,7 @@ _version: 2
   de: "Git-Repositories"
 "Would pull {repo}":
   en: "Would pull %{repo}"
+  lt: "Trauktų %{repo}"
   es: "Extrayendo %{repo}"
   fr: "Tirerait %{repo}"
   zh_CN: "拉取 %{repo}"
@@ -827,6 +944,7 @@ _version: 2
   de: "Würde %{repo} abrufen"
 "Node Package Manager":
   en: "Node Package Manager"
+  lt: "Node paketų tvarkyklė (npm)"
   es: "Node Package Manager (npm)"
   fr: "Gestionnaire de paquets Node (npm)"
   zh_CN: "Node Package Manager（npm）"
@@ -834,6 +952,7 @@ _version: 2
   de: "Node Package Manager (npm)"
 "Performant Node Package Manager":
   en: "Performant Node Package Manager"
+  lt: "Efektyvi Node paketų tvarkyklė (pnpm)"
   es: "Performant Node Package Manager (pnpm)"
   fr: "Gestionnaire de paquets Node performant (pnpm)"
   zh_CN: "Performant Node Package Manager (pnpm)"
@@ -841,6 +960,7 @@ _version: 2
   de: "Performanter Node Package Manager (pnpm)"
 "Yarn Package Manager":
   en: "Yarn Package Manager"
+  lt: "Yarn paketų tvarkyklė"
   es: "Administrador de paquetes Yarn"
   fr: "Gestionnaire de paquets Yarn"
   zh_CN: "Yarn Package Manager"
@@ -848,6 +968,7 @@ _version: 2
   de: "Yarn Package Manager"
 "Deno installed outside of .deno directory":
   en: "Deno installed outside of .deno directory"
+  lt: "Deno įdiegtas ne .deno kataloge"
   es: "Deno está instalado fuera del directorio .deno"
   fr: "Deno est installé en dehors du répertoire .deno"
   zh_CN: "Deno 安装在 .deno 目录外"
@@ -855,6 +976,7 @@ _version: 2
   de: "Deno außerhalb des .deno-Verzeichnisses installiert"
 "The Ultimate vimrc":
   en: "The Ultimate vimrc"
+  lt: "Geriausias vimrc (The Ultimate vimrc)"
   es: "El vimrc definitivo (The Ultimate vimrc)"
   fr: "The Ultimate vimrc"
   zh_CN: "The Ultimate vimrc"
@@ -862,6 +984,7 @@ _version: 2
   de: "Das ultimative vimrc"
 "vim binary might be actually nvim":
   en: "vim binary might be actually nvim"
+  lt: "vim vykdomasis failas gali būti iš tikrųjų nvim"
   es: "el binario vim puede ser nvim"
   fr: "Le binaire vim pourrait être en réalité nvim"
   zh_CN: "vim 二进制可能为 nvim"
@@ -869,6 +992,7 @@ _version: 2
   de: "vim-Binärdatei könnte tatsächlich nvim sein"
 "`{process}` failed: {exit_status}":
   en: "`%{process}` failed: %{exit_status}"
+  lt: "`%{process}` nepavyko: %{exit_status}"
   es: "`%{process}` falló: %{exit_status}"
   fr: "`%{process}` a échoué : %{exit_status}"
   zh_CN: "`%{process}` 失败：%{exit_status}"
@@ -876,6 +1000,7 @@ _version: 2
   de: "`%{process}` fehlgeschlagen: %{exit_status}"
 "`{process}` failed: {exit_status} with {output}":
   en: "`%{process}` failed: %{exit_status} with %{output}"
+  lt: "`%{process}` nepavyko: %{exit_status} su %{output}"
   es: "`%{process}` falló: %{exit_status} con %{output}"
   fr: "`%{process}` a échoué : %{exit_status} avec %{output}"
   zh_CN: "`%{process}` 失败：%{exit_status} 伴随 %{output}"
@@ -883,6 +1008,7 @@ _version: 2
   de: "`%{process}` fehlgeschlagen: %{exit_status} mit %{output}"
 "Unknown Linux Distribution":
   en: "Unknown Linux Distribution"
+  lt: "Nežinoma Linux distribucija"
   es: "Distribución de Linux desconocida"
   fr: "Distribution Linux inconnue"
   zh_CN: "未知 Linux 发行版"
@@ -890,6 +1016,7 @@ _version: 2
   de: "Unbekannte Linux-Distribution"
 'File "/etc/os-release" does not exist or is empty':
   en: 'File "/etc/os-release" does not exist or is empty'
+  lt: 'Failas "/etc/os-release" neegzistuoja arba yra tuščias'
   es: 'El archivo "/etc/os-release" no existe o está vacío'
   fr: "Le fichier \"/etc/os-release\" n'existe pas ou est vide"
   zh_CN: "文件 “/etc/os-release” 不存在或为空"
@@ -897,6 +1024,7 @@ _version: 2
   de: 'Datei "/etc/os-release" existiert nicht oder ist leer'
 "Failed getting the system package manager":
   en: "Failed getting the system package manager"
+  lt: "Nepavyko gauti sistemos paketų tvarkyklės"
   es: "Error al obtener el administrador de paquetes del sistema"
   fr: "Échec de l'obtention du gestionnaire de paquets système"
   zh_CN: "获取系统包管理器失败"
@@ -904,6 +1032,7 @@ _version: 2
   de: "Fehler beim Abrufen des System-Paketmanagers"
 "A step failed":
   en: "A step failed"
+  lt: "Vienas žingsnis nepavyko"
   es: "Un paso fallido"
   fr: "Une étape a échouée"
   zh_CN: "某步骤运行失败"
@@ -911,6 +1040,7 @@ _version: 2
   de: "Ein Schritt ist fehlgeschlagen"
 "Dry running":
   en: "Dry running"
+  lt: "Bandomasis paleidimas"
   es: "Simulando"
   fr: "Simulation"
   zh_CN: "模拟运行"
@@ -918,6 +1048,7 @@ _version: 2
   de: "Testlauf"
 "Topgrade Upgraded":
   en: "Topgrade Upgraded"
+  lt: "Topgrade atnaujintas"
   es: "Topgrade Actualizado"
   fr: "Topgrade mis à jour"
   zh_CN: "已升级 Topgrade"
@@ -927,6 +1058,7 @@ _version: 2
 # Summary texts
 "OK":
   en: "OK"
+  lt: "Gerai"
   es: "OK"
   fr: "OK"
   zh_CN: "成功"
@@ -934,6 +1066,7 @@ _version: 2
   de: "OK"
 "FAILED":
   en: "FAILED"
+  lt: "NEPAVYKO"
   es: "FALLIDO"
   fr: "ÉCHEC"
   zh_CN: "失败"
@@ -941,6 +1074,7 @@ _version: 2
   de: "FEHLGESCHLAGEN"
 "IGNORED":
   en: "IGNORED"
+  lt: "Nepaisyta"
   es: "IGNORADO"
   fr: "IGNORÉ"
   zh_CN: "忽略"
@@ -948,6 +1082,7 @@ _version: 2
   de: "IGNORIERT"
 "SKIPPED":
   en: "SKIPPED"
+  lt: "Praleista"
   es: "OMITIDO"
   fr: "PASSÉ"
   zh_CN: "跳过"
@@ -958,6 +1093,7 @@ _version: 2
 # would look sth like "(Y) Ja / (N) Nein"
 "(Y)es/(N)o":
   en: "(Y)es/(N)o"
+  lt: "(Y) Taip/(N) Ne"
   es: "(Y) Si / (N) No"
   fr: "(Y) Oui / (N) Non"
   zh_CN: "(Y)是/(N)否"
@@ -968,6 +1104,7 @@ _version: 2
 # Eg German would look like "(y) Wiederholen / (N) Nein / (s) Konsole / (q) Beenden"
 "Retry? (y)es/(N)o/(s)hell/(q)uit":
   en: "Retry? (y)es/(N)o/(s)hell/(q)uit"
+  lt: "Pakartoti? (y)taip/(N)ne/(s)shell/(q)išeiti"
   es: "¿Reintentar? (y) Si / (N) No / (s) Shell / (q) Salir"
   fr: "Réessayer ? (y) Oui / (N) Non / (s) Shell / (q) Quitter"
   zh_CN: "再试一次？(y)是/(N)否/(s)Shell/(q)退出"
@@ -977,6 +1114,7 @@ _version: 2
 # 'R', 'S', 'Q'  have to stay the same throughout all translations. Eg German would look like "\n(R) Neustarten\n(S) Konsole\n(Q) Beenden"
 '\n(R)eboot\n(S)hell\n(Q)uit':
   en: '\n(R)eboot\n(S)hell\n(Q)uit'
+  lt: "\n(R)perkrovimas\n(S)shell\n(Q)išeiti"
   es: "\n(R) Reiniciar\n(S) Shell\n(Q) Salir"
   fr: '\n(R) Redémarrer\n(S) Shell\n(Q) Quitter'
   zh_CN: '\n(R)重启\n(S)Shell\n(Q)退出'
@@ -984,6 +1122,7 @@ _version: 2
   de: '\n(R) Neustarten\n(S)hell\n(Q)uit beenden'
 "Require sudo or counterpart but not found, skip":
   en: "Require sudo or counterpart but not found, skip"
+  lt: "Reikalingas sudo arba atitikmuo, bet nerasta, praleidžiama"
   es: "Se requiere sudo o su equivalente pero no ha sido encontrado, omitiendo"
   fr: "Nécessite sudo ou un équivalent mais n'a pas été trouvé, passé"
   zh_CN: "找不到权限管理程序（sudo 等），跳过"
@@ -991,6 +1130,7 @@ _version: 2
   de: "Benötigt sudo oder Äquivalent, aber nicht gefunden, überspringe"
 "sudo as user '{user}'":
   en: "sudo as user '%{user}'"
+  lt: "sudo kaip vartotojas '%{user}'"
   es: "sudo como usuario '%{user}'"
   fr: "sudo en tant qu'utilisateur '%{user}'"
   zh_CN: "sudo 作为用户 '%{user}'"
@@ -998,6 +1138,7 @@ _version: 2
   de: "sudo als Benutzer '%{user}'"
 "Updating aqua ...":
   en: "Updating aqua ..."
+  lt: "Atnaujinama aqua ..."
   es: "Actualizando aqua..."
   fr: "Mise à jour d'aqua..."
   zh_CN: "正在更新 aqua..."
@@ -1005,6 +1146,7 @@ _version: 2
   de: "Aktualisiere aqua ..."
 "Updating aqua installed cli tools ...":
   en: "Updating aqua installed cli tools ..."
+  lt: "Atnaujinami aqua įdiegti CLI įrankiai ..."
   es: "Actualizando las herramientas CLI instaladas en aqua ..."
   fr: "Mise à jour des outils cli installés d'aqua..."
   zh_CN: "正在更新 aqua 安装的命令行界面工具..."
@@ -1012,6 +1154,7 @@ _version: 2
   de: "Aktualisiere aqua installierte CLI-Tools ..."
 "Updating Volta packages...":
   en: "Updating Volta packages..."
+  lt: "Atnaujinami Volta paketai..."
   es: "Actualizando paquetes Volta..."
   fr: "Mise à jour des paquets Volta..."
   zh_CN: "正在更新 Volta 软件包..."
@@ -1019,6 +1162,7 @@ _version: 2
   de: "Aktualisiere Volta-Pakete..."
 "No packages installed with Volta":
   en: "No packages installed with Volta"
+  lt: "Volta paketų nėra įdiegtų."
   es: "No hay paquetes instalados con Volta"
   fr: "Aucun paquet installé avec Volta"
   zh_CN: "没有任何 Volta 软件包"
@@ -1026,6 +1170,7 @@ _version: 2
   de: "Keine Pakete mit Volta installiert"
 "pyenv-update plugin is not installed":
   en: "pyenv-update plugin is not installed"
+  lt: "pyenv-update įskiepis nėra įdiegtas"
   es: "El plugin pyenv-update no está instalado"
   fr: "Le plugin pyenv-update n'est pas installé"
   zh_CN: "尚未安装 pyenv-update 插件"
@@ -1033,6 +1178,7 @@ _version: 2
   de: "pyenv-update-Plugin ist nicht installiert"
 "Respawning...":
   en: "Respawning..."
+  lt: "Vėl paleidžiama..."
   es: "Reapareciendo..."
   fr: "Relancement..."
   zh_CN: "正在重新生成"
@@ -1040,13 +1186,20 @@ _version: 2
   de: "Neustarten..."
 "Could not find Topgrade in any WSL disribution":
   en: "Could not find Topgrade in any WSL disribution"
+<<<<<<< HEAD
   es: "No se pudo encontrar Topgrade en ninguna distribución WSL"
   fr: "Impossible de trouver Topgrade dans aucune distribution WSL"
   zh_CN: "无法在任何 WSL 发行版中找到 Topgrade"
+=======
+  lt: "Nepavyko rasti Topgrade jokioje WSL distribucijoje"
+  es: "Topgrade no se ha instalado dentro de WSL"
+  fr: "Impossible de trouver Topgrade installé dans WSL"
+>>>>>>> 7f9f708 (i18n(app.yml): new language lt)
   zh_TW: "在所有 WSL 中找不到 Topgrade"
   de: "Konnte Topgrade in keiner WSL-Distribution finden"
 "Windows Update":
   en: "Windows Update"
+  lt: "Windows atnaujinimas"
   es: "Actualización de Windows"
   fr: "Mise à jour de Windows"
   zh_CN: "Windows 更新"
@@ -1054,6 +1207,7 @@ _version: 2
   de: "Windows-Update"
 "Would check if OpenBSD is -current":
   en: "Would check if OpenBSD is -current"
+  lt: "Patikrintų, ar OpenBSD yra -current"
   es: "Comprobaría si OpenBSD está en -current"
   fr: "Vérifierait si OpenBSD est à -curent"
   zh_CN: "将检查 OpenBSD 是否为 -current"
@@ -1061,6 +1215,7 @@ _version: 2
   de: "Würde überprüfen, ob OpenBSD -current ist"
 "Would upgrade the OpenBSD system":
   en: "Would upgrade the OpenBSD system"
+  lt: "Atnaujintų OpenBSD sistemą"
   es: "Actualizaría el sistema OpenBSD"
   fr: "Mettrait à jour le système OpenBSD"
   zh_CN: "将升级 OpenBSD 系统"
@@ -1068,6 +1223,7 @@ _version: 2
   de: "Würde das OpenBSD-System aktualisieren"
 "Would upgrade OpenBSD packages":
   en: "Would upgrade OpenBSD packages"
+  lt: "Atnaujintų OpenBSD paketus"
   es: "Actualizaría los paquetes de OpenBSD"
   fr: "Mettrait à jour les paquets OpenBSD"
   zh_CN: "将升级 OpenBSD 软件包"
@@ -1075,6 +1231,7 @@ _version: 2
   de: "Würde OpenBSD-Pakete aktualisieren"
 "Microsoft Store":
   en: "Microsoft Store"
+  lt: "Microsoft parduotuvė"
   es: "Tienda de Microsoft"
   fr: "Microsoft Store"
   zh_CN: "Microsoft Store"
@@ -1082,6 +1239,7 @@ _version: 2
   de: "Microsoft Store"
 "Scanning for updates...":
   en: "Scanning for updates..."
+  lt: "Tikrinama atnaujinimų paieška..."
   es: "Buscando actualizaciones..."
   fr: "Recherche de mises à jour..."
   zh_CN: "正在扫描更新..."
@@ -1089,6 +1247,7 @@ _version: 2
   de: "Suche nach Updates..."
 "Success, Microsoft Store apps are being updated in the background":
   en: "Success, Microsoft Store apps are being updated in the background"
+  lt: "Sėkminga, Microsoft Store programos atnaujinamos fone"
   es: "Éxito, las aplicaciones de Microsoft Store se están actualizando en segundo plano"
   fr: "Succès, les applications du Microsoft Store sont en cours de mise à jour en arrière plan"
   zh_CN: "成功，Microsoft Store 应用正在后台更新"
@@ -1096,6 +1255,7 @@ _version: 2
   de: "Erfolg, Microsoft Store-Apps werden im Hintergrund aktualisiert"
 "Unable to update Microsoft Store apps, manual intervention is required":
   en: "Unable to update Microsoft Store apps, manual intervention is required"
+  lt: "Nepavyksta atnaujinti Microsoft Store programų, reikia rankinio įsikišimo"
   es: "No se pueden actualizar las aplicaciones de Microsoft Store, se requiere intervención manual"
   fr: "Impossible de mettre à jour les applications du Microsoft Store, une intervention manuelle est nécessaire"
   zh_CN: "无法更新 Microsoft Store 应用，需手动干预"
