@@ -42,10 +42,16 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("winget");
 
-    ctx.run_type()
-        .execute(winget)
-        .args(["upgrade", "--all"])
-        .status_checked()
+    let mut command = match ctx.sudo() {
+        Some(sudo) => {
+            let mut command = ctx.run_type().execute(sudo);
+            command.arg(winget);
+            command
+        }
+        None => ctx.run_type().execute(winget),
+    };
+
+    command.args(["upgrade", "--all"]).status_checked()
 }
 
 pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
