@@ -52,7 +52,7 @@ _version: 2
   en: "Dropping you to shell. Fix what you need and then exit the shell."
   es: "Cambiando al shell. Arregla lo que necesites y luego sal del shell."
   fr: "Ouverture d'un shell. Réparez ce dont vous avez besoin et quittez le shell."
-  zh_CN: "已切换到 shell 环境。请修复需要的内容，完成后退出 shell 。"
+  zh_CN: "已切换到 Shell 环境。请修复需要的内容，完成后退出 Shell 。"
   zh_TW: "已切換到終端殼層。修復完畢後請退出殼層以繼續。"
 "Topgrade launched in a new tmux session":
   en: "Topgrade launched in a new tmux session"
