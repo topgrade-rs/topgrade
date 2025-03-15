@@ -160,7 +160,7 @@ _version: 2
   en: "Skipping"
   es: "Omitiendo"
   fr: "Ignoré"
-  zh_CN: "正在忽略"
+  zh_CN: "正在跳过"
   zh_TW: "正在略過"
 "Aura(<0.4.6) requires sudo installed to work with AUR packages":
   en: "Aura(<0.4.6) requires sudo installed to work with AUR packages"
