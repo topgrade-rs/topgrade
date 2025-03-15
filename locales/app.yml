@@ -58,7 +58,7 @@ _version: 2
   en: "Topgrade launched in a new tmux session"
   es: "Topgrade lanzado en una nueva sesión tmux"
   fr: "Topgrade lancé dans une nouvelle session tmux"
-  zh_CN: "Topgrade 已启动新 tmux 程序"
+  zh_CN: "Topgrade 已在新的 tmux 会话中启动"
   zh_TW: "Topgrade 已啟動新 tmux 程序"
 'Topgrade upgraded to {version}:\n':
   en: 'Topgrade upgraded to %{version}:\n'
