@@ -147,7 +147,7 @@ _version: 2
   en: "updated repositories will be shown..."
   es: "se mostrarán los repositorios actualizados..."
   fr: "les dépôts mis à jour seront affichés..."
-  zh_CN: "显示被更新的 git 来源..."
+  zh_CN: "显示被更新的 git 仓库..."
   zh_TW: "顯示被更新的 git 來源..."
 
 "because it has no remotes":
