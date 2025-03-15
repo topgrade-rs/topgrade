@@ -10,7 +10,7 @@ _version: 2
   en: "Dry running: %{program_name} %{arguments}"
   es: "Simulando: %{program_name} %{arguments}"
   fr: "Simulation : %{program_name} %{arguments}"
-  zh_CN: "正在模拟 %{program_name} %{arguments} 的执行过程"
+  zh_CN: "正在模拟 %{program_name} %{arguments} 的运行过程"
   zh_TW: "正在模擬 %{program_name} %{arguments} 的執行過程"
 "in {directory}":
   en: "in %{directory}"
@@ -280,13 +280,13 @@ _version: 2
   en: "Topgrade finished with errors"
   es: "Topgrade finalizado con errores"
   fr: "Topgrade terminé avec des erreurs"
-  zh_CN: "Topgrade 执行完成，但存在错误"
+  zh_CN: "Topgrade 运行完成，但存在错误"
   zh_TW: "Topgrade 執行部分成功"
 "Topgrade finished successfully":
   en: "Topgrade finished successfully"
   es: "Topgrade finalizó exitosamente"
   fr: "Topgrade terminé avec succès"
-  zh_CN: "Topgrade 执行成功"
+  zh_CN: "Topgrade 运行成功"
   zh_TW: "Topgrade 執行成功"
 "Topgrade {version_str} Breaking Changes":
   en: "Topgrade %{version_str} Breaking Changes"
@@ -388,7 +388,7 @@ _version: 2
   en: "needrestart will be ran by the package manager"
   es: "needrestart será ejecutado por el administrador de paquetes"
   fr: "needrestart sera exécuté par le gestionnaire de paquets"
-  zh_CN: "neddrestart 将被包管理器执行"
+  zh_CN: "neddrestart 将被包管理器运行"
   zh_TW: "needrestart 將被套件管理員執行"
 "Check for needed restarts":
   en: "Check for needed restarts"
@@ -400,7 +400,7 @@ _version: 2
   en: "Should not run in WSL"
   es: "No se debe ejecutar en WSL"
   fr: "Ne doit pas être exécuté dans WSL"
-  zh_CN: "不应在 WSL 中执行"
+  zh_CN: "不应在 WSL 中运行"
   zh_TW: "不該在 WSL 中執行"
 "Firmware upgrades":
   en: "Firmware upgrades"
@@ -442,7 +442,7 @@ _version: 2
   en: "Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?"
   es: "Se ejecutará `waydroid update`, lo que DETENDRÁ el contenedor en ejecución. ¿Está bien?"
   fr: "`waydroid upgrade` va s'exécuter, ce qui ARRÊTERA le conteneur en cours d'exécution, est-ce ok ?"
-  zh_CN: "将跳过 `waydroid upgrade`，并且“停止”执行容器。是否继续？"
+  zh_CN: "将跳过 `waydroid upgrade`，并且“停止”运行容器。是否继续？"
   zh_TW: "將略過 `waydroid upgrade`，並且「停止」執行容器。是否繼續？"
 "Skip the Waydroid step because the user don't want to proceed":
   en: "Skip the Waydroid step because the user don't want to proceed"
@@ -781,13 +781,13 @@ _version: 2
   en: "A step failed"
   es: "Un paso fallido"
   fr: "Une étape a échouée"
-  zh_CN: "某步骤执行失败"
+  zh_CN: "某步骤运行失败"
   zh_TW: "某步驟執行失敗"
 "Dry running":
   en: "Dry running"
   es: "Simulando"
   fr: "Simulation"
-  zh_CN: "空运行"
+  zh_CN: "模拟运行"
   zh_TW: "模擬執行"
 "Topgrade Upgraded":
   en: "Topgrade Upgraded"
