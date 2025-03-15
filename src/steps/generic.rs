@@ -1359,7 +1359,8 @@ pub fn run_jetbrains_toolbox(_ctx: &ExecutionContext) -> Result<()> {
         }
         Err(e) => {
             // Unexpected error
-            println!("jetbrains-toolbox-updater had an unexpected error during finding: {e:?}");
+            println!("{}", t!("jetbrains-toolbox-updater encountered an unexpected error during finding:"));
+            println!("{e:?}");
             Err(StepFailed.into())
         }
         Ok(installation) => {
@@ -1368,7 +1369,8 @@ pub fn run_jetbrains_toolbox(_ctx: &ExecutionContext) -> Result<()> {
             match update_jetbrains_toolbox(installation) {
                 Err(e) => {
                     // Unexpected error
-                    println!("jetbrains-toolbox-updater had an unexpected error during updating: {e:?}");
+                    println!("{}", t!("jetbrains-toolbox-updater encountered an unexpected error during updating:"));
+                    println!("{e:?}");
                     Err(StepFailed.into())
                 }
                 Ok(()) => Ok(()),
