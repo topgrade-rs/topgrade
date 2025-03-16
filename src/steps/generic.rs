@@ -1355,7 +1355,7 @@ pub fn run_jetbrains_toolbox(_ctx: &ExecutionContext) -> Result<()> {
         }
         Err(FindError::UnsupportedOS(os)) => {
             // Skip
-            Err(SkipStep(format!("{}", t!("Unsupported OS {os}", os = os))).into())
+            Err(SkipStep(format!("{}", t!("Unsupported operating system {os}", os = os))).into())
         }
         Err(e) => {
             // Unexpected error
