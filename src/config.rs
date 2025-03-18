@@ -98,6 +98,7 @@ pub enum Step {
     Haxelib,
     Helm,
     HomeManager,
+    JetBrainsToolbox,
     Jetpack,
     Julia,
     Juliaup,

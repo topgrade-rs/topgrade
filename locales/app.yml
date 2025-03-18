@@ -793,3 +793,23 @@ _version: 2
   es: "No se pueden actualizar las aplicaciones de Microsoft Store, se requiere intervención manual"
   fr: "Impossible de mettre à jour les applications du Microsoft Store, une intervention manuelle est nécessaire"
   zh_TW: "無法更新 Microsoft Store 應用，需手動幹預"
+"No JetBrains Toolbox installation found":
+  en: "No JetBrains Toolbox installation found"
+  es: "No se encontró ninguna instalación de JetBrains Toolbox"
+  fr: "Aucune installation de JetBrains Toolbox trouvée"
+  zh_TW: "找不到 JetBrains Toolbox 安裝"
+"Unsupported operating system {os}":
+  en: "Unsupported operating system %{os}"
+  es: "Sistema operativo no compatible %{os}"
+  fr: "Système d'exploitation %{os} non pris en charge"
+  zh_TW: "不支援的作業系統 %{os}"
+"jetbrains-toolbox-updater encountered an unexpected error during finding:":
+  en: "jetbrains-toolbox-updater encountered an unexpected error during finding:"
+  es: "jetbrains-toolbox-updater encontró un error inesperado durante la búsqueda:"
+  fr: "jetbrains-toolbox-updater a rencontré une erreur inattendue lors de la recherche:"
+  zh_TW: "jetbrains-toolbox-updater 在尋找過程中遇到意外錯誤："
+"jetbrains-toolbox-updater encountered an unexpected error during updating:":
+  en: "jetbrains-toolbox-updater encountered an unexpected error during updating:"
+  es: "jetbrains-toolbox-updater encontró un error inesperado durante la actualización:"
+  fr: "jetbrains-toolbox-updater a rencontré une erreur inattendue lors de la mise à jour:"
+  zh_TW: "jetbrains-toolbox-updater 在更新過程中遇到意外錯誤："
