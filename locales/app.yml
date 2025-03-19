@@ -610,7 +610,7 @@ _version: 2
   en: "`%{repo_tag}` for `%{platform}`"
   es: "`%{repo_tag}` para `%{platform}`"
   fr: "`%{repo_tag}` pour `%{platform}`"
-  zh_CN: "`%{repo_tag} 给 %{platform}`"
+  zh_CN: "`%{repo_tag}` 给 `%{platform}`"
   zh_TW: "`%{repo_tag}` 給 `%{platform}`"
 "Containers":
   en: "Containers"
