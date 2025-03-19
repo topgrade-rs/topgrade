@@ -94,7 +94,7 @@ _version: 2
   en: "Error detecting current distribution: %{error}"
   es: "Error al detectar la distribución actual: %{error}"
   fr: "Erreur lors de la détection de la distribution acutelle: %{error}"
-  zh_CN: "无法侦测当前操作系统：%{error}"
+  zh_CN: "无法检测当前操作系统：%{error}"
   zh_TW: "無法偵測作業系統：%{error}"
 "Error: {error}":
   en: "Error: %{error}"
