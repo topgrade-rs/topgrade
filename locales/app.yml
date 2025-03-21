@@ -753,11 +753,6 @@ _version: 2
   es: "Reapareciendo..."
   fr: "Relancement..."
   zh_TW: "正在重新生成..."
-"Could not find Topgrade in any WSL disribution":
-  en: "Could not find Topgrade in any WSL disribution"
-  es: "No se pudo encontrar Topgrade en ninguna distribución WSL"
-  fr: "Impossible de trouver Topgrade dans aucune distribution WSL"
-  zh_TW: "在所有 WSL 中找不到 Topgrade"
 "Windows Update":
   en: "Windows Update"
   es: "Actualización de Windows"
