@@ -98,6 +98,7 @@ pub enum Step {
     Haxelib,
     Helm,
     HomeManager,
+    JetBrainsToolbox,
     Jetpack,
     Julia,
     Juliaup,
@@ -849,7 +850,7 @@ pub struct CommandLineArgs {
 
     /// Tracing filter directives.
     ///
-    /// See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/struct.EnvFilter.html
+    /// See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
     #[arg(long, default_value = DEFAULT_LOG_LEVEL)]
     pub log_filter: String,
 
