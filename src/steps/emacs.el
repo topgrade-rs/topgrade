@@ -1,9 +1,4 @@
-(when (fboundp 'paradox-upgrade-packages)
-    (progn
-      (unless (boundp 'paradox-github-token)
-        (setq paradox-github-token t))
-      (paradox-upgrade-packages)
-      (princ
-       (if (get-buffer "*Paradox Report*")
-           (with-current-buffer "*Paradox Report*" (buffer-string))
-         "\nNothing to upgrade\n"))))
+(when (featurep 'package)
+  (if (fboundp 'package-upgrade-all)
+    (package-upgrade-all nil)
+    (message "Your Emacs version doesn't support unattended packages upgrade")))
