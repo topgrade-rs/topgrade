@@ -4,6 +4,7 @@ _version: 2
   en: "Could not find Topgrade in any WSL distribution"
   es: "No se pudo encontrar Topgrade en ninguna distribución WSL"
   fr: "Impossible de trouver Topgrade dans aucune distribution WSL"
+  zh_CN: "在所有 WSL 中找不到 Topgrade"
   zh_TW: "在所有 WSL 中找不到 Topgrade"
 "Current system locale is {system_locale}":
   en: "Current system locale is %{system_locale}"
