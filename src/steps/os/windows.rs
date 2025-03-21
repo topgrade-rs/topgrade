@@ -244,7 +244,7 @@ pub fn insert_startup_scripts(git_repos: &mut RepoStep) -> Result<()> {
     let startup_dir = crate::WINDOWS_DIRS
         .data_dir()
         .join("Microsoft\\Windows\\Start Menu\\Programs\\Startup");
-    
+
     // Look for .lnk files (Windows shortcuts) in the startup folder
     for entry in std::fs::read_dir(&startup_dir)?.flatten() {
         let path = entry.path();
