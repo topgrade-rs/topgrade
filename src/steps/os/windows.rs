@@ -13,6 +13,7 @@ use crate::{error::SkipStep, steps::git::RepoStep};
 use crate::{powershell, Step};
 use rust_i18n::t;
 
+// Common command arguments for package managers
 const UPGRADE_ALL: &[&str] = &["upgrade", "all"];
 const UPDATE: &[&str] = &["update"];
 const CLEANUP: &[&str] = &["cleanup", "*"];
@@ -20,6 +21,7 @@ const CACHE_RM: &[&str] = &["cache", "rm", "-a"];
 const WSL_UPDATE: &[&str] = &["--update"];
 const WSL_LIST: &[&str] = &["--list", "-q"];
 
+/// Helper function to run a command with common options for different package managers
 fn run_command(ctx: &ExecutionContext, tool: &str, args: &[&str], step: Step) -> Result<()> {
     let tool_path = require(tool)?;
     let yes = ctx.config().yes(step);
@@ -44,6 +46,15 @@ fn run_command(ctx: &ExecutionContext, tool: &str, args: &[&str], step: Step) ->
     command.status_checked()
 }
 
+/// Detect if WSL is installed or not.
+///
+/// For WSL, we cannot simply check if the `wsl` command is installed as on newer
+/// versions of Windows (since Windows 10 version 2004), this command is
+/// installed by default.
+///
+/// If the command is installed but the user hasn't installed any Linux distros,
+/// running `wsl -l` will print a help message and exit with failure. We use this
+/// behavior to check whether WSL is properly set up or not.
 fn is_wsl_installed() -> Result<bool> {
     if let Some(wsl) = which("wsl") {
         let result = Command::new(wsl).arg("-l").output_checked();
@@ -54,6 +65,7 @@ fn is_wsl_installed() -> Result<bool> {
     Ok(false)
 }
 
+/// Get a list of all installed WSL distributions on the system
 fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
     let output = Command::new(wsl).args(WSL_LIST).output_checked_utf8()?.stdout;
     Ok(output
@@ -63,6 +75,7 @@ fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
         .collect())
 }
 
+/// Run Topgrade inside a specific WSL distribution
 fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> Result<()> {
     let topgrade = find_topgrade_in_wsl(wsl, dist)?;
     let mut command = ctx.run_type().execute(wsl);
@@ -79,6 +92,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     command.status_checked()
 }
 
+/// Locate the Topgrade executable within a WSL distribution
 fn find_topgrade_in_wsl(wsl: &Path, dist: &str) -> Result<String> {
     Ok(Command::new(wsl)
         .args(["-d", dist, "bash", "-lc", "which topgrade"])
@@ -89,14 +103,20 @@ fn find_topgrade_in_wsl(wsl: &Path, dist: &str) -> Result<String> {
         .to_owned())
 }
 
+/// Run the Chocolatey package manager update
+/// Chocolatey is a package manager for Windows similar to apt/yum on Linux
 pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
     run_command(ctx, "choco", UPGRADE_ALL, Step::Chocolatey)
 }
 
+/// Run the Windows Package Manager (winget) update
+/// Winget is Microsoft's official package manager for Windows 10 and above
 pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
     run_command(ctx, "winget", &["upgrade", "--all"], Step::Winget)
 }
 
+/// Run the Scoop package manager update and cleanup if configured
+/// Scoop is a command-line installer for Windows, similar to Homebrew on macOS
 pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
     let scoop = require("scoop")?;
 
@@ -111,16 +131,20 @@ pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+/// Execute the core Scoop update commands
 fn execute_scoop_commands(ctx: &ExecutionContext, scoop: &Path) -> Result<()> {
     ctx.run_type().execute(scoop).args(UPDATE).status_checked()?;
     ctx.run_type().execute(scoop).args(["update", "*"]).status_checked()
 }
 
+/// Clean up old/unused Scoop packages and caches
 fn cleanup_scoop(ctx: &ExecutionContext, scoop: &Path) -> Result<()> {
     ctx.run_type().execute(scoop).args(CLEANUP).status_checked()?;
     ctx.run_type().execute(scoop).args(CACHE_RM).status_checked()
 }
 
+/// Update the Windows Subsystem for Linux (WSL) core components
+/// This updates the Linux kernel used by WSL and other system components
 pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
     if !is_wsl_installed()? {
         return Err(SkipStep(t!("WSL not installed").to_string()).into());
@@ -133,10 +157,12 @@ pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
     let mut wsl_command = ctx.run_type().execute(wsl);
     wsl_command.args(WSL_UPDATE);
 
+    // Allow using pre-release WSL versions if configured
     if ctx.config().wsl_update_pre_release() {
         wsl_command.arg("--pre-release");
     }
 
+    // Use web download instead of Microsoft Store for updates if configured
     if ctx.config().wsl_update_use_web_download() {
         wsl_command.arg("--web-download");
     }
@@ -144,6 +170,8 @@ pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+/// Run Topgrade inside each installed WSL distribution
+/// This allows updating Linux packages from within Windows
 pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     if !is_wsl_installed()? {
         return Err(SkipStep(t!("WSL not installed").to_string()).into());
@@ -173,6 +201,9 @@ pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     }
 }
 
+/// Run Windows Update using PowerShell
+/// Uses the PSWindowsUpdate module if available, which provides better control
+/// than the built-in Windows Update tools
 pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
     let powershell = powershell::Powershell::windows_powershell();
 
@@ -189,6 +220,8 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
     }
 }
 
+/// Run updates for Microsoft Store apps
+/// Updates installed apps from the Microsoft Store
 pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
     let powershell = powershell::Powershell::windows_powershell();
 
@@ -197,17 +230,26 @@ pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
     powershell.microsoft_store(ctx)
 }
 
+/// Reboot the Windows system
+/// Uses the shutdown command with restart flag
 pub fn reboot() -> Result<()> {
     Command::new("shutdown").args(["/R", "/T", "0"]).status_checked()
 }
 
+/// Check startup scripts for Git repositories
+/// This looks for shortcuts (.lnk files) in the Windows startup folder
+/// and checks if they point to Git repositories
 pub fn insert_startup_scripts(git_repos: &mut RepoStep) -> Result<()> {
+    // Get the Windows startup folder path
     let startup_dir = crate::WINDOWS_DIRS
         .data_dir()
         .join("Microsoft\\Windows\\Start Menu\\Programs\\Startup");
+    
+    // Look for .lnk files (Windows shortcuts) in the startup folder
     for entry in std::fs::read_dir(&startup_dir)?.flatten() {
         let path = entry.path();
         if path.extension().and_then(OsStr::to_str) == Some("lnk") {
+            // Parse the shortcut to get the target path
             if let Ok(lnk) = parselnk::Lnk::try_from(Path::new(&path)) {
                 debug!("Startup link: {:?}", lnk);
                 if let Some(path) = lnk.relative_path() {
