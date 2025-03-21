@@ -446,6 +446,9 @@ fn run() -> Result<()> {
     runner.execute(Step::Aqua, "aqua", || generic::run_aqua(&ctx))?;
     runner.execute(Step::Bun, "bun", || generic::run_bun(&ctx))?;
     runner.execute(Step::Zigup, "zigup", || generic::run_zigup(&ctx))?;
+    runner.execute(Step::JetBrainsToolbox, "JetBrains Toolbox", || {
+        generic::run_jetbrains_toolbox(&ctx)
+    })?;
 
     if should_run_powershell {
         runner.execute(Step::Powershell, "Powershell Modules Update", || {
