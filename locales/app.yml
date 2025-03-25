@@ -374,7 +374,7 @@ _version: 2
   en: "Failed to get hostname: %{err}"
   es: "Error al obtener el nombre del host: %{err}"
   fr: "Échec de l'obtention d'un nom d'hôte: %{err}"
-  zh_CN: "无法获取主机名称：{err}"
+  zh_CN: "无法获取主机名称：%{err}"
   zh_TW: "無法取得主機名稱：%{err}"
   de: "Fehler beim Abrufen des Hostnamens: %{err}"
 "{python} is a Python 2, skip.":
