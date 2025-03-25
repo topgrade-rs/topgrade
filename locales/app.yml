@@ -55,7 +55,7 @@ _version: 2
   fr: "Pas de changement cassant"
   zh_CN: "无破坏性变更"
   zh_TW: "無重大更改"
-  de: "Keine bedeutenden Änderungen"
+  de: "Keine inkompatiblen Änderungen"
 "Dropping you to shell. Fix what you need and then exit the shell.":
   en: "Dropping you to shell. Fix what you need and then exit the shell."
   es: "Cambiando al shell. Arregla lo que necesites y luego sal del shell."
@@ -341,7 +341,7 @@ _version: 2
   fr: "Topgrade %{version_str} Changements Cassants"
   zh_CN: "Topgrade %{version_str} 破坏性更改"
   zh_TW: "Topgrade %{version_str} 重大更改"
-  de: "Topgrade %{version_str} Breaking Changes"
+  de: "Topgrade %{version_str} Inkompatible Änderungen"
 "Path {path} expanded to {expanded}":
   en: "Path %{path} expanded to %{expanded}"
   es: "Ruta %{path} expandida a %{expanded}"
