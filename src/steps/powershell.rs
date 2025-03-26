@@ -10,7 +10,6 @@ use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::terminal::{is_dumb, print_separator};
 use crate::utils::{require_option, which};
-use crate::Step;
 
 pub struct Powershell {
     path: Option<PathBuf>,
@@ -67,21 +66,78 @@ impl Powershell {
 
         print_separator(t!("Powershell Modules Update"));
 
-        let mut cmd = vec!["Update-Module"];
+        let mut script_commands = Vec::<String>::new();
 
+        // Only process modules that were installed via Install-Module
+        let update_script = vec![
+            "Write-Host \"Processing PowerShell modules...\" -ForegroundColor Cyan",
+            "Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {",
+            "  $moduleName = $_.Name",
+            "  try {",
+            "    # Only process modules installed via Install-Module",
+            "    if (Get-InstalledModule -Name $moduleName -ErrorAction SilentlyContinue) {",
+            "      # Process each module individually - unload, update, reload",
+            "      Write-Host \"Processing module: $moduleName\" -ForegroundColor Cyan",
+            "      ",
+            "      # Unload the module if it's loaded",
+            "      if (Get-Module -Name $moduleName -ErrorAction SilentlyContinue) {",
+            "        Write-Host \"  Unloading module: $moduleName\" -ForegroundColor Yellow",
+            "        Remove-Module -Name $moduleName -Force -ErrorAction SilentlyContinue",
+            "      }",
+            "      ",
+            "      # Update the module",
+            "      Write-Host \"  Updating module: $moduleName\" -ForegroundColor Cyan",
+        ];
+
+        let mut script = update_script.clone();
+
+        // Simplify the update command to avoid $PSCmdlet reference
         if ctx.config().verbose() {
-            cmd.push("-Verbose");
+            script.push("      Update-Module -Name $moduleName -Verbose");
+        } else {
+            script.push("      Update-Module -Name $moduleName");
         }
 
-        if ctx.config().yes(Step::Powershell) {
-            cmd.push("-Force");
+        script.extend_from_slice(&[
+            "      ",
+            "      # Reload the module",
+            "      try {",
+            "        Write-Host \"  Reloading module: $moduleName\" -ForegroundColor Green",
+            "        Import-Module $moduleName -ErrorAction Stop",
+            "        Write-Host \"  Successfully imported module: $moduleName\" -ForegroundColor Green",
+            "      } catch {",
+            "        Write-Host \"  Could not reload module: $moduleName - $($_.Exception.Message)\" -ForegroundColor Yellow",
+            "      }",
+            "    }",
+            "  } catch {",
+            "    Write-Host \"Failed to process module: $moduleName - $($_.Exception.Message)\" -ForegroundColor Red",
+            "  }",
+            "}",
+            "Write-Host \"PowerShell module processing complete.\" -ForegroundColor Green"
+        ]);
+
+        script_commands.push(script.join("\n"));
+        let full_script = script_commands.join(";\n\n");
+
+        // Rest of the function remains unchanged...
+
+        #[cfg(windows)]
+        {
+            let mut cmd = if let Some(sudo) = ctx.sudo() {
+                let mut cmd = ctx.run_type().execute(sudo);
+                cmd.arg(powershell);
+                cmd
+            } else {
+                ctx.run_type().execute(powershell)
+            };
+            cmd.args(["-NoProfile", "-NoLogo", "-NonInteractive", "-Command", &full_script])
+                .status_checked()
         }
 
-        println!("{}", t!("Updating modules..."));
+        #[cfg(not(windows))]
         ctx.run_type()
             .execute(powershell)
-            // This probably doesn't need `shell_words::join`.
-            .args(["-NoProfile", "-Command", &cmd.join(" ")])
+            .args(["-NoProfile", "-NoLogo", "-NonInteractive", "-Command", &full_script])
             .status_checked()
     }
 
