@@ -555,11 +555,7 @@ pub fn run_pixi_update(ctx: &ExecutionContext) -> Result<()> {
 
     // Check if `pixi --help` mentions self-update, if yes, self-update must be enabled.
     // pixi self-update --help works regardless of whether the feature is enabled.
-    let output = ctx
-        .run_type()
-        .execute(&pixi)
-        .arg("--help")
-        .output_checked()?;
+    let output = ctx.run_type().execute(&pixi).arg("--help").output_checked()?;
 
     if String::from_utf8(output.stdout)?.contains("self-update") {
         ctx.run_type()
