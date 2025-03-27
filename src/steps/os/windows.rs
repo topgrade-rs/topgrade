@@ -42,10 +42,25 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("winget");
 
-    ctx.run_type()
+    // check if silent install is enabled
+    if ctx.config().winget_silent_install() {
+
+        // execute with silent command
+        ctx.run_type()
+        .execute(winget)
+        .args(["upgrade", "--all", "--silent"])
+        .status_checked()
+
+    } else {
+
+        // execute without silent command
+        ctx.run_type()
         .execute(winget)
         .args(["upgrade", "--all"])
         .status_checked()
+        
+    }
+
 }
 
 pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
