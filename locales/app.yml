@@ -1186,15 +1186,9 @@ _version: 2
   de: "Neustarten..."
 "Could not find Topgrade in any WSL disribution":
   en: "Could not find Topgrade in any WSL disribution"
-<<<<<<< HEAD
-  es: "No se pudo encontrar Topgrade en ninguna distribución WSL"
-  fr: "Impossible de trouver Topgrade dans aucune distribution WSL"
-  zh_CN: "无法在任何 WSL 发行版中找到 Topgrade"
-=======
   lt: "Nepavyko rasti Topgrade jokioje WSL distribucijoje"
   es: "Topgrade no se ha instalado dentro de WSL"
   fr: "Impossible de trouver Topgrade installé dans WSL"
->>>>>>> 7f9f708 (i18n(app.yml): new language lt)
   zh_TW: "在所有 WSL 中找不到 Topgrade"
   de: "Konnte Topgrade in keiner WSL-Distribution finden"
 "Windows Update":
