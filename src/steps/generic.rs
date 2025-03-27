@@ -553,11 +553,21 @@ pub fn run_pixi_update(ctx: &ExecutionContext) -> Result<()> {
     let pixi = require("pixi")?;
     print_separator("Pixi");
 
-    ctx.run_type()
+    // Check if `pixi --help` mentions self-update, if yes, self-update must be enabled.
+    // pixi self-update --help works regardless of whether the feature is enabled.
+    let output = ctx
+        .run_type()
         .execute(&pixi)
-        .args(["self-update"])
-        .status_checked()
-        .ok();
+        .arg("--help")
+        .output_checked()?;
+
+    if String::from_utf8(output.stdout)?.contains("self-update") {
+        ctx.run_type()
+            .execute(&pixi)
+            .args(["self-update"])
+            .status_checked()
+            .ok();
+    }
 
     ctx.run_type()
         .execute(&pixi)
