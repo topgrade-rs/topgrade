@@ -225,7 +225,7 @@ pub struct Windows {
     open_remotes_in_new_terminal: Option<bool>,
     wsl_update_pre_release: Option<bool>,
     wsl_update_use_web_download: Option<bool>,
-    winget_silent_install: Option<bool>
+    winget_silent_install: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
