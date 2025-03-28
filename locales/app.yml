@@ -1189,6 +1189,7 @@ _version: 2
   lt: "Nepavyko rasti Topgrade jokioje WSL distribucijoje"
   es: "Topgrade no se ha instalado dentro de WSL"
   fr: "Impossible de trouver Topgrade installé dans WSL"
+  zh_CN: "无法在任何 WSL 发行版中找到 Topgrade"
   zh_TW: "在所有 WSL 中找不到 Topgrade"
   de: "Konnte Topgrade in keiner WSL-Distribution finden"
 "Windows Update":
@@ -1257,6 +1258,7 @@ _version: 2
   de: "Microsoft Store-Apps können nicht aktualisiert werden, manuelles Eingreifen erforderlich"
 "No JetBrains Toolbox installation found":
   en: "No JetBrains Toolbox installation found"
+  lt: "Nerasta JetBrains Toolbox įdiegimo"
   es: "No se encontró ninguna instalación de JetBrains Toolbox"
   fr: "Aucune installation de JetBrains Toolbox trouvée"
   zh_CN: "找不到 JetBrains Toolbox 安装"
@@ -1264,6 +1266,7 @@ _version: 2
   de: "Keine JetBrains Toolbox-Installation gefunden"
 "Unsupported operating system {os}":
   en: "Unsupported operating system %{os}"
+  lt: "Nepalaikoma operacinė sistema %{os}"
   es: "Sistema operativo no compatible %{os}"
   fr: "Système d'exploitation %{os} non pris en charge"
   zh_CN: "不支持的操作系统 %{os}"
@@ -1271,6 +1274,7 @@ _version: 2
   de: "Nicht unterstütztes Betriebssystem %{os}"
 "jetbrains-toolbox-updater encountered an unexpected error during finding:":
   en: "jetbrains-toolbox-updater encountered an unexpected error during finding:"
+  lt: "jetbrains-toolbox-updater susidūrė su netikėta klaida ieškant:"
   es: "jetbrains-toolbox-updater encontró un error inesperado durante la búsqueda:"
   fr: "jetbrains-toolbox-updater a rencontré une erreur inattendue lors de la recherche:"
   zh_CN: "jetbrains-toolbox-updater 在寻找过程中遇到意外错误"
@@ -1278,6 +1282,7 @@ _version: 2
   de: "jetbrains-toolbox-updater ist auf einen unerwarteten Fehler bei der Suche gestoßen:"
 "jetbrains-toolbox-updater encountered an unexpected error during updating:":
   en: "jetbrains-toolbox-updater encountered an unexpected error during updating:"
+  lt: "jetbrains-toolbox-updater susidūrė su netikėta klaida atnaujinant:"
   es: "jetbrains-toolbox-updater encontró un error inesperado durante la actualización:"
   fr: "jetbrains-toolbox-updater a rencontré une erreur inattendue lors de la mise à jour:"
   zh_CN: "jetbrains-toolbox-updater 在更新过程中遇到意外错误"
