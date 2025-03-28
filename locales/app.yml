@@ -1187,7 +1187,7 @@ _version: 2
 "Could not find Topgrade in any WSL disribution":
   en: "Could not find Topgrade in any WSL disribution"
   lt: "Nepavyko rasti Topgrade jokioje WSL distribucijoje"
-  es: "Topgrade no se ha instalado dentro de WSL"
+  es: "No se pudo encontrar Topgrade en ninguna distribución WSL"
   fr: "Impossible de trouver Topgrade installé dans WSL"
   zh_CN: "无法在任何 WSL 发行版中找到 Topgrade"
   zh_TW: "在所有 WSL 中找不到 Topgrade"
