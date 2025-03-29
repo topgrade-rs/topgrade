@@ -10,6 +10,7 @@ use std::{fs, io::Write};
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use jetbrains_toolbox_updater::{find_jetbrains_toolbox, update_jetbrains_toolbox, FindError};
 use lazy_static::lazy_static;
 use regex::bytes::Regex;
 use rust_i18n::t;
@@ -1364,4 +1365,43 @@ pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
     }
 
     Ok(())
+}
+
+pub fn run_jetbrains_toolbox(_ctx: &ExecutionContext) -> Result<()> {
+    let installation = find_jetbrains_toolbox();
+    match installation {
+        Err(FindError::NotFound) => {
+            // Skip
+            Err(SkipStep(format!("{}", t!("No JetBrains Toolbox installation found"))).into())
+        }
+        Err(FindError::UnsupportedOS(os)) => {
+            // Skip
+            Err(SkipStep(format!("{}", t!("Unsupported operating system {os}", os = os))).into())
+        }
+        Err(e) => {
+            // Unexpected error
+            println!(
+                "{}",
+                t!("jetbrains-toolbox-updater encountered an unexpected error during finding:")
+            );
+            println!("{e:?}");
+            Err(StepFailed.into())
+        }
+        Ok(installation) => {
+            print_separator("JetBrains Toolbox");
+
+            match update_jetbrains_toolbox(installation) {
+                Err(e) => {
+                    // Unexpected error
+                    println!(
+                        "{}",
+                        t!("jetbrains-toolbox-updater encountered an unexpected error during updating:")
+                    );
+                    println!("{e:?}");
+                    Err(StepFailed.into())
+                }
+                Ok(()) => Ok(()),
+            }
+        }
+    }
 }
