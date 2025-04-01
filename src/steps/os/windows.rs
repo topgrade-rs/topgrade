@@ -80,7 +80,6 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     let topgrade = find_topgrade_in_wsl(wsl, dist)?;
     let mut command = ctx.run_type().execute(wsl);
     let args = if ctx.config().verbose() { "-v" } else { "" };
-
     command
         .args(["-d", dist, "bash", "-c"])
         .arg(format!("TOPGRADE_PREFIX={dist} exec {topgrade} {args}"));
@@ -88,7 +87,6 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     if ctx.config().yes(Step::Wsl) {
         command.arg("-y");
     }
-
     command.status_checked()
 }
 
