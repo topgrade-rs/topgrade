@@ -47,15 +47,12 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
         .args(["source", "update"])
         .status_checked()?;
 
-  let mut args = vec!["upgrade", "--all"];
+    let mut args = vec!["upgrade", "--all"];
     if ctx.config().winget_silent_install() {
         args.push("--silent");
     }
-  
-    ctx.run_type()
-        .execute(&winget)
-        .args([args)
-        .status_checked()?;
+
+    ctx.run_type().execute(&winget).args(args).status_checked()?;
     Ok(())
 }
 
