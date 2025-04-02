@@ -219,7 +219,7 @@
 
 # wsl_update_use_web_download = true
 
-# The default for winget_install_silently is true, 
+# The default for winget_install_silently is true,
 # this example turns off silent install.
 # winget_install_silently = false
 
@@ -325,3 +325,8 @@
 # extensions should be updated for.
 # (default: this won't be set by default)
 # profile = ""
+
+[powershell]
+# Use -Force parameter with Update-Module to update without prompts
+# force_update = true
+

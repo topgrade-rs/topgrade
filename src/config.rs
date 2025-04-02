@@ -483,6 +483,12 @@ pub struct VscodeConfig {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct Powershell {
+    force_modules_update: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 /// Configuration file
 pub struct ConfigFile {
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
@@ -553,6 +559,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     zigup: Option<Zigup>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    powershell: Option<Powershell>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     vscode: Option<VscodeConfig>,
@@ -1741,6 +1750,15 @@ impl Config {
         } else {
             Some(profile.as_str())
         }
+    }
+
+    /// Whether to force update PowerShell modules
+    pub fn powershell_force_modules_update(&self) -> bool {
+        self.config_file
+            .powershell
+            .as_ref()
+            .and_then(|powershell| powershell.force_modules_update)
+            .unwrap_or(false)
     }
 }
 

@@ -70,27 +70,31 @@ impl Powershell {
         let mut script_commands = Vec::<String>::new();
 
         // Only process modules that were installed via Install-Module
-        let update_script = vec![
-            "Write-Host \"Processing PowerShell modules...\" -ForegroundColor Cyan",
-            "Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {",
-            "  $moduleName = $_.Name",
-            "  try {",
-            "    # Only process modules installed via Install-Module",
-            "    if (Get-InstalledModule -Name $moduleName -ErrorAction SilentlyContinue) {",
-            "      # Process each module individually - unload, update, reload",
-            "      Write-Host \"Processing module: $moduleName\" -ForegroundColor Cyan",
-            "      ",
-            "      # Unload the module if it's loaded",
-            "      if (Get-Module -Name $moduleName -ErrorAction SilentlyContinue) {",
-            "        Write-Host \"  Unloading module: $moduleName\" -ForegroundColor Yellow",
-            "        Remove-Module -Name $moduleName -Force -ErrorAction SilentlyContinue",
-            "      }",
-            "      ",
-            "      # Update the module",
-            "      Write-Host \"  Updating module: $moduleName\" -ForegroundColor Cyan",
+        let mut update_script = vec![
+            String::from("Write-Host \"") + &t!("Processing PowerShell modules...") + "\" -ForegroundColor Cyan",
+            String::from("Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {"),
+            String::from("  $moduleName = $_.Name"),
+            String::from("  try {"),
+            String::from("    # Only process modules installed via Install-Module"),
+            String::from("    if (Get-InstalledModule -Name $moduleName -ErrorAction SilentlyContinue) {"),
+            String::from("      # Process each module individually - unload, update, reload"),
+            String::from("      Write-Host \"")
+                + &t!("Processing module: {moduleName}", moduleName = "$moduleName")
+                + "\" -ForegroundColor Cyan",
+            String::from("      "),
+            String::from("      # Unload the module if it's loaded"),
+            String::from("      if (Get-Module -Name $moduleName -ErrorAction SilentlyContinue) {"),
+            String::from("        Write-Host \"  ")
+                + &t!("Unloading module: {moduleName}", moduleName = "$moduleName")
+                + "\" -ForegroundColor Yellow",
+            String::from("        Remove-Module -Name $moduleName -Force -ErrorAction SilentlyContinue"),
+            String::from("      }"),
+            String::from("      "),
+            String::from("      # Update the module"),
+            String::from("        Write-Host \"  ")
+                + &t!("Updating module: {moduleName}", moduleName = "$moduleName")
+                + "\" -ForegroundColor Cyan",
         ];
-
-        let mut script = update_script.clone();
 
         // Determine if we should use -Force based on config.yes(Step::Powershell)
         let force_flag = if ctx.config().yes(Step::Powershell) {
@@ -99,36 +103,49 @@ impl Powershell {
             ""
         };
 
-        // Fix: Store the formatted strings in variables before pushing them to the script
-        let update_command_verbose = format!("      Update-Module -Name $moduleName -Verbose{}", force_flag);
-        let update_command = format!("      Update-Module -Name $moduleName{}", force_flag);
-
-        // Fix: Add reference operator to borrow the strings since script expects &str
+        // Add the appropriate update command based on verbosity
         if ctx.config().verbose() {
-            script.push(&update_command_verbose);
+            update_script.push(format!("      Update-Module -Name $moduleName -Verbose{}", force_flag));
         } else {
-            script.push(&update_command);
+            update_script.push(format!("      Update-Module -Name $moduleName{}", force_flag));
         }
 
-        script.extend_from_slice(&[
-            "      ",
-            "      # Reload the module",
-            "      try {",
-            "        Write-Host \"  Reloading module: $moduleName\" -ForegroundColor Green",
-            "        Import-Module $moduleName -ErrorAction Stop",
-            "        Write-Host \"  Successfully imported module: $moduleName\" -ForegroundColor Green",
-            "      } catch {",
-            "        Write-Host \"  Could not reload module: $moduleName - $($_.Exception.Message)\" -ForegroundColor Yellow",
-            "      }",
-            "    }",
-            "  } catch {",
-            "    Write-Host \"Failed to process module: $moduleName - $($_.Exception.Message)\" -ForegroundColor Red",
-            "  }",
-            "}",
-            "Write-Host \"PowerShell module processing complete.\" -ForegroundColor Green"
+        // Complete the script with reload logic
+        update_script.extend(vec![
+            String::from("      "),
+            String::from("      # Reload the module"),
+            String::from("      try {"),
+            String::from("        Write-Host \"  ")
+                + &t!("Reloading module: {moduleName}", moduleName = "$moduleName")
+                + "\" -ForegroundColor Green",
+            String::from("        Import-Module $moduleName -ErrorAction Stop"),
+            String::from("        Write-Host \"  ")
+                + &t!("Successfully imported module: {moduleName}", moduleName = "$moduleName")
+                + "\" -ForegroundColor Green",
+            String::from("      } catch {"),
+            String::from("        Write-Host \"  ")
+                + &t!(
+                    "Could not reload module: {moduleName} - {error}",
+                    moduleName = "$moduleName",
+                    error = "$($_.Exception.Message)"
+                )
+                + "\" -ForegroundColor Yellow",
+            String::from("      }"),
+            String::from("    }"),
+            String::from("  } catch {"),
+            String::from("    Write-Host \"")
+                + &t!(
+                    "Failed to process module: {moduleName} - {error}",
+                    moduleName = "$moduleName",
+                    error = "$($_.Exception.Message)"
+                )
+                + "\" -ForegroundColor Red",
+            String::from("  }"),
+            String::from("}"),
+            String::from("Write-Host \"") + &t!("PowerShell module processing complete.") + "\" -ForegroundColor Green",
         ]);
 
-        script_commands.push(script.join("\n"));
+        script_commands.push(update_script.join("\n"));
         let full_script = script_commands.join(";\n\n");
 
         #[cfg(windows)]
