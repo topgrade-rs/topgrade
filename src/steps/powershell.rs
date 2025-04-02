@@ -9,6 +9,7 @@ use rust_i18n::t;
 use crate::command::CommandExt;
 use crate::config::Step;
 use crate::execution_context::ExecutionContext;
+use crate::executor::Executor; // Added this import
 use crate::terminal::{is_dumb, print_separator};
 use crate::utils::{require_option, which};
 
@@ -136,31 +137,29 @@ Write-Host "{}" -ForegroundColor Green"#,
         )
     }
 
-    pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
+    /// Creates a command to execute PowerShell with optional sudo elevation
+    fn create_powershell_command(&self, ctx: &ExecutionContext) -> Result<Executor> {
         let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
 
+        let cmd = if let Some(sudo) = ctx.sudo() {
+            let mut cmd = ctx.run_type().execute(sudo);
+            cmd.arg(powershell);
+            cmd
+        } else {
+            ctx.run_type().execute(powershell)
+        };
+
+        Ok(cmd)
+    }
+
+    pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
         print_separator(t!("Powershell Modules Update"));
 
         // Create the update script using the dedicated function
         let script = self.create_update_script(ctx);
 
-        #[cfg(windows)]
-        {
-            let mut cmd = if let Some(sudo) = ctx.sudo() {
-                let mut cmd = ctx.run_type().execute(sudo);
-                cmd.arg(powershell);
-                cmd
-            } else {
-                ctx.run_type().execute(powershell)
-            };
-            cmd.args(["-NoProfile", "-NoLogo", "-NonInteractive", "-Command", &script])
-                .status_checked()
-        }
-
-        #[cfg(not(windows))]
-        ctx.run_type()
-            .execute(powershell)
-            .args(["-NoProfile", "-NoLogo", "-NonInteractive", "-Command", &script])
+        let mut cmd = self.create_powershell_command(ctx)?;
+        cmd.args(["-NoProfile", "-NoLogo", "-NonInteractive", "-Command", &script])
             .status_checked()
     }
 
@@ -174,8 +173,6 @@ Write-Host "{}" -ForegroundColor Green"#,
 
     #[cfg(windows)]
     pub fn windows_update(&self, ctx: &ExecutionContext) -> Result<()> {
-        let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
-
         debug_assert!(self.supports_windows_update());
 
         let accept_all = if ctx.config().accept_all_windows_updates() {
@@ -186,30 +183,14 @@ Write-Host "{}" -ForegroundColor Green"#,
 
         let install_windowsupdate_verbose = "Install-WindowsUpdate -Verbose".to_string();
 
-        let mut command = if let Some(sudo) = ctx.sudo() {
-            let mut command = ctx.run_type().execute(sudo);
-            command.arg(powershell);
-            command
-        } else {
-            ctx.run_type().execute(powershell)
-        };
-
-        command
-            .args(["-NoProfile", &install_windowsupdate_verbose, accept_all])
+        let mut cmd = self.create_powershell_command(ctx)?;
+        cmd.args(["-NoProfile", &install_windowsupdate_verbose, accept_all])
             .status_checked()
     }
 
     #[cfg(windows)]
     pub fn microsoft_store(&self, ctx: &ExecutionContext) -> Result<()> {
-        let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
-
-        let mut command = if let Some(sudo) = ctx.sudo() {
-            let mut command = ctx.run_type().execute(sudo);
-            command.arg(powershell);
-            command
-        } else {
-            ctx.run_type().execute(powershell)
-        };
+        let mut cmd = self.create_powershell_command(ctx)?;
 
         println!("{}", t!("Scanning for updates..."));
 
@@ -217,24 +198,23 @@ Write-Host "{}" -ForegroundColor Green"#,
         // This method is also available for non-MDM devices
         let update_command = "(Get-CimInstance -Namespace \"Root\\cimv2\\mdm\\dmmap\" -ClassName \"MDM_EnterpriseModernAppManagement_AppManagement01\" | Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue";
 
-        command.args(["-NoProfile", update_command]);
+        cmd.args(["-NoProfile", update_command]);
 
-        command
-            .output_checked_with_utf8(|output| {
-                if output.stdout.trim() == "0" {
-                    println!(
-                        "{}",
-                        t!("Success, Microsoft Store apps are being updated in the background")
-                    );
-                    Ok(())
-                } else {
-                    println!(
-                        "{}",
-                        t!("Unable to update Microsoft Store apps, manual intervention is required")
-                    );
-                    Err(())
-                }
-            })
-            .map(|_| ())
+        cmd.output_checked_with_utf8(|output| {
+            if output.stdout.trim() == "0" {
+                println!(
+                    "{}",
+                    t!("Success, Microsoft Store apps are being updated in the background")
+                );
+                Ok(())
+            } else {
+                println!(
+                    "{}",
+                    t!("Unable to update Microsoft Store apps, manual intervention is required")
+                );
+                Err(())
+            }
+        })
+        .map(|_| ())
     }
 }
