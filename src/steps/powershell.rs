@@ -7,6 +7,7 @@ use color_eyre::eyre::Result;
 use rust_i18n::t;
 
 use crate::command::CommandExt;
+use crate::config::Step;
 use crate::execution_context::ExecutionContext;
 use crate::terminal::{is_dumb, print_separator};
 use crate::utils::{require_option, which};
@@ -91,11 +92,22 @@ impl Powershell {
 
         let mut script = update_script.clone();
 
-        // Simplify the update command to avoid $PSCmdlet reference
-        if ctx.config().verbose() {
-            script.push("      Update-Module -Name $moduleName -Verbose");
+        // Determine if we should use -Force based on config.yes(Step::Powershell)
+        let force_flag = if ctx.config().yes(Step::Powershell) {
+            " -Force"
         } else {
-            script.push("      Update-Module -Name $moduleName");
+            ""
+        };
+
+        // Fix: Store the formatted strings in variables before pushing them to the script
+        let update_command_verbose = format!("      Update-Module -Name $moduleName -Verbose{}", force_flag);
+        let update_command = format!("      Update-Module -Name $moduleName{}", force_flag);
+
+        // Fix: Add reference operator to borrow the strings since script expects &str
+        if ctx.config().verbose() {
+            script.push(&update_command_verbose);
+        } else {
+            script.push(&update_command);
         }
 
         script.extend_from_slice(&[
@@ -118,8 +130,6 @@ impl Powershell {
 
         script_commands.push(script.join("\n"));
         let full_script = script_commands.join(";\n\n");
-
-        // Rest of the function remains unchanged...
 
         #[cfg(windows)]
         {
