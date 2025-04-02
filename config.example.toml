@@ -329,4 +329,4 @@
 [powershell]
 # Use -Force parameter with Update-Module to update without prompts
 # force_update = true
-
+# force_modules_update = true

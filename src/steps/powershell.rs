@@ -62,91 +62,87 @@ impl Powershell {
         self.profile.as_ref()
     }
 
-    pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
-        let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
-
-        print_separator(t!("Powershell Modules Update"));
-
-        let mut script_commands = Vec::<String>::new();
-
-        // Only process modules that were installed via Install-Module
-        let mut update_script = vec![
-            String::from("Write-Host \"") + &t!("Processing PowerShell modules...") + "\" -ForegroundColor Cyan",
-            String::from("Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {"),
-            String::from("  $moduleName = $_.Name"),
-            String::from("  try {"),
-            String::from("    # Only process modules installed via Install-Module"),
-            String::from("    if (Get-InstalledModule -Name $moduleName -ErrorAction SilentlyContinue) {"),
-            String::from("      # Process each module individually - unload, update, reload"),
-            String::from("      Write-Host \"")
-                + &t!("Processing module: {moduleName}", moduleName = "$moduleName")
-                + "\" -ForegroundColor Cyan",
-            String::from("      "),
-            String::from("      # Unload the module if it's loaded"),
-            String::from("      if (Get-Module -Name $moduleName -ErrorAction SilentlyContinue) {"),
-            String::from("        Write-Host \"  ")
-                + &t!("Unloading module: {moduleName}", moduleName = "$moduleName")
-                + "\" -ForegroundColor Yellow",
-            String::from("        Remove-Module -Name $moduleName -Force -ErrorAction SilentlyContinue"),
-            String::from("      }"),
-            String::from("      "),
-            String::from("      # Update the module"),
-            String::from("        Write-Host \"  ")
-                + &t!("Updating module: {moduleName}", moduleName = "$moduleName")
-                + "\" -ForegroundColor Cyan",
-        ];
-
-        // Determine if we should use -Force based on config.yes(Step::Powershell)
-        let force_flag = if ctx.config().yes(Step::Powershell) {
+    /// Creates the PowerShell script for updating modules
+    fn create_update_script(&self, ctx: &ExecutionContext) -> String {
+        // Determine if we should use -Force based on config
+        let force_flag = if ctx.config().yes(Step::Powershell) || ctx.config().powershell_force_modules_update() {
             " -Force"
         } else {
             ""
         };
 
-        // Add the appropriate update command based on verbosity
-        if ctx.config().verbose() {
-            update_script.push(format!("      Update-Module -Name $moduleName -Verbose{}", force_flag));
+        // Build the update command with or without verbosity
+        let update_command = if ctx.config().verbose() {
+            format!("Update-Module -Name $moduleName -Verbose{}", force_flag)
         } else {
-            update_script.push(format!("      Update-Module -Name $moduleName{}", force_flag));
-        }
+            format!("Update-Module -Name $moduleName{}", force_flag)
+        };
 
-        // Complete the script with reload logic
-        update_script.extend(vec![
-            String::from("      "),
-            String::from("      # Reload the module"),
-            String::from("      try {"),
-            String::from("        Write-Host \"  ")
-                + &t!("Reloading module: {moduleName}", moduleName = "$moduleName")
-                + "\" -ForegroundColor Green",
-            String::from("        Import-Module $moduleName -ErrorAction Stop"),
-            String::from("        Write-Host \"  ")
-                + &t!("Successfully imported module: {moduleName}", moduleName = "$moduleName")
-                + "\" -ForegroundColor Green",
-            String::from("      } catch {"),
-            String::from("        Write-Host \"  ")
-                + &t!(
-                    "Could not reload module: {moduleName} - {error}",
-                    moduleName = "$moduleName",
-                    error = "$($_.Exception.Message)"
-                )
-                + "\" -ForegroundColor Yellow",
-            String::from("      }"),
-            String::from("    }"),
-            String::from("  } catch {"),
-            String::from("    Write-Host \"")
-                + &t!(
-                    "Failed to process module: {moduleName} - {error}",
-                    moduleName = "$moduleName",
-                    error = "$($_.Exception.Message)"
-                )
-                + "\" -ForegroundColor Red",
-            String::from("  }"),
-            String::from("}"),
-            String::from("Write-Host \"") + &t!("PowerShell module processing complete.") + "\" -ForegroundColor Green",
-        ]);
+        // Format the entire script using a template style for better readability
+        format!(
+            r#"Write-Host "{}" -ForegroundColor Cyan
+Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {{
+  $moduleName = $_.Name
+  try {{
+    # Only process modules installed via Install-Module
+    if (Get-InstalledModule -Name $moduleName -ErrorAction SilentlyContinue) {{
+      # Process each module individually - unload, update, reload
+      Write-Host "{}" -ForegroundColor Cyan
+      
+      # Check if the module is loaded and unload it if necessary
+      Write-Host "  {}" -ForegroundColor Yellow
+      if (Get-Module -Name $moduleName -ErrorAction SilentlyContinue) {{
+        Remove-Module -Name $moduleName -Force -ErrorAction SilentlyContinue
+      }} else {{
+        Write-Host "    Module is not currently loaded" -ForegroundColor Yellow
+      }}
+      
+      # Update the module
+      Write-Host "  {}" -ForegroundColor Cyan
+      {}
+      
+      # Reload the module
+      try {{
+        Write-Host "  {}" -ForegroundColor Green
+        Import-Module $moduleName -ErrorAction Stop
+        Write-Host "  {}" -ForegroundColor Green
+      }} catch {{
+        Write-Host "  {}" -ForegroundColor Yellow
+      }}
+    }}
+  }} catch {{
+    Write-Host "{}" -ForegroundColor Red
+  }}
+}}
+Write-Host "{}" -ForegroundColor Green"#,
+            t!("Processing PowerShell modules..."),
+            t!("Processing module: {moduleName}", moduleName = "$moduleName"),
+            t!("Unloading module: {moduleName}", moduleName = "$moduleName"),
+            t!("Updating module: {moduleName}", moduleName = "$moduleName"),
+            update_command,
+            t!("Reloading module: {moduleName}", moduleName = "$moduleName"),
+            t!("Successfully imported module: {moduleName}", moduleName = "$moduleName"),
+            t!(
+                "Could not reload module: {moduleName} - {error}",
+                moduleName = "$moduleName",
+                error = "$($_.Exception.Message)"
+            ),
+            t!(
+                "Failed to process module: {moduleName} - {error}",
+                moduleName = "$moduleName",
+                error = "$($_.Exception.Message)"
+            ),
+            t!("PowerShell module processing complete.")
+        )
+    }
 
-        script_commands.push(update_script.join("\n"));
-        let full_script = script_commands.join(";\n\n");
+    pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
+        let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
+
+        print_separator(t!("Powershell Modules Update"));
+
+        // Create the update script using the dedicated function
+        let script = self.create_update_script(ctx);
 
         #[cfg(windows)]
         {
@@ -157,14 +153,14 @@ impl Powershell {
             } else {
                 ctx.run_type().execute(powershell)
             };
-            cmd.args(["-NoProfile", "-NoLogo", "-NonInteractive", "-Command", &full_script])
+            cmd.args(["-NoProfile", "-NoLogo", "-NonInteractive", "-Command", &script])
                 .status_checked()
         }
 
         #[cfg(not(windows))]
         ctx.run_type()
             .execute(powershell)
-            .args(["-NoProfile", "-NoLogo", "-NonInteractive", "-Command", &full_script])
+            .args(["-NoProfile", "-NoLogo", "-NonInteractive", "-Command", &script])
             .status_checked()
     }
 
