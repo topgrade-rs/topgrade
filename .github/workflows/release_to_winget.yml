@@ -1,13 +1,61 @@
-name: Publish to WinGet
+name: Submit Topgrade-rs.Topgrade package to Windows Package Manager Community Repository
+
 on:
+  workflow_dispatch:
   release:
-    types: [released]
+    types: [published]
+
 jobs:
-  publish:
+  sync-repo:
+    name: Sync winget-pkgs repo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout winget-pkgs repository
+        uses: actions/checkout@v2
+        with:
+          repository: cinnamon-msft/winget-pkgs
+          token: ${{ secrets.WINGET_PAT }}
+
+  winget:
+    name: Publish winget package
+    needs: sync-repo
     runs-on: windows-latest
     steps:
-      - uses: vedantmgoyal2009/winget-releaser@main
-        with:
-          identifier: topgrade-rs.topgrade
-          max-versions-to-keep: 5 # keep only latest 5 versions
-          token: ${{ secrets.WINGET_TOKEN }}
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up PowerShell
+        uses: actions/setup-powershell@v2
+
+      - name: Submit package to Windows Package Manager Community Repository
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $packageId = "topgrade-rs.topgrade"
+          $gitToken = "${{ secrets.WINGET_PAT }}"
+
+          # Fetching latest release from GitHub
+          $github = Invoke-RestMethod -uri "https://api.github.com/repos/topgrade-rs/topgrade/releases/latest"
+          if (-not $github.assets) {
+              Write-Error "No assets found in the latest release."
+          }
+          $installerUrl = $github.assets | Where-Object { $_.name -like 'topgrade-*-x86_64-pc-windows-msvc.zip' } | Select-Object -ExpandProperty browser_download_url
+          if (-not $installerUrl) {
+              Write-Error "No installer URL found matching the pattern 'topgrade-*-x86_64-pc-windows-msvc.zip'."
+          }
+          $packageVersion = $github.tag_name.TrimStart("v")
+          if (-not $packageVersion) {
+              Write-Error "Failed to extract version from tag_name."
+          }
+
+          # Download wingetcreate
+          Write-Host "Downloading wingetcreate tool..."
+          Invoke-WebRequest https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+          if (-not (Test-Path -Path wingetcreate.exe)) {
+              Write-Error "Failed to download wingetcreate.exe."
+          }
+
+          # Update package using wingetcreate
+          Write-Host "Updating package using wingetcreate..."
+          .\wingetcreate.exe update $packageId --version $packageVersion --urls "$installerUrl" --submit --token $gitToken
