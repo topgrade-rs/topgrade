@@ -13,14 +13,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ ubuntu-latest, macos-latest, macos-13, windows-latest ]
+        platform: [ ubuntu-22.04, macos-latest, macos-13, windows-latest ]
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Install cargo-deb
         run: cargo install cargo-deb
-        if: ${{ matrix.platform == 'ubuntu-latest' }}
+        if: ${{ startsWith(matrix.platform, 'ubuntu-') }}
         shell: bash
 
       - name: Check format
@@ -59,14 +59,14 @@ jobs:
           rm -rf target/release
           cargo build --release
           cargo deb --no-build --no-strip
-        if: ${{ matrix.platform == 'ubuntu-latest' }}
+        if: ${{ startsWith(matrix.platform, 'ubuntu-') }}
         shell: bash
 
       - name: Move Debian-based system package
         run: |
           mkdir -p assets
           mv target/debian/*.deb assets
-        if: ${{ matrix.platform == 'ubuntu-latest' }}
+        if: ${{ startsWith(matrix.platform, 'ubuntu-') }}
         shell: bash
 
       - name: Rename Release (Windows)
