@@ -24,8 +24,25 @@ jobs:
         run: |
           cargo fmt --all -- --check
 
+  step-enum-sorted:
+    name: Step enum sorted
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if `Step` enum is sorted
+        run: |
+          ENUM_NAME="Step"
+          FILE="src/config.rs"
+          awk "/enum $ENUM_NAME/,/}/" "$FILE" | \
+          grep -E '^\s*[A-Za-z_][A-Za-z0-9_]*\s*,?$' | \
+          sed 's/[, ]//g' > original.txt
+          sort original.txt > sorted.txt
+          diff original.txt sorted.txt
+
   main:
-    needs: fmt
+    needs: [fmt, step-enum-sorted]
     name: ${{ matrix.target_name }} (check, clippy)
     runs-on: ${{ matrix.os }}
     strategy:
