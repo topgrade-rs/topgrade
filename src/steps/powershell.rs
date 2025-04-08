@@ -49,6 +49,7 @@ impl Powershell {
     }
 
     /// Helper to run PowerShell with a command
+    #[cfg(windows)]
     fn run_ps_command(&self, path: &Path, command: &str) -> Result<String> {
         Command::new(path)
             .args(Self::default_args())
