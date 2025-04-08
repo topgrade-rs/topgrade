@@ -415,7 +415,7 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
 /// 1. Users could use both VSCode and VSCodium
 /// 2. Just in case, VSCodium could have incompatible changes with VSCode
 pub fn run_vscodium_extensions_update(ctx: &ExecutionContext) -> Result<()> {
-    // Calling vscodoe in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
+    // Calling VSCodium in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
     if is_wsl()? {
         return Err(SkipStep(String::from("Should not run in WSL")).into());
     }
@@ -433,11 +433,25 @@ pub fn run_vscodium_extensions_update(ctx: &ExecutionContext) -> Result<()> {
         .lines()
         .next()
     {
-        Some(item) => Version::parse(item).map_err(std::convert::Into::into),
+        Some(item) => {
+            // Strip leading zeroes because `semver` does not allow them, but VSCodium uses them sometimes
+            let item = item
+                .split('.')
+                .map(|s| s.trim_start_matches('0'))
+                .collect::<Vec<_>>()
+                .join(".");
+            Version::parse(&item).map_err(std::convert::Into::into)
+        }
         _ => return Err(SkipStep(String::from("Cannot find vscodium version")).into()),
     };
 
-    if !matches!(version, Ok(version) if version >= Version::new(1, 86, 0)) {
+    // Raise any errors in parsing the version
+    //  The benefit of handling VSCodium versions so old that the version format is something
+    //  unexpected is outweighed by the benefit of failing fast on new breaking versions
+    let version = version.wrap_err("the output of `codium --version` changed, please file an issue to Topgrade")?;
+    debug!("Detected VSCodium version as: {version}");
+
+    if version < Version::new(1, 86, 0) {
         return Err(SkipStep(String::from(
             "Too old vscodium version to have update extensions command",
         ))
@@ -453,7 +467,7 @@ pub fn run_vscodium_extensions_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_vscode_extensions_update(ctx: &ExecutionContext) -> Result<()> {
-    // Calling vscode in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
+    // Calling VSCode in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
     if is_wsl()? {
         return Err(SkipStep(String::from("Should not run in WSL")).into());
     }
