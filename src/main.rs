@@ -466,7 +466,7 @@ fn run() -> Result<()> {
     })?;
     // JetBrains dotMemory has no CLI
     // JetBrains dotTrace has no CLI
-    // JetBrains Fleet uses a different CLI without a `fleet update` command.
+    // JetBrains Fleet has a different CLI without a `fleet update` command.
     runner.execute(Step::JetbrainsGateway, "JetBrains Gateway plugins", || {
         generic::run_jetbrains_gateway(&ctx)
     })?;
