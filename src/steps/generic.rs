@@ -22,12 +22,12 @@ use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
 use crate::terminal::{print_separator, shell};
 use crate::utils::{self, check_is_python_2_or_shim, get_require_sudo_string, require, require_option, which, PathExt};
-use crate::Step;
 use crate::HOME_DIR;
 use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
     terminal::print_warning,
 };
+use crate::{output_changed_message, Step};
 
 #[cfg(target_os = "linux")]
 pub fn is_wsl() -> Result<bool> {
@@ -647,9 +647,10 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
     {
         Ok(output) => {
             let stdout = output.stdout.trim();
-            stdout
-                .parse::<bool>()
-                .expect("unexpected output that is not `true` or `false`")
+            stdout.parse::<bool>().wrap_err(output_changed_message!(
+                "pip config get global.break-system-packages",
+                "unexpected output that is not `true` or `false`"
+            ))?
         }
         // it can fail because this key may not be set
         //

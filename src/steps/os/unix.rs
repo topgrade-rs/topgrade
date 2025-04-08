@@ -7,10 +7,10 @@ use std::process::Command;
 use std::{env::var, path::Path};
 
 use crate::command::CommandExt;
-use crate::{Step, HOME_DIR};
-use color_eyre::eyre::eyre;
+use crate::{output_changed_message, Step, HOME_DIR};
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use color_eyre::eyre::{eyre, ContextCompat};
 use home;
 use ini::Ini;
 use lazy_static::lazy_static;
@@ -470,16 +470,13 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
         return Err(eyre!("`nix --version` output was empty"));
     }
 
-    let captures = NIX_VERSION_REGEX.captures(get_version_cmd_first_line_stdout);
-    let raw_version = match &captures {
-        None => {
-            return Err(eyre!(
-                "`nix --version` output was weird: {get_version_cmd_first_line_stdout:?}\n\
-                If the `nix --version` output format changed, please file an issue to Topgrade"
-            ));
-        }
-        Some(captures) => &captures[1],
-    };
+    let captures = NIX_VERSION_REGEX
+        .captures(get_version_cmd_first_line_stdout)
+        .wrap_err(output_changed_message!(
+            "nix --version",
+            "regex did not match the string: {get_version_cmd_first_line_stdout:?}"
+        ))?;
+    let raw_version = &captures[1];
 
     let version =
         Version::parse(raw_version).wrap_err_with(|| format!("Unable to parse Nix version: {raw_version:?}"))?;
@@ -653,10 +650,10 @@ pub fn run_asdf(ctx: &ExecutionContext) -> Result<()> {
     let mut remaining = version_stdout.trim_start_matches('v');
     let idx = remaining
         .find('-')
-        .expect("the output of `asdf version` changed, please file an issue to Topgrade");
+        .wrap_err(output_changed_message!("asdf version", "no dash (-) found"))?;
     // remove the hash part
     remaining = &remaining[..idx];
-    let version = Version::parse(remaining).expect("should be a valid version");
+    let version = Version::parse(remaining).wrap_err(output_changed_message!("asdf version", "invalid version"))?;
     if version < Version::new(0, 15, 0) {
         ctx.run_type()
             .execute(&asdf)
