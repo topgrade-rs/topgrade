@@ -53,9 +53,9 @@ pub type Commands = BTreeMap<String, String>;
 pub enum Step {
     AM,
     AppMan,
+    Aqua,
     Asdf,
     Atom,
-    Aqua,
     Audit,
     AutoCpufreq,
     Bin,
@@ -90,12 +90,13 @@ pub enum Step {
     Gcloud,
     Gem,
     Ghcup,
-    GithubCliExtensions,
     GitRepos,
+    GithubCliExtensions,
     GnomeShellExtensions,
     Go,
     Guix,
     Haxelib,
+    Helix,
     Helm,
     HomeManager,
     JetBrainsToolbox,
@@ -103,17 +104,16 @@ pub enum Step {
     Julia,
     Juliaup,
     Kakoune,
-    Helix,
     Krew,
-    Lure,
     Lensfun,
+    Lure,
     Macports,
     Mamba,
-    Miktex,
     Mas,
     Maza,
     Micro,
     MicrosoftStore,
+    Miktex,
     Mise,
     Myrepos,
     Nix,
@@ -225,6 +225,7 @@ pub struct Windows {
     open_remotes_in_new_terminal: Option<bool>,
     wsl_update_pre_release: Option<bool>,
     wsl_update_use_web_download: Option<bool>,
+    winget_silent_install: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1548,6 +1549,14 @@ impl Config {
             .as_ref()
             .and_then(|windows| windows.open_remotes_in_new_terminal)
             .unwrap_or(false)
+    }
+
+    pub fn winget_silent_install(&self) -> bool {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|windows| windows.winget_silent_install)
+            .unwrap_or(true)
     }
 
     pub fn sudo_command(&self) -> Option<SudoKind> {

@@ -226,6 +226,13 @@ pub fn run_apm(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_aqua(ctx: &ExecutionContext) -> Result<()> {
     let aqua = require("aqua")?;
 
+    // Check if `aqua --help` mentions "aqua". JetBrains aqua does not, aqua CLI does.
+    let output = ctx.run_type().execute(&aqua).arg("--help").output_checked()?;
+
+    if !String::from_utf8(output.stdout)?.contains("aqua") {
+        return Err(SkipStep("Command aqua probably points to JetBrains Aqua".to_string()).into());
+    }
+
     print_separator("Aqua");
     if ctx.run_type().dry() {
         println!("{}", t!("Updating aqua ..."));
@@ -553,11 +560,17 @@ pub fn run_pixi_update(ctx: &ExecutionContext) -> Result<()> {
     let pixi = require("pixi")?;
     print_separator("Pixi");
 
-    ctx.run_type()
-        .execute(&pixi)
-        .args(["self-update"])
-        .status_checked()
-        .ok();
+    // Check if `pixi --help` mentions self-update, if yes, self-update must be enabled.
+    // pixi self-update --help works regardless of whether the feature is enabled.
+    let output = ctx.run_type().execute(&pixi).arg("--help").output_checked()?;
+
+    if String::from_utf8(output.stdout)?.contains("self-update") {
+        ctx.run_type()
+            .execute(&pixi)
+            .args(["self-update"])
+            .status_checked()
+            .ok();
+    }
 
     ctx.run_type()
         .execute(&pixi)
