@@ -1278,7 +1278,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
     // 1. Run `uv self update` if the `uv` binary is built with the `self-update`
     //    cargo feature enabled.
     //
-    // To check if this feature is enableld or not, different version of `uv` need
+    // To check if this feature is enabled or not, different version of `uv` need
     // different approaches, we need to know the version first and handle them
     // separately.
     let uv_version_output = ctx
