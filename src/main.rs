@@ -464,7 +464,9 @@ fn run() -> Result<()> {
     runner.execute(Step::JetbrainsDataspell, "JetBrains DataSpell plugins", || {
         generic::run_jetbrains_dataspell(&ctx)
     })?;
+    // JetBrains dotCover has no CLI
     // JetBrains dotMemory has no CLI
+    // JetBrains dotPeek has no CLI
     // JetBrains dotTrace has no CLI
     // JetBrains Fleet has a different CLI without a `fleet update` command.
     runner.execute(Step::JetbrainsGateway, "JetBrains Gateway plugins", || {
@@ -485,6 +487,8 @@ fn run() -> Result<()> {
     runner.execute(Step::JetbrainsPycharm, "JetBrains PyCharm plugins", || {
         generic::run_jetbrains_pycharm(&ctx)
     })?;
+    // JetBrains ReSharper has no CLI (it's a VSCode extensions)
+    // JetBrains ReSharper C++ has no CLI (it's a VSCode extensions)
     runner.execute(Step::JetbrainsRider, "JetBrains Rider plugins", || {
         generic::run_jetbrains_rider(&ctx)
     })?;
