@@ -86,7 +86,7 @@ To add a new `step` to `topgrade`:
    }
    ```
 
-   Congrats, you just added a new `step`:)
+   Congrats, you just added a new `step` :)
 
 ## Modification to the configuration entries
 
