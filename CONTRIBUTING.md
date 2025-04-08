@@ -20,11 +20,11 @@ To add a new `step` to `topgrade`:
 
    ```rust
    pub enum Step {
-       // Existed steps
+       // Existing steps
        // ...
 
        // Your new step here!
-       // You may want it to be sorted alphabetically because that looks great:)
+       // Make sure it stays sorted alphabetically because that looks great :)
        Xxx,
    }
    ```
@@ -78,7 +78,7 @@ To add a new `step` to `topgrade`:
    to separate the steps, for example, for steps that are Linux-only, it goes
    like this:
 
-   ```
+   ```rust
    #[cfg(target_os = "linux")]
    {
        // Xxx is Linux-only
@@ -129,12 +129,12 @@ $ cargo test
 
 Don't worry about other platforms, we have most of them covered in our CI.
 
-## I18n 
+## I18n
 
-If your PR introduces user-facing messages, we need to ensure they are translated. 
-Please add the translations to [`locales/app.yml`][app_yml]. For simple messages 
-without arguments (e.g., "hello world"), we can simply translate them according 
-(Tip: ChatGPT or similar LLMs is good at translation). If a message contains 
+If your PR introduces user-facing messages, we need to ensure they are translated.
+Please add the translations to [`locales/app.yml`][app_yml]. For simple messages
+without arguments (e.g., "hello world"), we can simply translate them according
+(Tip: ChatGPT or similar LLMs is good at translation). If a message contains
 arguments, e.g., "hello <NAME>", please follow this convention:
 
 ```yml
