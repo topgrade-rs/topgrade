@@ -2,10 +2,12 @@ _version: 2
 
 "Could not find Topgrade in any WSL distribution":
   en: "Could not find Topgrade in any WSL distribution"
+  lt: "Nepavyko rasti Topgrade jokioje WSL distribucijoje"
   es: "No se pudo encontrar Topgrade en ninguna distribución WSL"
-  fr: "Impossible de trouver Topgrade dans aucune distribution WSL"
-  zh_CN: "在所有 WSL 中找不到 Topgrade"
+  fr: "Impossible de trouver Topgrade installé dans WSL"
+  zh_CN: "无法在任何 WSL 发行版中找到 Topgrade"
   zh_TW: "在所有 WSL 中找不到 Topgrade"
+  de: "Konnte Topgrade in keiner WSL-Distribution finden"
 "Current system locale is {system_locale}":
   en: "Current system locale is %{system_locale}"
   lt: "Dabartinė sistemos lokalė yra %{system_locale}"
