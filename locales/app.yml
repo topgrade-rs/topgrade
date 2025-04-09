@@ -192,14 +192,14 @@ _version: 2
   zh_CN: "无法更新 .NET 包 %{package_name}"
   zh_TW: "無法更新 .NET 套件 %{package_name}"
   de: "Aktualisierung des .NET-Pakets %{package_name} fehlgeschlagen"
-"Failed to parse `tmux_arguments`: `{args}`":
-  en: "Failed to parse `tmux_arguments`: `{args}`"
-  lt: "Nepavyko interpretuoti `tmux_arguments`: `{args}`"
-  es: "No se pudo analizar `tmux_arguments`: `{args}`"
-  fr: "Échec de l'analyse de `tmux_arguments`: `{args}`"
-  zh_CN: "无法解析 `tmux_arguments`: `{args}`"
-  zh_TW: "無法解析 `tmux_arguments`: `{args}`"
-  de: "Fehler beim Parsen von `tmux_arguments`: `{args}`"
+"Failed to parse `tmux_arguments`: %{args}":
+  en: "Failed to parse `tmux_arguments`: %{args}"
+  lt: "Nepavyko interpretuoti `tmux_arguments`: %{args}"
+  es: "No se pudo analizar `tmux_arguments`: %{args}"
+  fr: "Échec de l'analyse de `tmux_arguments`: %{args}"
+  zh_CN: "无法解析 `tmux_arguments`: %{args}"
+  zh_TW: "無法解析 `tmux_arguments`: %{args}"
+  de: "Fehler beim Parsen von `tmux_arguments`: %{args}"
 
 # The following 2 strings are used in the same sentence
 # i.e. *Only* updated repositories will be shown...

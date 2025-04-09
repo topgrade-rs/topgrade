@@ -211,7 +211,10 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
     print_separator(t!("Windows Update"));
 
     if powershell.supports_windows_update() {
-        println!("{}", t!("The installer will request to run as administrator, expect a prompt."));
+        println!(
+            "{}",
+            t!("The installer will request to run as administrator, expect a prompt.")
+        );
 
         powershell.windows_update(ctx)
     } else {
