@@ -970,7 +970,7 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
             .execute(&dotnet)
             .args(["tool", "update", package_name, "--global"])
             .status_checked()
-            .with_context(|| format!("Failed to update .NET package {package_name:?}"))?;
+            .with_context(|| format!("{}", t!("Failed to update .NET package {package_name}", package_name = package_name)))?;
     }
 
     Ok(())

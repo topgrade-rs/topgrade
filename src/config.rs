@@ -1130,7 +1130,7 @@ impl Config {
             //
             //     Caused by:
             //         missing closing quote
-            .with_context(|| format!("Failed to parse `tmux_arguments`: `{args}`"))
+            .with_context(|| format!("{}", t!("Failed to parse `tmux_arguments`: `{args}`", args = args)))
     }
 
     /// Prompt for a key before exiting

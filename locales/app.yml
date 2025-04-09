@@ -176,6 +176,30 @@ _version: 2
   zh_CN: "自我更新"
   zh_TW: "自行更新"
   de: "Selbstaktualisierung"
+"The installer will request to run as administrator, expect a prompt.":
+  en: "The installer will request to run as administrator, expect a prompt."
+  lt: "Diegimo programa paprašys administratoriaus teisių, laukite užklausos."
+  es: "El instalador solicitará ejecutarse como administrador, espere el aviso."
+  fr: "L'installateur demandera à s'exécuter en tant qu'administrateur, veuillez patienter."
+  zh_CN: "安装程序将请求以管理员身份运行，请等待提示。"
+  zh_TW: "安裝程式將請求以管理員身份執行，請等待提示。"
+  de: "Das Installationsprogramm fordert Administratorrechte an, bitte bestätigen."
+"Failed to update .NET package {package_name}":
+  en: "Failed to update .NET package %{package_name}"
+  lt: "Nepavyko atnaujinti .NET paketo %{package_name}"
+  es: "No se pudo actualizar el paquete .NET %{package_name}"
+  fr: "Échec de la mise à jour du package .NET %{package_name}"
+  zh_CN: "无法更新 .NET 包 %{package_name}"
+  zh_TW: "無法更新 .NET 套件 %{package_name}"
+  de: "Aktualisierung des .NET-Pakets %{package_name} fehlgeschlagen"
+"Failed to parse `tmux_arguments`: `{args}`":
+  en: "Failed to parse `tmux_arguments`: `{args}`"
+  lt: "Nepavyko interpretuoti `tmux_arguments`: `{args}`"
+  es: "No se pudo analizar `tmux_arguments`: `{args}`"
+  fr: "Échec de l'analyse de `tmux_arguments`: `{args}`"
+  zh_CN: "无法解析 `tmux_arguments`: `{args}`"
+  zh_TW: "無法解析 `tmux_arguments`: `{args}`"
+  de: "Fehler beim Parsen von `tmux_arguments`: `{args}`"
 
 # The following 2 strings are used in the same sentence
 # i.e. *Only* updated repositories will be shown...
