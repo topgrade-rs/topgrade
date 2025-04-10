@@ -1,4 +1,4 @@
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, path::Path};
@@ -1168,6 +1168,7 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         // Spaces and tabs on either side of interpreter are ignored.
 
         use std::os::unix::ffi::OsStrExt;
+        use std::ffi::OsStr;
 
         lazy_static! {
             static ref SHEBANG_REGEX: Regex = Regex::new(r"^#![ \t]*([^ \t\n]+)(?:[ \t]+([^\n]+)?)?").unwrap();
