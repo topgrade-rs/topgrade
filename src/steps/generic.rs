@@ -410,23 +410,22 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
     command.args(["upgrade", "--no-dry-run"]).status_checked()
 }
 
-/// Make VSCodium a separate step because:
-///
-/// 1. Users could use both VSCode and VSCodium
-/// 2. Just in case, VSCodium could have incompatible changes with VSCode
-pub fn run_vscodium_extensions_update(ctx: &ExecutionContext) -> Result<()> {
-    // Calling VSCodium in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
+/// This functions runs for both VSCode and VSCodium, as most of the process is the same for both.
+fn run_vscode_compatible<const VSCODIUM: bool>(ctx: &ExecutionContext) -> Result<()> {
+    // Calling VSCode/VSCodium in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
     if is_wsl()? {
         return Err(SkipStep(String::from("Should not run in WSL")).into());
     }
 
-    let vscodium = require("codium")?;
+    let name = if VSCODIUM { "VSCodium" } else { "VSCode" };
+    let bin_name = if VSCODIUM { "codium" } else { "code" };
+    let bin = require(bin_name)?;
 
     // VSCode has update command only since 1.86 version ("january 2024" update), disable the update for prior versions
     // Use command `code --version` which returns 3 lines: version, git commit, instruction set. We parse only the first one
     //
     // This should apply to VSCodium as well.
-    let version: Result<Version> = match Command::new(&vscodium)
+    let version: Result<Version> = match Command::new(&bin)
         .arg("--version")
         .output_checked_utf8()?
         .stdout
@@ -434,7 +433,8 @@ pub fn run_vscodium_extensions_update(ctx: &ExecutionContext) -> Result<()> {
         .next()
     {
         Some(item) => {
-            // Strip leading zeroes because `semver` does not allow them, but VSCodium uses them sometimes
+            // Strip leading zeroes because `semver` does not allow them, but VSCodium uses them sometimes.
+            //  This is not the case for VSCode, but just in case, and it can't really cause any issues.
             let item = item
                 .split('.')
                 .map(|s| s.trim_start_matches('0'))
@@ -442,70 +442,56 @@ pub fn run_vscodium_extensions_update(ctx: &ExecutionContext) -> Result<()> {
                 .join(".");
             Version::parse(&item).map_err(std::convert::Into::into)
         }
-        _ => return Err(SkipStep(String::from("Cannot find vscodium version")).into()),
+        None => return Err(SkipStep(format!("Cannot find {name} version")).into()),
     };
 
     // Raise any errors in parsing the version
     //  The benefit of handling VSCodium versions so old that the version format is something
     //  unexpected is outweighed by the benefit of failing fast on new breaking versions
-    let version = version.wrap_err("the output of `codium --version` changed, please file an issue to Topgrade")?;
-    debug!("Detected VSCodium version as: {version}");
+    let version = version.wrap_err(format!("the output of `{bin_name} --version` changed, please file an issue to Topgrade"))?;
+    debug!("Detected {name} version as: {version}");
 
     if version < Version::new(1, 86, 0) {
-        return Err(SkipStep(String::from(
-            "Too old vscodium version to have update extensions command",
+        return Err(SkipStep(format!(
+            "Too old {name} version to have update extensions command",
         ))
-        .into());
+            .into());
     }
 
-    print_separator("VSCodium extensions");
+    print_separator(if VSCODIUM {
+        "VSCodium extensions"
+    } else {
+        "Visual Studio Code extensions"
+    });
 
-    ctx.run_type()
-        .execute(vscodium)
+    let mut cmd = ctx.run_type()
+        .execute(bin);
+    // If its VSCode (not VSCodium)
+    if !VSCODIUM {
+        // And we have configured use of a profile
+        if let Some(profile) = ctx.config().vscode_profile() {
+            // Add the profile argument
+            cmd
+                .arg("--profile")
+                .arg(profile);
+        }
+    }
+
+    cmd
         .arg("--update-extensions")
         .status_checked()
 }
 
+/// Make VSCodium a separate step because:
+///
+/// 1. Users could use both VSCode and VSCodium
+/// 2. Just in case, VSCodium could have incompatible changes with VSCode
+pub fn run_vscodium_extensions_update(ctx: &ExecutionContext) -> Result<()> {
+    run_vscode_compatible::<true>(ctx)
+}
+
 pub fn run_vscode_extensions_update(ctx: &ExecutionContext) -> Result<()> {
-    // Calling VSCode in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
-    if is_wsl()? {
-        return Err(SkipStep(String::from("Should not run in WSL")).into());
-    }
-
-    let vscode = require("code")?;
-
-    // Vscode has update command only since 1.86 version ("january 2024" update), disable the update for prior versions
-    // Use command `code --version` which returns 3 lines: version, git commit, instruction set. We parse only the first one
-    let version: Result<Version> = match Command::new(&vscode)
-        .arg("--version")
-        .output_checked_utf8()?
-        .stdout
-        .lines()
-        .next()
-    {
-        Some(item) => Version::parse(item).map_err(std::convert::Into::into),
-        _ => return Err(SkipStep(String::from("Cannot find vscode version")).into()),
-    };
-
-    if !matches!(version, Ok(version) if version >= Version::new(1, 86, 0)) {
-        return Err(SkipStep(String::from("Too old vscode version to have update extensions command")).into());
-    }
-
-    print_separator("Visual Studio Code extensions");
-
-    if let Some(profile) = ctx.config().vscode_profile() {
-        ctx.run_type()
-            .execute(vscode)
-            .arg("--profile")
-            .arg(profile)
-            .arg("--update-extensions")
-            .status_checked()
-    } else {
-        ctx.run_type()
-            .execute(vscode)
-            .arg("--update-extensions")
-            .status_checked()
-    }
+    run_vscode_compatible::<false>(ctx)
 }
 
 pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
