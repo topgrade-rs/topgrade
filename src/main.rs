@@ -449,7 +449,7 @@ fn run() -> Result<()> {
     runner.execute(Step::JetbrainsToolbox, "JetBrains Toolbox", || {
         generic::run_jetbrains_toolbox(&ctx)
     })?;
-    runner.execute(Step::AndroidStudio, "Android Studio", || {
+    runner.execute(Step::AndroidStudio, "Android Studio plugins", || {
         generic::run_android_studio(&ctx)
     })?;
     runner.execute(Step::JetbrainsAqua, "JetBrains Aqua plugins", || {
