@@ -487,8 +487,8 @@ fn run() -> Result<()> {
     runner.execute(Step::JetbrainsPycharm, "JetBrains PyCharm plugins", || {
         generic::run_jetbrains_pycharm(&ctx)
     })?;
-    // JetBrains ReSharper has no CLI (it's a VSCode extensions)
-    // JetBrains ReSharper C++ has no CLI (it's a VSCode extensions)
+    // JetBrains ReSharper has no CLI (it's a VSCode extension)
+    // JetBrains ReSharper C++ has no CLI (it's a VSCode extension)
     runner.execute(Step::JetbrainsRider, "JetBrains Rider plugins", || {
         generic::run_jetbrains_rider(&ctx)
     })?;
