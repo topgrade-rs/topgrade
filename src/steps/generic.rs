@@ -19,8 +19,7 @@ use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
 use crate::terminal::{print_separator, shell};
-use crate::utils::{self, check_is_python_2_or_shim, get_require_sudo_string, require, require_option, which, PathExt};
-use crate::Step;
+use crate::utils::{check_is_python_2_or_shim, get_require_sudo_string, require, require_option, which, PathExt};
 use crate::HOME_DIR;
 use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
