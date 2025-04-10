@@ -1,6 +1,4 @@
-#![allow(unused_imports)]
-
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, path::Path};
@@ -22,6 +20,7 @@ use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
 use crate::terminal::{print_separator, shell};
 use crate::utils::{self, check_is_python_2_or_shim, get_require_sudo_string, require, require_option, which, PathExt};
+use crate::Step;
 use crate::HOME_DIR;
 use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
@@ -1170,6 +1169,7 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         // Parse the standard Unix shebang line: #!interpreter [optional-arg]
         // Spaces and tabs on either side of interpreter are ignored.
 
+        use std::ffi::OsStr;
         use std::os::unix::ffi::OsStrExt;
 
         lazy_static! {
@@ -1278,20 +1278,91 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
     let uv_exec = require("uv")?;
     print_separator("uv");
 
-    // try uv self --help first - if it succeeds, we call uv self update
-    let result = ctx
+    // 1. Run `uv self update` if the `uv` binary is built with the `self-update`
+    //    cargo feature enabled.
+    //
+    // To check if this feature is enabled or not, different version of `uv` need
+    // different approaches, we need to know the version first and handle them
+    // separately.
+    let uv_version_output = ctx
         .run_type()
         .execute(&uv_exec)
-        .args(["self", "--help"])
-        .output_checked();
+        .arg("--version")
+        .output_checked_utf8()?;
+    // example output: "uv 0.5.11 (c4d0caaee 2024-12-19)\n"
+    let uv_version_output_stdout = uv_version_output.stdout;
 
-    if result.is_ok() {
-        ctx.run_type()
+    let version_str = {
+        // trim the starting "uv" and " " (whitespace)
+        let start_trimmed = uv_version_output_stdout
+            .trim_start_matches("uv")
+            .trim_start_matches(' ');
+        // remove the tailing part " (c4d0caaee 2024-12-19)\n"
+        let first_whitespace_index = start_trimmed
+            .find(' ')
+            .expect("the output of `uv --version` changed, please file an issue to Topgrade");
+        // this should be our version str "0.5.11"
+        &start_trimmed[..first_whitespace_index]
+    };
+    let version =
+        Version::parse(version_str).expect("the output of `uv --version` changed, please file an issue to Topgrade");
+
+    if version < Version::new(0, 4, 25) {
+        // For uv before version 0.4.25 (exclusive), the `self` sub-command only
+        // exists under the `self-update` feature, we run `uv self --help` to check
+        // the feature gate.
+        let self_update_feature_enabled = ctx
+            .run_type()
+            .execute(&uv_exec)
+            .args(["self", "--help"])
+            .output_checked()
+            .is_ok();
+
+        if self_update_feature_enabled {
+            ctx.run_type()
+                .execute(&uv_exec)
+                .args(["self", "update"])
+                .status_checked()?;
+        }
+    } else {
+        // After 0.4.25 (inclusive), running `uv self` succeeds regardless of the
+        // feature gate, so the above approach won't work.
+        //
+        // We run `uv self update` directly, if it outputs:
+        //
+        // "uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.\n"
+
+        const ERROR_MSG: &str = "uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.";
+
+        let output = ctx
+            .run_type()
             .execute(&uv_exec)
             .args(["self", "update"])
-            .status_checked()?;
-    }
+            // `output()` captures the output so that users won't see it for now.
+            .output()
+            .expect("this should be ok regardless of this child process's exit code");
+        let output = match output {
+            ExecutorOutput::Wet(wet) => wet,
+            ExecutorOutput::Dry => unreachable!("the whole function returns when we run `uv --version` under dry-run"),
+        };
+        let stderr = std::str::from_utf8(&output.stderr).expect("output should be UTF-8 encoded");
 
+        if stderr.contains(ERROR_MSG) {
+            // Feature `self-update` is disabled, nothing to do.
+        } else {
+            // Feature is enabled, flush the captured output so that users know we did the self-update.
+
+            std::io::stdout().write_all(&output.stdout)?;
+            std::io::stderr().write_all(&output.stderr)?;
+
+            // And, if self update failed, fail the step as well.
+            if !output.status.success() {
+                return Err(eyre!("uv self update failed"));
+            }
+        }
+    };
+
+    // 2. Update the installed tools
     ctx.run_type()
         .execute(&uv_exec)
         .args(["tool", "upgrade", "--all"])
