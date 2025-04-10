@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout winget-pkgs repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
-          repository: cinnamon-msft/winget-pkgs
-          token: ${{ secrets.WINGET_PAT }}
+          repository: microsoft/winget-pkgs
+          token: ${{ secrets.WINGET_TOKEN }}
 
   winget:
     name: Publish winget package
@@ -22,10 +22,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Set up PowerShell
-        uses: actions/setup-powershell@v2
+        uses: actions/checkout@v4
 
       - name: Submit package to Windows Package Manager Community Repository
         shell: pwsh
@@ -33,7 +30,7 @@ jobs:
           $ErrorActionPreference = "Stop"
 
           $packageId = "topgrade-rs.topgrade"
-          $gitToken = "${{ secrets.WINGET_PAT }}"
+          $gitToken = "${{ secrets.WINGET_TOKEN }}"
 
           # Fetching latest release from GitHub
           $github = Invoke-RestMethod -uri "https://api.github.com/repos/topgrade-rs/topgrade/releases/latest"
