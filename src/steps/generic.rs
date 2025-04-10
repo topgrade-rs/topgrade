@@ -1167,8 +1167,8 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         // Parse the standard Unix shebang line: #!interpreter [optional-arg]
         // Spaces and tabs on either side of interpreter are ignored.
 
-        use std::os::unix::ffi::OsStrExt;
         use std::ffi::OsStr;
+        use std::os::unix::ffi::OsStrExt;
 
         lazy_static! {
             static ref SHEBANG_REGEX: Regex = Regex::new(r"^#![ \t]*([^ \t\n]+)(?:[ \t]+([^\n]+)?)?").unwrap();
