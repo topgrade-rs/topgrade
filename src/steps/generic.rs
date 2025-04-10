@@ -448,14 +448,13 @@ fn run_vscode_compatible<const VSCODIUM: bool>(ctx: &ExecutionContext) -> Result
     // Raise any errors in parsing the version
     //  The benefit of handling VSCodium versions so old that the version format is something
     //  unexpected is outweighed by the benefit of failing fast on new breaking versions
-    let version = version.wrap_err(format!("the output of `{bin_name} --version` changed, please file an issue to Topgrade"))?;
+    let version = version.wrap_err(format!(
+        "the output of `{bin_name} --version` changed, please file an issue to Topgrade"
+    ))?;
     debug!("Detected {name} version as: {version}");
 
     if version < Version::new(1, 86, 0) {
-        return Err(SkipStep(format!(
-            "Too old {name} version to have update extensions command",
-        ))
-            .into());
+        return Err(SkipStep(format!("Too old {name} version to have update extensions command")).into());
     }
 
     print_separator(if VSCODIUM {
@@ -464,22 +463,17 @@ fn run_vscode_compatible<const VSCODIUM: bool>(ctx: &ExecutionContext) -> Result
         "Visual Studio Code extensions"
     });
 
-    let mut cmd = ctx.run_type()
-        .execute(bin);
+    let mut cmd = ctx.run_type().execute(bin);
     // If its VSCode (not VSCodium)
     if !VSCODIUM {
         // And we have configured use of a profile
         if let Some(profile) = ctx.config().vscode_profile() {
             // Add the profile argument
-            cmd
-                .arg("--profile")
-                .arg(profile);
+            cmd.arg("--profile").arg(profile);
         }
     }
 
-    cmd
-        .arg("--update-extensions")
-        .status_checked()
+    cmd.arg("--update-extensions").status_checked()
 }
 
 /// Make VSCodium a separate step because:
