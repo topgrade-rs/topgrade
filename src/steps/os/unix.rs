@@ -8,9 +8,9 @@ use std::{env::var, path::Path};
 
 use crate::command::CommandExt;
 use crate::{output_changed_message, Step, HOME_DIR};
+use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use color_eyre::eyre::eyre;
 use home;
 use ini::Ini;
 use lazy_static::lazy_static;
@@ -472,10 +472,7 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
 
     let captures = NIX_VERSION_REGEX
         .captures(get_version_cmd_first_line_stdout)
-        .ok_or_else(|| eyre!(output_changed_message!(
-            "nix --version",
-            "regex did not match"
-        )))?;
+        .ok_or_else(|| eyre!(output_changed_message!("nix --version", "regex did not match")))?;
     let raw_version = &captures[1];
 
     let version =
