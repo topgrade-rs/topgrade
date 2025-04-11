@@ -269,44 +269,59 @@ mod windows {
         // Build the command with optional verbosity
         let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
 
-        // Try primary method: MDM UpdateScanMethod
-        let primary_update_cmd = format!(
-            "try {{ \
-                $result = (Get-CimInstance{} -Namespace \"Root\\cimv2\\mdm\\dmmap\" -ClassName \"MDM_EnterpriseModernAppManagement_AppManagement01\" -ErrorAction Stop | \
-                Invoke-CimMethod{} -MethodName UpdateScanMethod -ErrorAction Stop).ReturnValue; \
-                if ($result -eq 0) {{ Write-Output \"SUCCESS_PRIMARY\" }} else {{ Write-Output \"FAIL_PRIMARY_NONZERO:$result\" }} \
-            }} catch {{ \
-                Write-Output \"FAIL_PRIMARY_EXCEPTION:$($_.Exception.Message)\" \
-            }}",
-            verbose_flag, verbose_flag
-        );
+        // Create a PowerShell script that tries each method sequentially using proper flow control
+        let ps_script = format!(
+            r#"
+            $success = $false
 
-        // Try fallback method 1: Using WinRT API
-        let fallback1_cmd = "try { \
-                $Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime]; \
-                $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult(); \
-                Write-Output \"SUCCESS_FALLBACK1\" \
-            } catch { \
-                Write-Output \"FAIL_FALLBACK1:$($_.Exception.Message)\" \
-            }"
-        .to_string();
+            # Try primary method: MDM UpdateScanMethod
+            try {{
+                $result = (Get-CimInstance{} -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" -ErrorAction Stop | 
+                Invoke-CimMethod{} -MethodName UpdateScanMethod -ErrorAction Stop).ReturnValue
+                if ($result -eq 0) {{
+                    Write-Output "SUCCESS_PRIMARY"
+                    $success = $true
+                }} else {{
+                    Write-Output "FAIL_PRIMARY_NONZERO:$result"
+                }}
+            }} catch {{
+                Write-Output "FAIL_PRIMARY_EXCEPTION:$($_.Exception.Message)"
+            }}
 
-        // Try fallback method 2: WSReset command
-        let fallback2_cmd = format!(
-            "try {{ \
-                Start-Process \"wsreset.exe\" -ArgumentList \"-i\"{} -ErrorAction Stop; \
-                Write-Output \"SUCCESS_FALLBACK2\" \
-            }} catch {{ \
-                Write-Output \"FAIL_FALLBACK2:$($_.Exception.Message)\" \
-            }}",
+            # If primary method failed, try fallback method 1: Using WinRT API
+            if (-not $success) {{
+                try {{
+                    $Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime]
+                    $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult()
+                    Write-Output "SUCCESS_FALLBACK1"
+                    $success = $true
+                }} catch {{
+                    Write-Output "FAIL_FALLBACK1:$($_.Exception.Message)"
+                }}
+            }}
+
+            # If both previous methods failed, try fallback method 2: WSReset command
+            if (-not $success) {{
+                try {{
+                    Start-Process "wsreset.exe" -ArgumentList "-i"{} -ErrorAction Stop
+                    Write-Output "SUCCESS_FALLBACK2"
+                    $success = $true
+                }} catch {{
+                    Write-Output "FAIL_FALLBACK2:$($_.Exception.Message)"
+                }}
+            }}
+
+            if (-not $success) {{
+                Write-Output "FAIL_ALL_METHODS"
+            }}
+            "#,
+            verbose_flag,
+            verbose_flag,
             if ctx.config().verbose() { " -Verb RunAs" } else { "" }
         );
 
-        // Combined command with all methods
-        let combined_cmd = format!("{} || {} || {}", primary_update_cmd, fallback1_cmd, fallback2_cmd);
-
-        // Execute the full command
-        let output = match powershell.run_ps_command(powershell_path, &combined_cmd) {
+        // Execute the full script
+        let output = match powershell.run_ps_command(powershell_path, &ps_script) {
             Ok(output) => output.trim().to_string(),
             Err(e) => {
                 println!("{}: {}", t!("Error executing PowerShell command"), e);
@@ -314,7 +329,7 @@ mod windows {
             }
         };
 
-        // Process the result based on which method succeeded
+        // Rest of the function remains the same
         if output.starts_with("SUCCESS_PRIMARY") {
             println!(
                 "{}",
