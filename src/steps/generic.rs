@@ -221,15 +221,46 @@ pub fn run_apm(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
-pub fn run_aqua(ctx: &ExecutionContext) -> Result<()> {
+enum Aqua {
+    JetBrainsAqua(PathBuf),
+    AquaCLI(PathBuf),
+}
+
+impl Aqua {
+    fn aqua_cli(self) -> Result<PathBuf> {
+        match self {
+            Aqua::AquaCLI(aqua) => Ok(aqua),
+            Aqua::JetBrainsAqua(_) => {
+                Err(SkipStep("Command `aqua` probably points to JetBrains Aqua".to_string()).into())
+            }
+        }
+    }
+
+    fn jetbrains_aqua(self) -> Result<PathBuf> {
+        match self {
+            Aqua::JetBrainsAqua(path) => Ok(path),
+            Aqua::AquaCLI(_) => Err(SkipStep("Command `aqua` probably points to Aqua CLI".to_string()).into()),
+        }
+    }
+}
+
+fn get_aqua(ctx: &ExecutionContext) -> Result<Aqua> {
     let aqua = require("aqua")?;
 
-    // Check if `aqua --help` mentions "aqua". JetBrains aqua does not, aqua CLI does.
+    // Check if `aqua --help` mentions "aqua". JetBrains Aqua does not, Aqua CLI does.
     let output = ctx.run_type().execute(&aqua).arg("--help").output_checked()?;
 
-    if !String::from_utf8(output.stdout)?.contains("aqua") {
-        return Err(SkipStep("Command aqua probably points to JetBrains Aqua".to_string()).into());
+    if String::from_utf8(output.stdout)?.contains("aqua") {
+        debug!("Detected `aqua` as Aqua CLI");
+        Ok(Aqua::AquaCLI(aqua))
+    } else {
+        debug!("Detected `aqua` as JetBrains Aqua");
+        Ok(Aqua::JetBrainsAqua(aqua))
     }
+}
+
+pub fn run_aqua(ctx: &ExecutionContext) -> Result<()> {
+    let aqua = get_aqua(ctx)?.aqua_cli()?;
 
     print_separator("Aqua");
     if ctx.run_type().dry() {
@@ -1466,4 +1497,77 @@ pub fn run_jetbrains_toolbox(_ctx: &ExecutionContext) -> Result<()> {
             }
         }
     }
+}
+
+fn run_jetbrains_ide(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result<()> {
+    print_separator(format!("JetBrains {name} plugins"));
+
+    // The `update` command is undocumented, but tested on all of the below.
+    ctx.run_type().execute(bin).arg("update").status_checked()
+}
+
+pub fn run_android_studio(ctx: &ExecutionContext) -> Result<()> {
+    // We don't use `run_jetbrains_ide` here because that would print "JetBrains Android Studio",
+    //  which is incorrect as Android Studio is made by Google. Just "Android Studio" is fine.
+    let bin = require("studio")?;
+
+    print_separator("Android Studio plugins");
+
+    ctx.run_type().execute(bin).arg("update").status_checked()
+}
+
+pub fn run_jetbrains_aqua(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, get_aqua(ctx)?.jetbrains_aqua()?, "Aqua")
+}
+
+pub fn run_jetbrains_clion(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("clion")?, "CLion")
+}
+
+pub fn run_jetbrains_datagrip(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("datagrip")?, "DataGrip")
+}
+
+pub fn run_jetbrains_dataspell(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("dataspell")?, "DataSpell")
+}
+
+pub fn run_jetbrains_gateway(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("gateway")?, "Gateway")
+}
+
+pub fn run_jetbrains_goland(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("goland")?, "Goland")
+}
+
+pub fn run_jetbrains_idea(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("idea")?, "IntelliJ IDEA")
+}
+
+pub fn run_jetbrains_mps(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("mps")?, "MPS")
+}
+
+pub fn run_jetbrains_phpstorm(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("phpstorm")?, "PhpStorm")
+}
+
+pub fn run_jetbrains_pycharm(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("pycharm")?, "PyCharm")
+}
+
+pub fn run_jetbrains_rider(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("rider")?, "Rider")
+}
+
+pub fn run_jetbrains_rubymine(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("rubymine")?, "RubyMine")
+}
+
+pub fn run_jetbrains_rustrover(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("rustrover")?, "RustRover")
+}
+
+pub fn run_jetbrains_webstorm(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("webstorm")?, "WebStorm")
 }
