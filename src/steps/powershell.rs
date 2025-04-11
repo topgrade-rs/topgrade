@@ -244,6 +244,16 @@ Write-Host "{}" -ForegroundColor Green"#,
     /// Execute a PowerShell script with standard arguments
     fn execute_script(&self, ctx: &ExecutionContext, script: &str) -> Result<()> {
         let mut cmd = self.create_powershell_command(ctx)?;
+
+        // Check if this will be elevated
+        let will_elevate = ctx.sudo().is_some();
+        if will_elevate {
+            println!(
+                "{}",
+                t!("This operation requires administrator privileges, expect a UAC prompt...")
+            );
+        }
+
         cmd.args(Self::default_args())
             .arg("-Command")
             .arg(script)
@@ -308,7 +318,8 @@ mod windows {
         };
 
         let install_command = format!(
-            "Install-WindowsUpdate {} {}",
+            "Write-Output '{}'; Install-WindowsUpdate {} {}",
+            powershell.clean_translation(t!("Starting Windows Update...")),
             if ctx.config().verbose() { "-Verbose" } else { "" },
             accept_all
         );
@@ -331,6 +342,7 @@ mod windows {
             $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
             if (-not $isAdmin) {{
                 Write-Output "{}"
+                # Don't exit - we'll still try to run the command and let it fail properly
             }}
 
             # Only attempt the primary MDM UpdateScanMethod - most reliable method
@@ -368,7 +380,7 @@ mod windows {
             Err(e) => {
                 println!("{}: {}", t!("Microsoft Store update failed"), e);
 
-                // Fall back to manual method
+                // Fall back to manual method - avoid re-printing separator
                 println!("{}", t!("Attempting to open Microsoft Store updates page..."));
                 let store_script = r#"$Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime]; 
                     $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult()"#;
