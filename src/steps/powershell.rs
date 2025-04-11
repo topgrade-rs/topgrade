@@ -1,5 +1,4 @@
 #[cfg(windows)]
-use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -58,17 +57,6 @@ impl Powershell {
 
     pub fn profile(&self) -> Option<&PathBuf> {
         self.profile.as_ref()
-    }
-
-    /// Helper to run PowerShell with a command
-    #[cfg(windows)]
-    fn run_ps_command(&self, path: &Path, command: &str) -> Result<String> {
-        Command::new(path)
-            .args(Self::default_args())
-            .arg("-Command")
-            .arg(command)
-            .output_checked_utf8()
-            .map(|output| output.stdout)
     }
 
     /// Helper function to clean translated strings by removing locale prefixes
@@ -333,15 +321,18 @@ mod windows {
         print_separator(t!("Microsoft Store"));
         println!("{}", t!("Scanning for updates..."));
 
-        // Get powershell path
-        let powershell_path = require_option(powershell.path.as_ref(), t!("Powershell is not installed").to_string())?;
-
         // Build the command with optional verbosity
         let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
 
         // Create a PowerShell script that attempts only one method, with better feedback
         let ps_script = format!(
             r#"
+            # This operation requires administrator privileges
+            $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+            if (-not $isAdmin) {{
+                Write-Output "{}"
+            }}
+
             # Only attempt the primary MDM UpdateScanMethod - most reliable method
             try {{
                 Write-Output "{}"
@@ -357,72 +348,53 @@ mod windows {
                 Write-Output "FAIL_PRIMARY_EXCEPTION:$($_.Exception.Message)"
             }}
             "#,
+            t!("Note: Administrator privileges required for Microsoft Store updates"),
             t!("Attempting to update Microsoft Store apps using MDM method..."),
             verbose_flag,
             verbose_flag
         );
 
-        // Execute the script
-        let output = match powershell.run_ps_command(powershell_path, &ps_script) {
-            Ok(output) => output.trim().to_string(),
+        // Execute the script with proper privilege handling
+        match powershell.execute_script(ctx, &ps_script) {
+            Ok(_) => {
+                println!(
+                    "{}",
+                    t!("Success, Microsoft Store apps are being updated in the background")
+                );
+                Ok(())
+            }
             Err(e) => {
-                println!("{}: {}", t!("Error executing PowerShell command"), e);
-                return Err(color_eyre::eyre::eyre!("Microsoft Store update failed: {}", e));
+                println!("{}: {}", t!("Microsoft Store update failed"), e);
+
+                // Fall back to manual method
+                println!("{}", t!("Attempting to open Microsoft Store updates page..."));
+                let store_script = r#"$Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime]; 
+                    $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult()"#;
+
+                if let Err(e) = powershell.execute_script(ctx, store_script) {
+                    println!("{}: {}", t!("Failed to open Microsoft Store"), e);
+                } else {
+                    println!(
+                        "{}",
+                        t!("Opened Microsoft Store updates page. Please check for updates manually.")
+                    );
+                }
+
+                // Fall back to wsreset as last resort
+                println!("{}", t!("Attempting to reset Microsoft Store..."));
+                if let Err(e) = ctx.run_type().execute("wsreset.exe").arg("-i").status_checked() {
+                    println!("{}: {}", t!("Failed to reset Microsoft Store"), e);
+                } else {
+                    println!(
+                        "{}",
+                        t!("Initiated Microsoft Store reset. Updates should begin shortly.")
+                    );
+                }
+
+                Err(color_eyre::eyre::eyre!(
+                    "Microsoft Store update failed. Administrator privileges may be required."
+                ))
             }
-        };
-
-        // Process the output and provide appropriate feedback
-        if output.contains("SUCCESS_PRIMARY") {
-            println!(
-                "{}",
-                t!("Success, Microsoft Store apps are being updated in the background")
-            );
-            Ok(())
-        } else if output.contains("FAIL_PRIMARY_NONZERO:") {
-            let code = output.split(':').nth(1).unwrap_or("unknown");
-            println!("{}", t!("Microsoft Store update failed with code: {code}", code = code));
-
-            // Fall back to manual method
-            println!("{}", t!("Attempting to open Microsoft Store updates page..."));
-            if let Err(e) = powershell.run_ps_command(
-                powershell_path,
-                r#"$Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime]; 
-                $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult()"#,
-            ) {
-                println!("{}: {}", t!("Failed to open Microsoft Store"), e);
-            } else {
-                println!(
-                    "{}",
-                    t!("Opened Microsoft Store updates page. Please check for updates manually.")
-                );
-            }
-
-            Err(color_eyre::eyre::eyre!(
-                "Microsoft Store update failed with code {}",
-                code
-            ))
-        } else if output.contains("FAIL_PRIMARY_EXCEPTION:") {
-            let msg = output.split_once(':').map(|x| x.1).unwrap_or("unknown error");
-            println!("{}: {}", t!("Microsoft Store update failed"), msg);
-
-            // Fall back to wsreset as last resort, but don't try all methods every time
-            println!("{}", t!("Attempting to reset Microsoft Store..."));
-            if let Err(e) = Command::new("wsreset.exe").arg("-i").status_checked() {
-                println!("{}: {}", t!("Failed to reset Microsoft Store"), e);
-            } else {
-                println!(
-                    "{}",
-                    t!("Initiated Microsoft Store reset. Updates should begin shortly.")
-                );
-            }
-
-            Err(color_eyre::eyre::eyre!("Microsoft Store update failed: {}", msg))
-        } else {
-            println!(
-                "{}",
-                t!("Microsoft Store update method failed. Please update manually.")
-            );
-            Err(color_eyre::eyre::eyre!("Microsoft Store update failed"))
         }
     }
 }
