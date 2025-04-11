@@ -242,12 +242,12 @@ Write-Host "{}" -ForegroundColor Green"#,
     }
 
     /// Execute a PowerShell script with standard arguments
-    fn execute_script(&self, ctx: &ExecutionContext, script: &str) -> Result<()> {
+    fn execute_script(&self, ctx: &ExecutionContext, script: &str, print_elevation_message: bool) -> Result<()> {
         let mut cmd = self.create_powershell_command(ctx)?;
 
-        // Check if this will be elevated
+        // Check if this will be elevated and print message if requested
         let will_elevate = ctx.sudo().is_some();
-        if will_elevate {
+        if will_elevate && print_elevation_message {
             println!(
                 "{}",
                 self.clean_translation(t!(
@@ -265,7 +265,7 @@ Write-Host "{}" -ForegroundColor Green"#,
     pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
         print_separator(t!("Powershell Modules Update"));
         let script = self.create_update_script(ctx);
-        self.execute_script(ctx, &script)
+        self.execute_script(ctx, &script, true)
     }
 }
 
@@ -326,8 +326,8 @@ mod windows {
             accept_all
         );
 
-        // Use execute_script instead of run_ps_command to properly handle elevation
-        powershell.execute_script(ctx, &install_command)
+        // Pass false to avoid duplicate elevation message
+        powershell.execute_script(ctx, &install_command, true)
     }
 
     pub fn microsoft_store(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
@@ -370,8 +370,8 @@ mod windows {
             verbose_flag
         );
 
-        // Execute the script with proper privilege handling
-        match powershell.execute_script(ctx, &ps_script) {
+        // Execute the script with proper privilege handling - pass true since we need the message here
+        match powershell.execute_script(ctx, &ps_script, true) {
             Ok(_) => {
                 println!(
                     "{}",
@@ -387,7 +387,8 @@ mod windows {
                 let store_script = r#"$Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime]; 
                     $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult()"#;
 
-                if let Err(e) = powershell.execute_script(ctx, store_script) {
+                // Don't print elevation message for fallbacks since we already showed one
+                if let Err(e) = powershell.execute_script(ctx, store_script, false) {
                     println!("{}: {}", t!("Failed to open Microsoft Store"), e);
                 } else {
                     println!(
