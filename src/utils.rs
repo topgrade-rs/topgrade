@@ -282,3 +282,13 @@ pub fn install_color_eyre() -> Result<()> {
         .display_location_section(true)
         .install()
 }
+
+#[macro_export]
+macro_rules! output_changed_message {
+    ($command:expr, $message:expr) => {
+        concat!(
+            "The output of `", $command, "` changed: ", $message,
+            ". This is not your fault, this is an issue in Topgrade. Please open an issue at: https://github.com/topgrade-rs/topgrade/issues/new?template=bug_report.md"
+        )
+    };
+}
