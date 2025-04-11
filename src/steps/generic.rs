@@ -442,7 +442,7 @@ fn run_vscode_compatible<const VSCODIUM: bool>(ctx: &ExecutionContext) -> Result
                 .join(".");
             Version::parse(&item).map_err(std::convert::Into::into)
         }
-        None => return Err(SkipStep(format!("Cannot find {name} version")).into()),
+        None => return Err(eyre!(format!("The output of `{bin_name} --version` changed, please file an issue to Topgrade: No first line"))),
     };
 
     // Raise any errors in parsing the version
