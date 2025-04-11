@@ -1,4 +1,3 @@
-use std::cell::Cell;
 #[cfg(windows)]
 use std::path::PathBuf;
 use std::process::Command;
@@ -16,7 +15,6 @@ use crate::utils::{require_option, which};
 pub struct Powershell {
     path: Option<PathBuf>,
     profile: Option<PathBuf>,
-    uac_prompt_shown: Cell<bool>,
 }
 
 impl Powershell {
@@ -27,11 +25,7 @@ impl Powershell {
     pub fn new() -> Self {
         let path = which("pwsh").or_else(|| which("powershell")).filter(|_| !is_dumb());
         let profile = Self::find_profile(&path);
-        Powershell {
-            path,
-            profile,
-            uac_prompt_shown: Cell::new(false),
-        }
+        Powershell { path, profile }
     }
 
     /// Helper to find the PowerShell profile path
@@ -58,7 +52,6 @@ impl Powershell {
         Powershell {
             path: which("powershell").filter(|_| !is_dumb()),
             profile: None,
-            uac_prompt_shown: Cell::new(false),
         }
     }
 
@@ -254,10 +247,7 @@ Write-Host "{}" -ForegroundColor Green"#,
 
         // Check if this will be elevated
         let will_elevate = ctx.sudo().is_some();
-        if will_elevate && !self.uac_prompt_shown.get() {
-            // Mark as shown for the instance using Cell instead of unsafe code
-            self.uac_prompt_shown.set(true);
-
+        if will_elevate {
             println!(
                 "{}",
                 self.clean_translation(t!(
@@ -292,16 +282,6 @@ impl Powershell {
     pub fn microsoft_store(&self, ctx: &ExecutionContext) -> Result<()> {
         windows::microsoft_store(self, ctx)
     }
-
-    #[allow(dead_code)]
-    pub fn supports_chocolatey(&self) -> bool {
-        windows::supports_chocolatey(self)
-    }
-
-    #[allow(dead_code)]
-    pub fn chocolatey_update(&self, ctx: &ExecutionContext) -> Result<()> {
-        windows::chocolatey_update(self, ctx)
-    }
 }
 
 #[cfg(windows)]
@@ -331,6 +311,8 @@ mod windows {
     pub fn windows_update(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
         debug_assert!(supports_windows_update(powershell));
 
+        print_separator(t!("Windows Update"));
+
         let accept_all = if ctx.config().accept_all_windows_updates() {
             "-AcceptAll"
         } else {
@@ -349,38 +331,27 @@ mod windows {
     }
 
     pub fn microsoft_store(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
+        print_separator(t!("Microsoft Store"));
         println!("{}", t!("Scanning for updates..."));
 
         // Build the command with optional verbosity
         let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
 
         // Create a PowerShell script that attempts only one method, with better feedback
-
-        // Fix: Create a local variable to hold the message content
-        let admin_message_part = if powershell.uac_prompt_shown.get() {
-            "#".to_string() // Convert &str to String to match the other branch
-        } else {
-            format!(
-                "Write-Output \"{}\"",
-                powershell.clean_translation(t!("Administrator privileges required for Microsoft Store updates"))
-            )
-        };
-
         let ps_script = format!(
             r#"
             # This operation requires administrator privileges
             $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
             if (-not $isAdmin) {{
-                # Only print this if we might not already have shown a UAC prompt
-                {2}
+                Write-Output "{}"
                 # Don't exit - we'll still try to run the command and let it fail properly
             }}
 
             # Only attempt the primary MDM UpdateScanMethod - most reliable method
             try {{
-                Write-Output "{0}"
-                $result = (Get-CimInstance{1} -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" -ErrorAction Stop | 
-                Invoke-CimMethod{1} -MethodName UpdateScanMethod -ErrorAction Stop).ReturnValue
+                Write-Output "{}"
+                $result = (Get-CimInstance{} -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" -ErrorAction Stop | 
+                Invoke-CimMethod{} -MethodName UpdateScanMethod -ErrorAction Stop).ReturnValue
                 
                 if ($result -eq 0) {{
                     Write-Output "SUCCESS_PRIMARY"
@@ -391,9 +362,12 @@ mod windows {
                 Write-Output "FAIL_PRIMARY_EXCEPTION:$($_.Exception.Message)"
             }}
             "#,
+            powershell.clean_translation(t!(
+                "Note: Administrator privileges required for Microsoft Store updates"
+            )),
             powershell.clean_translation(t!("Attempting to update Microsoft Store apps using MDM method...")),
             verbose_flag,
-            admin_message_part
+            verbose_flag
         );
 
         // Execute the script with proper privilege handling
@@ -435,106 +409,6 @@ mod windows {
 
                 Err(color_eyre::eyre::eyre!(
                     "Microsoft Store update failed. Administrator privileges may be required."
-                ))
-            }
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn supports_chocolatey(powershell: &Powershell) -> bool {
-        powershell
-            .path
-            .as_ref()
-            .map(|p| has_command(p, "choco"))
-            .unwrap_or(false)
-    }
-
-    #[allow(dead_code)]
-    fn has_command(powershell: &PathBuf, command_name: &str) -> bool {
-        Command::new(powershell)
-            .args([
-                "-NoProfile",
-                "-Command",
-                &format!("Get-Command {} -ErrorAction SilentlyContinue", command_name),
-            ])
-            .output_checked_utf8()
-            .map(|result| !result.stdout.is_empty())
-            .unwrap_or(false)
-    }
-
-    #[allow(dead_code)]
-    pub fn chocolatey_update(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
-        println!(
-            "{}",
-            powershell.clean_translation(t!("Scanning for Chocolatey package updates..."))
-        );
-
-        let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
-        let confirm_flag = if ctx.config().yes(Step::Chocolatey) { " -y" } else { "" };
-
-        // Create a PowerShell script that provides better user feedback
-        let choco_script = format!(
-            r#"
-            try {{
-                Write-Output "{}"
-
-                # Check if running as admin
-                $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-                if (-not $isAdmin) {{
-                    Write-Output "{}"
-                }}
-
-                # Check outdated packages first
-                Write-Output "{}"
-                $outdated = & choco outdated{} | Where-Object {{ $_ -match 'Chocolatey has determined ([0-9]+) package\(s\) are outdated' }}
-                $matches = [regex]::Match($outdated, '([0-9]+) package\(s\) are outdated')
-                if ($matches.Success) {{
-                    $count = $matches.Groups[1].Value
-                    Write-Output "{}"
-                }} else {{
-                    $count = "0"
-                    Write-Output "{}"
-                }}
-
-                # Run the actual upgrade if there are updates
-                if ($count -ne "0") {{
-                    Write-Output "{}"
-                    & choco upgrade all{}{} 
-                    Write-Output "{}"
-                }}
-            }} catch {{
-                Write-Output "{}"
-                Write-Output "$($_.Exception.Message)"
-                exit 1
-            }}
-            "#,
-            powershell.clean_translation(t!("Starting Chocolatey package updates...")),
-            powershell.clean_translation(t!(
-                "Notice: Some Chocolatey operations require administrator privileges"
-            )),
-            powershell.clean_translation(t!("Checking for outdated packages...")),
-            verbose_flag,
-            powershell.clean_translation(t!("Found {count} outdated package(s)", count = "$count")),
-            powershell.clean_translation(t!("All Chocolatey packages are up to date")),
-            powershell.clean_translation(t!("Upgrading Chocolatey packages...")),
-            confirm_flag,
-            verbose_flag,
-            powershell.clean_translation(t!("Chocolatey package upgrade completed")),
-            powershell.clean_translation(t!("Failed to update Chocolatey packages"))
-        );
-
-        // Execute the script with proper privilege handling
-        match powershell.execute_script(ctx, &choco_script) {
-            Ok(_) => Ok(()),
-            Err(e) => {
-                println!(
-                    "{}: {}",
-                    powershell.clean_translation(t!("Chocolatey update failed")),
-                    e
-                );
-
-                Err(color_eyre::eyre::eyre!(
-                    "Chocolatey update failed. Administrator privileges may be required."
                 ))
             }
         }
