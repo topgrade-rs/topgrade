@@ -79,38 +79,89 @@ impl Powershell {
         // Format the entire script using a template style for better readability
         format!(
             r#"Write-Host "{}" -ForegroundColor Cyan
-Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {{
-  $moduleName = $_.Name
-  try {{
-    # Only process modules installed via Install-Module
-    if (Get-InstalledModule -Name $moduleName -ErrorAction SilentlyContinue) {{
-      # Process each module individually - unload, update, reload
-      Write-Host "{}" -ForegroundColor Cyan
-      
-      {}
-      
-      # Update the module
-      Write-Host "  {}" -ForegroundColor Cyan
-      {}
-      
-      {}
+# First test connectivity to PowerShell Gallery
+$galleryAvailable = $false
+Write-Host "{}" -ForegroundColor Cyan
+try {{
+  $request = [System.Net.WebRequest]::Create("https://www.powershellgallery.com/api/v2")
+  $request.Method = "HEAD"
+  $request.Timeout = 10000
+  $response = $request.GetResponse()
+  $galleryAvailable = $true
+  $response.Close()
+  Write-Host "{}" -ForegroundColor Green
+}} catch {{
+  Write-Host "{}" -ForegroundColor Red
+  Write-Host "  $($_.Exception.Message)" -ForegroundColor Red
+}}
+
+if ($galleryAvailable) {{
+  Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {{
+    $moduleName = $_.Name
+    try {{
+      # Only process modules installed via Install-Module
+      if (Get-InstalledModule -Name $moduleName -ErrorAction SilentlyContinue) {{
+        # Process each module individually - unload, update, reload
+        Write-Host "{}" -ForegroundColor Cyan
+        
+        {}
+        
+        # Update the module
+        Write-Host "  {}" -ForegroundColor Cyan
+        $updateAttempts = 0
+        $maxAttempts = 2
+        $updateSuccess = $false
+        
+        while (-not $updateSuccess -and $updateAttempts -lt $maxAttempts) {{
+          try {{
+            $updateAttempts++
+            {}
+            $updateSuccess = $true
+          }} catch {{
+            if ($updateAttempts -lt $maxAttempts) {{
+              Write-Host "    {}" -ForegroundColor Yellow
+              Start-Sleep -Seconds 2
+            }} else {{
+              Write-Host "    {}" -ForegroundColor Red
+              Write-Host "    $($_.Exception.Message)" -ForegroundColor Red
+            }}
+          }}
+        }}
+        
+        {}
+      }}
+    }} catch {{
+      Write-Host "{}" -ForegroundColor Red
     }}
-  }} catch {{
-    Write-Host "{}" -ForegroundColor Red
   }}
+}} else {{
+  Write-Host "{}" -ForegroundColor Red
+  # Continue with module loading anyway, as they might still work
+  Write-Host "{}" -ForegroundColor Yellow
 }}
 Write-Host "{}" -ForegroundColor Green"#,
             t!("Processing PowerShell modules..."),
+            t!("Checking connectivity to PowerShell Gallery..."),
+            t!("PowerShell Gallery is accessible"),
+            t!("PowerShell Gallery is not accessible. Module updates will be skipped."),
             t!("Processing module: {moduleName}", moduleName = "$moduleName"),
             self.generate_module_unload_script(),
             t!("Updating module: {moduleName}", moduleName = "$moduleName"),
             update_command,
+            t!(
+                "Retry attempt {attempt} of {max}...",
+                attempt = "$updateAttempts",
+                max = "$maxAttempts"
+            ),
+            t!("Failed to update module after multiple attempts"),
             self.generate_module_reload_script(),
             t!(
                 "Failed to process module: {moduleName} - {error}",
                 moduleName = "$moduleName",
                 error = "$($_.Exception.Message)"
             ),
+            t!("Unable to connect to PowerShell Gallery. Module updates skipped."),
+            t!("Will still attempt to load existing modules"),
             t!("PowerShell module processing complete.")
         )
     }
