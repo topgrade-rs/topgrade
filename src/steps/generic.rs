@@ -437,7 +437,7 @@ fn run_vscode_compatible<const VSCODIUM: bool>(ctx: &ExecutionContext) -> Result
             //  This is not the case for VSCode, but just in case, and it can't really cause any issues.
             let item = item
                 .split('.')
-                .map(|s| s.trim_start_matches('0'))
+                .map(|s| if s == "0" { "0" } else { s.trim_start_matches('0') })
                 .collect::<Vec<_>>()
                 .join(".");
             Version::parse(&item).map_err(std::convert::Into::into)
