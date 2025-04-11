@@ -260,9 +260,7 @@ Write-Host "{}" -ForegroundColor Green"#,
 
             println!(
                 "{}",
-                self.clean_translation(t!(
-                    "This operation requires administrator privileges, expect a UAC prompt..."
-                ))
+                self.clean_translation(t!("Administrator privileges required - you will see a UAC prompt"))
             );
         }
 
@@ -335,20 +333,29 @@ mod windows {
         );
 
         // Use execute_script instead of run_ps_command to properly handle elevation
-        powershell.execute_script(ctx, &install_command)
+        match powershell.execute_script(ctx, &install_command) {
+            Ok(_) => {
+                println!(
+                    "{}",
+                    powershell.clean_translation(t!("Success, Windows Updates are being updated in the background"))
+                );
+                Ok(())
+            }
+            Err(e) => Err(e),
+        }
     }
 
     pub fn microsoft_store(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
-        println!("{}", t!("Scanning for updates..."));
+        println!("{}", powershell.clean_translation(t!("Scanning for updates...")));
 
         // Build the command with optional verbosity
         let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
 
         // Create a PowerShell script that attempts only one method, with better feedback
 
-        // Fix: Create a local variable to hold the message content
+        // Only show admin message in PowerShell output if we haven't shown it already at program level
         let admin_message_part = if powershell.uac_prompt_shown.get() {
-            "#".to_string() // Convert &str to String to match the other branch
+            "#".to_string() // Comment out - no need to show message again in PS output
         } else {
             format!(
                 "Write-Output \"{}\"",
@@ -391,35 +398,57 @@ mod windows {
             Ok(_) => {
                 println!(
                     "{}",
-                    t!("Success, Microsoft Store apps are being updated in the background")
+                    powershell
+                        .clean_translation(t!("Success, Microsoft Store apps are being updated in the background"))
                 );
                 Ok(())
             }
             Err(e) => {
-                println!("{}: {}", t!("Microsoft Store update failed"), e);
+                println!(
+                    "{}: {}",
+                    powershell.clean_translation(t!("Microsoft Store update failed")),
+                    e
+                );
 
                 // Fall back to manual method - avoid re-printing separator
-                println!("{}", t!("Attempting to open Microsoft Store updates page..."));
+                println!(
+                    "{}",
+                    powershell.clean_translation(t!("Attempting to open Microsoft Store updates page..."))
+                );
                 let store_script = r#"$Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime];
                     $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult()"#;
 
                 if let Err(e) = powershell.execute_script(ctx, store_script) {
-                    println!("{}: {}", t!("Failed to open Microsoft Store"), e);
+                    println!(
+                        "{}: {}",
+                        powershell.clean_translation(t!("Failed to open Microsoft Store")),
+                        e
+                    );
                 } else {
                     println!(
                         "{}",
-                        t!("Opened Microsoft Store updates page. Please check for updates manually.")
+                        powershell.clean_translation(t!(
+                            "Opened Microsoft Store updates page. Please check for updates manually."
+                        ))
                     );
                 }
 
                 // Fall back to wsreset as last resort
-                println!("{}", t!("Attempting to reset Microsoft Store..."));
+                println!(
+                    "{}",
+                    powershell.clean_translation(t!("Attempting to reset Microsoft Store..."))
+                );
                 if let Err(e) = ctx.run_type().execute("wsreset.exe").arg("-i").status_checked() {
-                    println!("{}: {}", t!("Failed to reset Microsoft Store"), e);
+                    println!(
+                        "{}: {}",
+                        powershell.clean_translation(t!("Failed to reset Microsoft Store")),
+                        e
+                    );
                 } else {
                     println!(
                         "{}",
-                        t!("Initiated Microsoft Store reset. Updates should begin shortly.")
+                        powershell
+                            .clean_translation(t!("Initiated Microsoft Store reset. Updates should begin shortly."))
                     );
                 }
 
