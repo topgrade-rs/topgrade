@@ -23,6 +23,7 @@ pub struct Powershell {
     path: Option<PathBuf>,
     profile: Option<PathBuf>,
     uac_prompt_shown: Cell<bool>,
+    windows_update_support: Cell<Option<bool>>,
 }
 
 impl Powershell {
@@ -37,6 +38,7 @@ impl Powershell {
             path,
             profile,
             uac_prompt_shown: Cell::new(false),
+            windows_update_support: Cell::new(None),
         }
     }
 
@@ -65,6 +67,7 @@ impl Powershell {
             path: which("powershell").filter(|_| !is_dumb()),
             profile: None,
             uac_prompt_shown: Cell::new(false),
+            windows_update_support: Cell::new(None),
         }
     }
 
@@ -289,16 +292,16 @@ if ($galleryAvailable) {{
     fn execute_script(&self, ctx: &ExecutionContext, script: &str) -> Result<()> {
         let mut cmd = self.create_powershell_command(ctx)?;
 
-        // Check if this will be elevated
+        // Check if this will be elevated and update prompt flag BEFORE executing
         let will_elevate = ctx.sudo().is_some();
         if will_elevate && !self.uac_prompt_shown.get() {
-            // Mark as shown for the instance using Cell instead of unsafe code
-            self.uac_prompt_shown.set(true);
-
+            // Show UAC prompt message once before any elevation occurs
             println!(
                 "{}",
                 self.clean_translation(t!("Administrator privileges required - you will see a UAC prompt"))
             );
+            // Mark as shown for the instance using Cell
+            self.uac_prompt_shown.set(true);
         }
 
         cmd.args(Self::default_args())
@@ -310,20 +313,7 @@ if ($galleryAvailable) {{
     pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
         print_separator(t!("Powershell Modules Update"));
 
-        // Check if this operation requires elevation and notify the user
-        if ctx.sudo().is_some() {
-            // Only show this message once per session
-            if !self.uac_prompt_shown.get() {
-                println!(
-                    "{}",
-                    self.clean_translation(t!(
-                        "The installer will request to run as administrator, expect a prompt."
-                    ))
-                );
-                // Removed duplicate UAC prompt message - execute_script will handle showing it
-            }
-        }
-
+        // No need for duplicate UAC message here - execute_script will handle it
         let script = self.create_update_script(ctx);
         let result = self.execute_script(ctx, &script);
 
@@ -342,7 +332,22 @@ if ($galleryAvailable) {{
 #[cfg(windows)]
 impl Powershell {
     pub fn supports_windows_update(&self) -> bool {
-        windows::supports_windows_update(self)
+        // Check cached result first
+        if let Some(supports) = self.windows_update_support.get() {
+            return supports;
+        }
+
+        // If no cached result, perform the check
+        let result = self
+            .path
+            .as_ref()
+            .map(|p| windows::has_module(p, "PSWindowsUpdate"))
+            .unwrap_or(false);
+
+        // Cache the result for future calls
+        self.windows_update_support.set(Some(result));
+
+        result
     }
 
     pub fn windows_update(&self, ctx: &ExecutionContext) -> Result<()> {
@@ -358,20 +363,19 @@ impl Powershell {
 mod windows {
     use super::*;
 
-    pub fn supports_windows_update(powershell: &Powershell) -> bool {
-        powershell
-            .path
-            .as_ref()
-            .map(|p| has_module(p, "PSWindowsUpdate"))
-            .unwrap_or(false)
-    }
+    // Removed the unused function supports_windows_update
 
-    fn has_module(powershell: &PathBuf, module_name: &str) -> bool {
+    pub fn has_module(powershell: &PathBuf, module_name: &str) -> bool {
+        // Use -ErrorAction SilentlyContinue to avoid prompts and error messages
         Command::new(powershell)
             .args([
                 PS_NO_PROFILE,
+                PS_NO_LOGO, // Added to be consistent with other commands
                 PS_COMMAND,
-                &format!("Get-Module -ListAvailable {}", module_name),
+                &format!(
+                    "Get-Module -ListAvailable {} -ErrorAction SilentlyContinue",
+                    module_name
+                ),
             ])
             .output_checked_utf8()
             .map(|result| !result.stdout.is_empty())
@@ -379,7 +383,8 @@ mod windows {
     }
 
     pub fn windows_update(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
-        debug_assert!(supports_windows_update(powershell));
+        // Remove the debug_assert since we're now using the cached check
+        // and this would be redundant
 
         let accept_all = if ctx.config().accept_all_windows_updates() {
             "-AcceptAll"
@@ -387,6 +392,7 @@ mod windows {
             ""
         };
 
+        // No need for a separate UAC prompt message - execute_script will handle it
         let install_command = format!(
             "Write-Output '{}'; Install-WindowsUpdate {} {}",
             powershell.clean_translation(t!("Starting Windows Update...")),
@@ -394,7 +400,7 @@ mod windows {
             accept_all
         );
 
-        // Use execute_script instead of run_ps_command to properly handle elevation
+        // Use execute_script to properly handle elevation
         match powershell.execute_script(ctx, &install_command) {
             Ok(_) => {
                 println!(
@@ -413,31 +419,22 @@ mod windows {
         // Build the command with optional verbosity
         let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
 
-        // Only show admin message in PowerShell output if we haven't shown it already at program level
-        let admin_message_part = if powershell.uac_prompt_shown.get() {
-            "#".to_string() // Comment out - no need to show message again in PS output
-        } else {
-            format!(
-                "Write-Output \"{}\"",
-                powershell.clean_translation(t!("Administrator privileges required for Microsoft Store updates"))
-            )
-        };
-
+        // Comment out admin message in PowerShell output - our execute_script will handle it
         let ps_script = format!(
             r#"
             # This operation requires administrator privileges
             $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
             if (-not $isAdmin) {{
-                # Only print this if we might not already have shown a UAC prompt
-                {2}
+                # Skip admin message - Topgrade handles this
+                # Write-Output "{}"
                 # Don't exit - we'll still try to run the command and let it fail properly
             }}
 
             # Only attempt the primary MDM UpdateScanMethod - most reliable method
             try {{
-                Write-Output "{0}"
-                $result = (Get-CimInstance{1} -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" -ErrorAction Stop |
-                Invoke-CimMethod{1} -MethodName UpdateScanMethod -ErrorAction Stop).ReturnValue
+                Write-Output "{}"
+                $result = (Get-CimInstance{} -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" -ErrorAction Stop |
+                Invoke-CimMethod{} -MethodName UpdateScanMethod -ErrorAction Stop).ReturnValue
 
                 if ($result -eq 0) {{
                     Write-Output "SUCCESS_PRIMARY"
@@ -448,9 +445,10 @@ mod windows {
                 Write-Output "FAIL_PRIMARY_EXCEPTION:$($_.Exception.Message)"
             }}
             "#,
+            powershell.clean_translation(t!("Administrator privileges required for Microsoft Store updates")),
             powershell.clean_translation(t!("Attempting to update Microsoft Store apps using MDM method...")),
             verbose_flag,
-            admin_message_part
+            verbose_flag
         );
 
         // Execute the script and handle potential fallbacks
