@@ -71,6 +71,18 @@ impl Powershell {
             .map(|output| output.stdout)
     }
 
+    /// Helper function to clean translated strings by removing locale prefixes
+    fn clean_translation(&self, text: impl Into<String>) -> String {
+        let text = text.into();
+        // Remove locale prefixes like "en-GB." from translated strings
+        if let Some(idx) = text.find('.') {
+            if text.chars().take(idx).all(|c| c.is_ascii_alphabetic() || c == '-') {
+                return text[idx + 1..].to_string();
+            }
+        }
+        text
+    }
+
     /// Creates the PowerShell script for updating modules
     fn create_update_script(&self, ctx: &ExecutionContext) -> String {
         let force_flag = self.get_force_flag(ctx);
@@ -140,29 +152,31 @@ if ($galleryAvailable) {{
   Write-Host "{}" -ForegroundColor Yellow
 }}
 Write-Host "{}" -ForegroundColor Green"#,
-            t!("Processing PowerShell modules..."),
-            t!("Checking connectivity to PowerShell Gallery..."),
-            t!("PowerShell Gallery is accessible"),
-            t!("PowerShell Gallery is not accessible. Module updates will be skipped."),
-            t!("Processing module: {moduleName}", moduleName = "$moduleName"),
+            self.clean_translation(t!("Processing PowerShell modules...")),
+            self.clean_translation(t!("Checking connectivity to PowerShell Gallery...")),
+            self.clean_translation(t!("PowerShell Gallery is accessible")),
+            self.clean_translation(t!(
+                "PowerShell Gallery is not accessible. Module updates will be skipped."
+            )),
+            self.clean_translation(t!("Processing module: {moduleName}", moduleName = "$moduleName")),
             self.generate_module_unload_script(),
-            t!("Updating module: {moduleName}", moduleName = "$moduleName"),
+            self.clean_translation(t!("Updating module: {moduleName}", moduleName = "$moduleName")),
             update_command,
-            t!(
+            self.clean_translation(t!(
                 "Retry attempt {attempt} of {max}...",
                 attempt = "$updateAttempts",
                 max = "$maxAttempts"
-            ),
-            t!("Failed to update module after multiple attempts"),
+            )),
+            self.clean_translation(t!("Failed to update module after multiple attempts")),
             self.generate_module_reload_script(),
-            t!(
+            self.clean_translation(t!(
                 "Failed to process module: {moduleName} - {error}",
                 moduleName = "$moduleName",
                 error = "$($_.Exception.Message)"
-            ),
-            t!("Unable to connect to PowerShell Gallery. Module updates skipped."),
-            t!("Will still attempt to load existing modules"),
-            t!("PowerShell module processing complete.")
+            )),
+            self.clean_translation(t!("Unable to connect to PowerShell Gallery. Module updates skipped.")),
+            self.clean_translation(t!("Will still attempt to load existing modules")),
+            self.clean_translation(t!("PowerShell module processing complete."))
         )
     }
 
@@ -194,7 +208,7 @@ Write-Host "{}" -ForegroundColor Green"#,
       }} else {{
         Write-Host "    Module is not currently loaded" -ForegroundColor Yellow
       }}"#,
-            t!("Unloading module: {moduleName}", moduleName = "$moduleName")
+            self.clean_translation(t!("Unloading module: {moduleName}", moduleName = "$moduleName"))
         )
     }
 
@@ -209,13 +223,16 @@ Write-Host "{}" -ForegroundColor Green"#,
       }} catch {{
         Write-Host "  {}" -ForegroundColor Yellow
       }}"#,
-            t!("Reloading module: {moduleName}", moduleName = "$moduleName"),
-            t!("Successfully imported module: {moduleName}", moduleName = "$moduleName"),
-            t!(
+            self.clean_translation(t!("Reloading module: {moduleName}", moduleName = "$moduleName")),
+            self.clean_translation(t!(
+                "Successfully imported module: {moduleName}",
+                moduleName = "$moduleName"
+            )),
+            self.clean_translation(t!(
                 "Could not reload module: {moduleName} - {error}",
                 moduleName = "$moduleName",
                 error = "$($_.Exception.Message)"
-            )
+            ))
         )
     }
 
@@ -225,6 +242,8 @@ Write-Host "{}" -ForegroundColor Green"#,
 
         let cmd = if let Some(sudo) = ctx.sudo() {
             let mut cmd = ctx.run_type().execute(sudo);
+            // When using sudo, pass the PowerShell path as a single argument to prevent
+            // the shell from splitting it, then pass default args separately
             cmd.arg(powershell);
             cmd
         } else {
@@ -320,62 +339,30 @@ mod windows {
         // Build the command with optional verbosity
         let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
 
-        // Create a PowerShell script that tries each method sequentially using proper flow control
+        // Create a PowerShell script that attempts only one method, with better feedback
         let ps_script = format!(
             r#"
-            $success = $false
-
-            # Try primary method: MDM UpdateScanMethod
+            # Only attempt the primary MDM UpdateScanMethod - most reliable method
             try {{
+                Write-Output "{}"
                 $result = (Get-CimInstance{} -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" -ErrorAction Stop | 
                 Invoke-CimMethod{} -MethodName UpdateScanMethod -ErrorAction Stop).ReturnValue
+                
                 if ($result -eq 0) {{
                     Write-Output "SUCCESS_PRIMARY"
-                    $success = $true
                 }} else {{
                     Write-Output "FAIL_PRIMARY_NONZERO:$result"
                 }}
             }} catch {{
                 Write-Output "FAIL_PRIMARY_EXCEPTION:$($_.Exception.Message)"
             }}
-
-            # If primary method failed, try fallback method 1: Using WinRT API
-            if (-not $success) {{
-                try {{
-                    $Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime]
-                    $result = $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult()
-                    if ($result) {{
-                        Write-Output "SUCCESS_FALLBACK1"
-                        $success = $true
-                    }} else {{
-                        Write-Output "FAIL_FALLBACK1:LaunchUriAsync returned false"
-                    }}
-                }} catch {{
-                    Write-Output "FAIL_FALLBACK1:$($_.Exception.Message)"
-                }}
-            }}
-
-            # If both previous methods failed, try fallback method 2: WSReset command
-            if (-not $success) {{
-                try {{
-                    Start-Process "wsreset.exe" -ArgumentList "-i"{} -ErrorAction Stop
-                    Write-Output "SUCCESS_FALLBACK2"
-                    $success = $true
-                }} catch {{
-                    Write-Output "FAIL_FALLBACK2:$($_.Exception.Message)"
-                }}
-            }}
-
-            if (-not $success) {{
-                Write-Output "FAIL_ALL_METHODS"
-            }}
             "#,
+            t!("Attempting to update Microsoft Store apps using MDM method..."),
             verbose_flag,
-            verbose_flag,
-            if ctx.config().verbose() { " -Verb RunAs" } else { "" }
+            verbose_flag
         );
 
-        // Execute the full script
+        // Execute the script
         let output = match powershell.run_ps_command(powershell_path, &ps_script) {
             Ok(output) => output.trim().to_string(),
             Err(e) => {
@@ -391,45 +378,49 @@ mod windows {
                 t!("Success, Microsoft Store apps are being updated in the background")
             );
             Ok(())
-        } else if output.contains("SUCCESS_FALLBACK1") {
-            println!(
-                "{}",
-                t!("Opened Microsoft Store updates page. Please check for updates manually.")
-            );
-            Ok(())
-        } else if output.contains("SUCCESS_FALLBACK2") {
-            println!(
-                "{}",
-                t!("Initiated Microsoft Store reset. Updates should begin shortly.")
-            );
-            Ok(())
         } else if output.contains("FAIL_PRIMARY_NONZERO:") {
             let code = output.split(':').nth(1).unwrap_or("unknown");
-            println!(
-                "{}",
-                t!(
-                    "Primary method failed with code: {code}. Trying alternative methods...",
-                    code = code
-                )
-            );
+            println!("{}", t!("Microsoft Store update failed with code: {code}", code = code));
+
+            // Fall back to manual method
+            println!("{}", t!("Attempting to open Microsoft Store updates page..."));
+            if let Err(e) = powershell.run_ps_command(
+                powershell_path,
+                r#"$Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime]; 
+                $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult()"#,
+            ) {
+                println!("{}: {}", t!("Failed to open Microsoft Store"), e);
+            } else {
+                println!(
+                    "{}",
+                    t!("Opened Microsoft Store updates page. Please check for updates manually.")
+                );
+            }
+
             Err(color_eyre::eyre::eyre!(
                 "Microsoft Store update failed with code {}",
                 code
             ))
         } else if output.contains("FAIL_PRIMARY_EXCEPTION:") {
             let msg = output.split_once(':').map(|x| x.1).unwrap_or("unknown error");
-            println!(
-                "{}",
-                t!(
-                    "Primary method failed: {error}. Trying alternative methods...",
-                    error = msg
-                )
-            );
+            println!("{}: {}", t!("Microsoft Store update failed"), msg);
+
+            // Fall back to wsreset as last resort, but don't try all methods every time
+            println!("{}", t!("Attempting to reset Microsoft Store..."));
+            if let Err(e) = Command::new("wsreset.exe").arg("-i").status_checked() {
+                println!("{}: {}", t!("Failed to reset Microsoft Store"), e);
+            } else {
+                println!(
+                    "{}",
+                    t!("Initiated Microsoft Store reset. Updates should begin shortly.")
+                );
+            }
+
             Err(color_eyre::eyre::eyre!("Microsoft Store update failed: {}", msg))
         } else {
             println!(
                 "{}",
-                t!("All Microsoft Store update methods failed. Please update manually.")
+                t!("Microsoft Store update method failed. Please update manually.")
             );
             Err(color_eyre::eyre::eyre!("Microsoft Store update failed"))
         }
