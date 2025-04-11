@@ -292,9 +292,13 @@ mod windows {
             if (-not $success) {{
                 try {{
                     $Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime]
-                    $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult()
-                    Write-Output "SUCCESS_FALLBACK1"
-                    $success = $true
+                    $result = $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult()
+                    if ($result) {{
+                        Write-Output "SUCCESS_FALLBACK1"
+                        $success = $true
+                    }} else {{
+                        Write-Output "FAIL_FALLBACK1:LaunchUriAsync returned false"
+                    }}
                 }} catch {{
                     Write-Output "FAIL_FALLBACK1:$($_.Exception.Message)"
                 }}
@@ -329,26 +333,26 @@ mod windows {
             }
         };
 
-        // Rest of the function remains the same
-        if output.starts_with("SUCCESS_PRIMARY") {
+        // Process the output and provide appropriate feedback
+        if output.contains("SUCCESS_PRIMARY") {
             println!(
                 "{}",
                 t!("Success, Microsoft Store apps are being updated in the background")
             );
             Ok(())
-        } else if output.starts_with("SUCCESS_FALLBACK1") {
+        } else if output.contains("SUCCESS_FALLBACK1") {
             println!(
                 "{}",
                 t!("Opened Microsoft Store updates page. Please check for updates manually.")
             );
             Ok(())
-        } else if output.starts_with("SUCCESS_FALLBACK2") {
+        } else if output.contains("SUCCESS_FALLBACK2") {
             println!(
                 "{}",
                 t!("Initiated Microsoft Store reset. Updates should begin shortly.")
             );
             Ok(())
-        } else if output.starts_with("FAIL_PRIMARY_NONZERO:") {
+        } else if output.contains("FAIL_PRIMARY_NONZERO:") {
             let code = output.split(':').nth(1).unwrap_or("unknown");
             println!(
                 "{}",
@@ -361,7 +365,7 @@ mod windows {
                 "Microsoft Store update failed with code {}",
                 code
             ))
-        } else if output.starts_with("FAIL_PRIMARY_EXCEPTION:") {
+        } else if output.contains("FAIL_PRIMARY_EXCEPTION:") {
             let msg = output.split_once(':').map(|x| x.1).unwrap_or("unknown error");
             println!(
                 "{}",
