@@ -250,7 +250,9 @@ Write-Host "{}" -ForegroundColor Green"#,
         if will_elevate {
             println!(
                 "{}",
-                t!("This operation requires administrator privileges, expect a UAC prompt...")
+                self.clean_translation(t!(
+                    "This operation requires administrator privileges, expect a UAC prompt..."
+                ))
             );
         }
 
