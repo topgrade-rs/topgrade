@@ -13,6 +13,12 @@ use crate::executor::Executor;
 use crate::terminal::{is_dumb, print_separator};
 use crate::utils::{require_option, which};
 
+// String constants for common PowerShell arguments
+const PS_NO_PROFILE: &str = "-NoProfile";
+const PS_NO_LOGO: &str = "-NoLogo";
+const PS_NON_INTERACTIVE: &str = "-NonInteractive";
+const PS_COMMAND: &str = "-Command";
+
 pub struct Powershell {
     path: Option<PathBuf>,
     profile: Option<PathBuf>,
@@ -39,7 +45,7 @@ impl Powershell {
         path.as_ref().and_then(|path| {
             Command::new(path)
                 .args(Self::default_args())
-                .arg("-Command")
+                .arg(PS_COMMAND)
                 .arg("Split-Path $profile")
                 .output_checked_utf8()
                 .map(|output| PathBuf::from(output.stdout.trim()))
@@ -50,7 +56,7 @@ impl Powershell {
 
     /// Returns the default PowerShell command arguments used in most commands
     fn default_args() -> [&'static str; 3] {
-        ["-NoProfile", "-NoLogo", "-NonInteractive"]
+        [PS_NO_PROFILE, PS_NO_LOGO, PS_NON_INTERACTIVE]
     }
 
     #[cfg(windows)]
@@ -83,10 +89,30 @@ impl Powershell {
         let force_flag = self.get_force_flag(ctx);
         let update_command = self.build_update_command(force_flag, ctx.config().verbose());
 
-        // Format the entire script using a template style for better readability
+        // Assemble script sections
+        let script_header = self.generate_script_header();
+        let gallery_check = self.generate_gallery_check();
+        let module_processing = self.generate_module_processing(&update_command);
+        let script_footer = self.generate_script_footer();
+
         format!(
-            r#"Write-Host "{}" -ForegroundColor Cyan
-# First test connectivity to PowerShell Gallery
+            "{}\n{}\n{}\n{}",
+            script_header, gallery_check, module_processing, script_footer
+        )
+    }
+
+    /// Generate the script header
+    fn generate_script_header(&self) -> String {
+        format!(
+            r#"Write-Host "{}" -ForegroundColor Cyan"#,
+            self.clean_translation(t!("Processing PowerShell modules..."))
+        )
+    }
+
+    /// Generate the gallery connectivity check section
+    fn generate_gallery_check(&self) -> String {
+        format!(
+            r#"# First test connectivity to PowerShell Gallery
 $galleryAvailable = $false
 Write-Host "{}" -ForegroundColor Cyan
 try {{
@@ -100,8 +126,19 @@ try {{
 }} catch {{
   Write-Host "{}" -ForegroundColor Red
   Write-Host "  $($_.Exception.Message)" -ForegroundColor Red
-}}
+}}"#,
+            self.clean_translation(t!("Checking connectivity to PowerShell Gallery...")),
+            self.clean_translation(t!("PowerShell Gallery is accessible")),
+            self.clean_translation(t!(
+                "PowerShell Gallery is not accessible. Module updates will be skipped."
+            ))
+        )
+    }
 
+    /// Generate the module processing section
+    fn generate_module_processing(&self, update_command: &str) -> String {
+        format!(
+            r#"
 if ($galleryAvailable) {{
   Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {{
     $moduleName = $_.Name
@@ -145,14 +182,7 @@ if ($galleryAvailable) {{
   Write-Host "{}" -ForegroundColor Red
   # Continue with module loading anyway, as they might still work
   Write-Host "{}" -ForegroundColor Yellow
-}}
-Write-Host "{}" -ForegroundColor Green"#,
-            self.clean_translation(t!("Processing PowerShell modules...")),
-            self.clean_translation(t!("Checking connectivity to PowerShell Gallery...")),
-            self.clean_translation(t!("PowerShell Gallery is accessible")),
-            self.clean_translation(t!(
-                "PowerShell Gallery is not accessible. Module updates will be skipped."
-            )),
+}}"#,
             self.clean_translation(t!("Processing module: {moduleName}", moduleName = "$moduleName")),
             self.generate_module_unload_script(),
             self.clean_translation(t!("Updating module: {moduleName}", moduleName = "$moduleName")),
@@ -170,7 +200,14 @@ Write-Host "{}" -ForegroundColor Green"#,
                 error = "$($_.Exception.Message)"
             )),
             self.clean_translation(t!("Unable to connect to PowerShell Gallery. Module updates skipped.")),
-            self.clean_translation(t!("Will still attempt to load existing modules")),
+            self.clean_translation(t!("Will still attempt to load existing modules"))
+        )
+    }
+
+    /// Generate script footer
+    fn generate_script_footer(&self) -> String {
+        format!(
+            r#"Write-Host "{}" -ForegroundColor Green"#,
             self.clean_translation(t!("PowerShell module processing complete."))
         )
     }
@@ -265,7 +302,7 @@ Write-Host "{}" -ForegroundColor Green"#,
         }
 
         cmd.args(Self::default_args())
-            .arg("-Command")
+            .arg(PS_COMMAND)
             .arg(script)
             .status_checked()
     }
@@ -307,8 +344,8 @@ mod windows {
     fn has_module(powershell: &PathBuf, module_name: &str) -> bool {
         Command::new(powershell)
             .args([
-                "-NoProfile",
-                "-Command",
+                PS_NO_PROFILE,
+                PS_COMMAND,
                 &format!("Get-Module -ListAvailable {}", module_name),
             ])
             .output_checked_utf8()
@@ -351,8 +388,6 @@ mod windows {
         // Build the command with optional verbosity
         let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
 
-        // Create a PowerShell script that attempts only one method, with better feedback
-
         // Only show admin message in PowerShell output if we haven't shown it already at program level
         let admin_message_part = if powershell.uac_prompt_shown.get() {
             "#".to_string() // Comment out - no need to show message again in PS output
@@ -393,7 +428,12 @@ mod windows {
             admin_message_part
         );
 
-        // Execute the script with proper privilege handling
+        // Execute the script and handle potential fallbacks
+        handle_microsoft_store_update(powershell, ctx, ps_script)
+    }
+
+    // Helper function to handle Microsoft Store update with fallbacks
+    fn handle_microsoft_store_update(powershell: &Powershell, ctx: &ExecutionContext, ps_script: String) -> Result<()> {
         match powershell.execute_script(ctx, &ps_script) {
             Ok(_) => {
                 println!(
@@ -410,52 +450,59 @@ mod windows {
                     e
                 );
 
-                // Fall back to manual method - avoid re-printing separator
-                println!(
-                    "{}",
-                    powershell.clean_translation(t!("Attempting to open Microsoft Store updates page..."))
-                );
-                let store_script = r#"$Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime];
-                    $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult()"#;
-
-                if let Err(e) = powershell.execute_script(ctx, store_script) {
-                    println!(
-                        "{}: {}",
-                        powershell.clean_translation(t!("Failed to open Microsoft Store")),
-                        e
-                    );
-                } else {
-                    println!(
-                        "{}",
-                        powershell.clean_translation(t!(
-                            "Opened Microsoft Store updates page. Please check for updates manually."
-                        ))
-                    );
-                }
-
-                // Fall back to wsreset as last resort
-                println!(
-                    "{}",
-                    powershell.clean_translation(t!("Attempting to reset Microsoft Store..."))
-                );
-                if let Err(e) = ctx.run_type().execute("wsreset.exe").arg("-i").status_checked() {
-                    println!(
-                        "{}: {}",
-                        powershell.clean_translation(t!("Failed to reset Microsoft Store")),
-                        e
-                    );
-                } else {
-                    println!(
-                        "{}",
-                        powershell
-                            .clean_translation(t!("Initiated Microsoft Store reset. Updates should begin shortly."))
-                    );
-                }
+                // Try fallback methods
+                try_microsoft_store_fallbacks(powershell, ctx)?;
 
                 Err(color_eyre::eyre::eyre!(
                     "Microsoft Store update failed. Administrator privileges may be required."
                 ))
             }
         }
+    }
+
+    // Helper for fallback methods
+    fn try_microsoft_store_fallbacks(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
+        // First fallback: open Microsoft Store updates page
+        println!(
+            "{}",
+            powershell.clean_translation(t!("Attempting to open Microsoft Store updates page..."))
+        );
+        let store_script = r#"$Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime];
+                $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult()"#;
+
+        if let Err(e) = powershell.execute_script(ctx, store_script) {
+            println!(
+                "{}: {}",
+                powershell.clean_translation(t!("Failed to open Microsoft Store")),
+                e
+            );
+        } else {
+            println!(
+                "{}",
+                powershell.clean_translation(t!(
+                    "Opened Microsoft Store updates page. Please check for updates manually."
+                ))
+            );
+        }
+
+        // Second fallback: wsreset
+        println!(
+            "{}",
+            powershell.clean_translation(t!("Attempting to reset Microsoft Store..."))
+        );
+        if let Err(e) = ctx.run_type().execute("wsreset.exe").arg("-i").status_checked() {
+            println!(
+                "{}: {}",
+                powershell.clean_translation(t!("Failed to reset Microsoft Store")),
+                e
+            );
+        } else {
+            println!(
+                "{}",
+                powershell.clean_translation(t!("Initiated Microsoft Store reset. Updates should begin shortly."))
+            );
+        }
+
+        Ok(())
     }
 }
