@@ -211,8 +211,7 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
     print_separator(t!("Windows Update"));
 
     if powershell.supports_windows_update() {
-        println!("The installer will request to run as administrator, expect a prompt.");
-
+        // Remove redundant UAC message here - the execute_script method will handle displaying this
         powershell.windows_update(ctx)
     } else {
         print_warning(t!(
