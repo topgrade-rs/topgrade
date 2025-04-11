@@ -294,7 +294,10 @@ if ($galleryAvailable) {{
 
         // Check if this will be elevated and update prompt flag BEFORE executing
         let will_elevate = ctx.sudo().is_some();
-        if will_elevate && !self.uac_prompt_shown.get() {
+
+        // Only show UAC prompt message if we will need to elevate AND we haven't shown the message yet
+        // AND we're not already running as admin
+        if will_elevate && !self.uac_prompt_shown.get() && !Self::is_process_elevated() {
             // Show UAC prompt message once before any elevation occurs
             println!(
                 "{}",
@@ -310,8 +313,39 @@ if ($galleryAvailable) {{
             .status_checked()
     }
 
+    // Helper function to detect if current process is already elevated
+    #[cfg(windows)]
+    fn is_process_elevated() -> bool {
+        use std::process::Command;
+
+        // Use PowerShell to check if the current process is elevated
+        // This command returns "True" if running as admin, "False" otherwise
+        match Command::new("powershell")
+            .args([
+                "-NoProfile",
+                "-Command",
+                "[bool](([System.Security.Principal.WindowsIdentity]::GetCurrent()).groups -match 'S-1-5-32-544')",
+            ])
+            .output_checked_utf8()
+        {
+            Ok(output) => {
+                let result = output.stdout.trim().to_string();
+                result.eq_ignore_ascii_case("true")
+            }
+            Err(_) => false,
+        }
+    }
+
+    #[cfg(not(windows))]
+    fn is_process_elevated() -> bool {
+        false // On non-Windows platforms, we don't need this check
+    }
+
     pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
         print_separator(t!("Powershell Modules Update"));
+
+        // Display scanning message
+        println!("{}", self.clean_translation(t!("Scanning for updates...")));
 
         // No need for duplicate UAC message here - execute_script will handle it
         let script = self.create_update_script(ctx);
@@ -351,7 +385,37 @@ impl Powershell {
     }
 
     pub fn windows_update(&self, ctx: &ExecutionContext) -> Result<()> {
-        windows::windows_update(self, ctx)
+        // Remove the debug_assert since we're now using the cached check
+        // and this would be redundant
+
+        let accept_all = if ctx.config().accept_all_windows_updates() {
+            "-AcceptAll"
+        } else {
+            ""
+        };
+
+        // Display scanning message
+        println!("{}", self.clean_translation(t!("Scanning for updates...")));
+
+        // No need for a separate UAC prompt message - execute_script will handle it
+        let install_command = format!(
+            "Write-Output '{}'; Install-WindowsUpdate {} {}",
+            self.clean_translation(t!("Starting Windows Update...")),
+            if ctx.config().verbose() { "-Verbose" } else { "" },
+            accept_all
+        );
+
+        // Use execute_script to properly handle elevation
+        match self.execute_script(ctx, &install_command) {
+            Ok(_) => {
+                println!(
+                    "{}",
+                    self.clean_translation(t!("Success, Windows Updates are being updated in the background"))
+                );
+                Ok(())
+            }
+            Err(e) => Err(e),
+        }
     }
 
     pub fn microsoft_store(&self, ctx: &ExecutionContext) -> Result<()> {
@@ -363,7 +427,7 @@ impl Powershell {
 mod windows {
     use super::*;
 
-    // Removed the unused function supports_windows_update
+    // Removed the unused function windows_update
 
     pub fn has_module(powershell: &PathBuf, module_name: &str) -> bool {
         // Use -ErrorAction SilentlyContinue to avoid prompts and error messages
@@ -380,37 +444,6 @@ mod windows {
             .output_checked_utf8()
             .map(|result| !result.stdout.is_empty())
             .unwrap_or(false)
-    }
-
-    pub fn windows_update(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
-        // Remove the debug_assert since we're now using the cached check
-        // and this would be redundant
-
-        let accept_all = if ctx.config().accept_all_windows_updates() {
-            "-AcceptAll"
-        } else {
-            ""
-        };
-
-        // No need for a separate UAC prompt message - execute_script will handle it
-        let install_command = format!(
-            "Write-Output '{}'; Install-WindowsUpdate {} {}",
-            powershell.clean_translation(t!("Starting Windows Update...")),
-            if ctx.config().verbose() { "-Verbose" } else { "" },
-            accept_all
-        );
-
-        // Use execute_script to properly handle elevation
-        match powershell.execute_script(ctx, &install_command) {
-            Ok(_) => {
-                println!(
-                    "{}",
-                    powershell.clean_translation(t!("Success, Windows Updates are being updated in the background"))
-                );
-                Ok(())
-            }
-            Err(e) => Err(e),
-        }
     }
 
     pub fn microsoft_store(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
