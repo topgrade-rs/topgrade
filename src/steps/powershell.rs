@@ -217,7 +217,6 @@ impl Powershell {
 #[cfg(windows)]
 mod windows {
     use super::*;
-    use std::time::Duration;
 
     pub fn supports_windows_update(powershell: &Powershell) -> bool {
         powershell
@@ -283,15 +282,14 @@ mod windows {
         );
 
         // Try fallback method 1: Using WinRT API
-        let fallback1_cmd = format!(
-            "try {{ \
+        let fallback1_cmd = "try { \
                 $Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime]; \
                 $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult(); \
                 Write-Output \"SUCCESS_FALLBACK1\" \
-            }} catch {{ \
+            } catch { \
                 Write-Output \"FAIL_FALLBACK1:$($_.Exception.Message)\" \
-            }}"
-        );
+            }"
+        .to_string();
 
         // Try fallback method 2: WSReset command
         let fallback2_cmd = format!(
@@ -349,7 +347,7 @@ mod windows {
                 code
             ))
         } else if output.starts_with("FAIL_PRIMARY_EXCEPTION:") {
-            let msg = output.splitn(2, ':').nth(1).unwrap_or("unknown error");
+            let msg = output.split_once(':').map(|x| x.1).unwrap_or("unknown error");
             println!(
                 "{}",
                 t!(
