@@ -241,7 +241,7 @@ mod windows {
     pub fn windows_update(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
         debug_assert!(supports_windows_update(powershell));
 
-        let powershell_path = require_option(powershell.path.as_ref(), t!("Powershell is not installed").to_string())?;
+        print_separator(t!("Windows Update"));
 
         let accept_all = if ctx.config().accept_all_windows_updates() {
             "-AcceptAll"
@@ -255,8 +255,8 @@ mod windows {
             accept_all
         );
 
-        powershell.run_ps_command(powershell_path, &install_command)?;
-        Ok(())
+        // Use execute_script instead of run_ps_command to properly handle elevation
+        powershell.execute_script(ctx, &install_command)
     }
 
     pub fn microsoft_store(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
