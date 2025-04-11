@@ -309,8 +309,33 @@ if ($galleryAvailable) {{
 
     pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
         print_separator(t!("Powershell Modules Update"));
+
+        // Check if this operation requires elevation and notify the user
+        if ctx.sudo().is_some() {
+            // Only show this message once per session
+            if !self.uac_prompt_shown.get() {
+                println!(
+                    "{}",
+                    self.clean_translation(t!(
+                        "The installer will request to run as administrator, expect a prompt."
+                    ))
+                );
+                // Removed duplicate UAC prompt message - execute_script will handle showing it
+            }
+        }
+
         let script = self.create_update_script(ctx);
-        self.execute_script(ctx, &script)
+        let result = self.execute_script(ctx, &script);
+
+        // Add success message if script executed successfully
+        if result.is_ok() {
+            println!(
+                "{}",
+                self.clean_translation(t!("Success, PowerShell Modules are being updated in the background"))
+            );
+        }
+
+        result
     }
 }
 
