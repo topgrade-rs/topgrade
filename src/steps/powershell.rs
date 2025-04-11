@@ -48,6 +48,18 @@ impl Powershell {
         ["-NoProfile", "-NoLogo", "-NonInteractive"]
     }
 
+    #[cfg(windows)]
+    pub fn windows_powershell() -> Self {
+        Powershell {
+            path: which("powershell").filter(|_| !is_dumb()),
+            profile: None,
+        }
+    }
+
+    pub fn profile(&self) -> Option<&PathBuf> {
+        self.profile.as_ref()
+    }
+
     /// Helper to run PowerShell with a command
     #[cfg(windows)]
     fn run_ps_command(&self, path: &Path, command: &str) -> Result<String> {
@@ -57,29 +69,6 @@ impl Powershell {
             .arg(command)
             .output_checked_utf8()
             .map(|output| output.stdout)
-    }
-
-    #[cfg(windows)]
-    pub fn windows_powershell() -> Self {
-        Powershell {
-            path: which("powershell").filter(|_| !is_dumb()),
-            profile: None,
-        }
-    }
-
-    #[cfg(windows)]
-    pub fn has_module(powershell: &Path, command: &str) -> bool {
-        Command::new(powershell)
-            .args(Self::default_args())
-            .arg("-Command")
-            .arg(format!("Get-Module -ListAvailable {command}"))
-            .output_checked_utf8()
-            .map(|result| !result.stdout.is_empty())
-            .unwrap_or(false)
-    }
-
-    pub fn profile(&self) -> Option<&PathBuf> {
-        self.profile.as_ref()
     }
 
     /// Creates the PowerShell script for updating modules
@@ -208,20 +197,51 @@ Write-Host "{}" -ForegroundColor Green"#,
         let script = self.create_update_script(ctx);
         self.execute_script(ctx, &script)
     }
+}
 
-    #[cfg(windows)]
+#[cfg(windows)]
+impl Powershell {
     pub fn supports_windows_update(&self) -> bool {
-        self.path
+        windows::supports_windows_update(self)
+    }
+
+    pub fn windows_update(&self, ctx: &ExecutionContext) -> Result<()> {
+        windows::windows_update(self, ctx)
+    }
+
+    pub fn microsoft_store(&self, ctx: &ExecutionContext) -> Result<()> {
+        windows::microsoft_store(self, ctx)
+    }
+}
+
+#[cfg(windows)]
+mod windows {
+    use super::*;
+
+    pub fn supports_windows_update(powershell: &Powershell) -> bool {
+        powershell
+            .path
             .as_ref()
-            .map(|p| Self::has_module(p, "PSWindowsUpdate"))
+            .map(|p| has_module(p, "PSWindowsUpdate"))
             .unwrap_or(false)
     }
 
-    #[cfg(windows)]
-    pub fn windows_update(&self, ctx: &ExecutionContext) -> Result<()> {
-        debug_assert!(self.supports_windows_update());
+    fn has_module(powershell: &PathBuf, module_name: &str) -> bool {
+        Command::new(powershell)
+            .args([
+                "-NoProfile",
+                "-Command",
+                &format!("Get-Module -ListAvailable {}", module_name),
+            ])
+            .output_checked_utf8()
+            .map(|result| !result.stdout.is_empty())
+            .unwrap_or(false)
+    }
 
-        let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
+    pub fn windows_update(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
+        debug_assert!(supports_windows_update(powershell));
+
+        let powershell_path = require_option(powershell.path.as_ref(), t!("Powershell is not installed").to_string())?;
 
         let accept_all = if ctx.config().accept_all_windows_updates() {
             "-AcceptAll"
@@ -235,23 +255,27 @@ Write-Host "{}" -ForegroundColor Green"#,
             accept_all
         );
 
-        // Use the run_ps_command helper method
-        self.run_ps_command(powershell, &install_command)?;
+        powershell.run_ps_command(powershell_path, &install_command)?;
         Ok(())
     }
 
-    #[cfg(windows)]
-    pub fn microsoft_store(&self, _ctx: &ExecutionContext) -> Result<()> {
+    pub fn microsoft_store(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
         println!("{}", t!("Scanning for updates..."));
 
         // Get powershell path
-        let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
+        let powershell_path = require_option(powershell.path.as_ref(), t!("Powershell is not installed").to_string())?;
 
-        // Scan for updates using the MDM UpdateScanMethod
-        let update_command = self.build_microsoft_store_update_command();
+        // Build the command with optional verbosity
+        let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
+
+        // Scan for updates using the MDM UpdateScanMethod with optional verbosity
+        let update_command = format!(
+            "(Get-CimInstance{} -Namespace \"Root\\cimv2\\mdm\\dmmap\" -ClassName \"MDM_EnterpriseModernAppManagement_AppManagement01\" | Invoke-CimMethod{} -MethodName UpdateScanMethod).ReturnValue",
+            verbose_flag, verbose_flag
+        );
 
         // Use the run_ps_command helper method
-        let output = self.run_ps_command(powershell, &update_command)?;
+        let output = powershell.run_ps_command(powershell_path, &update_command)?;
 
         // Process the result
         if output.trim() == "0" {
@@ -267,10 +291,5 @@ Write-Host "{}" -ForegroundColor Green"#,
             );
             Err(color_eyre::eyre::eyre!("Microsoft Store update failed"))
         }
-    }
-
-    #[cfg(windows)]
-    fn build_microsoft_store_update_command(&self) -> String {
-        "(Get-CimInstance -Namespace \"Root\\cimv2\\mdm\\dmmap\" -ClassName \"MDM_EnterpriseModernAppManagement_AppManagement01\" | Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue".to_string()
     }
 }
