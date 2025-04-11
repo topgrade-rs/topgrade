@@ -1,3 +1,4 @@
+use std::cell::Cell;
 #[cfg(windows)]
 use std::path::PathBuf;
 use std::process::Command;
@@ -15,6 +16,7 @@ use crate::utils::{require_option, which};
 pub struct Powershell {
     path: Option<PathBuf>,
     profile: Option<PathBuf>,
+    uac_prompt_shown: Cell<bool>,
 }
 
 impl Powershell {
@@ -25,7 +27,11 @@ impl Powershell {
     pub fn new() -> Self {
         let path = which("pwsh").or_else(|| which("powershell")).filter(|_| !is_dumb());
         let profile = Self::find_profile(&path);
-        Powershell { path, profile }
+        Powershell {
+            path,
+            profile,
+            uac_prompt_shown: Cell::new(false),
+        }
     }
 
     /// Helper to find the PowerShell profile path
@@ -52,6 +58,7 @@ impl Powershell {
         Powershell {
             path: which("powershell").filter(|_| !is_dumb()),
             profile: None,
+            uac_prompt_shown: Cell::new(false),
         }
     }
 
@@ -103,15 +110,15 @@ if ($galleryAvailable) {{
       if (Get-InstalledModule -Name $moduleName -ErrorAction SilentlyContinue) {{
         # Process each module individually - unload, update, reload
         Write-Host "{}" -ForegroundColor Cyan
-        
+
         {}
-        
+
         # Update the module
         Write-Host "  {}" -ForegroundColor Cyan
         $updateAttempts = 0
         $maxAttempts = 2
         $updateSuccess = $false
-        
+
         while (-not $updateSuccess -and $updateAttempts -lt $maxAttempts) {{
           try {{
             $updateAttempts++
@@ -127,7 +134,7 @@ if ($galleryAvailable) {{
             }}
           }}
         }}
-        
+
         {}
       }}
     }} catch {{
@@ -242,12 +249,15 @@ Write-Host "{}" -ForegroundColor Green"#,
     }
 
     /// Execute a PowerShell script with standard arguments
-    fn execute_script(&self, ctx: &ExecutionContext, script: &str, print_elevation_message: bool) -> Result<()> {
+    fn execute_script(&self, ctx: &ExecutionContext, script: &str) -> Result<()> {
         let mut cmd = self.create_powershell_command(ctx)?;
 
-        // Check if this will be elevated and print message if requested
+        // Check if this will be elevated
         let will_elevate = ctx.sudo().is_some();
-        if will_elevate && print_elevation_message {
+        if will_elevate && !self.uac_prompt_shown.get() {
+            // Mark as shown for the instance using Cell instead of unsafe code
+            self.uac_prompt_shown.set(true);
+
             println!(
                 "{}",
                 self.clean_translation(t!(
@@ -265,7 +275,7 @@ Write-Host "{}" -ForegroundColor Green"#,
     pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
         print_separator(t!("Powershell Modules Update"));
         let script = self.create_update_script(ctx);
-        self.execute_script(ctx, &script, true)
+        self.execute_script(ctx, &script)
     }
 }
 
@@ -311,8 +321,6 @@ mod windows {
     pub fn windows_update(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
         debug_assert!(supports_windows_update(powershell));
 
-        print_separator(t!("Windows Update"));
-
         let accept_all = if ctx.config().accept_all_windows_updates() {
             "-AcceptAll"
         } else {
@@ -326,33 +334,44 @@ mod windows {
             accept_all
         );
 
-        // Pass false to avoid duplicate elevation message
-        powershell.execute_script(ctx, &install_command, true)
+        // Use execute_script instead of run_ps_command to properly handle elevation
+        powershell.execute_script(ctx, &install_command)
     }
 
     pub fn microsoft_store(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
-        print_separator(t!("Microsoft Store"));
         println!("{}", t!("Scanning for updates..."));
 
         // Build the command with optional verbosity
         let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
 
         // Create a PowerShell script that attempts only one method, with better feedback
+
+        // Fix: Create a local variable to hold the message content
+        let admin_message_part = if powershell.uac_prompt_shown.get() {
+            "#".to_string() // Convert &str to String to match the other branch
+        } else {
+            format!(
+                "Write-Output \"{}\"",
+                powershell.clean_translation(t!("Administrator privileges required for Microsoft Store updates"))
+            )
+        };
+
         let ps_script = format!(
             r#"
             # This operation requires administrator privileges
             $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
             if (-not $isAdmin) {{
-                Write-Output "{}"
+                # Only print this if we might not already have shown a UAC prompt
+                {2}
                 # Don't exit - we'll still try to run the command and let it fail properly
             }}
 
             # Only attempt the primary MDM UpdateScanMethod - most reliable method
             try {{
-                Write-Output "{}"
-                $result = (Get-CimInstance{} -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" -ErrorAction Stop | 
-                Invoke-CimMethod{} -MethodName UpdateScanMethod -ErrorAction Stop).ReturnValue
-                
+                Write-Output "{0}"
+                $result = (Get-CimInstance{1} -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" -ErrorAction Stop |
+                Invoke-CimMethod{1} -MethodName UpdateScanMethod -ErrorAction Stop).ReturnValue
+
                 if ($result -eq 0) {{
                     Write-Output "SUCCESS_PRIMARY"
                 }} else {{
@@ -362,16 +381,13 @@ mod windows {
                 Write-Output "FAIL_PRIMARY_EXCEPTION:$($_.Exception.Message)"
             }}
             "#,
-            powershell.clean_translation(t!(
-                "Note: Administrator privileges required for Microsoft Store updates"
-            )),
             powershell.clean_translation(t!("Attempting to update Microsoft Store apps using MDM method...")),
             verbose_flag,
-            verbose_flag
+            admin_message_part
         );
 
-        // Execute the script with proper privilege handling - pass true since we need the message here
-        match powershell.execute_script(ctx, &ps_script, true) {
+        // Execute the script with proper privilege handling
+        match powershell.execute_script(ctx, &ps_script) {
             Ok(_) => {
                 println!(
                     "{}",
@@ -384,11 +400,10 @@ mod windows {
 
                 // Fall back to manual method - avoid re-printing separator
                 println!("{}", t!("Attempting to open Microsoft Store updates page..."));
-                let store_script = r#"$Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime]; 
+                let store_script = r#"$Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime];
                     $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult()"#;
 
-                // Don't print elevation message for fallbacks since we already showed one
-                if let Err(e) = powershell.execute_script(ctx, store_script, false) {
+                if let Err(e) = powershell.execute_script(ctx, store_script) {
                     println!("{}: {}", t!("Failed to open Microsoft Store"), e);
                 } else {
                     println!(
