@@ -52,6 +52,7 @@ pub type Commands = BTreeMap<String, String>;
 #[strum(serialize_all = "snake_case")]
 pub enum Step {
     AM,
+    AndroidStudio,
     AppMan,
     Aqua,
     Asdf,
@@ -99,7 +100,23 @@ pub enum Step {
     Helix,
     Helm,
     HomeManager,
-    JetBrainsToolbox,
+    // These names are miscapitalized on purpose, so the CLI name is
+    //  `jetbrains_pycharm` instead of `jet_brains_py_charm`.
+    JetbrainsAqua,
+    JetbrainsClion,
+    JetbrainsDatagrip,
+    JetbrainsDataspell,
+    JetbrainsGateway,
+    JetbrainsGoland,
+    JetbrainsIdea,
+    JetbrainsMps,
+    JetbrainsPhpstorm,
+    JetbrainsPycharm,
+    JetbrainsRider,
+    JetbrainsRubymine,
+    JetbrainsRustrover,
+    JetbrainsToolbox,
+    JetbrainsWebstorm,
     Jetpack,
     Julia,
     Juliaup,
