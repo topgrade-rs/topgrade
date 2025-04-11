@@ -348,8 +348,10 @@ mod windows {
                 Write-Output "FAIL_PRIMARY_EXCEPTION:$($_.Exception.Message)"
             }}
             "#,
-            t!("Note: Administrator privileges required for Microsoft Store updates"),
-            t!("Attempting to update Microsoft Store apps using MDM method..."),
+            powershell.clean_translation(t!(
+                "Note: Administrator privileges required for Microsoft Store updates"
+            )),
+            powershell.clean_translation(t!("Attempting to update Microsoft Store apps using MDM method...")),
             verbose_flag,
             verbose_flag
         );
