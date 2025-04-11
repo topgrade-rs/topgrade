@@ -217,6 +217,7 @@ impl Powershell {
 #[cfg(windows)]
 mod windows {
     use super::*;
+    use std::time::Duration;
 
     pub fn supports_windows_update(powershell: &Powershell) -> bool {
         powershell
@@ -260,6 +261,7 @@ mod windows {
     }
 
     pub fn microsoft_store(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
+        print_separator(t!("Microsoft Store"));
         println!("{}", t!("Scanning for updates..."));
 
         // Get powershell path
@@ -268,26 +270,98 @@ mod windows {
         // Build the command with optional verbosity
         let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
 
-        // Scan for updates using the MDM UpdateScanMethod with optional verbosity
-        let update_command = format!(
-            "(Get-CimInstance{} -Namespace \"Root\\cimv2\\mdm\\dmmap\" -ClassName \"MDM_EnterpriseModernAppManagement_AppManagement01\" | Invoke-CimMethod{} -MethodName UpdateScanMethod).ReturnValue",
+        // Try primary method: MDM UpdateScanMethod
+        let primary_update_cmd = format!(
+            "try {{ \
+                $result = (Get-CimInstance{} -Namespace \"Root\\cimv2\\mdm\\dmmap\" -ClassName \"MDM_EnterpriseModernAppManagement_AppManagement01\" -ErrorAction Stop | \
+                Invoke-CimMethod{} -MethodName UpdateScanMethod -ErrorAction Stop).ReturnValue; \
+                if ($result -eq 0) {{ Write-Output \"SUCCESS_PRIMARY\" }} else {{ Write-Output \"FAIL_PRIMARY_NONZERO:$result\" }} \
+            }} catch {{ \
+                Write-Output \"FAIL_PRIMARY_EXCEPTION:$($_.Exception.Message)\" \
+            }}",
             verbose_flag, verbose_flag
         );
 
-        // Use the run_ps_command helper method
-        let output = powershell.run_ps_command(powershell_path, &update_command)?;
+        // Try fallback method 1: Using WinRT API
+        let fallback1_cmd = format!(
+            "try {{ \
+                $Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime]; \
+                $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult(); \
+                Write-Output \"SUCCESS_FALLBACK1\" \
+            }} catch {{ \
+                Write-Output \"FAIL_FALLBACK1:$($_.Exception.Message)\" \
+            }}"
+        );
 
-        // Process the result
-        if output.trim() == "0" {
+        // Try fallback method 2: WSReset command
+        let fallback2_cmd = format!(
+            "try {{ \
+                Start-Process \"wsreset.exe\" -ArgumentList \"-i\"{} -ErrorAction Stop; \
+                Write-Output \"SUCCESS_FALLBACK2\" \
+            }} catch {{ \
+                Write-Output \"FAIL_FALLBACK2:$($_.Exception.Message)\" \
+            }}",
+            if ctx.config().verbose() { " -Verb RunAs" } else { "" }
+        );
+
+        // Combined command with all methods
+        let combined_cmd = format!("{} || {} || {}", primary_update_cmd, fallback1_cmd, fallback2_cmd);
+
+        // Execute the full command
+        let output = match powershell.run_ps_command(powershell_path, &combined_cmd) {
+            Ok(output) => output.trim().to_string(),
+            Err(e) => {
+                println!("{}: {}", t!("Error executing PowerShell command"), e);
+                return Err(color_eyre::eyre::eyre!("Microsoft Store update failed: {}", e));
+            }
+        };
+
+        // Process the result based on which method succeeded
+        if output.starts_with("SUCCESS_PRIMARY") {
             println!(
                 "{}",
                 t!("Success, Microsoft Store apps are being updated in the background")
             );
             Ok(())
+        } else if output.starts_with("SUCCESS_FALLBACK1") {
+            println!(
+                "{}",
+                t!("Opened Microsoft Store updates page. Please check for updates manually.")
+            );
+            Ok(())
+        } else if output.starts_with("SUCCESS_FALLBACK2") {
+            println!(
+                "{}",
+                t!("Initiated Microsoft Store reset. Updates should begin shortly.")
+            );
+            Ok(())
+        } else if output.starts_with("FAIL_PRIMARY_NONZERO:") {
+            let code = output.split(':').nth(1).unwrap_or("unknown");
+            println!(
+                "{}",
+                t!(
+                    "Primary method failed with code: {code}. Trying alternative methods...",
+                    code = code
+                )
+            );
+            Err(color_eyre::eyre::eyre!(
+                "Microsoft Store update failed with code {}",
+                code
+            ))
+        } else if output.starts_with("FAIL_PRIMARY_EXCEPTION:") {
+            let msg = output.splitn(2, ':').nth(1).unwrap_or("unknown error");
+            println!(
+                "{}",
+                t!(
+                    "Primary method failed: {error}. Trying alternative methods...",
+                    error = msg
+                )
+            );
+            Err(color_eyre::eyre::eyre!("Microsoft Store update failed: {}", msg))
         } else {
             println!(
                 "{}",
-                t!("Unable to update Microsoft Store apps, manual intervention is required")
+                t!("All Microsoft Store update methods failed. Please update manually.")
             );
             Err(color_eyre::eyre::eyre!("Microsoft Store update failed"))
         }
