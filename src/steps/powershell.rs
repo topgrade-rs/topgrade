@@ -351,21 +351,15 @@ if ($galleryAvailable) {{
 
         // No need for duplicate UAC message here - execute_script will handle it
         let script = self.create_update_script(ctx);
+
+        // Run the script and capture the result
         let result = self.execute_script(ctx, &script);
 
-        // Add success message if script executed successfully AND elevation occurred
+        // Only print success message if the operation actually succeeded
         if result.is_ok() {
-            if self.did_elevation_occur(ctx) {
-                println!(
-                    "{}",
-                    self.clean_translation(t!("PowerShell update check completed successfully"))
-                );
-            } else {
-                println!(
-                    "{}",
-                    self.clean_translation(t!("PowerShell Modules update check completed"))
-                );
-            }
+            // Instead of checking for elevation that occurred (which may return early),
+            // simply print completion message when we're truly done
+            println!("{}", self.clean_translation(t!("PowerShell Modules update completed")));
         }
 
         result
@@ -375,14 +369,6 @@ if ($galleryAvailable) {{
     fn will_show_uac_prompt(&self, ctx: &ExecutionContext) -> bool {
         let will_elevate = ctx.sudo().is_some();
         will_elevate && !self.uac_prompt_shown.get() && !Self::is_process_elevated()
-    }
-
-    /// Helper to check if elevation actually occurred during an operation
-    fn did_elevation_occur(&self, ctx: &ExecutionContext) -> bool {
-        // Elevation occurred if sudo was specified AND either:
-        // 1. We showed a UAC prompt, or
-        // 2. Process was already elevated (no prompt needed but still elevated)
-        ctx.sudo().is_some() && (self.uac_prompt_shown.get() || Self::is_process_elevated())
     }
 }
 
@@ -430,22 +416,15 @@ impl Powershell {
             accept_all
         );
 
-        // Use execute_script to properly handle elevation
-        match self.execute_script(ctx, &install_command) {
-            Ok(_) => {
-                // Provide a more accurate status message
-                if self.did_elevation_occur(ctx) {
-                    println!(
-                        "{}",
-                        self.clean_translation(t!("Windows Update check completed successfully"))
-                    );
-                } else {
-                    println!("{}", self.clean_translation(t!("Windows Update check completed")));
-                }
-                Ok(())
-            }
-            Err(e) => Err(e),
+        // Execute script and only show completion message if it actually succeeds
+        let result = self.execute_script(ctx, &install_command);
+
+        if result.is_ok() {
+            // Simply report completion without checking elevation status
+            println!("{}", self.clean_translation(t!("Windows Update check completed")));
         }
+
+        result
     }
 
     pub fn microsoft_store(&self, ctx: &ExecutionContext) -> Result<()> {
@@ -523,36 +502,28 @@ mod windows {
 
     // Helper function to handle Microsoft Store update with fallbacks
     fn handle_microsoft_store_update(powershell: &Powershell, ctx: &ExecutionContext, ps_script: String) -> Result<()> {
-        match powershell.execute_script(ctx, &ps_script) {
-            Ok(_) => {
-                // Provide a more accurate status message
-                if powershell.did_elevation_occur(ctx) {
-                    println!(
-                        "{}",
-                        powershell.clean_translation(t!("Microsoft Store update check completed successfully"))
-                    );
-                } else {
-                    println!(
-                        "{}",
-                        powershell.clean_translation(t!("Microsoft Store update check completed"))
-                    );
-                }
-                Ok(())
-            }
-            Err(e) => {
-                println!(
-                    "{}: {}",
-                    powershell.clean_translation(t!("Microsoft Store update failed")),
-                    e
-                );
+        let result = powershell.execute_script(ctx, &ps_script);
 
-                // Try fallback methods
-                try_microsoft_store_fallbacks(powershell, ctx)?;
+        if result.is_ok() {
+            // Simply print completion message when we're truly done
+            println!(
+                "{}",
+                powershell.clean_translation(t!("Microsoft Store update check completed"))
+            );
+            Ok(())
+        } else {
+            println!(
+                "{}: {}",
+                powershell.clean_translation(t!("Microsoft Store update failed")),
+                result.as_ref().err().unwrap()
+            );
 
-                Err(color_eyre::eyre::eyre!(
-                    "Microsoft Store update failed. Administrator privileges may be required."
-                ))
-            }
+            // Try fallback methods
+            try_microsoft_store_fallbacks(powershell, ctx)?;
+
+            Err(color_eyre::eyre::eyre!(
+                "Microsoft Store update failed. Administrator privileges may be required."
+            ))
         }
     }
 
