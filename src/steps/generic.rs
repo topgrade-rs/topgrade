@@ -1111,9 +1111,10 @@ pub fn run_certbot(ctx: &ExecutionContext) -> Result<()> {
 ///
 /// doc: https://docs.clamav.net/manual/Usage/SignatureManagement.html#freshclam
 pub fn run_freshclam(ctx: &ExecutionContext) -> Result<()> {
+    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let freshclam = require("freshclam")?;
     print_separator(t!("Update ClamAV Database(FreshClam)"));
-    ctx.run_type().execute(freshclam).status_checked()
+    ctx.run_type().execute(sudo).arg(freshclam).status_checked()
 }
 
 /// Involve `pio upgrade` to update PlatformIO core.
