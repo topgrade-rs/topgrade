@@ -1318,7 +1318,9 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         .execute(&uv_exec)
         .arg("--version")
         .output_checked_utf8()?;
-    // example output: "uv 0.5.11 (c4d0caaee 2024-12-19)\n"
+    // Multiple possible output formats are possible. For example:
+    //  "uv 0.5.11 (c4d0caaee 2024-12-19)\n"
+    //  "uv 0.6.14\n"
     let uv_version_output_stdout = uv_version_output.stdout;
 
     let version_str = {
@@ -1326,12 +1328,11 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         let start_trimmed = uv_version_output_stdout
             .trim_start_matches("uv")
             .trim_start_matches(' ');
-        // remove the tailing part " (c4d0caaee 2024-12-19)\n"
-        let first_whitespace_index = start_trimmed
-            .find(' ')
-            .expect("the output of `uv --version` changed, please file an issue to Topgrade");
-        // this should be our version str "0.5.11"
-        &start_trimmed[..first_whitespace_index]
+        // remove the tailing part " (c4d0caaee 2024-12-19)\n", if it's there
+        match start_trimmed.find(' ') {
+            None => start_trimmed.trim_end_matches('\n'),  // Otherwise, just strip the newline
+            Some(i) => &start_trimmed[..i]
+        }
     };
     let version =
         Version::parse(version_str).expect("the output of `uv --version` changed, please file an issue to Topgrade");
