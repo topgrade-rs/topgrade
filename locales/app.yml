@@ -1288,3 +1288,11 @@ _version: 2
   zh_CN: "jetbrains-toolbox-updater 在更新过程中遇到意外错误"
   zh_TW: "jetbrains-toolbox-updater 在更新過程中遇到意外錯誤："
   de: "jetbrains-toolbox-updater ist auf einen unerwarteten Fehler während der Aktualisierung gestoßen:"
+"<output from `deb-get clean` omitted>":
+  en: "<output from `deb-get clean` omitted>"
+  lt: "<išvestis iš `deb-get clean` praleista>"
+  es: "<salida de `deb-get clean` omitido>"
+  fr: "<sortie de `deb-get clean` omise>"
+  zh_CN: "<省略了 `deb-get clean` 的輸出>"
+  zh_TW: "<省略了 `deb-get clean` 的輸出>"
+  de: "<Ausgabe von `deb-get clean` ausgelassen>"
