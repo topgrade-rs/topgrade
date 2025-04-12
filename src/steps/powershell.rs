@@ -19,6 +19,127 @@ const PS_NO_LOGO: &str = "-NoLogo";
 const PS_NON_INTERACTIVE: &str = "-NonInteractive";
 const PS_COMMAND: &str = "-Command";
 
+mod scripts {
+    // PowerShell script templates
+    pub(super) const GALLERY_CHECK_TEMPLATE: &str = r#"# First test connectivity to PowerShell Gallery
+$galleryAvailable = $false
+Write-Host "{checking_connectivity}" -ForegroundColor Cyan
+try {{
+  $request = [System.Net.WebRequest]::Create("https://www.powershellgallery.com/api/v2")
+  $request.Method = "HEAD"
+  $request.Timeout = 10000
+  $response = $request.GetResponse()
+  $galleryAvailable = $true
+  $response.Close()
+  Write-Host "{gallery_accessible}" -ForegroundColor Green
+}} catch {{
+  Write-Host "{gallery_not_accessible}" -ForegroundColor Red
+  Write-Host "  $($_.Exception.Message)" -ForegroundColor Red
+}}"#;
+
+    pub(super) const MODULES_UPDATE_TEMPLATE: &str = r#"Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {{
+    $moduleName = $_.Name
+    try {{
+      # Only process modules installed via Install-Module
+      if (Get-InstalledModule -Name $moduleName -ErrorAction SilentlyContinue) {{
+        # Process each module individually - unload, update, reload
+        Write-Host "{processing_module}" -ForegroundColor Cyan
+
+        # Check if the module is loaded and unload it if necessary
+        Write-Host "  {unloading_module}" -ForegroundColor Yellow
+        if (Get-Module -Name $moduleName -ErrorAction SilentlyContinue) {{
+          Remove-Module -Name $moduleName -Force -ErrorAction SilentlyContinue
+        }} else {{
+          Write-Host "    Module is not currently loaded" -ForegroundColor Yellow
+        }}
+
+        # Update the module
+        Write-Host "  {updating_module}" -ForegroundColor Cyan
+        $updateAttempts = 0
+        $maxAttempts = 2
+        $updateSuccess = $false
+
+        while (-not $updateSuccess -and $updateAttempts -lt $maxAttempts) {{
+          try {{
+            $updateAttempts++
+            {update_command}
+            $updateSuccess = $true
+          }} catch {{
+            if ($updateAttempts -lt $maxAttempts) {{
+              Write-Host "    {retry_attempt}" -ForegroundColor Yellow
+              Start-Sleep -Seconds 2
+            }} else {{
+              Write-Host "    {update_failed}" -ForegroundColor Red
+              Write-Host "    $($_.Exception.Message)" -ForegroundColor Red
+            }}
+          }}
+        }}
+
+        # Reload the module
+        try {{
+          Write-Host "  {reloading_module}" -ForegroundColor Green
+          Import-Module $moduleName -ErrorAction Stop
+          Write-Host "  {import_success}" -ForegroundColor Green
+        }} catch {{
+          Write-Host "  {import_failed}" -ForegroundColor Yellow
+        }}
+      }}
+    }} catch {{
+      Write-Host "{process_failed}" -ForegroundColor Red
+    }}
+  }}"#;
+
+    #[cfg(windows)]
+    pub(super) const MS_STORE_UPDATE_TEMPLATE: &str = r#"try {{
+        Write-Output "{attempting_store_update}"
+        $result = (Get-CimInstance{verbose_flag} -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" -ErrorAction Stop |
+        Invoke-CimMethod{verbose_flag} -MethodName UpdateScanMethod -ErrorAction Stop).ReturnValue
+
+        if ($result -eq 0) {{
+            Write-Output "{update_completed}"
+        }} else {{
+            Write-Output "FAIL_PRIMARY_NONZERO:$result"
+        }}
+    }} catch {{
+        Write-Output "FAIL_PRIMARY_EXCEPTION:$($_.Exception.Message)"
+    }}"#;
+}
+
+// Helper for building PowerShell scripts with proper translations
+#[derive(Clone)]
+struct ScriptBuilder {
+    translations: Vec<(String, String)>,
+    template: String,
+}
+
+impl ScriptBuilder {
+    fn new(template: &str) -> Self {
+        Self {
+            translations: Vec::new(),
+            template: template.to_string(),
+        }
+    }
+
+    fn add_translation(&mut self, placeholder: &str, translation: impl Into<String>) -> &mut Self {
+        self.translations.push((placeholder.to_string(), translation.into()));
+        self
+    }
+
+    fn with_param(&mut self, placeholder: &str, value: &str) -> &mut Self {
+        self.translations.push((placeholder.to_string(), value.to_string()));
+        self
+    }
+
+    // Changed to take &self instead of self to avoid ownership issues
+    fn build(&self, translator: &dyn Fn(String) -> String) -> String {
+        let mut result = self.template.clone();
+        for (placeholder, text) in &self.translations {
+            result = result.replace(&format!("{{{}}}", placeholder), &translator(text.clone()));
+        }
+        result
+    }
+}
+
 pub struct Powershell {
     path: Option<PathBuf>,
     profile: Option<PathBuf>,
@@ -98,14 +219,74 @@ impl Powershell {
         let (force_flag, verbose_flag) = self.get_update_flags(ctx);
         let update_command = format!("Update-Module -Name $moduleName{}{}", verbose_flag, force_flag);
 
-        // Create sections of the script for better readability
-        let check_gallery_script = self.create_gallery_check_script();
-        let update_modules_script = self.create_modules_update_script(&update_command);
+        // Create gallery check script using the template
+        let gallery_check_script = ScriptBuilder::new(scripts::GALLERY_CHECK_TEMPLATE)
+            .add_translation(
+                "checking_connectivity",
+                t!("Checking connectivity to PowerShell Gallery..."),
+            )
+            .add_translation("gallery_accessible", t!("PowerShell Gallery is accessible"))
+            .add_translation(
+                "gallery_not_accessible",
+                t!("PowerShell Gallery is not accessible. Module updates will be skipped."),
+            )
+            .build(&|t| self.clean_translation(t));
 
+        // Create modules update script using the template
+        let update_modules_script = ScriptBuilder::new(scripts::MODULES_UPDATE_TEMPLATE)
+            .add_translation(
+                "processing_module",
+                t!("Processing module: {moduleName}", moduleName = "$moduleName"),
+            )
+            .add_translation(
+                "unloading_module",
+                t!("Unloading module: {moduleName}", moduleName = "$moduleName"),
+            )
+            .add_translation(
+                "updating_module",
+                t!("Updating module: {moduleName}", moduleName = "$moduleName"),
+            )
+            .with_param("update_command", &update_command)
+            .add_translation(
+                "retry_attempt",
+                t!(
+                    "Retry attempt {attempt} of {max}...",
+                    attempt = "$updateAttempts",
+                    max = "$maxAttempts"
+                ),
+            )
+            .add_translation("update_failed", t!("Failed to update module after multiple attempts"))
+            .add_translation(
+                "reloading_module",
+                t!("Reloading module: {moduleName}", moduleName = "$moduleName"),
+            )
+            .add_translation(
+                "import_success",
+                t!("Successfully imported module: {moduleName}", moduleName = "$moduleName"),
+            )
+            .add_translation(
+                "import_failed",
+                t!(
+                    "Could not reload module: {moduleName} - {error}",
+                    moduleName = "$moduleName",
+                    error = "$($_.Exception.Message)"
+                ),
+            )
+            .add_translation(
+                "process_failed",
+                t!(
+                    "Failed to process module: {moduleName} - {error}",
+                    moduleName = "$moduleName",
+                    error = "$($_.Exception.Message)"
+                ),
+            )
+            .build(&|t| self.clean_translation(t));
+
+        // Assemble the final script
         format!(
             r#"Write-Host "{}" -ForegroundColor Cyan
 
-{check_gallery_script}
+{gallery_check_script}
 
 if ($galleryAvailable) {{
     {update_modules_script}
@@ -122,114 +303,6 @@ Write-Host "{}" -ForegroundColor Green"#,
             self.clean_translation(t!("Will still attempt to load existing modules")),
             self.clean_translation(t!("PowerShell module processing complete.")),
             self.clean_translation(t!("PowerShell Modules update check completed"))
-        )
-    }
-
-    /// Creates the gallery connectivity check part of the script
-    fn create_gallery_check_script(&self) -> String {
-        format!(
-            r#"# First test connectivity to PowerShell Gallery
-$galleryAvailable = $false
-Write-Host "{}" -ForegroundColor Cyan
-try {{
-  $request = [System.Net.WebRequest]::Create("https://www.powershellgallery.com/api/v2")
-  $request.Method = "HEAD"
-  $request.Timeout = 10000
-  $response = $request.GetResponse()
-  $galleryAvailable = $true
-  $response.Close()
-  Write-Host "{}" -ForegroundColor Green
-}} catch {{
-  Write-Host "{}" -ForegroundColor Red
-  Write-Host "  $($_.Exception.Message)" -ForegroundColor Red
-}}"#,
-            self.clean_translation(t!("Checking connectivity to PowerShell Gallery...")),
-            self.clean_translation(t!("PowerShell Gallery is accessible")),
-            self.clean_translation(t!(
-                "PowerShell Gallery is not accessible. Module updates will be skipped."
-            ))
-        )
-    }
-
-    /// Creates the module update portion of the script
-    fn create_modules_update_script(&self, update_command: &str) -> String {
-        format!(
-            r#"Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {{
-    $moduleName = $_.Name
-    try {{
-      # Only process modules installed via Install-Module
-      if (Get-InstalledModule -Name $moduleName -ErrorAction SilentlyContinue) {{
-        # Process each module individually - unload, update, reload
-        Write-Host "{}" -ForegroundColor Cyan
-
-        # Check if the module is loaded and unload it if necessary
-        Write-Host "  {}" -ForegroundColor Yellow
-        if (Get-Module -Name $moduleName -ErrorAction SilentlyContinue) {{
-          Remove-Module -Name $moduleName -Force -ErrorAction SilentlyContinue
-        }} else {{
-          Write-Host "    Module is not currently loaded" -ForegroundColor Yellow
-        }}
-
-        # Update the module
-        Write-Host "  {}" -ForegroundColor Cyan
-        $updateAttempts = 0
-        $maxAttempts = 2
-        $updateSuccess = $false
-
-        while (-not $updateSuccess -and $updateAttempts -lt $maxAttempts) {{
-          try {{
-            $updateAttempts++
-            {}
-            $updateSuccess = $true
-          }} catch {{
-            if ($updateAttempts -lt $maxAttempts) {{
-              Write-Host "    {}" -ForegroundColor Yellow
-              Start-Sleep -Seconds 2
-            }} else {{
-              Write-Host "    {}" -ForegroundColor Red
-              Write-Host "    $($_.Exception.Message)" -ForegroundColor Red
-            }}
-          }}
-        }}
-
-        # Reload the module
-        try {{
-          Write-Host "  {}" -ForegroundColor Green
-          Import-Module $moduleName -ErrorAction Stop
-          Write-Host "  {}" -ForegroundColor Green
-        }} catch {{
-          Write-Host "  {}" -ForegroundColor Yellow
-        }}
-      }}
-    }} catch {{
-      Write-Host "{}" -ForegroundColor Red
-    }}
-  }}"#,
-            self.clean_translation(t!("Processing module: {moduleName}", moduleName = "$moduleName")),
-            self.clean_translation(t!("Unloading module: {moduleName}", moduleName = "$moduleName")),
-            self.clean_translation(t!("Updating module: {moduleName}", moduleName = "$moduleName")),
-            update_command,
-            self.clean_translation(t!(
-                "Retry attempt {attempt} of {max}...",
-                attempt = "$updateAttempts",
-                max = "$maxAttempts"
-            )),
-            self.clean_translation(t!("Failed to update module after multiple attempts")),
-            self.clean_translation(t!("Reloading module: {moduleName}", moduleName = "$moduleName")),
-            self.clean_translation(t!(
-                "Successfully imported module: {moduleName}",
-                moduleName = "$moduleName"
-            )),
-            self.clean_translation(t!(
-                "Could not reload module: {moduleName} - {error}",
-                moduleName = "$moduleName",
-                error = "$($_.Exception.Message)"
-            )),
-            self.clean_translation(t!(
-                "Failed to process module: {moduleName} - {error}",
-                moduleName = "$moduleName",
-                error = "$($_.Exception.Message)"
-            ))
         )
     }
 
@@ -459,25 +532,14 @@ mod windows {
     }
 
     fn create_microsoft_store_script(powershell: &Powershell, verbose_flag: &str) -> String {
-        format!(
-            r#"try {{
-                Write-Output "{}"
-                $result = (Get-CimInstance{} -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" -ErrorAction Stop |
-                Invoke-CimMethod{} -MethodName UpdateScanMethod -ErrorAction Stop).ReturnValue
-
-                if ($result -eq 0) {{
-                    Write-Output "{}"
-                }} else {{
-                    Write-Output "FAIL_PRIMARY_NONZERO:$result"
-                }}
-            }} catch {{
-                Write-Output "FAIL_PRIMARY_EXCEPTION:$($_.Exception.Message)"
-            }}"#,
-            powershell.clean_translation(t!("Attempting to update Microsoft Store apps using MDM method...")),
-            verbose_flag,
-            verbose_flag,
-            powershell.clean_translation(t!("Microsoft Store update check completed"))
-        )
+        ScriptBuilder::new(scripts::MS_STORE_UPDATE_TEMPLATE)
+            .add_translation(
+                "attempting_store_update",
+                t!("Attempting to update Microsoft Store apps using MDM method..."),
+            )
+            .with_param("verbose_flag", verbose_flag)
+            .add_translation("update_completed", t!("Microsoft Store update check completed"))
+            .build(&|t| powershell.clean_translation(t))
     }
 
     fn try_microsoft_store_fallbacks(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
