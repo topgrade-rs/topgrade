@@ -210,8 +210,10 @@ if ($galleryAvailable) {{
     /// Generate script footer
     fn generate_script_footer(&self) -> String {
         format!(
-            r#"Write-Host "{}" -ForegroundColor Green"#,
-            self.clean_translation(t!("PowerShell module processing complete."))
+            r#"Write-Host "{}" -ForegroundColor Green
+Write-Host "{}" -ForegroundColor Green"#,
+            self.clean_translation(t!("PowerShell module processing complete.")),
+            self.clean_translation(t!("PowerShell Modules update check completed"))
         )
     }
 
@@ -356,10 +358,12 @@ if ($galleryAvailable) {{
         let result = self.execute_script(ctx, &script);
 
         // Only print success message if the operation actually succeeded
-        if result.is_ok() {
-            // Instead of checking for elevation that occurred (which may return early),
-            // simply print completion message when we're truly done
-            println!("{}", self.clean_translation(t!("PowerShell Modules update completed")));
+        // AND we should show completion message in Rust (not elevating)
+        if result.is_ok() && self.should_show_completion_in_rust(ctx) {
+            println!(
+                "{}",
+                self.clean_translation(t!("PowerShell Modules update check completed"))
+            );
         }
 
         result
@@ -369,6 +373,12 @@ if ($galleryAvailable) {{
     fn will_show_uac_prompt(&self, ctx: &ExecutionContext) -> bool {
         let will_elevate = ctx.sudo().is_some();
         will_elevate && !self.uac_prompt_shown.get() && !Self::is_process_elevated()
+    }
+
+    /// Helper to determine if completion message should be shown in Rust code
+    /// Only show completion in Rust when we're not elevating or already elevated
+    fn should_show_completion_in_rust(&self, ctx: &ExecutionContext) -> bool {
+        !self.will_show_uac_prompt(ctx)
     }
 }
 
@@ -410,17 +420,18 @@ impl Powershell {
 
         // No need for a separate UAC prompt message - execute_script will handle it
         let install_command = format!(
-            "Write-Output '{}'; Install-WindowsUpdate {} {}",
+            "Write-Output '{}'; Install-WindowsUpdate {} {}; Write-Output '{}'",
             self.clean_translation(t!("Starting Windows Update...")),
             if ctx.config().verbose() { "-Verbose" } else { "" },
-            accept_all
+            accept_all,
+            self.clean_translation(t!("Windows Update check completed"))
         );
 
         // Execute script and only show completion message if it actually succeeds
         let result = self.execute_script(ctx, &install_command);
 
-        if result.is_ok() {
-            // Simply report completion without checking elevation status
+        // Only show completion message if we're not elevating and operation succeeded
+        if result.is_ok() && self.should_show_completion_in_rust(ctx) {
             println!("{}", self.clean_translation(t!("Windows Update check completed")));
         }
 
@@ -471,7 +482,7 @@ mod windows {
             $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
             if (-not $isAdmin) {{
                 # Skip admin message - Topgrade handles this
-                # Write-Output "{}"
+                # Write-Output "{{}}"
                 # Don't exit - we'll still try to run the command and let it fail properly
             }}
 
@@ -483,6 +494,7 @@ mod windows {
 
                 if ($result -eq 0) {{
                     Write-Output "SUCCESS_PRIMARY"
+                    Write-Output "{}"
                 }} else {{
                     Write-Output "FAIL_PRIMARY_NONZERO:$result"
                 }}
@@ -490,10 +502,10 @@ mod windows {
                 Write-Output "FAIL_PRIMARY_EXCEPTION:$($_.Exception.Message)"
             }}
             "#,
-            powershell.clean_translation(t!("Administrator privileges required for Microsoft Store updates")),
             powershell.clean_translation(t!("Attempting to update Microsoft Store apps using MDM method...")),
             verbose_flag,
-            verbose_flag
+            verbose_flag,
+            powershell.clean_translation(t!("Microsoft Store update check completed"))
         );
 
         // Execute the script and handle potential fallbacks
@@ -504,12 +516,15 @@ mod windows {
     fn handle_microsoft_store_update(powershell: &Powershell, ctx: &ExecutionContext, ps_script: String) -> Result<()> {
         let result = powershell.execute_script(ctx, &ps_script);
 
-        if result.is_ok() {
-            // Simply print completion message when we're truly done
+        // Only show completion message if operation succeeded AND we're not elevating
+        if result.is_ok() && powershell.should_show_completion_in_rust(ctx) {
             println!(
                 "{}",
                 powershell.clean_translation(t!("Microsoft Store update check completed"))
             );
+            Ok(())
+        } else if result.is_ok() {
+            // Operation succeeded but we're elevating, so don't show message (script will show it)
             Ok(())
         } else {
             println!(
