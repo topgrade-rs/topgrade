@@ -1331,7 +1331,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         // remove the tailing part " (c4d0caaee 2024-12-19)\n", if it's there
         match start_trimmed.find(' ') {
             None => start_trimmed.trim_end_matches('\n'),  // Otherwise, just strip the newline
-            Some(i) => &start_trimmed[..i]
+            Some(i) => &start_trimmed[..i]  // this should be our version str "0.5.11"
         }
     };
     let version =
