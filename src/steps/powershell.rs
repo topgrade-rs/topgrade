@@ -354,11 +354,18 @@ if ($galleryAvailable) {{
         let result = self.execute_script(ctx, &script);
 
         // Add success message if script executed successfully AND elevation occurred
-        if result.is_ok() && self.did_elevation_occur(ctx) {
-            println!(
-                "{}",
-                self.clean_translation(t!("Success, PowerShell Modules are being updated in the background"))
-            );
+        if result.is_ok() {
+            if self.did_elevation_occur(ctx) {
+                println!(
+                    "{}",
+                    self.clean_translation(t!("PowerShell update check completed successfully"))
+                );
+            } else {
+                println!(
+                    "{}",
+                    self.clean_translation(t!("PowerShell Modules update check completed"))
+                );
+            }
         }
 
         result
@@ -426,12 +433,14 @@ impl Powershell {
         // Use execute_script to properly handle elevation
         match self.execute_script(ctx, &install_command) {
             Ok(_) => {
-                // Only show success message if elevation occurred
+                // Provide a more accurate status message
                 if self.did_elevation_occur(ctx) {
                     println!(
                         "{}",
-                        self.clean_translation(t!("Success, Windows Updates are being updated in the background"))
+                        self.clean_translation(t!("Windows Update check completed successfully"))
                     );
+                } else {
+                    println!("{}", self.clean_translation(t!("Windows Update check completed")));
                 }
                 Ok(())
             }
@@ -516,12 +525,16 @@ mod windows {
     fn handle_microsoft_store_update(powershell: &Powershell, ctx: &ExecutionContext, ps_script: String) -> Result<()> {
         match powershell.execute_script(ctx, &ps_script) {
             Ok(_) => {
-                // Only show success message if elevation occurred
+                // Provide a more accurate status message
                 if powershell.did_elevation_occur(ctx) {
                     println!(
                         "{}",
-                        powershell
-                            .clean_translation(t!("Success, Microsoft Store apps are being updated in the background"))
+                        powershell.clean_translation(t!("Microsoft Store update check completed successfully"))
+                    );
+                } else {
+                    println!(
+                        "{}",
+                        powershell.clean_translation(t!("Microsoft Store update check completed"))
                     );
                 }
                 Ok(())
