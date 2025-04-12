@@ -422,16 +422,10 @@ impl Powershell {
     }
 
     pub fn windows_update(&self, ctx: &ExecutionContext) -> Result<()> {
-        // Directly check or populate the cached value
-        let module_available = self
-            .windows_update_support
-            .get()
-            .unwrap_or_else(|| self.supports_windows_update());
-
-        // Check if the PSWindowsUpdate module is available
-        if !module_available {
+        // Check if Windows Update is supported before attempting to run it
+        if !self.supports_windows_update() {
             return Err(color_eyre::eyre::eyre!(
-                "The PSWindowsUpdate module is not available. Please install it using 'Install-Module PSWindowsUpdate'"
+                "PSWindowsUpdate module is not installed. Windows Update is not available."
             ));
         }
 
