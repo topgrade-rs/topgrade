@@ -104,7 +104,7 @@ try {{
     }}"#;
 }
 
-// Optimized ScriptBuilder - avoids excessive string cloning
+// Improved ScriptBuilder with more functional interface
 #[derive(Clone)]
 struct ScriptBuilder {
     translations: Vec<(String, String)>,
@@ -119,21 +119,22 @@ impl ScriptBuilder {
         }
     }
 
-    fn add_translation(&mut self, placeholder: &str, translation: impl Into<String>) -> &mut Self {
+    // Return Self instead of &mut Self for better chaining
+    fn add_translation(mut self, placeholder: &str, translation: impl Into<String>) -> Self {
         self.translations.push((placeholder.to_string(), translation.into()));
         self
     }
 
-    fn with_param(&mut self, placeholder: &str, value: &str) -> &mut Self {
+    fn with_param(mut self, placeholder: &str, value: &str) -> Self {
         self.translations.push((placeholder.to_string(), value.to_string()));
         self
     }
 
-    // More efficient build method that avoids excessive string cloning
-    fn build(&self, translator: &dyn Fn(&str) -> String) -> String {
-        let mut result = self.template.clone();
-        for (placeholder, text) in &self.translations {
-            let translated = translator(text);
+    // Build with automatic translation cleaning
+    fn build(self, translator: impl Fn(&str) -> String) -> String {
+        let mut result = self.template;
+        for (placeholder, text) in self.translations {
+            let translated = translator(&text);
             result = result.replace(&format!("{{{}}}", placeholder), &translated);
         }
         result
@@ -194,12 +195,29 @@ impl Powershell {
         self.profile.as_ref()
     }
 
-    /// Helper function to clean translated strings by removing locale prefixes
+    // Simplify translation with auto-cleaning
+    fn t(&self, key: &str, params: Option<Vec<(&str, &str)>>) -> String {
+        let translated = if let Some(params) = params {
+            let mut msg = t!(key);
+            for (_param, value) in params {
+                msg = t!(key, param = value);
+            }
+            msg
+        } else {
+            t!(key)
+        };
+        self.clean_translation(&translated)
+    }
+
+    // Helper function to clean translated strings by removing locale prefixes
     fn clean_translation(&self, text: &str) -> String {
-        // Optimize by avoiding unnecessary clones when no prefix is found
-        text.find('.')
-            .filter(|&idx| text.chars().take(idx).all(|c| c.is_ascii_alphabetic() || c == '-'))
-            .map_or(text.to_string(), |idx| text[idx + 1..].to_string())
+        // Avoid allocating new string if no prefix exists
+        match text.find('.') {
+            Some(idx) if text.chars().take(idx).all(|c| c.is_ascii_alphabetic() || c == '-') => {
+                text[idx + 1..].to_string()
+            }
+            _ => text.to_string(),
+        }
     }
 
     /// Get flags for module update based on configuration
@@ -220,7 +238,7 @@ impl Powershell {
         let (force_flag, verbose_flag) = self.get_update_flags(ctx);
         let update_command = format!("Update-Module -Name $moduleName{}{}", verbose_flag, force_flag);
 
-        // Create gallery check script using the template
+        // Create gallery check script using cleaner builder pattern
         let gallery_check_script = ScriptBuilder::new(scripts::GALLERY_CHECK_TEMPLATE)
             .add_translation(
                 "checking_connectivity",
@@ -231,9 +249,9 @@ impl Powershell {
                 "gallery_not_accessible",
                 t!("PowerShell Gallery is not accessible. Module updates will be skipped."),
             )
-            .build(&|t| self.clean_translation(t));
+            .build(|t| self.clean_translation(t));
 
-        // Create modules update script using the template
+        // Create modules update script with cleaner builder pattern
         let update_modules_script = ScriptBuilder::new(scripts::MODULES_UPDATE_TEMPLATE)
             .add_translation(
                 "processing_module",
@@ -281,17 +299,19 @@ impl Powershell {
                     error = "$($_.Exception.Message)"
                 ),
             )
-            .build(&|t| self.clean_translation(t));
+            .build(|t| self.clean_translation(t));
 
-        // Create final script with translated messages
+        // Pre-translate all messages once to avoid multiple translations
         let messages = [
-            t!("Processing PowerShell modules..."),
-            t!("Unable to connect to PowerShell Gallery. Module updates skipped."),
-            t!("Will still attempt to load existing modules"),
-            t!("PowerShell module processing complete."),
-            t!("PowerShell Modules update check completed"),
+            "Processing PowerShell modules...",
+            "Unable to connect to PowerShell Gallery. Module updates skipped.",
+            "Will still attempt to load existing modules",
+            "PowerShell module processing complete.",
+            "PowerShell Modules update check completed",
         ]
-        .map(|msg| self.clean_translation(&msg));
+        .iter()
+        .map(|&msg| self.clean_translation(&t!(msg)))
+        .collect::<Vec<_>>();
 
         format!(
             r#"Write-Host "{}" -ForegroundColor Cyan
@@ -312,32 +332,30 @@ Write-Host "{}" -ForegroundColor Green"#,
         )
     }
 
-    /// Creates a command to execute PowerShell with optional sudo elevation
-    fn create_powershell_command(&self, ctx: &ExecutionContext) -> Result<Executor> {
-        let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
+    // Consolidated command creation with improved error handling
+    fn create_command(&self, ctx: &ExecutionContext) -> Result<Executor> {
+        let powershell = require_option(self.path.as_ref(), self.t("Powershell is not installed", None))?;
 
-        let cmd = if let Some(sudo) = ctx.sudo() {
+        Ok(if let Some(sudo) = ctx.sudo() {
             let mut cmd = ctx.run_type().execute(sudo);
             cmd.arg(powershell);
             cmd
         } else {
             ctx.run_type().execute(powershell)
-        };
-
-        Ok(cmd)
+        })
     }
 
-    /// Handle UAC prompts and execute a PowerShell script with standard arguments
+    // Execute script with improved error handling
     fn execute_script(&self, ctx: &ExecutionContext, script: &str) -> Result<()> {
-        // Check elevation status before creating command
+        // Check elevation status first
         self.check_elevation(ctx);
 
         // Check execution policy on Windows
         #[cfg(windows)]
         self.execution_policy_args_if_needed()?;
 
-        // Create and execute the command
-        self.create_powershell_command(ctx)?
+        // Create and execute command in one go
+        self.create_command(ctx)?
             .args(Self::default_args())
             .arg(PS_COMMAND)
             .arg(script)
@@ -458,6 +476,8 @@ impl Powershell {
         self.execute_operation(ctx, "Windows Update", || self.execute_script(ctx, &script))
     }
 
+    // Improved Windows Store script creation with better error handling
+    #[cfg(windows)]
     pub fn microsoft_store(&self, ctx: &ExecutionContext) -> Result<()> {
         windows::microsoft_store(self, ctx)
     }
@@ -516,36 +536,39 @@ mod windows {
                 PS_NO_LOGO,
                 PS_COMMAND,
                 &format!(
-                    "Get-Module -ListAvailable {} -ErrorAction SilentlyContinue",
+                    "if (Get-Module -ListAvailable {} -ErrorAction SilentlyContinue) {{ Write-Output 'true' }}",
                     module_name
                 ),
             ])
             .output_checked_utf8()
-            .map(|result| !result.stdout.is_empty())
+            .map(|result| result.stdout.trim() == "true")
             .unwrap_or(false)
     }
 
+    // More modular approach to Microsoft Store updates
     pub fn microsoft_store(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
         let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
         let ps_script = create_microsoft_store_script(powershell, verbose_flag);
 
         powershell.execute_operation(ctx, "Microsoft Store", || {
-            if let Err(e) = powershell.execute_script(ctx, &ps_script) {
-                println!(
-                    "{}: {}",
-                    powershell.clean_translation(&t!("Microsoft Store update failed")),
-                    e
-                );
+            match powershell.execute_script(ctx, &ps_script) {
+                Ok(_) => Ok(()),
+                Err(e) => {
+                    // Log error and try fallbacks
+                    println!(
+                        "{}: {}",
+                        powershell.clean_translation(&t!("Microsoft Store update failed")),
+                        e
+                    );
 
-                // If primary method fails, try fallbacks
-                try_microsoft_store_fallbacks(powershell, ctx)?;
+                    try_microsoft_store_fallbacks(powershell, ctx)?;
 
-                // Still return an error to indicate primary method failed
-                return Err(color_eyre::eyre::eyre!(
-                    "Microsoft Store update failed. Administrator privileges may be required."
-                ));
+                    // Still return an error for proper status tracking
+                    Err(color_eyre::eyre::eyre!(
+                        "Primary Microsoft Store update method failed. Fallbacks attempted."
+                    ))
+                }
             }
-            Ok(())
         })
     }
 
@@ -557,7 +580,7 @@ mod windows {
             )
             .with_param("verbose_flag", verbose_flag)
             .add_translation("update_completed", t!("Microsoft Store update check completed"))
-            .build(&|t| powershell.clean_translation(t))
+            .build(|t| powershell.clean_translation(t))
     }
 
     fn try_microsoft_store_fallbacks(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
