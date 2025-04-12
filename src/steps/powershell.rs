@@ -89,35 +89,19 @@ impl Powershell {
 
     /// Creates the PowerShell script for updating modules
     fn create_update_script(&self, ctx: &ExecutionContext) -> String {
-        let force_flag = self.get_force_flag(ctx);
-        let update_command = self.build_update_command(force_flag, ctx.config().verbose());
+        let force_flag = if ctx.config().yes(Step::Powershell) || ctx.config().powershell_force_modules_update() {
+            " -Force"
+        } else {
+            ""
+        };
 
-        // More efficiently build the script by pre-allocating capacity for all sections
-        let mut script = String::with_capacity(2048);
+        let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
+        let update_command = format!("Update-Module -Name $moduleName{}{}", verbose_flag, force_flag);
 
-        script.push_str(&self.generate_script_header());
-        script.push('\n');
-        script.push_str(&self.generate_gallery_check());
-        script.push('\n');
-        script.push_str(&self.generate_module_processing(&update_command));
-        script.push('\n');
-        script.push_str(&self.generate_script_footer());
-
-        script
-    }
-
-    /// Generate the script header
-    fn generate_script_header(&self) -> String {
         format!(
-            r#"Write-Host "{}" -ForegroundColor Cyan"#,
-            self.clean_translation(t!("Processing PowerShell modules..."))
-        )
-    }
+            r#"Write-Host "{}" -ForegroundColor Cyan
 
-    /// Generate the gallery connectivity check section
-    fn generate_gallery_check(&self) -> String {
-        format!(
-            r#"# First test connectivity to PowerShell Gallery
+# First test connectivity to PowerShell Gallery
 $galleryAvailable = $false
 Write-Host "{}" -ForegroundColor Cyan
 try {{
@@ -131,19 +115,8 @@ try {{
 }} catch {{
   Write-Host "{}" -ForegroundColor Red
   Write-Host "  $($_.Exception.Message)" -ForegroundColor Red
-}}"#,
-            self.clean_translation(t!("Checking connectivity to PowerShell Gallery...")),
-            self.clean_translation(t!("PowerShell Gallery is accessible")),
-            self.clean_translation(t!(
-                "PowerShell Gallery is not accessible. Module updates will be skipped."
-            ))
-        )
-    }
+}}
 
-    /// Generate the module processing section
-    fn generate_module_processing(&self, update_command: &str) -> String {
-        format!(
-            r#"
 if ($galleryAvailable) {{
   Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {{
     $moduleName = $_.Name
@@ -153,7 +126,13 @@ if ($galleryAvailable) {{
         # Process each module individually - unload, update, reload
         Write-Host "{}" -ForegroundColor Cyan
 
-        {}
+        # Check if the module is loaded and unload it if necessary
+        Write-Host "  {}" -ForegroundColor Yellow
+        if (Get-Module -Name $moduleName -ErrorAction SilentlyContinue) {{
+          Remove-Module -Name $moduleName -Force -ErrorAction SilentlyContinue
+        }} else {{
+          Write-Host "    Module is not currently loaded" -ForegroundColor Yellow
+        }}
 
         # Update the module
         Write-Host "  {}" -ForegroundColor Cyan
@@ -177,7 +156,14 @@ if ($galleryAvailable) {{
           }}
         }}
 
-        {}
+        # Reload the module
+        try {{
+          Write-Host "  {}" -ForegroundColor Green
+          Import-Module $moduleName -ErrorAction Stop
+          Write-Host "  {}" -ForegroundColor Green
+        }} catch {{
+          Write-Host "  {}" -ForegroundColor Yellow
+        }}
       }}
     }} catch {{
       Write-Host "{}" -ForegroundColor Red
@@ -187,9 +173,18 @@ if ($galleryAvailable) {{
   Write-Host "{}" -ForegroundColor Red
   # Continue with module loading anyway, as they might still work
   Write-Host "{}" -ForegroundColor Yellow
-}}"#,
+}}
+
+Write-Host "{}" -ForegroundColor Green
+Write-Host "{}" -ForegroundColor Green"#,
+            self.clean_translation(t!("Processing PowerShell modules...")),
+            self.clean_translation(t!("Checking connectivity to PowerShell Gallery...")),
+            self.clean_translation(t!("PowerShell Gallery is accessible")),
+            self.clean_translation(t!(
+                "PowerShell Gallery is not accessible. Module updates will be skipped."
+            )),
             self.clean_translation(t!("Processing module: {moduleName}", moduleName = "$moduleName")),
-            self.generate_module_unload_script(),
+            self.clean_translation(t!("Unloading module: {moduleName}", moduleName = "$moduleName")),
             self.clean_translation(t!("Updating module: {moduleName}", moduleName = "$moduleName")),
             update_command,
             self.clean_translation(t!(
@@ -198,74 +193,6 @@ if ($galleryAvailable) {{
                 max = "$maxAttempts"
             )),
             self.clean_translation(t!("Failed to update module after multiple attempts")),
-            self.generate_module_reload_script(),
-            self.clean_translation(t!(
-                "Failed to process module: {moduleName} - {error}",
-                moduleName = "$moduleName",
-                error = "$($_.Exception.Message)"
-            )),
-            self.clean_translation(t!("Unable to connect to PowerShell Gallery. Module updates skipped.")),
-            self.clean_translation(t!("Will still attempt to load existing modules"))
-        )
-    }
-
-    /// Generate script footer
-    fn generate_script_footer(&self) -> String {
-        format!(
-            r#"Write-Host "{}" -ForegroundColor Green
-Write-Host "{}" -ForegroundColor Green"#,
-            self.clean_translation(t!("PowerShell module processing complete.")),
-            self.clean_translation(t!("PowerShell Modules update check completed"))
-        )
-    }
-
-    /// Helper to get the force flag based on config
-    fn get_force_flag(&self, ctx: &ExecutionContext) -> &str {
-        if ctx.config().yes(Step::Powershell) || ctx.config().powershell_force_modules_update() {
-            " -Force"
-        } else {
-            ""
-        }
-    }
-
-    /// Helper to build the update command with appropriate options
-    fn build_update_command(&self, force_flag: &str, verbose: bool) -> String {
-        let mut command = String::with_capacity(64);
-        command.push_str("Update-Module -Name $moduleName");
-
-        if verbose {
-            command.push_str(" -Verbose");
-        }
-
-        command.push_str(force_flag);
-        command
-    }
-
-    /// Generate the script for unloading a module
-    fn generate_module_unload_script(&self) -> String {
-        format!(
-            r#"# Check if the module is loaded and unload it if necessary
-      Write-Host "  {}" -ForegroundColor Yellow
-      if (Get-Module -Name $moduleName -ErrorAction SilentlyContinue) {{
-        Remove-Module -Name $moduleName -Force -ErrorAction SilentlyContinue
-      }} else {{
-        Write-Host "    Module is not currently loaded" -ForegroundColor Yellow
-      }}"#,
-            self.clean_translation(t!("Unloading module: {moduleName}", moduleName = "$moduleName"))
-        )
-    }
-
-    /// Generate the script for reloading a module
-    fn generate_module_reload_script(&self) -> String {
-        format!(
-            r#"# Reload the module
-      try {{
-        Write-Host "  {}" -ForegroundColor Green
-        Import-Module $moduleName -ErrorAction Stop
-        Write-Host "  {}" -ForegroundColor Green
-      }} catch {{
-        Write-Host "  {}" -ForegroundColor Yellow
-      }}"#,
             self.clean_translation(t!("Reloading module: {moduleName}", moduleName = "$moduleName")),
             self.clean_translation(t!(
                 "Successfully imported module: {moduleName}",
@@ -275,7 +202,16 @@ Write-Host "{}" -ForegroundColor Green"#,
                 "Could not reload module: {moduleName} - {error}",
                 moduleName = "$moduleName",
                 error = "$($_.Exception.Message)"
-            ))
+            )),
+            self.clean_translation(t!(
+                "Failed to process module: {moduleName} - {error}",
+                moduleName = "$moduleName",
+                error = "$($_.Exception.Message)"
+            )),
+            self.clean_translation(t!("Unable to connect to PowerShell Gallery. Module updates skipped.")),
+            self.clean_translation(t!("Will still attempt to load existing modules")),
+            self.clean_translation(t!("PowerShell module processing complete.")),
+            self.clean_translation(t!("PowerShell Modules update check completed"))
         )
     }
 
@@ -297,10 +233,7 @@ Write-Host "{}" -ForegroundColor Green"#,
     /// Handle UAC prompts and execute a PowerShell script with standard arguments
     fn execute_script(&self, ctx: &ExecutionContext, script: &str) -> Result<()> {
         // Check elevation status before creating command to avoid resource allocation if unnecessary
-        let will_elevate = ctx.sudo().is_some() && !Self::is_process_elevated();
-
-        // Show UAC prompt message if needed
-        if will_elevate && !self.uac_prompt_shown.get() {
+        if ctx.sudo().is_some() && !Self::is_process_elevated() && !self.uac_prompt_shown.get() {
             println!(
                 "{}",
                 self.clean_translation(t!("Administrator privileges required - you will see a UAC prompt"))
@@ -309,8 +242,8 @@ Write-Host "{}" -ForegroundColor Green"#,
         }
 
         // Create and execute the command
-        let mut cmd = self.create_powershell_command(ctx)?;
-        cmd.args(Self::default_args())
+        self.create_powershell_command(ctx)?
+            .args(Self::default_args())
             .arg(PS_COMMAND)
             .arg(script)
             .status_checked()
@@ -342,8 +275,10 @@ Write-Host "{}" -ForegroundColor Green"#,
     where
         F: FnOnce() -> Result<()>,
     {
+        let will_elevate = ctx.sudo().is_some() && !self.uac_prompt_shown.get() && !Self::is_process_elevated();
+
         // Only show scanning message if no UAC prompt will be shown
-        if !self.will_show_uac_prompt(ctx) {
+        if !will_elevate {
             println!("{}", self.clean_translation(t!("Scanning for updates...")));
         }
 
@@ -351,7 +286,7 @@ Write-Host "{}" -ForegroundColor Green"#,
         let result = operation();
 
         // Show completion message if operation succeeded and we're not elevating
-        if result.is_ok() && self.should_show_completion_in_rust(ctx) {
+        if result.is_ok() && !will_elevate {
             println!(
                 "{}",
                 self.clean_translation(t!("{operation_name} check completed", operation_name = operation_name))
@@ -369,32 +304,21 @@ Write-Host "{}" -ForegroundColor Green"#,
             self.execute_script(ctx, &script)
         })
     }
-
-    /// Helper to determine if a UAC prompt will be shown for this operation
-    fn will_show_uac_prompt(&self, ctx: &ExecutionContext) -> bool {
-        ctx.sudo().is_some() && !self.uac_prompt_shown.get() && !Self::is_process_elevated()
-    }
-
-    /// Helper to determine if completion message should be shown in Rust code
-    fn should_show_completion_in_rust(&self, ctx: &ExecutionContext) -> bool {
-        !self.will_show_uac_prompt(ctx)
-    }
 }
 
 #[cfg(windows)]
 impl Powershell {
     pub fn supports_windows_update(&self) -> bool {
-        // Check cached result first for efficiency
+        // Use cached result if available
         if let Some(supports) = self.windows_update_support.get() {
             return supports;
         }
 
-        // If no cached result, perform the check
+        // Check if the PSWindowsUpdate module is available
         let result = self
             .path
             .as_ref()
-            .map(|p| windows::has_module(p, "PSWindowsUpdate"))
-            .unwrap_or(false);
+            .is_some_and(|p| windows::has_module(p, "PSWindowsUpdate"));
 
         // Cache the result for future calls
         self.windows_update_support.set(Some(result));
@@ -403,24 +327,20 @@ impl Powershell {
     }
 
     pub fn windows_update(&self, ctx: &ExecutionContext) -> Result<()> {
-        let accept_all = if ctx.config().accept_all_windows_updates() {
-            "-AcceptAll"
-        } else {
-            ""
-        };
-
-        let verbose = if ctx.config().verbose() { "-Verbose" } else { "" };
-
-        // Build the script with a single format call
-        let install_command = format!(
-            "Write-Output '{}'; Install-WindowsUpdate {} {}; Write-Output '{}'",
+        // Build command with appropriate flags
+        let script = format!(
+            "Write-Output '{}'; Install-WindowsUpdate{}{} -Confirm:$false; Write-Output '{}'",
             self.clean_translation(t!("Starting Windows Update...")),
-            verbose,
-            accept_all,
+            if ctx.config().verbose() { " -Verbose" } else { "" },
+            if ctx.config().accept_all_windows_updates() {
+                " -AcceptAll"
+            } else {
+                ""
+            },
             self.clean_translation(t!("Windows Update check completed"))
         );
 
-        self.execute_operation(ctx, "Windows Update", || self.execute_script(ctx, &install_command))
+        self.execute_operation(ctx, "Windows Update", || self.execute_script(ctx, &script))
     }
 
     pub fn microsoft_store(&self, ctx: &ExecutionContext) -> Result<()> {
@@ -433,7 +353,6 @@ mod windows {
     use super::*;
 
     pub fn has_module(powershell: &PathBuf, module_name: &str) -> bool {
-        // Use a single combined command for better performance
         Command::new(powershell)
             .args([
                 PS_NO_PROFILE,
@@ -450,58 +369,48 @@ mod windows {
     }
 
     pub fn microsoft_store(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
-        // Build the script more efficiently
         let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
 
         let ps_script = format!(
-            r#"
-            $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-            
-            try {{
+            r#"try {{
                 Write-Output "{}"
                 $result = (Get-CimInstance{} -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" -ErrorAction Stop |
                 Invoke-CimMethod{} -MethodName UpdateScanMethod -ErrorAction Stop).ReturnValue
 
                 if ($result -eq 0) {{
-                    Write-Output "SUCCESS_PRIMARY"
                     Write-Output "{}"
                 }} else {{
                     Write-Output "FAIL_PRIMARY_NONZERO:$result"
                 }}
             }} catch {{
                 Write-Output "FAIL_PRIMARY_EXCEPTION:$($_.Exception.Message)"
-            }}
-            "#,
+            }}"#,
             powershell.clean_translation(t!("Attempting to update Microsoft Store apps using MDM method...")),
             verbose_flag,
             verbose_flag,
             powershell.clean_translation(t!("Microsoft Store update check completed"))
         );
 
-        // Execute the operation with standard handling pattern
         powershell.execute_operation(ctx, "Microsoft Store", || {
-            let result = powershell.execute_script(ctx, &ps_script);
-
-            if result.is_err() {
-                // Try fallbacks only if primary method fails
+            if let Err(e) = powershell.execute_script(ctx, &ps_script) {
                 println!(
                     "{}: {}",
                     powershell.clean_translation(t!("Microsoft Store update failed")),
-                    result.as_ref().err().unwrap()
+                    e
                 );
 
+                // If primary method fails, try fallbacks
                 try_microsoft_store_fallbacks(powershell, ctx)?;
 
+                // Still return an error to indicate primary method failed
                 return Err(color_eyre::eyre::eyre!(
                     "Microsoft Store update failed. Administrator privileges may be required."
                 ));
             }
-
             Ok(())
         })
     }
 
-    // Helper for fallback methods
     fn try_microsoft_store_fallbacks(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
         // First fallback: open Microsoft Store updates page
         println!(
@@ -509,7 +418,7 @@ mod windows {
             powershell.clean_translation(t!("Attempting to open Microsoft Store updates page..."))
         );
 
-        // Combined PowerShell command for better performance
+        // Try to open the Microsoft Store updates page
         let store_script = r#"$Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime];
                 $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult()"#;
 
