@@ -1426,7 +1426,7 @@ struct UvPythonVersion {
 
 impl UvPythonVersionData {
     /// Returns `None` when the version is undesirable, that is when any of the following conditions is met:
-    ///  - It's a pre-release (we don't care about pre-releases) (TODO: add an option to care about pre-release)
+    ///  - It's a pre-release (we don't care about pre-releases) (TODO: add an option to care about pre-releases)
     ///  - The variant is not default (we don't care about free-threaded python versions)
     fn normalize(self) -> Result<Option<UvPythonVersion>> {
         if self.variant != "default" {
