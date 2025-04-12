@@ -1324,14 +1324,14 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
     let uv_version_output_stdout = uv_version_output.stdout;
 
     let version_str = {
-        // trim the starting "uv" and " " (whitespace)
+        // Trim the starting "uv" and " " (whitespace)
         let start_trimmed = uv_version_output_stdout
             .trim_start_matches("uv")
             .trim_start_matches(' ');
-        // remove the tailing part " (c4d0caaee 2024-12-19)\n", if it's there
+        // Remove the tailing part " (c4d0caaee 2024-12-19)\n", if it's there
         match start_trimmed.find(' ') {
-            None => start_trimmed.trim_end_matches('\n'),  // Otherwise, just strip the newline
-            Some(i) => &start_trimmed[..i]  // this should be our version str "0.5.11"
+            None => start_trimmed.trim_end_matches('\n'), // Otherwise, just strip the newline
+            Some(i) => &start_trimmed[..i],               // This should be our version str "0.5.11"
         }
     };
     let version =
