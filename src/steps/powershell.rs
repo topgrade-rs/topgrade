@@ -104,7 +104,7 @@ try {{
     }}"#;
 }
 
-// Helper for building PowerShell scripts with proper translations
+// Optimized ScriptBuilder - avoids excessive string cloning
 #[derive(Clone)]
 struct ScriptBuilder {
     translations: Vec<(String, String)>,
@@ -129,11 +129,12 @@ impl ScriptBuilder {
         self
     }
 
-    // Changed to take &self instead of self to avoid ownership issues
-    fn build(&self, translator: &dyn Fn(String) -> String) -> String {
+    // More efficient build method that avoids excessive string cloning
+    fn build(&self, translator: &dyn Fn(&str) -> String) -> String {
         let mut result = self.template.clone();
         for (placeholder, text) in &self.translations {
-            result = result.replace(&format!("{{{}}}", placeholder), &translator(text.clone()));
+            let translated = translator(text);
+            result = result.replace(&format!("{{{}}}", placeholder), &translated);
         }
         result
     }
@@ -194,12 +195,11 @@ impl Powershell {
     }
 
     /// Helper function to clean translated strings by removing locale prefixes
-    fn clean_translation(&self, text: impl Into<String>) -> String {
-        let text = text.into();
-        // Remove locale prefixes like "en-GB." from translated strings
+    fn clean_translation(&self, text: &str) -> String {
+        // Optimize by avoiding unnecessary clones when no prefix is found
         text.find('.')
             .filter(|&idx| text.chars().take(idx).all(|c| c.is_ascii_alphabetic() || c == '-'))
-            .map_or(text.clone(), |idx| text[idx + 1..].to_string())
+            .map_or(text.to_string(), |idx| text[idx + 1..].to_string())
     }
 
     /// Get flags for module update based on configuration
@@ -283,7 +283,16 @@ impl Powershell {
             )
             .build(&|t| self.clean_translation(t));
 
-        // Assemble the final script
+        // Create final script with translated messages
+        let messages = [
+            t!("Processing PowerShell modules..."),
+            t!("Unable to connect to PowerShell Gallery. Module updates skipped."),
+            t!("Will still attempt to load existing modules"),
+            t!("PowerShell module processing complete."),
+            t!("PowerShell Modules update check completed"),
+        ]
+        .map(|msg| self.clean_translation(&msg));
+
         format!(
             r#"Write-Host "{}" -ForegroundColor Cyan
 
@@ -299,11 +308,7 @@ if ($galleryAvailable) {{
 
 Write-Host "{}" -ForegroundColor Green
 Write-Host "{}" -ForegroundColor Green"#,
-            self.clean_translation(t!("Processing PowerShell modules...")),
-            self.clean_translation(t!("Unable to connect to PowerShell Gallery. Module updates skipped.")),
-            self.clean_translation(t!("Will still attempt to load existing modules")),
-            self.clean_translation(t!("PowerShell module processing complete.")),
-            self.clean_translation(t!("PowerShell Modules update check completed"))
+            messages[0], messages[1], messages[2], messages[3], messages[4]
         )
     }
 
@@ -324,14 +329,8 @@ Write-Host "{}" -ForegroundColor Green"#,
 
     /// Handle UAC prompts and execute a PowerShell script with standard arguments
     fn execute_script(&self, ctx: &ExecutionContext, script: &str) -> Result<()> {
-        // Check elevation status before creating command to avoid resource allocation if unnecessary
-        if ctx.sudo().is_some() && !Self::is_process_elevated() && !self.uac_prompt_shown.get() {
-            println!(
-                "{}",
-                self.clean_translation(t!("Administrator privileges required - you will see a UAC prompt"))
-            );
-            self.uac_prompt_shown.set(true);
-        }
+        // Check elevation status before creating command
+        self.check_elevation(ctx);
 
         // Check execution policy on Windows
         #[cfg(windows)]
@@ -343,6 +342,17 @@ Write-Host "{}" -ForegroundColor Green"#,
             .arg(PS_COMMAND)
             .arg(script)
             .status_checked()
+    }
+
+    // Extract elevation check to separate method to improve readability
+    fn check_elevation(&self, ctx: &ExecutionContext) {
+        if ctx.sudo().is_some() && !Self::is_process_elevated() && !self.uac_prompt_shown.get() {
+            println!(
+                "{}",
+                self.clean_translation(&t!("Administrator privileges required - you will see a UAC prompt"))
+            );
+            self.uac_prompt_shown.set(true);
+        }
     }
 
     // Helper function to detect if current process is already elevated
@@ -375,7 +385,7 @@ Write-Host "{}" -ForegroundColor Green"#,
 
         // Only show scanning message if no UAC prompt will be shown
         if !will_elevate {
-            println!("{}", self.clean_translation(t!("Scanning for updates...")));
+            println!("{}", self.clean_translation(&t!("Scanning for updates...")));
         }
 
         // Execute the operation
@@ -385,7 +395,7 @@ Write-Host "{}" -ForegroundColor Green"#,
         if result.is_ok() && !will_elevate {
             // First substitute the operation_name into the translation string, then clean it
             let completed_message = t!("{operation_name} check completed", operation_name = operation_name);
-            println!("{}", self.clean_translation(completed_message));
+            println!("{}", self.clean_translation(&completed_message));
         }
 
         result
@@ -439,10 +449,10 @@ impl Powershell {
         // Build command with appropriate flags
         let script = format!(
             "Write-Output '{}'; Install-WindowsUpdate{}{} -Confirm:$false; Write-Output '{}'",
-            self.clean_translation(t!("Starting Windows Update...")),
+            self.clean_translation(&t!("Starting Windows Update...")),
             verbose_flag,
             accept_flag,
-            self.clean_translation(t!("Windows Update check completed"))
+            self.clean_translation(&t!("Windows Update check completed"))
         );
 
         self.execute_operation(ctx, "Windows Update", || self.execute_script(ctx, &script))
@@ -523,7 +533,7 @@ mod windows {
             if let Err(e) = powershell.execute_script(ctx, &ps_script) {
                 println!(
                     "{}: {}",
-                    powershell.clean_translation(t!("Microsoft Store update failed")),
+                    powershell.clean_translation(&t!("Microsoft Store update failed")),
                     e
                 );
 
@@ -551,48 +561,37 @@ mod windows {
     }
 
     fn try_microsoft_store_fallbacks(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
+        // Prepare translations to avoid repeated calls
+        let translations = [
+            t!("Attempting to open Microsoft Store updates page..."),
+            t!("Failed to open Microsoft Store"),
+            t!("Opened Microsoft Store updates page. Please check for updates manually."),
+            t!("Attempting to reset Microsoft Store..."),
+            t!("Failed to reset Microsoft Store"),
+            t!("Initiated Microsoft Store reset. Updates should begin shortly."),
+        ]
+        .map(|msg| powershell.clean_translation(&msg));
+
         // First fallback: open Microsoft Store updates page
-        println!(
-            "{}",
-            powershell.clean_translation(t!("Attempting to open Microsoft Store updates page..."))
-        );
+        println!("{}", translations[0]);
 
         // Try to open the Microsoft Store updates page
         let store_script = r#"$Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime];
                 $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult()"#;
 
         if let Err(e) = powershell.execute_script(ctx, store_script) {
-            println!(
-                "{}: {}",
-                powershell.clean_translation(t!("Failed to open Microsoft Store")),
-                e
-            );
+            println!("{}: {}", translations[1], e);
         } else {
-            println!(
-                "{}",
-                powershell.clean_translation(t!(
-                    "Opened Microsoft Store updates page. Please check for updates manually."
-                ))
-            );
+            println!("{}", translations[2]);
         }
 
         // Second fallback: wsreset
-        println!(
-            "{}",
-            powershell.clean_translation(t!("Attempting to reset Microsoft Store..."))
-        );
+        println!("{}", translations[3]);
 
         if let Err(e) = ctx.run_type().execute("wsreset.exe").arg("-i").status_checked() {
-            println!(
-                "{}: {}",
-                powershell.clean_translation(t!("Failed to reset Microsoft Store")),
-                e
-            );
+            println!("{}: {}", translations[4], e);
         } else {
-            println!(
-                "{}",
-                powershell.clean_translation(t!("Initiated Microsoft Store reset. Updates should begin shortly."))
-            );
+            println!("{}", translations[5]);
         }
 
         Ok(())
