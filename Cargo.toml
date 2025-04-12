@@ -55,6 +55,7 @@ wildmatch = "2.3.0"
 rust-i18n = "3.0.1"
 sys-locale = "0.3.1"
 jetbrains-toolbox-updater = "1.1.0"
+serde_json = "1.0.117"
 
 [package.metadata.generate-rpm]
 assets = [{ source = "target/release/topgrade", dest = "/usr/bin/topgrade" }]

@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process::Command;
@@ -12,6 +13,7 @@ use lazy_static::lazy_static;
 use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
+use serde::Deserialize;
 use tempfile::tempfile_in;
 use tracing::{debug, error};
 
@@ -868,8 +870,7 @@ pub fn run_myrepos_update(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
-pub fn run_custom_command(name: &str, command: &str, ctx: &ExecutionContext) -> Result<()> {
-    print_separator(name);
+pub fn run_with_shell(command: &str, ctx: &ExecutionContext) -> Result<()> {
     let mut exec = ctx.run_type().execute(shell());
     #[cfg(unix)]
     let command = if let Some(command) = command.strip_prefix("-i ") {
@@ -879,6 +880,11 @@ pub fn run_custom_command(name: &str, command: &str, ctx: &ExecutionContext) -> 
         command
     };
     exec.arg("-c").arg(command).status_checked()
+}
+
+pub fn run_custom_command(name: &str, command: &str, ctx: &ExecutionContext) -> Result<()> {
+    print_separator(name);
+    run_with_shell(command, ctx)
 }
 
 pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
@@ -1396,6 +1402,183 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         .execute(&uv_exec)
         .args(["tool", "upgrade", "--all"])
         .status_checked()
+}
+
+#[derive(Deserialize, Debug)]
+struct UvPythonVersionData {
+    version: String,
+    // version_parts: ...,
+    path: Option<String>, // Not a PathBuf because we don't need it
+    // symlink: Option<String>,
+    url: Option<String>,
+    // os: String,
+    variant: String,
+    // implementation: String,
+    // arch: String,
+    // libc: String,
+}
+
+#[derive(Debug)]
+struct UvPythonVersion {
+    version: Version,
+    installed: bool,
+}
+
+impl UvPythonVersionData {
+    /// Returns `None` when the version is undesirable, that is when any of the following conditions is met:
+    ///  - It's a pre-release (we don't care about pre-releases) (TODO: add an option to care about pre-release)
+    ///  - The variant is not default (we don't care about free-threaded python versions)
+    fn normalize(self) -> Result<Option<UvPythonVersion>> {
+        if self.variant != "default" {
+            return Ok(None);
+        }
+        Ok(Some(UvPythonVersion {
+            version: {
+                // If it contains anything but digits and dots, it's a pre-release.
+                //  (e.g. "3.14.0a6")
+                if !self.version.chars().all(|c| c.is_ascii_digit() || c == '.') {
+                    return Ok(None);
+                }
+                // If there is still an error with parsing the version, it's just an invalid version
+                self.version.parse()?
+            },
+            installed: match (self.path, self.url) {
+                (Some(_), None) => true,  // It has `path`, so it's installed
+                (None, Some(_)) => false, // It has `url`, so it's not installed and downloadable
+                (None, None) => return Err(eyre!("Version has neither of `path` and `url`")),
+                (Some(_), Some(_)) => return Err(eyre!("Version has both of `path` and `url`")),
+            },
+        }))
+    }
+}
+
+pub fn run_uv_python(ctx: &ExecutionContext) -> Result<()> {
+    let uv = require("uv")?;
+
+    if !ctx.config().enable_uv_python() {
+        // We do not print a warning nor print the separator, because:
+        //  - The uv_python step is not dependent on a single utility like pip_review is,
+        //    if you have uv installed chances are you don't even use `uv python`
+        //  - The uv_python step is dangerous to run, most people might not want to run it
+        return Err(SkipStep(String::from("uv_python is disabled by default")).into());
+    }
+
+    print_separator("uv python");
+
+    let versions: Vec<UvPythonVersionData> = serde_json::from_str(&String::from_utf8(
+        ctx.run_type()
+            .execute(&uv)
+            .args(["python", "list"])
+            .arg("--managed-python") // Exclude non-managed pythons
+            .args(["--output-format", "json"])
+            .output_checked()?
+            .stdout,
+    )?)?;
+    let versions: Vec<UvPythonVersion> = versions
+        .into_iter()
+        .filter_map(|version_data| version_data.normalize().transpose())
+        .collect::<Result<Vec<UvPythonVersion>>>()?;
+
+    let latest = versions
+        .iter()
+        .map(|version| &version.version)
+        .max()
+        .ok_or_else(|| eyre!("No versions found"))?;
+
+    debug!("Found latest version: {latest:?}");
+
+    // TODO: support multiple versions. Install new patch releases for each? Optionally install new minor release?
+    let mut it = versions.iter().filter(|version| version.installed);
+    let installed = &it
+        .next()
+        .ok_or_else(|| eyre!("Expected there to be exactly one uv-managed python version installed. (Found 0)"))?
+        .version;
+    if it.next().is_some() {
+        return Err(eyre!(
+            "Expected there to be exactly one uv-managed python version installed. (Found more than 1)"
+        ));
+    }
+
+    debug!("Found installed version: {installed:?}");
+
+    match latest.cmp(installed) {
+        Ordering::Equal => {
+            debug!("Latest version already installed.");
+            return Ok(());
+        }
+        Ordering::Less => unreachable!(), // Literally unreachable; we grabbed `latest` from the same pool as `installed`.
+        Ordering::Greater => (),          // Continue updating
+    }
+    debug!("Found new version: {latest}; currently installed: {installed}");
+
+    // Store which tools are installed before they're broken
+    let tools = if ctx.config().uv_python_reinstall_tools() {
+        // Example:
+        // get-pypi-latest-version v0.1.0
+        // - get_pypi_latest_version
+        // termdown v1.18.0
+        // - termdown
+        // when v3.3
+        // - when
+        let stdout = ctx
+            .run_type()
+            .execute(&uv)
+            .args(["tool", "list"])
+            .output_checked()?
+            .stdout;
+        Some(
+            String::from_utf8(stdout)
+                .wrap_err("Expected valid utf8")?
+                .lines()
+                .step_by(2) // Ignore every second line
+                // Strip the version
+                .map(|line| {
+                    line.split_once(' ')
+                        .ok_or_else(|| eyre!("Expected a space in that line"))
+                        .map(|parts| parts.0.to_string())
+                })
+                .collect::<Result<Vec<String>>>()?,
+        )
+    } else {
+        None
+    };
+    if let Some(tools) = &tools {
+        debug!("Found tools: {tools:?}");
+    }
+
+    // Uninstall previous python version
+    ctx.run_type()
+        .execute(&uv)
+        .args(["python", "uninstall"])
+        .arg(installed.to_string())
+        .status_checked()?;
+
+    // Install the new version
+    ctx.run_type()
+        .execute(&uv)
+        .args(["python", "install"])
+        .arg(latest.to_string())
+        .status_checked()?;
+
+    // Reinstall tools
+    if let Some(tools) = tools {
+        for tool in tools {
+            ctx.run_type()
+                .execute(&uv)
+                .args(["tool", "install", "--reinstall"])
+                .arg(tool)
+                .status_checked()?;
+        }
+    }
+
+    // Run post commands
+    if let Some(commands) = ctx.config().uv_python_post_commands() {
+        for command in commands {
+            run_with_shell(command, ctx)?;
+        }
+    }
+
+    Ok(())
 }
 
 /// Involve `zvm upgrade` to update ZVM

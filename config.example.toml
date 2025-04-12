@@ -325,3 +325,25 @@
 # extensions should be updated for.
 # (default: this won't be set by default)
 # profile = ""
+
+[uv_python]
+# If this is true, Topgrade will compare the latest python version
+#  with the current uv-managed (installed with `uv python`) version. It requires only a single version be present.
+# When a new version is available, Topgrade will:
+# - Uninstall that version of python with `uv python uninstall`
+# - Install the latest version of python with `uv python install`
+# - (If "reinstall_tools" is not disabled) reinstall all tools with `uv tool install --reinstall <tool>`
+# WARNING: Enabling this may break virtual environments created with earlier Python versions.
+# It may also break other things. Use at your own risk.
+# (default: false)
+# enable_uv_python_update = true
+
+# All the below are only applicable if "enable_uv_python_update = true".
+
+# If disabled, Topgrade will not reinstall tools
+# (default: true)
+# reinstall_tools = true
+
+# Topgrade will run these commands after a successful update.
+# (default: not defined)
+# post_commands = [ "for project in ~/projects/*; do cd $project || exit; if [[ -e '.venv' ]]; then rm -rf .venv; uv venv; uv pip install -r requirements.txt; fi; done;" ]
