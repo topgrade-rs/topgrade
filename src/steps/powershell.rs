@@ -197,16 +197,37 @@ impl Powershell {
 
     // Simplify translation with auto-cleaning
     fn t(&self, key: &str, params: Option<Vec<(&str, &str)>>) -> String {
-        let translated = if let Some(params) = params {
-            let mut msg = t!(key);
-            for (_param, value) in params {
-                msg = t!(key, param = value);
+        let translated = match key {
+            "Powershell is not installed" => t!("Powershell is not installed"),
+            "Administrator privileges required - you will see a UAC prompt" => {
+                t!("Administrator privileges required - you will see a UAC prompt")
             }
-            msg
-        } else {
-            t!(key)
+            "Starting Windows Update..." => t!("Starting Windows Update..."),
+            "Windows Update check completed" => t!("Windows Update check completed"),
+            "Microsoft Store update failed" => t!("Microsoft Store update failed"),
+            "Attempting to open Microsoft Store updates page..." => {
+                t!("Attempting to open Microsoft Store updates page...")
+            }
+            "Failed to open Microsoft Store" => t!("Failed to open Microsoft Store"),
+            "Opened Microsoft Store updates page. Please check for updates manually." => {
+                t!("Opened Microsoft Store updates page. Please check for updates manually.")
+            }
+            "Attempting to reset Microsoft Store..." => t!("Attempting to reset Microsoft Store..."),
+            "Failed to reset Microsoft Store" => t!("Failed to reset Microsoft Store"),
+            "Initiated Microsoft Store reset. Updates should begin shortly." => {
+                t!("Initiated Microsoft Store reset. Updates should begin shortly.")
+            }
+            "Scanning for updates..." => t!("Scanning for updates..."),
+            _ => key.to_string().into(), // Fallback for unknown keys - convert to Cow<str>
         };
-        self.clean_translation(&translated)
+
+        if let Some(_params) = params {
+            // Handle parameter substitution here if needed
+            // For now, just return the basic translation
+            translated.to_string()
+        } else {
+            self.clean_translation(&translated)
+        }
     }
 
     // Helper function to clean translated strings by removing locale prefixes
@@ -301,17 +322,12 @@ impl Powershell {
             )
             .build(|t| self.clean_translation(t));
 
-        // Pre-translate all messages once to avoid multiple translations
-        let messages = [
-            "Processing PowerShell modules...",
-            "Unable to connect to PowerShell Gallery. Module updates skipped.",
-            "Will still attempt to load existing modules",
-            "PowerShell module processing complete.",
-            "PowerShell Modules update check completed",
-        ]
-        .iter()
-        .map(|&msg| self.clean_translation(&t!(msg)))
-        .collect::<Vec<_>>();
+        // Use string literals directly with t!() macro
+        let processing_modules = t!("Processing PowerShell modules...");
+        let gallery_connection_failed = t!("Unable to connect to PowerShell Gallery. Module updates skipped.");
+        let will_load_modules = t!("Will still attempt to load existing modules");
+        let processing_complete = t!("PowerShell module processing complete.");
+        let update_check_completed = t!("PowerShell Modules update check completed");
 
         format!(
             r#"Write-Host "{}" -ForegroundColor Cyan
@@ -328,7 +344,11 @@ if ($galleryAvailable) {{
 
 Write-Host "{}" -ForegroundColor Green
 Write-Host "{}" -ForegroundColor Green"#,
-            messages[0], messages[1], messages[2], messages[3], messages[4]
+            self.clean_translation(&processing_modules),
+            self.clean_translation(&gallery_connection_failed),
+            self.clean_translation(&will_load_modules),
+            self.clean_translation(&processing_complete),
+            self.clean_translation(&update_check_completed)
         )
     }
 
@@ -411,8 +431,13 @@ Write-Host "{}" -ForegroundColor Green"#,
 
         // Show completion message if operation succeeded and we're not elevating
         if result.is_ok() && !will_elevate {
-            // First substitute the operation_name into the translation string, then clean it
-            let completed_message = t!("{operation_name} check completed", operation_name = operation_name);
+            // Use string literal with parameter substitution
+            let completed_message = match operation_name {
+                "PowerShell Modules" => t!("PowerShell Modules update check completed"),
+                "Windows Update" => t!("Windows Update check completed"),
+                "Microsoft Store" => t!("Microsoft Store update check completed"),
+                _ => t!("{operation_name} check completed", operation_name = operation_name),
+            };
             println!("{}", self.clean_translation(&completed_message));
         }
 
