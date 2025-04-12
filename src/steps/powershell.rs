@@ -309,10 +309,9 @@ try {{
 
         // Show completion message if operation succeeded and we're not elevating
         if result.is_ok() && !will_elevate {
-            println!(
-                "{}",
-                self.clean_translation(t!("{operation_name} check completed", operation_name = operation_name))
-            );
+            // First substitute the operation_name into the translation string, then clean it
+            let completed_message = t!("{operation_name} check completed", operation_name = operation_name);
+            println!("{}", self.clean_translation(completed_message));
         }
 
         result
