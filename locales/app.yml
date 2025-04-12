@@ -1342,3 +1342,74 @@ _version: 2
   zh_CN: "jetbrains-toolbox-updater 在更新过程中遇到意外错误"
   zh_TW: "jetbrains-toolbox-updater 在更新過程中遇到意外錯誤："
   de: "jetbrains-toolbox-updater ist auf einen unerwarteten Fehler während der Aktualisierung gestoßen:"
+"Checking connectivity to PowerShell Gallery...":
+  en: "Checking connectivity to PowerShell Gallery..."
+  lt: "Tikrinama jungtis į PowerShell Gallery..."
+  es: "Comprobando conectividad con PowerShell Gallery..."
+  fr: "Vérification de la connectivité à la Galerie PowerShell..."
+  zh_CN: "正在检查 PowerShell Gallery 的连接..."
+  zh_TW: "正在檢查 PowerShell Gallery 的連線..."
+  de: "Überprüfe Verbindung zur PowerShell Gallery..."
+
+"PowerShell Gallery is accessible":
+  en: "PowerShell Gallery is accessible"
+  lt: "PowerShell Gallery yra prieinama"
+  es: "PowerShell Gallery es accesible"
+  fr: "La Galerie PowerShell est accessible"
+  zh_CN: "PowerShell Gallery 可以访问"
+  zh_TW: "PowerShell Gallery 可以存取"
+  de: "PowerShell Gallery ist erreichbar"
+
+"PowerShell Gallery is not accessible. Module updates will be skipped.":
+  en: "PowerShell Gallery is not accessible. Module updates will be skipped."
+  lt: "PowerShell Gallery nepasiekiama. Modulių atnaujinimai bus praleisti."
+  es: "PowerShell Gallery no es accesible. Las actualizaciones de módulos serán omitidas."
+  fr: "La Galerie PowerShell n'est pas accessible. Les mises à jour des modules seront ignorées."
+  zh_CN: "无法访问 PowerShell Gallery。将跳过模块更新。"
+  zh_TW: "無法存取 PowerShell Gallery。將跳過模組更新。"
+  de: "PowerShell Gallery ist nicht erreichbar. Modulaktualisierungen werden übersprungen."
+
+"Retry attempt {attempt} of {max}...":
+  en: "Retry attempt %{attempt} of %{max}..."
+  lt: "Pakartotinis bandymas %{attempt} iš %{max}..."
+  es: "Intento %{attempt} de %{max}..."
+  fr: "Tentative %{attempt} sur %{max}..."
+  zh_CN: "重试第 %{attempt} 次，共 %{max} 次..."
+  zh_TW: "重試第 %{attempt} 次，共 %{max} 次..."
+  de: "Wiederholungsversuch %{attempt} von %{max}..."
+
+"Failed to update module after multiple attempts":
+  en: "Failed to update module after multiple attempts"
+  lt: "Nepavyko atnaujinti modulio po kelių bandymų"
+  es: "Error al actualizar el módulo después de múltiples intentos"
+  fr: "Échec de la mise à jour du module après plusieurs tentatives"
+  zh_CN: "多次尝试后无法更新模块"
+  zh_TW: "多次嘗試後無法更新模組"
+  de: "Modul konnte nach mehreren Versuchen nicht aktualisiert werden"
+
+"{operation_name} check completed":
+  en: "%{operation_name} check completed"
+  lt: "%{operation_name} patikra baigta"
+  es: "Verificación de %{operation_name} completada"
+  fr: "Vérification de %{operation_name} terminée"
+  zh_CN: "%{operation_name} 检查完成"
+  zh_TW: "%{operation_name} 檢查完成"
+  de: "%{operation_name} Überprüfung abgeschlossen"
+
+"Attempting to update Microsoft Store apps using MDM method...":
+  en: "Attempting to update Microsoft Store apps using MDM method..."
+  lt: "Bandoma atnaujinti Microsoft Store programas naudojant MDM metodą..."
+  es: "Intentando actualizar aplicaciones de Microsoft Store utilizando el método MDM..."
+  fr: "Tentative de mise à jour des applications Microsoft Store à l'aide de la méthode MDM..."
+  zh_CN: "尝试使用 MDM 方法更新 Microsoft Store 应用程序..."
+  zh_TW: "嘗試使用 MDM 方法更新 Microsoft Store 應用程式..."
+  de: "Versuche Microsoft Store-Apps mit MDM-Methode zu aktualisieren..."
+
+"Microsoft Store update check completed":
+  en: "Microsoft Store update check completed"
+  lt: "Microsoft Store atnaujinimų patikra baigta"
+  es: "Verificación de actualizaciones de Microsoft Store completada"
+  fr: "Vérification des mises à jour du Microsoft Store terminée"
+  zh_CN: "Microsoft Store 更新检查完成"
+  zh_TW: "Microsoft Store 更新檢查完成"
+  de: "Microsoft Store Update-Überprüfung abgeschlossen"
