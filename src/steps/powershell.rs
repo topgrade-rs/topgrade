@@ -420,6 +420,13 @@ impl Powershell {
     }
 
     pub fn windows_update(&self, ctx: &ExecutionContext) -> Result<()> {
+        // Check if Windows Update is supported before attempting to run it
+        if !self.supports_windows_update() {
+            return Err(color_eyre::eyre::eyre!(
+                "PSWindowsUpdate module is not installed. Windows Update is not available."
+            ));
+        }
+
         let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
         let accept_flag = if ctx.config().accept_all_windows_updates() {
             " -AcceptAll"
