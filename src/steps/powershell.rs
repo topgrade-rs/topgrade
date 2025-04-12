@@ -1,5 +1,4 @@
 use std::cell::Cell;
-#[cfg(windows)]
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -144,6 +143,7 @@ pub struct Powershell {
     path: Option<PathBuf>,
     profile: Option<PathBuf>,
     uac_prompt_shown: Cell<bool>,
+    #[cfg(windows)]
     windows_update_support: Cell<Option<bool>>,
 }
 
@@ -155,6 +155,7 @@ impl Powershell {
             path,
             profile,
             uac_prompt_shown: Cell::new(false),
+            #[cfg(windows)]
             windows_update_support: Cell::new(None),
         }
     }
@@ -421,6 +422,19 @@ impl Powershell {
     }
 
     pub fn windows_update(&self, ctx: &ExecutionContext) -> Result<()> {
+        // Directly check or populate the cached value
+        let module_available = self
+            .windows_update_support
+            .get()
+            .unwrap_or_else(|| self.supports_windows_update());
+
+        // Check if the PSWindowsUpdate module is available
+        if !module_available {
+            return Err(color_eyre::eyre::eyre!(
+                "The PSWindowsUpdate module is not available. Please install it using 'Install-Module PSWindowsUpdate'"
+            ));
+        }
+
         let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
         let accept_flag = if ctx.config().accept_all_windows_updates() {
             " -AcceptAll"
