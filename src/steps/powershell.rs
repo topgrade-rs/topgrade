@@ -259,6 +259,10 @@ try {{
             self.uac_prompt_shown.set(true);
         }
 
+        // Check execution policy on Windows
+        #[cfg(windows)]
+        self.execution_policy_args_if_needed()?;
+
         // Create and execute the command
         self.create_powershell_command(ctx)?
             .args(Self::default_args())
@@ -365,6 +369,48 @@ impl Powershell {
 
     pub fn microsoft_store(&self, ctx: &ExecutionContext) -> Result<()> {
         windows::microsoft_store(self, ctx)
+    }
+
+    /// Checks if PowerShell execution policy is properly set
+    pub fn execution_policy_args_if_needed(&self) -> Result<()> {
+        if !self.is_execution_policy_set("RemoteSigned") {
+            Err(color_eyre::eyre::eyre!(
+                "PowerShell execution policy is too restrictive. \
+                Please run 'Set-ExecutionPolicy RemoteSigned -Scope CurrentUser' in PowerShell \
+                (or use Unrestricted/Bypass if you're sure about the security implications)"
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    /// Checks if the current execution policy is at least as permissive as the required policy
+    fn is_execution_policy_set(&self, policy: &str) -> bool {
+        if let Some(powershell) = &self.path {
+            // These policies are ordered from most restrictive to least restrictive
+            let valid_policies = ["Restricted", "AllSigned", "RemoteSigned", "Unrestricted", "Bypass"];
+
+            // Find the index of our target policy
+            let target_idx = valid_policies.iter().position(|&p| p == policy);
+
+            let output = Command::new(powershell)
+                .args([PS_NO_PROFILE, PS_COMMAND, "Get-ExecutionPolicy"])
+                .output_checked_utf8();
+
+            if let Ok(output) = output {
+                let current_policy = output.stdout.trim();
+
+                // Find the index of the current policy
+                let current_idx = valid_policies.iter().position(|&p| p == current_policy);
+
+                // Check if current policy exists and is at least as permissive as the target
+                return match (current_idx, target_idx) {
+                    (Some(current), Some(target)) => current >= target,
+                    _ => false,
+                };
+            }
+        }
+        false
     }
 }
 
