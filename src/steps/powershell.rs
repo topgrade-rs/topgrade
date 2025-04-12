@@ -344,8 +344,10 @@ if ($galleryAvailable) {{
     pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
         print_separator(t!("Powershell Modules Update"));
 
-        // Display scanning message
-        println!("{}", self.clean_translation(t!("Scanning for updates...")));
+        // Only show scanning message if no UAC prompt will be shown
+        if !self.will_show_uac_prompt(ctx) {
+            println!("{}", self.clean_translation(t!("Scanning for updates...")));
+        }
 
         // No need for duplicate UAC message here - execute_script will handle it
         let script = self.create_update_script(ctx);
@@ -360,6 +362,12 @@ if ($galleryAvailable) {{
         }
 
         result
+    }
+
+    /// Helper to determine if a UAC prompt will be shown for this operation
+    fn will_show_uac_prompt(&self, ctx: &ExecutionContext) -> bool {
+        let will_elevate = ctx.sudo().is_some();
+        will_elevate && !self.uac_prompt_shown.get() && !Self::is_process_elevated()
     }
 }
 
@@ -394,8 +402,10 @@ impl Powershell {
             ""
         };
 
-        // Display scanning message
-        println!("{}", self.clean_translation(t!("Scanning for updates...")));
+        // Only show scanning message if no UAC prompt will be shown
+        if !self.will_show_uac_prompt(ctx) {
+            println!("{}", self.clean_translation(t!("Scanning for updates...")));
+        }
 
         // No need for a separate UAC prompt message - execute_script will handle it
         let install_command = format!(
@@ -447,7 +457,10 @@ mod windows {
     }
 
     pub fn microsoft_store(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
-        println!("{}", powershell.clean_translation(t!("Scanning for updates...")));
+        // Only show scanning message if no UAC prompt will be shown
+        if !powershell.will_show_uac_prompt(ctx) {
+            println!("{}", powershell.clean_translation(t!("Scanning for updates...")));
+        }
 
         // Build the command with optional verbosity
         let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
