@@ -353,8 +353,8 @@ if ($galleryAvailable) {{
         let script = self.create_update_script(ctx);
         let result = self.execute_script(ctx, &script);
 
-        // Add success message if script executed successfully
-        if result.is_ok() {
+        // Add success message if script executed successfully AND elevation occurred
+        if result.is_ok() && self.did_elevation_occur(ctx) {
             println!(
                 "{}",
                 self.clean_translation(t!("Success, PowerShell Modules are being updated in the background"))
@@ -368,6 +368,14 @@ if ($galleryAvailable) {{
     fn will_show_uac_prompt(&self, ctx: &ExecutionContext) -> bool {
         let will_elevate = ctx.sudo().is_some();
         will_elevate && !self.uac_prompt_shown.get() && !Self::is_process_elevated()
+    }
+
+    /// Helper to check if elevation actually occurred during an operation
+    fn did_elevation_occur(&self, ctx: &ExecutionContext) -> bool {
+        // Elevation occurred if sudo was specified AND either:
+        // 1. We showed a UAC prompt, or
+        // 2. Process was already elevated (no prompt needed but still elevated)
+        ctx.sudo().is_some() && (self.uac_prompt_shown.get() || Self::is_process_elevated())
     }
 }
 
@@ -418,10 +426,13 @@ impl Powershell {
         // Use execute_script to properly handle elevation
         match self.execute_script(ctx, &install_command) {
             Ok(_) => {
-                println!(
-                    "{}",
-                    self.clean_translation(t!("Success, Windows Updates are being updated in the background"))
-                );
+                // Only show success message if elevation occurred
+                if self.did_elevation_occur(ctx) {
+                    println!(
+                        "{}",
+                        self.clean_translation(t!("Success, Windows Updates are being updated in the background"))
+                    );
+                }
                 Ok(())
             }
             Err(e) => Err(e),
@@ -505,11 +516,14 @@ mod windows {
     fn handle_microsoft_store_update(powershell: &Powershell, ctx: &ExecutionContext, ps_script: String) -> Result<()> {
         match powershell.execute_script(ctx, &ps_script) {
             Ok(_) => {
-                println!(
-                    "{}",
-                    powershell
-                        .clean_translation(t!("Success, Microsoft Store apps are being updated in the background"))
-                );
+                // Only show success message if elevation occurred
+                if powershell.did_elevation_occur(ctx) {
+                    println!(
+                        "{}",
+                        powershell
+                            .clean_translation(t!("Success, Microsoft Store apps are being updated in the background"))
+                    );
+                }
                 Ok(())
             }
             Err(e) => {
