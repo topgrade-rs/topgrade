@@ -587,7 +587,11 @@ pub fn run_deb_get(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(&deb_get).arg("upgrade").status_checked()?;
 
     if ctx.config().cleanup() {
-        ctx.run_type().execute(&deb_get).arg("clean").status_checked()?;
+        let output = ctx.run_type().execute(&deb_get).arg("clean").output_checked()?;
+        // Swallow the output, as it's very noisy and not useful.
+        //  The output is automatically printed as part of `output_checked` when an error occurs.
+        println!("<output from `deb-get clean` omitted>");
+        debug!("`deb-get clean` output: {output:?}");
     }
 
     Ok(())
