@@ -79,16 +79,13 @@ impl Powershell {
     fn clean_translation(&self, text: impl Into<String>) -> String {
         let text = text.into();
         // Remove locale prefixes like "en-GB." from translated strings
-        if let Some(idx) = text.find('.') {
-            if text.chars().take(idx).all(|c| c.is_ascii_alphabetic() || c == '-') {
-                return text[idx + 1..].to_string();
-            }
-        }
-        text
+        text.find('.')
+            .filter(|&idx| text.chars().take(idx).all(|c| c.is_ascii_alphabetic() || c == '-'))
+            .map_or(text.clone(), |idx| text[idx + 1..].to_string())
     }
 
-    /// Creates the PowerShell script for updating modules
-    fn create_update_script(&self, ctx: &ExecutionContext) -> String {
+    /// Get flags for module update based on configuration
+    fn get_update_flags(&self, ctx: &ExecutionContext) -> (String, String) {
         let force_flag = if ctx.config().yes(Step::Powershell) || ctx.config().powershell_force_modules_update() {
             " -Force"
         } else {
@@ -96,12 +93,46 @@ impl Powershell {
         };
 
         let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
+
+        (force_flag.to_string(), verbose_flag.to_string())
+    }
+
+    /// Creates the PowerShell script for updating modules
+    fn create_update_script(&self, ctx: &ExecutionContext) -> String {
+        let (force_flag, verbose_flag) = self.get_update_flags(ctx);
         let update_command = format!("Update-Module -Name $moduleName{}{}", verbose_flag, force_flag);
+
+        // Create sections of the script for better readability
+        let check_gallery_script = self.create_gallery_check_script();
+        let update_modules_script = self.create_modules_update_script(&update_command);
 
         format!(
             r#"Write-Host "{}" -ForegroundColor Cyan
 
-# First test connectivity to PowerShell Gallery
+{check_gallery_script}
+
+if ($galleryAvailable) {{
+    {update_modules_script}
+}} else {{
+    Write-Host "{}" -ForegroundColor Red
+    # Continue with module loading anyway, as they might still work
+    Write-Host "{}" -ForegroundColor Yellow
+}}
+
+Write-Host "{}" -ForegroundColor Green
+Write-Host "{}" -ForegroundColor Green"#,
+            self.clean_translation(t!("Processing PowerShell modules...")),
+            self.clean_translation(t!("Unable to connect to PowerShell Gallery. Module updates skipped.")),
+            self.clean_translation(t!("Will still attempt to load existing modules")),
+            self.clean_translation(t!("PowerShell module processing complete.")),
+            self.clean_translation(t!("PowerShell Modules update check completed"))
+        )
+    }
+
+    /// Creates the gallery connectivity check part of the script
+    fn create_gallery_check_script(&self) -> String {
+        format!(
+            r#"# First test connectivity to PowerShell Gallery
 $galleryAvailable = $false
 Write-Host "{}" -ForegroundColor Cyan
 try {{
@@ -115,10 +146,19 @@ try {{
 }} catch {{
   Write-Host "{}" -ForegroundColor Red
   Write-Host "  $($_.Exception.Message)" -ForegroundColor Red
-}}
+}}"#,
+            self.clean_translation(t!("Checking connectivity to PowerShell Gallery...")),
+            self.clean_translation(t!("PowerShell Gallery is accessible")),
+            self.clean_translation(t!(
+                "PowerShell Gallery is not accessible. Module updates will be skipped."
+            ))
+        )
+    }
 
-if ($galleryAvailable) {{
-  Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {{
+    /// Creates the module update portion of the script
+    fn create_modules_update_script(&self, update_command: &str) -> String {
+        format!(
+            r#"Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {{
     $moduleName = $_.Name
     try {{
       # Only process modules installed via Install-Module
@@ -168,21 +208,7 @@ if ($galleryAvailable) {{
     }} catch {{
       Write-Host "{}" -ForegroundColor Red
     }}
-  }}
-}} else {{
-  Write-Host "{}" -ForegroundColor Red
-  # Continue with module loading anyway, as they might still work
-  Write-Host "{}" -ForegroundColor Yellow
-}}
-
-Write-Host "{}" -ForegroundColor Green
-Write-Host "{}" -ForegroundColor Green"#,
-            self.clean_translation(t!("Processing PowerShell modules...")),
-            self.clean_translation(t!("Checking connectivity to PowerShell Gallery...")),
-            self.clean_translation(t!("PowerShell Gallery is accessible")),
-            self.clean_translation(t!(
-                "PowerShell Gallery is not accessible. Module updates will be skipped."
-            )),
+  }}"#,
             self.clean_translation(t!("Processing module: {moduleName}", moduleName = "$moduleName")),
             self.clean_translation(t!("Unloading module: {moduleName}", moduleName = "$moduleName")),
             self.clean_translation(t!("Updating module: {moduleName}", moduleName = "$moduleName")),
@@ -207,11 +233,7 @@ Write-Host "{}" -ForegroundColor Green"#,
                 "Failed to process module: {moduleName} - {error}",
                 moduleName = "$moduleName",
                 error = "$($_.Exception.Message)"
-            )),
-            self.clean_translation(t!("Unable to connect to PowerShell Gallery. Module updates skipped.")),
-            self.clean_translation(t!("Will still attempt to load existing modules")),
-            self.clean_translation(t!("PowerShell module processing complete.")),
-            self.clean_translation(t!("PowerShell Modules update check completed"))
+            ))
         )
     }
 
@@ -327,16 +349,19 @@ impl Powershell {
     }
 
     pub fn windows_update(&self, ctx: &ExecutionContext) -> Result<()> {
+        let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
+        let accept_flag = if ctx.config().accept_all_windows_updates() {
+            " -AcceptAll"
+        } else {
+            ""
+        };
+
         // Build command with appropriate flags
         let script = format!(
             "Write-Output '{}'; Install-WindowsUpdate{}{} -Confirm:$false; Write-Output '{}'",
             self.clean_translation(t!("Starting Windows Update...")),
-            if ctx.config().verbose() { " -Verbose" } else { "" },
-            if ctx.config().accept_all_windows_updates() {
-                " -AcceptAll"
-            } else {
-                ""
-            },
+            verbose_flag,
+            accept_flag,
             self.clean_translation(t!("Windows Update check completed"))
         );
 
@@ -370,26 +395,7 @@ mod windows {
 
     pub fn microsoft_store(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
         let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
-
-        let ps_script = format!(
-            r#"try {{
-                Write-Output "{}"
-                $result = (Get-CimInstance{} -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" -ErrorAction Stop |
-                Invoke-CimMethod{} -MethodName UpdateScanMethod -ErrorAction Stop).ReturnValue
-
-                if ($result -eq 0) {{
-                    Write-Output "{}"
-                }} else {{
-                    Write-Output "FAIL_PRIMARY_NONZERO:$result"
-                }}
-            }} catch {{
-                Write-Output "FAIL_PRIMARY_EXCEPTION:$($_.Exception.Message)"
-            }}"#,
-            powershell.clean_translation(t!("Attempting to update Microsoft Store apps using MDM method...")),
-            verbose_flag,
-            verbose_flag,
-            powershell.clean_translation(t!("Microsoft Store update check completed"))
-        );
+        let ps_script = create_microsoft_store_script(powershell, verbose_flag);
 
         powershell.execute_operation(ctx, "Microsoft Store", || {
             if let Err(e) = powershell.execute_script(ctx, &ps_script) {
@@ -409,6 +415,28 @@ mod windows {
             }
             Ok(())
         })
+    }
+
+    fn create_microsoft_store_script(powershell: &Powershell, verbose_flag: &str) -> String {
+        format!(
+            r#"try {{
+                Write-Output "{}"
+                $result = (Get-CimInstance{} -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" -ErrorAction Stop |
+                Invoke-CimMethod{} -MethodName UpdateScanMethod -ErrorAction Stop).ReturnValue
+
+                if ($result -eq 0) {{
+                    Write-Output "{}"
+                }} else {{
+                    Write-Output "FAIL_PRIMARY_NONZERO:$result"
+                }}
+            }} catch {{
+                Write-Output "FAIL_PRIMARY_EXCEPTION:$($_.Exception.Message)"
+            }}"#,
+            powershell.clean_translation(t!("Attempting to update Microsoft Store apps using MDM method...")),
+            verbose_flag,
+            verbose_flag,
+            powershell.clean_translation(t!("Microsoft Store update check completed"))
+        )
     }
 
     fn try_microsoft_store_fallbacks(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
