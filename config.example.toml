@@ -328,7 +328,7 @@
 
 [uv_python]
 # If this is true, Topgrade will compare the latest python version
-#  with the current uv-managed (installed with `uv python`) version. It requires only a single version be present.
+#  with the current uv-managed (installed with `uv python`) version. It requires that only a single version be present, not more, not less.
 # When a new version is available, Topgrade will:
 # - Uninstall that version of python with `uv python uninstall`
 # - Install the latest version of python with `uv python install`
