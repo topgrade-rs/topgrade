@@ -92,16 +92,18 @@ impl Powershell {
         let force_flag = self.get_force_flag(ctx);
         let update_command = self.build_update_command(force_flag, ctx.config().verbose());
 
-        // Assemble script sections
-        let script_header = self.generate_script_header();
-        let gallery_check = self.generate_gallery_check();
-        let module_processing = self.generate_module_processing(&update_command);
-        let script_footer = self.generate_script_footer();
+        // More efficiently build the script by pre-allocating capacity for all sections
+        let mut script = String::with_capacity(2048);
 
-        format!(
-            "{}\n{}\n{}\n{}",
-            script_header, gallery_check, module_processing, script_footer
-        )
+        script.push_str(&self.generate_script_header());
+        script.push('\n');
+        script.push_str(&self.generate_gallery_check());
+        script.push('\n');
+        script.push_str(&self.generate_module_processing(&update_command));
+        script.push('\n');
+        script.push_str(&self.generate_script_footer());
+
+        script
     }
 
     /// Generate the script header
@@ -228,11 +230,15 @@ Write-Host "{}" -ForegroundColor Green"#,
 
     /// Helper to build the update command with appropriate options
     fn build_update_command(&self, force_flag: &str, verbose: bool) -> String {
+        let mut command = String::with_capacity(64);
+        command.push_str("Update-Module -Name $moduleName");
+
         if verbose {
-            format!("Update-Module -Name $moduleName -Verbose{}", force_flag)
-        } else {
-            format!("Update-Module -Name $moduleName{}", force_flag)
+            command.push_str(" -Verbose");
         }
+
+        command.push_str(force_flag);
+        command
     }
 
     /// Generate the script for unloading a module
@@ -279,8 +285,6 @@ Write-Host "{}" -ForegroundColor Green"#,
 
         let cmd = if let Some(sudo) = ctx.sudo() {
             let mut cmd = ctx.run_type().execute(sudo);
-            // When using sudo, pass the PowerShell path as a single argument to prevent
-            // the shell from splitting it, then pass default args separately
             cmd.arg(powershell);
             cmd
         } else {
@@ -290,25 +294,22 @@ Write-Host "{}" -ForegroundColor Green"#,
         Ok(cmd)
     }
 
-    /// Execute a PowerShell script with standard arguments
+    /// Handle UAC prompts and execute a PowerShell script with standard arguments
     fn execute_script(&self, ctx: &ExecutionContext, script: &str) -> Result<()> {
-        let mut cmd = self.create_powershell_command(ctx)?;
+        // Check elevation status before creating command to avoid resource allocation if unnecessary
+        let will_elevate = ctx.sudo().is_some() && !Self::is_process_elevated();
 
-        // Check if this will be elevated and update prompt flag BEFORE executing
-        let will_elevate = ctx.sudo().is_some();
-
-        // Only show UAC prompt message if we will need to elevate AND we haven't shown the message yet
-        // AND we're not already running as admin
-        if will_elevate && !self.uac_prompt_shown.get() && !Self::is_process_elevated() {
-            // Show UAC prompt message once before any elevation occurs
+        // Show UAC prompt message if needed
+        if will_elevate && !self.uac_prompt_shown.get() {
             println!(
                 "{}",
                 self.clean_translation(t!("Administrator privileges required - you will see a UAC prompt"))
             );
-            // Mark as shown for the instance using Cell
             self.uac_prompt_shown.set(true);
         }
 
+        // Create and execute the command
+        let mut cmd = self.create_powershell_command(ctx)?;
         cmd.args(Self::default_args())
             .arg(PS_COMMAND)
             .arg(script)
@@ -320,22 +321,15 @@ Write-Host "{}" -ForegroundColor Green"#,
     fn is_process_elevated() -> bool {
         use std::process::Command;
 
-        // Use PowerShell to check if the current process is elevated
-        // This command returns "True" if running as admin, "False" otherwise
-        match Command::new("powershell")
+        Command::new("powershell")
             .args([
                 "-NoProfile",
                 "-Command",
                 "[bool](([System.Security.Principal.WindowsIdentity]::GetCurrent()).groups -match 'S-1-5-32-544')",
             ])
             .output_checked_utf8()
-        {
-            Ok(output) => {
-                let result = output.stdout.trim().to_string();
-                result.eq_ignore_ascii_case("true")
-            }
-            Err(_) => false,
-        }
+            .map(|output| output.stdout.trim().to_lowercase() == "true")
+            .unwrap_or(false)
     }
 
     #[cfg(not(windows))]
@@ -343,40 +337,45 @@ Write-Host "{}" -ForegroundColor Green"#,
         false // On non-Windows platforms, we don't need this check
     }
 
-    pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
-        print_separator(t!("Powershell Modules Update"));
-
+    /// Execute an operation with standard messaging and UAC handling
+    fn execute_operation<F>(&self, ctx: &ExecutionContext, operation_name: &str, operation: F) -> Result<()>
+    where
+        F: FnOnce() -> Result<()>,
+    {
         // Only show scanning message if no UAC prompt will be shown
         if !self.will_show_uac_prompt(ctx) {
             println!("{}", self.clean_translation(t!("Scanning for updates...")));
         }
 
-        // No need for duplicate UAC message here - execute_script will handle it
-        let script = self.create_update_script(ctx);
+        // Execute the operation
+        let result = operation();
 
-        // Run the script and capture the result
-        let result = self.execute_script(ctx, &script);
-
-        // Only print success message if the operation actually succeeded
-        // AND we should show completion message in Rust (not elevating)
+        // Show completion message if operation succeeded and we're not elevating
         if result.is_ok() && self.should_show_completion_in_rust(ctx) {
             println!(
                 "{}",
-                self.clean_translation(t!("PowerShell Modules update check completed"))
+                self.clean_translation(t!("{operation_name} check completed", operation_name = operation_name))
             );
         }
 
         result
     }
 
+    pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
+        print_separator(t!("Powershell Modules Update"));
+
+        self.execute_operation(ctx, "PowerShell Modules", || {
+            let script = self.create_update_script(ctx);
+            self.execute_script(ctx, &script)
+        })
+    }
+
     /// Helper to determine if a UAC prompt will be shown for this operation
     fn will_show_uac_prompt(&self, ctx: &ExecutionContext) -> bool {
-        let will_elevate = ctx.sudo().is_some();
-        will_elevate && !self.uac_prompt_shown.get() && !Self::is_process_elevated()
+        ctx.sudo().is_some() && !self.uac_prompt_shown.get() && !Self::is_process_elevated()
     }
 
     /// Helper to determine if completion message should be shown in Rust code
-    /// Only show completion in Rust when we're not elevating or already elevated
     fn should_show_completion_in_rust(&self, ctx: &ExecutionContext) -> bool {
         !self.will_show_uac_prompt(ctx)
     }
@@ -385,7 +384,7 @@ Write-Host "{}" -ForegroundColor Green"#,
 #[cfg(windows)]
 impl Powershell {
     pub fn supports_windows_update(&self) -> bool {
-        // Check cached result first
+        // Check cached result first for efficiency
         if let Some(supports) = self.windows_update_support.get() {
             return supports;
         }
@@ -404,38 +403,24 @@ impl Powershell {
     }
 
     pub fn windows_update(&self, ctx: &ExecutionContext) -> Result<()> {
-        // Remove the debug_assert since we're now using the cached check
-        // and this would be redundant
-
         let accept_all = if ctx.config().accept_all_windows_updates() {
             "-AcceptAll"
         } else {
             ""
         };
 
-        // Only show scanning message if no UAC prompt will be shown
-        if !self.will_show_uac_prompt(ctx) {
-            println!("{}", self.clean_translation(t!("Scanning for updates...")));
-        }
+        let verbose = if ctx.config().verbose() { "-Verbose" } else { "" };
 
-        // No need for a separate UAC prompt message - execute_script will handle it
+        // Build the script with a single format call
         let install_command = format!(
             "Write-Output '{}'; Install-WindowsUpdate {} {}; Write-Output '{}'",
             self.clean_translation(t!("Starting Windows Update...")),
-            if ctx.config().verbose() { "-Verbose" } else { "" },
+            verbose,
             accept_all,
             self.clean_translation(t!("Windows Update check completed"))
         );
 
-        // Execute script and only show completion message if it actually succeeds
-        let result = self.execute_script(ctx, &install_command);
-
-        // Only show completion message if we're not elevating and operation succeeded
-        if result.is_ok() && self.should_show_completion_in_rust(ctx) {
-            println!("{}", self.clean_translation(t!("Windows Update check completed")));
-        }
-
-        result
+        self.execute_operation(ctx, "Windows Update", || self.execute_script(ctx, &install_command))
     }
 
     pub fn microsoft_store(&self, ctx: &ExecutionContext) -> Result<()> {
@@ -447,14 +432,12 @@ impl Powershell {
 mod windows {
     use super::*;
 
-    // Removed the unused function windows_update
-
     pub fn has_module(powershell: &PathBuf, module_name: &str) -> bool {
-        // Use -ErrorAction SilentlyContinue to avoid prompts and error messages
+        // Use a single combined command for better performance
         Command::new(powershell)
             .args([
                 PS_NO_PROFILE,
-                PS_NO_LOGO, // Added to be consistent with other commands
+                PS_NO_LOGO,
                 PS_COMMAND,
                 &format!(
                     "Get-Module -ListAvailable {} -ErrorAction SilentlyContinue",
@@ -467,26 +450,13 @@ mod windows {
     }
 
     pub fn microsoft_store(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
-        // Only show scanning message if no UAC prompt will be shown
-        if !powershell.will_show_uac_prompt(ctx) {
-            println!("{}", powershell.clean_translation(t!("Scanning for updates...")));
-        }
-
-        // Build the command with optional verbosity
+        // Build the script more efficiently
         let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
 
-        // Comment out admin message in PowerShell output - our execute_script will handle it
         let ps_script = format!(
             r#"
-            # This operation requires administrator privileges
             $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-            if (-not $isAdmin) {{
-                # Skip admin message - Topgrade handles this
-                # Write-Output "{{}}"
-                # Don't exit - we'll still try to run the command and let it fail properly
-            }}
-
-            # Only attempt the primary MDM UpdateScanMethod - most reliable method
+            
             try {{
                 Write-Output "{}"
                 $result = (Get-CimInstance{} -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" -ErrorAction Stop |
@@ -508,38 +478,27 @@ mod windows {
             powershell.clean_translation(t!("Microsoft Store update check completed"))
         );
 
-        // Execute the script and handle potential fallbacks
-        handle_microsoft_store_update(powershell, ctx, ps_script)
-    }
+        // Execute the operation with standard handling pattern
+        powershell.execute_operation(ctx, "Microsoft Store", || {
+            let result = powershell.execute_script(ctx, &ps_script);
 
-    // Helper function to handle Microsoft Store update with fallbacks
-    fn handle_microsoft_store_update(powershell: &Powershell, ctx: &ExecutionContext, ps_script: String) -> Result<()> {
-        let result = powershell.execute_script(ctx, &ps_script);
+            if result.is_err() {
+                // Try fallbacks only if primary method fails
+                println!(
+                    "{}: {}",
+                    powershell.clean_translation(t!("Microsoft Store update failed")),
+                    result.as_ref().err().unwrap()
+                );
 
-        // Only show completion message if operation succeeded AND we're not elevating
-        if result.is_ok() && powershell.should_show_completion_in_rust(ctx) {
-            println!(
-                "{}",
-                powershell.clean_translation(t!("Microsoft Store update check completed"))
-            );
+                try_microsoft_store_fallbacks(powershell, ctx)?;
+
+                return Err(color_eyre::eyre::eyre!(
+                    "Microsoft Store update failed. Administrator privileges may be required."
+                ));
+            }
+
             Ok(())
-        } else if result.is_ok() {
-            // Operation succeeded but we're elevating, so don't show message (script will show it)
-            Ok(())
-        } else {
-            println!(
-                "{}: {}",
-                powershell.clean_translation(t!("Microsoft Store update failed")),
-                result.as_ref().err().unwrap()
-            );
-
-            // Try fallback methods
-            try_microsoft_store_fallbacks(powershell, ctx)?;
-
-            Err(color_eyre::eyre::eyre!(
-                "Microsoft Store update failed. Administrator privileges may be required."
-            ))
-        }
+        })
     }
 
     // Helper for fallback methods
@@ -549,6 +508,8 @@ mod windows {
             "{}",
             powershell.clean_translation(t!("Attempting to open Microsoft Store updates page..."))
         );
+
+        // Combined PowerShell command for better performance
         let store_script = r#"$Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime];
                 $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult()"#;
 
@@ -572,6 +533,7 @@ mod windows {
             "{}",
             powershell.clean_translation(t!("Attempting to reset Microsoft Store..."))
         );
+
         if let Err(e) = ctx.run_type().execute("wsreset.exe").arg("-i").status_checked() {
             println!(
                 "{}: {}",
