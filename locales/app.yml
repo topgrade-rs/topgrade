@@ -1413,3 +1413,120 @@ _version: 2
   zh_CN: "Microsoft Store 更新检查完成"
   zh_TW: "Microsoft Store 更新檢查完成"
   de: "Microsoft Store Update-Überprüfung abgeschlossen"
+
+  "Administrator privileges required - you will see a UAC prompt":
+    en: "Administrator privileges required - you will see a UAC prompt"
+    lt: "Reikalingos administratoriaus teisės - pamatysite UAC užklausą"
+    es: "Se requieren privilegios de administrador - verá un mensaje UAC"
+    fr: "Privilèges d'administrateur requis - vous verrez une invite UAC"
+    zh_CN: "需要管理员权限 - 您将看到 UAC 提示"
+    zh_TW: "需要管理員權限 - 您將看到 UAC 提示"
+    de: "Administratorrechte erforderlich - Sie werden eine UAC-Eingabeaufforderung sehen"
+
+  "Starting Windows Update...":
+    en: "Starting Windows Update..."
+    lt: "Pradedamas Windows atnaujinimas..."
+    es: "Iniciando actualización de Windows..."
+    fr: "Démarrage de la mise à jour Windows..."
+    zh_CN: "正在启动 Windows 更新..."
+    zh_TW: "正在啟動 Windows 更新..."
+    de: "Starte Windows Update..."
+
+  "Windows Update check completed":
+    en: "Windows Update check completed"
+    lt: "Windows atnaujinimų patikra baigta"
+    es: "Verificación de actualizaciones de Windows completada"
+    fr: "Vérification des mises à jour Windows terminée"
+    zh_CN: "Windows 更新检查完成"
+    zh_TW: "Windows 更新檢查完成"
+    de: "Windows Update-Überprüfung abgeschlossen"
+
+  "Microsoft Store update failed":
+    en: "Microsoft Store update failed"
+    lt: "Microsoft Store atnaujinimas nepavyko"
+    es: "Actualización de Microsoft Store fallida"
+    fr: "Échec de la mise à jour du Microsoft Store"
+    zh_CN: "Microsoft Store 更新失败"
+    zh_TW: "Microsoft Store 更新失敗"
+    de: "Microsoft Store-Update fehlgeschlagen"
+
+  "Attempting to open Microsoft Store updates page...":
+    en: "Attempting to open Microsoft Store updates page..."
+    lt: "Bandoma atidaryti Microsoft Store atnaujinimų puslapį..."
+    es: "Intentando abrir la página de actualizaciones de Microsoft Store..."
+    fr: "Tentative d'ouverture de la page de mises à jour du Microsoft Store..."
+    zh_CN: "正在尝试打开 Microsoft Store 更新页面..."
+    zh_TW: "正在嘗試打開 Microsoft Store 更新頁面..."
+    de: "Versuche Microsoft Store-Updates-Seite zu öffnen..."
+
+  "Failed to open Microsoft Store":
+    en: "Failed to open Microsoft Store"
+    lt: "Nepavyko atidaryti Microsoft Store"
+    es: "Error al abrir Microsoft Store"
+    fr: "Échec de l'ouverture du Microsoft Store"
+    zh_CN: "无法打开 Microsoft Store"
+    zh_TW: "無法打開 Microsoft Store"
+    de: "Fehler beim Öffnen des Microsoft Store"
+
+  "Opened Microsoft Store updates page. Please check for updates manually.":
+    en: "Opened Microsoft Store updates page. Please check for updates manually."
+    lt: "Atidaryta Microsoft Store atnaujinimų puslapis. Prašome patikrinti atnaujinimus rankiniu būdu."
+    es: "Se abrió la página de actualizaciones de Microsoft Store. Compruebe las actualizaciones manualmente."
+    fr: "Page de mises à jour du Microsoft Store ouverte. Veuillez vérifier les mises à jour manuellement."
+    zh_CN: "已打开 Microsoft Store 更新页面。请手动检查更新。"
+    zh_TW: "已打開 Microsoft Store 更新頁面。請手動檢查更新。"
+    de: "Microsoft Store-Updates-Seite geöffnet. Bitte manuell nach Updates suchen."
+
+  "Attempting to reset Microsoft Store...":
+    en: "Attempting to reset Microsoft Store..."
+    lt: "Bandoma atkurti Microsoft Store..."
+    es: "Intentando restablecer Microsoft Store..."
+    fr: "Tentative de réinitialisation du Microsoft Store..."
+    zh_CN: "正在尝试重置 Microsoft Store..."
+    zh_TW: "正在嘗試重置 Microsoft Store..."
+    de: "Versuche Microsoft Store zurückzusetzen..."
+
+  "Failed to reset Microsoft Store":
+    en: "Failed to reset Microsoft Store"
+    lt: "Nepavyko atkurti Microsoft Store"
+    es: "Error al restablecer Microsoft Store"
+    fr: "Échec de la réinitialisation du Microsoft Store"
+    zh_CN: "无法重置 Microsoft Store"
+    zh_TW: "無法重置 Microsoft Store"
+    de: "Fehler beim Zurücksetzen des Microsoft Store"
+
+  "Initiated Microsoft Store reset. Updates should begin shortly.":
+    en: "Initiated Microsoft Store reset. Updates should begin shortly."
+    lt: "Inicijuotas Microsoft Store atkūrimas. Atnaujinimai turėtų prasidėti netrukus."
+    es: "Se inició el restablecimiento de Microsoft Store. Las actualizaciones deberían comenzar en breve."
+    fr: "Réinitialisation du Microsoft Store initiée. Les mises à jour devraient commencer sous peu."
+    zh_CN: "已启动 Microsoft Store 重置。更新应该很快开始。"
+    zh_TW: "已啟動 Microsoft Store 重置。更新應該很快開始。"
+    de: "Microsoft Store-Reset eingeleitet. Updates sollten in Kürze beginnen."
+
+  "Unable to connect to PowerShell Gallery. Module updates skipped.":
+    en: "Unable to connect to PowerShell Gallery. Module updates skipped."
+    lt: "Nepavyksta prisijungti prie PowerShell Gallery. Modulių atnaujinimai praleisti."
+    es: "No se puede conectar con PowerShell Gallery. Actualizaciones de módulos omitidas."
+    fr: "Impossible de se connecter à la Galerie PowerShell. Mises à jour des modules ignorées."
+    zh_CN: "无法连接到 PowerShell Gallery。模块更新已跳过。"
+    zh_TW: "無法連接到 PowerShell Gallery。模組更新已跳過。"
+    de: "Keine Verbindung zur PowerShell Gallery möglich. Modulaktualisierungen übersprungen."
+
+  "Will still attempt to load existing modules":
+    en: "Will still attempt to load existing modules"
+    lt: "Vis tiek bus bandoma įkelti esamus modulius"
+    es: "Se intentará cargar los módulos existentes"
+    fr: "Tentera quand même de charger les modules existants"
+    zh_CN: "仍将尝试加载现有模块"
+    zh_TW: "仍將嘗試載入現有模組"
+    de: "Es wird trotzdem versucht, vorhandene Module zu laden"
+
+  "PowerShell Modules update check completed":
+    en: "PowerShell Modules update check completed"
+    lt: "PowerShell modulių atnaujinimų patikra baigta"
+    es: "Verificación de actualización de módulos PowerShell completada"
+    fr: "Vérification des mises à jour des modules PowerShell terminée"
+    zh_CN: "PowerShell 模块更新检查完成"
+    zh_TW: "PowerShell 模組更新檢查完成"
+    de: "PowerShell-Module-Update-Überprüfung abgeschlossen"
