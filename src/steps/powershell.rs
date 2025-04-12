@@ -1,5 +1,4 @@
 use std::cell::Cell;
-#[cfg(windows)]
 use std::path::PathBuf;
 use std::process::Command;
 
