@@ -4,9 +4,9 @@ use std::process::Command;
 use std::{env, path::Path};
 use std::{fs, io::Write};
 
-use color_eyre::eyre::{eyre, OptionExt};
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use color_eyre::eyre::{eyre, OptionExt};
 use jetbrains_toolbox_updater::{find_jetbrains_toolbox, update_jetbrains_toolbox, FindError};
 use lazy_static::lazy_static;
 use regex::bytes::Regex;
@@ -1518,7 +1518,12 @@ fn run_jetbrains_ide_generic<const IS_JETBRAINS: bool>(ctx: &ExecutionContext, b
     // "Only one instance of RustRover can be run at a time."
     if stdout.contains("Only one instance of ") && stdout.contains(" can be run at a time.") {
         // It's always paired with status code 1
-        if output.status.code().ok_or_eyre("Failed to get status code; was killed with signal")? != 1 {
+        if output
+            .status
+            .code()
+            .ok_or_eyre("Failed to get status code; was killed with signal")?
+            != 1
+        {
             return Err(eyre!("Expected status code 1 ('Only one instance of <IDE> can be run at a time.'), but received successful exit code. Output: {output:?}"));
         }
         // Don't crash, but don't be silent either
