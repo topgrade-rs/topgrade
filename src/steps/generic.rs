@@ -1337,8 +1337,13 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         // Remove the tailing part " (c4d0caaee 2024-12-19)\n", if it's there
         match start_trimmed.find(' ') {
             None => start_trimmed.trim_end_matches('\n'), // Otherwise, just strip the newline
-            Some(i) => &start_trimmed[..i],               // This should be our version str "0.5.11"
+            Some(i) => &start_trimmed[..i],
         }
+        
+        // After trimming, it should be a string in 2 possible formats, both can be handled by `Version::parse()`
+        //
+        // 1. "0.5.11"
+        // 2. "0.5.11+1"
     };
     let version =
         Version::parse(version_str).expect("the output of `uv --version` changed, please file an issue to Topgrade");
