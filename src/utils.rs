@@ -296,6 +296,7 @@ pub fn run_with_shell(command: &str, ctx: &ExecutionContext) -> Result<()> {
         command
     };
     exec.arg("-c").arg(command).status_checked()
+}
 
 /// Macro to construct an error message for when the output of a command is unexpected.
 #[macro_export]
