@@ -4,7 +4,7 @@ use std::process::Command;
 use std::{env, path::Path};
 use std::{fs, io::Write};
 
-use color_eyre::eyre::eyre;
+use color_eyre::eyre::{eyre, OptionExt};
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use jetbrains_toolbox_updater::{find_jetbrains_toolbox, update_jetbrains_toolbox, FindError};
@@ -13,7 +13,7 @@ use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
 use tempfile::tempfile_in;
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
@@ -1504,7 +1504,33 @@ fn run_jetbrains_ide_generic<const IS_JETBRAINS: bool>(ctx: &ExecutionContext, b
     print_separator(format!("{prefix}{name} plugins"));
 
     // The `update` command is undocumented, but tested on all of the below.
-    ctx.run_type().execute(bin).arg("update").status_checked()
+    let output = ctx.run_type().execute(&bin).arg("update").output()?;
+    let output = match output {
+        ExecutorOutput::Dry => return Ok(()),
+        ExecutorOutput::Wet(output) => output,
+    };
+    // Write the output which we swallowed in all cases
+    std::io::stdout().lock().write_all(&output.stdout).unwrap();
+    std::io::stderr().lock().write_all(&output.stderr).unwrap();
+
+    let stdout = String::from_utf8(output.stdout.clone()).wrap_err("Expected valid UTF-8 output")?;
+
+    // "Only one instance of RustRover can be run at a time."
+    if stdout.contains("Only one instance of ") && stdout.contains(" can be run at a time.") {
+        // It's always paired with status code 1
+        if output.status.code().ok_or_eyre("Failed to get status code; was killed with signal")? != 1 {
+            return Err(eyre!("Expected status code 1 ('Only one instance of <IDE> can be run at a time.'), but received successful exit code. Output: {output:?}"));
+        }
+        // Don't crash, but don't be silent either
+        warn!("{name} is already running, can't update it now.");
+        Err(SkipStep(format!("{name} is already running, can't update it now.")).into())
+    } else if !output.status.success() {
+        // Unknown failure
+        Err(eyre!("Running `{bin:?} update` failed. Output: {output:?}"))
+    } else {
+        // Success. Output was already written above
+        Ok(())
+    }
 }
 
 fn run_jetbrains_ide(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result<()> {
