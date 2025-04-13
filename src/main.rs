@@ -446,6 +446,62 @@ fn run() -> Result<()> {
     runner.execute(Step::Aqua, "aqua", || generic::run_aqua(&ctx))?;
     runner.execute(Step::Bun, "bun", || generic::run_bun(&ctx))?;
     runner.execute(Step::Zigup, "zigup", || generic::run_zigup(&ctx))?;
+    runner.execute(Step::JetbrainsToolbox, "JetBrains Toolbox", || {
+        generic::run_jetbrains_toolbox(&ctx)
+    })?;
+    runner.execute(Step::AndroidStudio, "Android Studio plugins", || {
+        generic::run_android_studio(&ctx)
+    })?;
+    runner.execute(Step::JetbrainsAqua, "JetBrains Aqua plugins", || {
+        generic::run_jetbrains_aqua(&ctx)
+    })?;
+    runner.execute(Step::JetbrainsClion, "JetBrains CLion plugins", || {
+        generic::run_jetbrains_clion(&ctx)
+    })?;
+    runner.execute(Step::JetbrainsDatagrip, "JetBrains DataGrip plugins", || {
+        generic::run_jetbrains_datagrip(&ctx)
+    })?;
+    runner.execute(Step::JetbrainsDataspell, "JetBrains DataSpell plugins", || {
+        generic::run_jetbrains_dataspell(&ctx)
+    })?;
+    // JetBrains dotCover has no CLI
+    // JetBrains dotMemory has no CLI
+    // JetBrains dotPeek has no CLI
+    // JetBrains dotTrace has no CLI
+    // JetBrains Fleet has a different CLI without a `fleet update` command.
+    runner.execute(Step::JetbrainsGateway, "JetBrains Gateway plugins", || {
+        generic::run_jetbrains_gateway(&ctx)
+    })?;
+    runner.execute(Step::JetbrainsGoland, "JetBrains GoLand plugins", || {
+        generic::run_jetbrains_goland(&ctx)
+    })?;
+    runner.execute(Step::JetbrainsIdea, "JetBrains IntelliJ IDEA plugins", || {
+        generic::run_jetbrains_idea(&ctx)
+    })?;
+    runner.execute(Step::JetbrainsMps, "JetBrains MPS plugins", || {
+        generic::run_jetbrains_mps(&ctx)
+    })?;
+    runner.execute(Step::JetbrainsPhpstorm, "JetBrains PhpStorm plugins", || {
+        generic::run_jetbrains_phpstorm(&ctx)
+    })?;
+    runner.execute(Step::JetbrainsPycharm, "JetBrains PyCharm plugins", || {
+        generic::run_jetbrains_pycharm(&ctx)
+    })?;
+    // JetBrains ReSharper has no CLI (it's a VSCode extension)
+    // JetBrains ReSharper C++ has no CLI (it's a VSCode extension)
+    runner.execute(Step::JetbrainsRider, "JetBrains Rider plugins", || {
+        generic::run_jetbrains_rider(&ctx)
+    })?;
+    runner.execute(Step::JetbrainsRubymine, "JetBrains RubyMine plugins", || {
+        generic::run_jetbrains_rubymine(&ctx)
+    })?;
+    runner.execute(Step::JetbrainsRustrover, "JetBrains RustRover plugins", || {
+        generic::run_jetbrains_rustrover(&ctx)
+    })?;
+    // JetBrains Space Desktop does not have a CLI
+    runner.execute(Step::JetbrainsWebstorm, "JetBrains WebStorm plugins", || {
+        generic::run_jetbrains_webstorm(&ctx)
+    })?;
 
     if should_run_powershell {
         runner.execute(Step::Powershell, "Powershell Modules Update", || {

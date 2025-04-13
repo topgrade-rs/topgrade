@@ -42,6 +42,11 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("winget");
 
+    ctx.run_type()
+        .execute(&winget)
+        .args(["source", "update"])
+        .status_checked()?;
+
     let mut command = if ctx.config().winget_use_sudo() {
         match ctx.sudo() {
             Some(sudo) => {
@@ -55,7 +60,14 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
         ctx.run_type().execute(winget)
     };
 
-    command.args(["upgrade", "--all"]).status_checked()
+    let mut args = vec!["upgrade", "--all"];
+    if ctx.config().winget_silent_install() {
+        args.push("--silent");
+    }
+
+    command.args(args).status_checked()?;
+
+    Ok(())
 }
 
 pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
@@ -73,7 +85,6 @@ pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
             .args(["cache", "rm", "-a"])
             .status_checked()?
     }
-
     Ok(())
 }
 
