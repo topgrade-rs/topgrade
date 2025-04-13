@@ -1349,8 +1349,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         // 1. "0.5.11"
         // 2. "0.5.11+1"
     };
-    let version =
-        Version::parse(version_str).expect("the output of `uv --version` changed, please file an issue to Topgrade");
+    let version = Version::parse(version_str).wrap_err(output_changed_message!("uv --version", "Invalid version"))?;
 
     if version < Version::new(0, 4, 25) {
         // For uv before version 0.4.25 (exclusive), the `self` sub-command only
