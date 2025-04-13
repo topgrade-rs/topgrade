@@ -20,8 +20,10 @@ use tracing::{debug, error};
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
-use crate::terminal::{print_separator, shell};
-use crate::utils::{check_is_python_2_or_shim, get_require_sudo_string, require, require_option, which, PathExt};
+use crate::terminal::print_separator;
+use crate::utils::{
+    check_is_python_2_or_shim, get_require_sudo_string, require, require_option, run_with_shell, which, PathExt,
+};
 use crate::Step;
 use crate::HOME_DIR;
 use crate::{
@@ -868,18 +870,6 @@ pub fn run_myrepos_update(ctx: &ExecutionContext) -> Result<()> {
         .arg(&*HOME_DIR)
         .arg("update")
         .status_checked()
-}
-
-pub fn run_with_shell(command: &str, ctx: &ExecutionContext) -> Result<()> {
-    let mut exec = ctx.run_type().execute(shell());
-    #[cfg(unix)]
-    let command = if let Some(command) = command.strip_prefix("-i ") {
-        exec.arg("-i");
-        command
-    } else {
-        command
-    };
-    exec.arg("-c").arg(command).status_checked()
 }
 
 pub fn run_custom_command(name: &str, command: &str, ctx: &ExecutionContext) -> Result<()> {
