@@ -19,10 +19,7 @@ use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
 use crate::terminal::{print_separator, shell};
-use crate::utils::{
-    check_is_python_2_or_shim, get_require_sudo_string, output_changed_message_runtime, require, require_option, which,
-    PathExt,
-};
+use crate::utils::{check_is_python_2_or_shim, get_require_sudo_string, require, require_option, which, PathExt};
 use crate::HOME_DIR;
 use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
@@ -475,7 +472,7 @@ fn run_vscode_compatible<const VSCODIUM: bool>(ctx: &ExecutionContext) -> Result
             Version::parse(&item).map_err(std::convert::Into::into)
         }
         None => {
-            return Err(eyre!(output_changed_message_runtime(
+            return Err(eyre!(output_changed_message!(
                 &format!("{bin_name} --version"),
                 "No first line"
             )))
@@ -485,10 +482,8 @@ fn run_vscode_compatible<const VSCODIUM: bool>(ctx: &ExecutionContext) -> Result
     // Raise any errors in parsing the version
     //  The benefit of handling VSCodium versions so old that the version format is something
     //  unexpected is outweighed by the benefit of failing fast on new breaking versions
-    let version = version.wrap_err(output_changed_message_runtime(
-        &format!("{bin_name} --version"),
-        "Invalid version",
-    ))?;
+    let version =
+        version.wrap_err_with(|| output_changed_message!(&format!("{bin_name} --version"), "Invalid version"))?;
     debug!("Detected {name} version as: {version}");
 
     if version < Version::new(1, 86, 0) {
@@ -679,10 +674,12 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
     {
         Ok(output) => {
             let stdout = output.stdout.trim();
-            stdout.parse::<bool>().wrap_err(output_changed_message!(
-                "pip config get global.break-system-packages",
-                "unexpected output that is not `true` or `false`"
-            ))?
+            stdout.parse::<bool>().wrap_err_with(|| {
+                output_changed_message!(
+                    "pip config get global.break-system-packages",
+                    "unexpected output that is not `true` or `false`"
+                )
+            })?
         }
         // it can fail because this key may not be set
         //
@@ -1349,7 +1346,8 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         // 1. "0.5.11"
         // 2. "0.5.11+1"
     };
-    let version = Version::parse(version_str).wrap_err(output_changed_message!("uv --version", "Invalid version"))?;
+    let version =
+        Version::parse(version_str).wrap_err_with(|| output_changed_message!("uv --version", "Invalid version"))?;
 
     if version < Version::new(0, 4, 25) {
         // For uv before version 0.4.25 (exclusive), the `self` sub-command only

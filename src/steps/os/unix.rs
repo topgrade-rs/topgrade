@@ -650,7 +650,8 @@ pub fn run_asdf(ctx: &ExecutionContext) -> Result<()> {
         .ok_or_else(|| eyre!(output_changed_message!("asdf version", "no dash (-) found")))?;
     // remove the hash part
     remaining = &remaining[..idx];
-    let version = Version::parse(remaining).wrap_err(output_changed_message!("asdf version", "invalid version"))?;
+    let version =
+        Version::parse(remaining).wrap_err_with(|| output_changed_message!("asdf version", "invalid version"))?;
     if version < Version::new(0, 15, 0) {
         ctx.run_type()
             .execute(&asdf)

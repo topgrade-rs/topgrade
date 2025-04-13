@@ -285,8 +285,8 @@ impl ArchPackageManager for Aura {
         // Output will be something like: "aura x.x.x\n"
         let version_cmd_stdout = version_cmd_output.stdout;
         let version_str = version_cmd_stdout.trim_start_matches("aura ").trim_end();
-        let version =
-            Version::parse(version_str).wrap_err(output_changed_message!("aura --version", "invalid version"))?;
+        let version = Version::parse(version_str)
+            .wrap_err_with(|| output_changed_message!("aura --version", "invalid version"))?;
 
         // Aura, since version 4.0.6, no longer needs sudo.
         //
