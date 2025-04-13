@@ -1318,9 +1318,15 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         .execute(&uv_exec)
         .arg("--version")
         .output_checked_utf8()?;
-    // Multiple possible output formats are possible. For example:
+    // Multiple possible output formats are possible according to uv source code
+    //
+    // https://github.com/astral-sh/uv/blob/6b7f60c1eaa840c2e933a0fb056ab46f99c991a5/crates/uv-cli/src/version.rs#L28-L42
+    //
+    // For example:
     //  "uv 0.5.11 (c4d0caaee 2024-12-19)\n"
+    //  "uv 0.5.11+1 (xxxd0cee 2024-12-20)\n"
     //  "uv 0.6.14\n"
+    
     let uv_version_output_stdout = uv_version_output.stdout;
 
     let version_str = {
