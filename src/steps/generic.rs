@@ -20,7 +20,7 @@ use tracing::{debug, error};
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
-use crate::terminal::{print_separator, shell};
+use crate::terminal::print_separator;
 use crate::utils::{
     check_is_python_2_or_shim, get_require_sudo_string, require, require_option, run_with_shell, which, PathExt,
 };
