@@ -1499,21 +1499,22 @@ pub fn run_jetbrains_toolbox(_ctx: &ExecutionContext) -> Result<()> {
     }
 }
 
-fn run_jetbrains_ide(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result<()> {
-    print_separator(format!("JetBrains {name} plugins"));
+fn run_jetbrains_ide_generic<const IS_JETBRAINS: bool>(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result<()> {
+    let prefix = if IS_JETBRAINS { "JetBrains " } else { "" };
+    print_separator(format!("{prefix}{name} plugins"));
 
     // The `update` command is undocumented, but tested on all of the below.
     ctx.run_type().execute(bin).arg("update").status_checked()
 }
 
+fn run_jetbrains_ide(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result<()> {
+    run_jetbrains_ide_generic::<true>(ctx, bin, name)
+}
+
 pub fn run_android_studio(ctx: &ExecutionContext) -> Result<()> {
     // We don't use `run_jetbrains_ide` here because that would print "JetBrains Android Studio",
     //  which is incorrect as Android Studio is made by Google. Just "Android Studio" is fine.
-    let bin = require("studio")?;
-
-    print_separator("Android Studio plugins");
-
-    ctx.run_type().execute(bin).arg("update").status_checked()
+    run_jetbrains_ide_generic::<false>(ctx, require("studio")?, "Android Studio")
 }
 
 pub fn run_jetbrains_aqua(ctx: &ExecutionContext) -> Result<()> {
