@@ -1293,6 +1293,6 @@ _version: 2
   lt: "<išvestis iš `deb-get clean` praleista>"
   es: "<salida de `deb-get clean` omitido>"
   fr: "<sortie de `deb-get clean` omise>"
-  zh_CN: "<省略了 `deb-get clean` 的輸出>"
+  zh_CN: "<省略了 `deb-get clean` 的输出>"
   zh_TW: "<省略了 `deb-get clean` 的輸出>"
   de: "<Ausgabe von `deb-get clean` ausgelassen>"
