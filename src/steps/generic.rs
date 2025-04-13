@@ -221,15 +221,46 @@ pub fn run_apm(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
-pub fn run_aqua(ctx: &ExecutionContext) -> Result<()> {
+enum Aqua {
+    JetBrainsAqua(PathBuf),
+    AquaCLI(PathBuf),
+}
+
+impl Aqua {
+    fn aqua_cli(self) -> Result<PathBuf> {
+        match self {
+            Aqua::AquaCLI(aqua) => Ok(aqua),
+            Aqua::JetBrainsAqua(_) => {
+                Err(SkipStep("Command `aqua` probably points to JetBrains Aqua".to_string()).into())
+            }
+        }
+    }
+
+    fn jetbrains_aqua(self) -> Result<PathBuf> {
+        match self {
+            Aqua::JetBrainsAqua(path) => Ok(path),
+            Aqua::AquaCLI(_) => Err(SkipStep("Command `aqua` probably points to Aqua CLI".to_string()).into()),
+        }
+    }
+}
+
+fn get_aqua(ctx: &ExecutionContext) -> Result<Aqua> {
     let aqua = require("aqua")?;
 
-    // Check if `aqua --help` mentions "aqua". JetBrains aqua does not, aqua CLI does.
+    // Check if `aqua --help` mentions "aqua". JetBrains Aqua does not, Aqua CLI does.
     let output = ctx.run_type().execute(&aqua).arg("--help").output_checked()?;
 
-    if !String::from_utf8(output.stdout)?.contains("aqua") {
-        return Err(SkipStep("Command aqua probably points to JetBrains Aqua".to_string()).into());
+    if String::from_utf8(output.stdout)?.contains("aqua") {
+        debug!("Detected `aqua` as Aqua CLI");
+        Ok(Aqua::AquaCLI(aqua))
+    } else {
+        debug!("Detected `aqua` as JetBrains Aqua");
+        Ok(Aqua::JetBrainsAqua(aqua))
     }
+}
+
+pub fn run_aqua(ctx: &ExecutionContext) -> Result<()> {
+    let aqua = get_aqua(ctx)?.aqua_cli()?;
 
     print_separator("Aqua");
     if ctx.run_type().dry() {
@@ -408,88 +439,86 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
     command.args(["upgrade", "--no-dry-run"]).status_checked()
 }
 
-/// Make VSCodium a separate step because:
-///
-/// 1. Users could use both VSCode and VSCodium
-/// 2. Just in case, VSCodium could have incompatible changes with VSCode
-pub fn run_vscodium_extensions_update(ctx: &ExecutionContext) -> Result<()> {
-    // Calling vscodoe in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
+/// This functions runs for both VSCode and VSCodium, as most of the process is the same for both.
+fn run_vscode_compatible<const VSCODIUM: bool>(ctx: &ExecutionContext) -> Result<()> {
+    // Calling VSCode/VSCodium in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
     if is_wsl()? {
         return Err(SkipStep(String::from("Should not run in WSL")).into());
     }
 
-    let vscodium = require("codium")?;
+    let name = if VSCODIUM { "VSCodium" } else { "VSCode" };
+    let bin_name = if VSCODIUM { "codium" } else { "code" };
+    let bin = require(bin_name)?;
 
     // VSCode has update command only since 1.86 version ("january 2024" update), disable the update for prior versions
     // Use command `code --version` which returns 3 lines: version, git commit, instruction set. We parse only the first one
     //
     // This should apply to VSCodium as well.
-    let version: Result<Version> = match Command::new(&vscodium)
+    let version: Result<Version> = match Command::new(&bin)
         .arg("--version")
         .output_checked_utf8()?
         .stdout
         .lines()
         .next()
     {
-        Some(item) => Version::parse(item).map_err(std::convert::Into::into),
-        _ => return Err(SkipStep(String::from("Cannot find vscodium version")).into()),
+        Some(item) => {
+            // Strip leading zeroes because `semver` does not allow them, but VSCodium uses them sometimes.
+            //  This is not the case for VSCode, but just in case, and it can't really cause any issues.
+            let item = item
+                .split('.')
+                .map(|s| if s == "0" { "0" } else { s.trim_start_matches('0') })
+                .collect::<Vec<_>>()
+                .join(".");
+            Version::parse(&item).map_err(std::convert::Into::into)
+        }
+        None => {
+            return Err(eyre!(format!(
+                "The output of `{bin_name} --version` changed, please file an issue to Topgrade: No first line"
+            )))
+        }
     };
 
-    if !matches!(version, Ok(version) if version >= Version::new(1, 86, 0)) {
-        return Err(SkipStep(String::from(
-            "Too old vscodium version to have update extensions command",
-        ))
-        .into());
+    // Raise any errors in parsing the version
+    //  The benefit of handling VSCodium versions so old that the version format is something
+    //  unexpected is outweighed by the benefit of failing fast on new breaking versions
+    let version = version.wrap_err(format!(
+        "the output of `{bin_name} --version` changed, please file an issue to Topgrade"
+    ))?;
+    debug!("Detected {name} version as: {version}");
+
+    if version < Version::new(1, 86, 0) {
+        return Err(SkipStep(format!("Too old {name} version to have update extensions command")).into());
     }
 
-    print_separator("VSCodium extensions");
+    print_separator(if VSCODIUM {
+        "VSCodium extensions"
+    } else {
+        "Visual Studio Code extensions"
+    });
 
-    ctx.run_type()
-        .execute(vscodium)
-        .arg("--update-extensions")
-        .status_checked()
+    let mut cmd = ctx.run_type().execute(bin);
+    // If its VSCode (not VSCodium)
+    if !VSCODIUM {
+        // And we have configured use of a profile
+        if let Some(profile) = ctx.config().vscode_profile() {
+            // Add the profile argument
+            cmd.arg("--profile").arg(profile);
+        }
+    }
+
+    cmd.arg("--update-extensions").status_checked()
+}
+
+/// Make VSCodium a separate step because:
+///
+/// 1. Users could use both VSCode and VSCodium
+/// 2. Just in case, VSCodium could have incompatible changes with VSCode
+pub fn run_vscodium_extensions_update(ctx: &ExecutionContext) -> Result<()> {
+    run_vscode_compatible::<true>(ctx)
 }
 
 pub fn run_vscode_extensions_update(ctx: &ExecutionContext) -> Result<()> {
-    // Calling vscode in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
-    if is_wsl()? {
-        return Err(SkipStep(String::from("Should not run in WSL")).into());
-    }
-
-    let vscode = require("code")?;
-
-    // Vscode has update command only since 1.86 version ("january 2024" update), disable the update for prior versions
-    // Use command `code --version` which returns 3 lines: version, git commit, instruction set. We parse only the first one
-    let version: Result<Version> = match Command::new(&vscode)
-        .arg("--version")
-        .output_checked_utf8()?
-        .stdout
-        .lines()
-        .next()
-    {
-        Some(item) => Version::parse(item).map_err(std::convert::Into::into),
-        _ => return Err(SkipStep(String::from("Cannot find vscode version")).into()),
-    };
-
-    if !matches!(version, Ok(version) if version >= Version::new(1, 86, 0)) {
-        return Err(SkipStep(String::from("Too old vscode version to have update extensions command")).into());
-    }
-
-    print_separator("Visual Studio Code extensions");
-
-    if let Some(profile) = ctx.config().vscode_profile() {
-        ctx.run_type()
-            .execute(vscode)
-            .arg("--profile")
-            .arg(profile)
-            .arg("--update-extensions")
-            .status_checked()
-    } else {
-        ctx.run_type()
-            .execute(vscode)
-            .arg("--update-extensions")
-            .status_checked()
-    }
+    run_vscode_compatible::<false>(ctx)
 }
 
 pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
@@ -1467,4 +1496,77 @@ pub fn run_jetbrains_toolbox(_ctx: &ExecutionContext) -> Result<()> {
             }
         }
     }
+}
+
+fn run_jetbrains_ide(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result<()> {
+    print_separator(format!("JetBrains {name} plugins"));
+
+    // The `update` command is undocumented, but tested on all of the below.
+    ctx.run_type().execute(bin).arg("update").status_checked()
+}
+
+pub fn run_android_studio(ctx: &ExecutionContext) -> Result<()> {
+    // We don't use `run_jetbrains_ide` here because that would print "JetBrains Android Studio",
+    //  which is incorrect as Android Studio is made by Google. Just "Android Studio" is fine.
+    let bin = require("studio")?;
+
+    print_separator("Android Studio plugins");
+
+    ctx.run_type().execute(bin).arg("update").status_checked()
+}
+
+pub fn run_jetbrains_aqua(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, get_aqua(ctx)?.jetbrains_aqua()?, "Aqua")
+}
+
+pub fn run_jetbrains_clion(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("clion")?, "CLion")
+}
+
+pub fn run_jetbrains_datagrip(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("datagrip")?, "DataGrip")
+}
+
+pub fn run_jetbrains_dataspell(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("dataspell")?, "DataSpell")
+}
+
+pub fn run_jetbrains_gateway(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("gateway")?, "Gateway")
+}
+
+pub fn run_jetbrains_goland(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("goland")?, "Goland")
+}
+
+pub fn run_jetbrains_idea(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("idea")?, "IntelliJ IDEA")
+}
+
+pub fn run_jetbrains_mps(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("mps")?, "MPS")
+}
+
+pub fn run_jetbrains_phpstorm(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("phpstorm")?, "PhpStorm")
+}
+
+pub fn run_jetbrains_pycharm(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("pycharm")?, "PyCharm")
+}
+
+pub fn run_jetbrains_rider(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("rider")?, "Rider")
+}
+
+pub fn run_jetbrains_rubymine(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("rubymine")?, "RubyMine")
+}
+
+pub fn run_jetbrains_rustrover(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("rustrover")?, "RustRover")
+}
+
+pub fn run_jetbrains_webstorm(ctx: &ExecutionContext) -> Result<()> {
+    run_jetbrains_ide(ctx, require("webstorm")?, "WebStorm")
 }
