@@ -19,7 +19,10 @@ use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
 use crate::terminal::{print_separator, shell};
-use crate::utils::{check_is_python_2_or_shim, get_require_sudo_string, output_changed_message_runtime, require, require_option, which, PathExt};
+use crate::utils::{
+    check_is_python_2_or_shim, get_require_sudo_string, output_changed_message_runtime, require, require_option, which,
+    PathExt,
+};
 use crate::HOME_DIR;
 use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
@@ -473,7 +476,8 @@ fn run_vscode_compatible<const VSCODIUM: bool>(ctx: &ExecutionContext) -> Result
         }
         None => {
             return Err(eyre!(output_changed_message_runtime(
-                &format!("{bin_name} --version"), "No first line"
+                &format!("{bin_name} --version"),
+                "No first line"
             )))
         }
     };
@@ -482,7 +486,8 @@ fn run_vscode_compatible<const VSCODIUM: bool>(ctx: &ExecutionContext) -> Result
     //  The benefit of handling VSCodium versions so old that the version format is something
     //  unexpected is outweighed by the benefit of failing fast on new breaking versions
     let version = version.wrap_err(output_changed_message_runtime(
-        &format!("{bin_name} --version"), "Invalid version"
+        &format!("{bin_name} --version"),
+        "Invalid version",
     ))?;
     debug!("Detected {name} version as: {version}");
 
