@@ -1326,7 +1326,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
     //  "uv 0.5.11 (c4d0caaee 2024-12-19)\n"
     //  "uv 0.5.11+1 (xxxd0cee 2024-12-20)\n"
     //  "uv 0.6.14\n"
-    
+
     let uv_version_output_stdout = uv_version_output.stdout;
 
     let version_str = {
@@ -1339,7 +1339,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
             None => start_trimmed.trim_end_matches('\n'), // Otherwise, just strip the newline
             Some(i) => &start_trimmed[..i],
         }
-        
+
         // After trimming, it should be a string in 2 possible formats, both can be handled by `Version::parse()`
         //
         // 1. "0.5.11"
