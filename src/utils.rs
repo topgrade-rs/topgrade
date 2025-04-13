@@ -283,6 +283,7 @@ pub fn install_color_eyre() -> Result<()> {
         .install()
 }
 
+/// Macro to construct an error message for when the output of a command is unexpected.
 #[macro_export]
 macro_rules! output_changed_message {
     ($command:expr, $message:expr) => {
@@ -291,4 +292,9 @@ macro_rules! output_changed_message {
             ". This is not your fault, this is an issue in Topgrade. Please open an issue at: https://github.com/topgrade-rs/topgrade/issues/new?template=bug_report.md"
         )
     };
+}
+
+/// The same as the macro above, but at runtime to support using e.g. `format!` in the `command` and `message` parameters
+pub fn output_changed_message_runtime(command: &str, message: &str) -> String {
+    format!("The output of `{command}` changed: {message}. This is not your fault, this is an issue in Topgrade. Please open an issue at: https://github.com/topgrade-rs/topgrade/issues/new?template=bug_report.md")
 }
