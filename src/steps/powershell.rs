@@ -238,7 +238,8 @@ impl Powershell {
         } else {
             let cleaned = self.clean_translation(&translated);
             if cleaned == translated {
-                translated
+                // Fix: Convert to owned value even when unchanged
+                translated.into_owned().into()
             } else {
                 Cow::Owned(cleaned)
             }
@@ -334,7 +335,10 @@ Write-Host "{}" -ForegroundColor Green"#,
     // Consolidated command creation with improved error handling
     fn create_command(&self, ctx: &ExecutionContext) -> Result<Executor> {
         // Fix the type mismatch by adding .to_string()
-        let powershell = require_option(self.path.as_ref(), self.t("Powershell is not installed", None).to_string())?;
+        let powershell = require_option(
+            self.path.as_ref(),
+            self.t("Powershell is not installed", None).to_string(),
+        )?;
 
         Ok(if let Some(sudo) = ctx.sudo() {
             let mut cmd = ctx.run_type().execute(sudo);
@@ -625,4 +629,3 @@ mod windows {
         Ok(())
     }
 }
-
