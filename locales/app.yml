@@ -1540,3 +1540,66 @@ _version: 2
     zh_CN: "<省略了 `deb-get clean` 的输出>"
     zh_TW: "<省略了 `deb-get clean` 的輸出>"
     de: "<Ausgabe von `deb-get clean` ausgelassen>"
+
+"Processing module: {moduleName}":
+  en: "Processing module: %{moduleName}"
+  lt: "Apdorojamas modulis: %{moduleName}"
+  es: "Procesando módulo: %{moduleName}"
+  fr: "Traitement du module : %{moduleName}"
+  zh_CN: "正在处理模块: %{moduleName}"
+  zh_TW: "正在處理模組: %{moduleName}"
+  de: "Verarbeite Modul: %{moduleName}"
+
+"Unloading module: {moduleName}":
+  en: "Unloading module: %{moduleName}"
+  lt: "Iškraunamas modulis: %{moduleName}"
+  es: "Descargando módulo: %{moduleName}"
+  fr: "Déchargement du module : %{moduleName}"
+  zh_CN: "正在卸载模块: %{moduleName}"
+  zh_TW: "正在卸載模組: %{moduleName}"
+  de: "Entlade Modul: %{moduleName}"
+
+"Updating module: {moduleName}":
+  en: "Updating module: %{moduleName}"
+  lt: "Atnaujinamas modulis: %{moduleName}"
+  es: "Actualizando módulo: %{moduleName}"
+  fr: "Mise à jour du module : %{moduleName}"
+  zh_CN: "正在更新模块: %{moduleName}"
+  zh_TW: "正在更新模組: %{moduleName}"
+  de: "Aktualisiere Modul: %{moduleName}"
+
+"Reloading module: {moduleName}":
+  en: "Reloading module: %{moduleName}"
+  lt: "Pakartotinai įkeliamas modulis: %{moduleName}"
+  es: "Recargando módulo: %{moduleName}"
+  fr: "Rechargement du module : %{moduleName}"
+  zh_CN: "正在重新加载模块: %{moduleName}"
+  zh_TW: "正在重新載入模組: %{moduleName}"
+  de: "Lade Modul neu: %{moduleName}"
+
+"Successfully imported module: {moduleName}":
+  en: "Successfully imported module: %{moduleName}"
+  lt: "Sėkmingai importuotas modulis: %{moduleName}"
+  es: "Módulo importado con éxito: %{moduleName}"
+  fr: "Module importé avec succès : %{moduleName}"
+  zh_CN: "成功导入模块: %{moduleName}"
+  zh_TW: "成功匯入模組: %{moduleName}"
+  de: "Modul erfolgreich importiert: %{moduleName}"
+
+"Could not reload module: {moduleName} - {error}":
+  en: "Could not reload module: %{moduleName} - %{error}"
+  lt: "Nepavyko pakartotinai įkelti modulio: %{moduleName} - %{error}"
+  es: "No se pudo recargar el módulo: %{moduleName} - %{error}"
+  fr: "Impossible de recharger le module : %{moduleName} - %{error}"
+  zh_CN: "无法重新加载模块: %{moduleName} - %{error}"
+  zh_TW: "無法重新載入模組: %{moduleName} - %{error}"
+  de: "Konnte Modul nicht neu laden: %{moduleName} - %{error}"
+
+"Failed to process module: {moduleName} - {error}":
+  en: "Failed to process module: %{moduleName} - %{error}"
+  lt: "Nepavyko apdoroti modulio: %{moduleName} - %{error}"
+  es: "Error al procesar el módulo: %{moduleName} - %{error}"
+  fr: "Échec du traitement du module : %{moduleName} - %{error}"
+  zh_CN: "处理模块失败: %{moduleName} - %{error}"
+  zh_TW: "處理模組失敗: %{moduleName} - %{error}"
+  de: "Fehler bei der Verarbeitung des Moduls: %{moduleName} - %{error}"
