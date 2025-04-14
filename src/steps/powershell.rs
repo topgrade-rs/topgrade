@@ -1,7 +1,7 @@
+use std::borrow::Cow;
 use std::cell::Cell;
 use std::path::PathBuf;
 use std::process::Command;
-use std::borrow::Cow;
 
 use color_eyre::eyre::Result;
 use rust_i18n::t;
@@ -197,7 +197,7 @@ impl Powershell {
     }
 
     // Simplify translation with auto-cleaning
-    fn t(&self, key: &str, params: Option<Vec<(&str, &str)>>) -> Cow<str> {
+    fn t(&self, key: &str, params: Option<Vec<(&str, &str)>>) -> Cow<'static, str> {
         let translated = if key.starts_with("en.") {
             // Direct translation key reference
             t!(key)
@@ -234,7 +234,7 @@ impl Powershell {
             for (key, value) in params {
                 result = result.replace(&format!("{{{}}}", key), value);
             }
-            self.clean_translation(&result).into()
+            Cow::Owned(self.clean_translation(&result))
         } else {
             let cleaned = self.clean_translation(&translated);
             if cleaned == translated {
@@ -289,40 +289,16 @@ impl Powershell {
 
         // Create modules update script with cleaner builder pattern
         let update_modules_script = ScriptBuilder::new(scripts::MODULES_UPDATE_TEMPLATE)
-            .add_translation(
-                "processing_module",
-                "en.Processing module: {moduleName}",
-            )
-            .add_translation(
-                "unloading_module",
-                "en.Unloading module: {moduleName}",
-            )
-            .add_translation(
-                "updating_module",
-                "en.Updating module: {moduleName}",
-            )
+            .add_translation("processing_module", "en.Processing module: {moduleName}")
+            .add_translation("unloading_module", "en.Unloading module: {moduleName}")
+            .add_translation("updating_module", "en.Updating module: {moduleName}")
             .with_param("update_command", &update_command)
-            .add_translation(
-                "retry_attempt",
-                "en.Retry attempt {attempt} of {max}...",
-            )
+            .add_translation("retry_attempt", "en.Retry attempt {attempt} of {max}...")
             .add_translation("update_failed", "en.Failed to update module after multiple attempts")
-            .add_translation(
-                "reloading_module",
-                "en.Reloading module: {moduleName}",
-            )
-            .add_translation(
-                "import_success",
-                "en.Successfully imported module: {moduleName}",
-            )
-            .add_translation(
-                "import_failed",
-                "en.Could not reload module: {moduleName} - {error}",
-            )
-            .add_translation(
-                "process_failed",
-                "en.Failed to process module: {moduleName} - {error}",
-            )
+            .add_translation("reloading_module", "en.Reloading module: {moduleName}")
+            .add_translation("import_success", "en.Successfully imported module: {moduleName}")
+            .add_translation("import_failed", "en.Could not reload module: {moduleName} - {error}")
+            .add_translation("process_failed", "en.Failed to process module: {moduleName} - {error}")
             .build(|t| self.clean_translation(t));
 
         // Use direct t!() macro for these simple strings
@@ -357,7 +333,8 @@ Write-Host "{}" -ForegroundColor Green"#,
 
     // Consolidated command creation with improved error handling
     fn create_command(&self, ctx: &ExecutionContext) -> Result<Executor> {
-        let powershell = require_option(self.path.as_ref(), self.t("Powershell is not installed", None))?;
+        // Fix the type mismatch by adding .to_string()
+        let powershell = require_option(self.path.as_ref(), self.t("Powershell is not installed", None).to_string())?;
 
         Ok(if let Some(sudo) = ctx.sudo() {
             let mut cmd = ctx.run_type().execute(sudo);
