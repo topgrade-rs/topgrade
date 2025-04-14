@@ -3,7 +3,7 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use color_eyre::eyre;
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{Context, Result};
 use rust_i18n::t;
 use walkdir::WalkDir;
 
@@ -12,7 +12,7 @@ use crate::error::TopgradeError;
 use crate::execution_context::ExecutionContext;
 use crate::utils::require_option;
 use crate::utils::which;
-use crate::{config, Step};
+use crate::{config, output_changed_message, Step};
 
 fn get_execution_path() -> OsString {
     let mut path = OsString::from("/usr/bin:");
@@ -285,7 +285,8 @@ impl ArchPackageManager for Aura {
         // Output will be something like: "aura x.x.x\n"
         let version_cmd_stdout = version_cmd_output.stdout;
         let version_str = version_cmd_stdout.trim_start_matches("aura ").trim_end();
-        let version = Version::parse(version_str).expect("invalid version");
+        let version = Version::parse(version_str)
+            .wrap_err_with(|| output_changed_message!("aura --version", "invalid version"))?;
 
         // Aura, since version 4.0.6, no longer needs sudo.
         //
