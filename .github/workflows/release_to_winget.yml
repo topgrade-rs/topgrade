@@ -6,19 +6,8 @@ on:
     types: [published]
 
 jobs:
-  sync-repo:
-    name: Sync winget-pkgs repo
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout winget-pkgs repository
-        uses: actions/checkout@v4
-        with:
-          repository: microsoft/winget-pkgs
-          token: ${{ secrets.WINGET_TOKEN }}
-
   winget:
     name: Publish winget package
-    needs: sync-repo
     runs-on: windows-latest
     steps:
       - name: Checkout repository
