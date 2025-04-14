@@ -1,6 +1,7 @@
 use std::cell::Cell;
 use std::path::PathBuf;
 use std::process::Command;
+use std::borrow::Cow;
 
 use color_eyre::eyre::Result;
 use rust_i18n::t;
@@ -196,7 +197,7 @@ impl Powershell {
     }
 
     // Simplify translation with auto-cleaning
-    fn t(&self, key: &str, params: Option<Vec<(&str, &str)>>) -> String {
+    fn t(&self, key: &str, params: Option<Vec<(&str, &str)>>) -> Cow<str> {
         let translated = if key.starts_with("en.") {
             // Direct translation key reference
             t!(key)
@@ -223,7 +224,7 @@ impl Powershell {
                     t!("Initiated Microsoft Store reset. Updates should begin shortly.")
                 }
                 "Scanning for updates..." => t!("Scanning for updates..."),
-                _ => key.to_string(),
+                _ => Cow::Borrowed(key),
             }
         };
 
@@ -233,9 +234,14 @@ impl Powershell {
             for (key, value) in params {
                 result = result.replace(&format!("{{{}}}", key), value);
             }
-            self.clean_translation(&result)
+            self.clean_translation(&result).into()
         } else {
-            self.clean_translation(&translated)
+            let cleaned = self.clean_translation(&translated);
+            if cleaned == translated {
+                translated
+            } else {
+                Cow::Owned(cleaned)
+            }
         }
     }
 
