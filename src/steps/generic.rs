@@ -20,12 +20,12 @@ use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
 use crate::terminal::{print_separator, shell};
 use crate::utils::{check_is_python_2_or_shim, get_require_sudo_string, require, require_option, which, PathExt};
-use crate::Step;
 use crate::HOME_DIR;
 use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
     terminal::print_warning,
 };
+use crate::{output_changed_message, Step};
 
 #[cfg(target_os = "linux")]
 pub fn is_wsl() -> Result<bool> {
@@ -439,88 +439,86 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
     command.args(["upgrade", "--no-dry-run"]).status_checked()
 }
 
-/// Make VSCodium a separate step because:
-///
-/// 1. Users could use both VSCode and VSCodium
-/// 2. Just in case, VSCodium could have incompatible changes with VSCode
-pub fn run_vscodium_extensions_update(ctx: &ExecutionContext) -> Result<()> {
-    // Calling vscodoe in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
+/// This functions runs for both VSCode and VSCodium, as most of the process is the same for both.
+fn run_vscode_compatible<const VSCODIUM: bool>(ctx: &ExecutionContext) -> Result<()> {
+    // Calling VSCode/VSCodium in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
     if is_wsl()? {
         return Err(SkipStep(String::from("Should not run in WSL")).into());
     }
 
-    let vscodium = require("codium")?;
+    let name = if VSCODIUM { "VSCodium" } else { "VSCode" };
+    let bin_name = if VSCODIUM { "codium" } else { "code" };
+    let bin = require(bin_name)?;
 
     // VSCode has update command only since 1.86 version ("january 2024" update), disable the update for prior versions
     // Use command `code --version` which returns 3 lines: version, git commit, instruction set. We parse only the first one
     //
     // This should apply to VSCodium as well.
-    let version: Result<Version> = match Command::new(&vscodium)
+    let version: Result<Version> = match Command::new(&bin)
         .arg("--version")
         .output_checked_utf8()?
         .stdout
         .lines()
         .next()
     {
-        Some(item) => Version::parse(item).map_err(std::convert::Into::into),
-        _ => return Err(SkipStep(String::from("Cannot find vscodium version")).into()),
+        Some(item) => {
+            // Strip leading zeroes because `semver` does not allow them, but VSCodium uses them sometimes.
+            //  This is not the case for VSCode, but just in case, and it can't really cause any issues.
+            let item = item
+                .split('.')
+                .map(|s| if s == "0" { "0" } else { s.trim_start_matches('0') })
+                .collect::<Vec<_>>()
+                .join(".");
+            Version::parse(&item).map_err(std::convert::Into::into)
+        }
+        None => {
+            return Err(eyre!(output_changed_message!(
+                &format!("{bin_name} --version"),
+                "No first line"
+            )))
+        }
     };
 
-    if !matches!(version, Ok(version) if version >= Version::new(1, 86, 0)) {
-        return Err(SkipStep(String::from(
-            "Too old vscodium version to have update extensions command",
-        ))
-        .into());
+    // Raise any errors in parsing the version
+    //  The benefit of handling VSCodium versions so old that the version format is something
+    //  unexpected is outweighed by the benefit of failing fast on new breaking versions
+    let version =
+        version.wrap_err_with(|| output_changed_message!(&format!("{bin_name} --version"), "Invalid version"))?;
+    debug!("Detected {name} version as: {version}");
+
+    if version < Version::new(1, 86, 0) {
+        return Err(SkipStep(format!("Too old {name} version to have update extensions command")).into());
     }
 
-    print_separator("VSCodium extensions");
+    print_separator(if VSCODIUM {
+        "VSCodium extensions"
+    } else {
+        "Visual Studio Code extensions"
+    });
 
-    ctx.run_type()
-        .execute(vscodium)
-        .arg("--update-extensions")
-        .status_checked()
+    let mut cmd = ctx.run_type().execute(bin);
+    // If its VSCode (not VSCodium)
+    if !VSCODIUM {
+        // And we have configured use of a profile
+        if let Some(profile) = ctx.config().vscode_profile() {
+            // Add the profile argument
+            cmd.arg("--profile").arg(profile);
+        }
+    }
+
+    cmd.arg("--update-extensions").status_checked()
+}
+
+/// Make VSCodium a separate step because:
+///
+/// 1. Users could use both VSCode and VSCodium
+/// 2. Just in case, VSCodium could have incompatible changes with VSCode
+pub fn run_vscodium_extensions_update(ctx: &ExecutionContext) -> Result<()> {
+    run_vscode_compatible::<true>(ctx)
 }
 
 pub fn run_vscode_extensions_update(ctx: &ExecutionContext) -> Result<()> {
-    // Calling vscode in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
-    if is_wsl()? {
-        return Err(SkipStep(String::from("Should not run in WSL")).into());
-    }
-
-    let vscode = require("code")?;
-
-    // Vscode has update command only since 1.86 version ("january 2024" update), disable the update for prior versions
-    // Use command `code --version` which returns 3 lines: version, git commit, instruction set. We parse only the first one
-    let version: Result<Version> = match Command::new(&vscode)
-        .arg("--version")
-        .output_checked_utf8()?
-        .stdout
-        .lines()
-        .next()
-    {
-        Some(item) => Version::parse(item).map_err(std::convert::Into::into),
-        _ => return Err(SkipStep(String::from("Cannot find vscode version")).into()),
-    };
-
-    if !matches!(version, Ok(version) if version >= Version::new(1, 86, 0)) {
-        return Err(SkipStep(String::from("Too old vscode version to have update extensions command")).into());
-    }
-
-    print_separator("Visual Studio Code extensions");
-
-    if let Some(profile) = ctx.config().vscode_profile() {
-        ctx.run_type()
-            .execute(vscode)
-            .arg("--profile")
-            .arg(profile)
-            .arg("--update-extensions")
-            .status_checked()
-    } else {
-        ctx.run_type()
-            .execute(vscode)
-            .arg("--update-extensions")
-            .status_checked()
-    }
+    run_vscode_compatible::<false>(ctx)
 }
 
 pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
@@ -676,9 +674,12 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
     {
         Ok(output) => {
             let stdout = output.stdout.trim();
-            stdout
-                .parse::<bool>()
-                .expect("unexpected output that is not `true` or `false`")
+            stdout.parse::<bool>().wrap_err_with(|| {
+                output_changed_message!(
+                    "pip config get global.break-system-packages",
+                    "unexpected output that is not `true` or `false`"
+                )
+            })?
         }
         // it can fail because this key may not be set
         //
@@ -1318,23 +1319,35 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         .execute(&uv_exec)
         .arg("--version")
         .output_checked_utf8()?;
-    // example output: "uv 0.5.11 (c4d0caaee 2024-12-19)\n"
+    // Multiple possible output formats are possible according to uv source code
+    //
+    // https://github.com/astral-sh/uv/blob/6b7f60c1eaa840c2e933a0fb056ab46f99c991a5/crates/uv-cli/src/version.rs#L28-L42
+    //
+    // For example:
+    //  "uv 0.5.11 (c4d0caaee 2024-12-19)\n"
+    //  "uv 0.5.11+1 (xxxd0cee 2024-12-20)\n"
+    //  "uv 0.6.14\n"
+
     let uv_version_output_stdout = uv_version_output.stdout;
 
     let version_str = {
-        // trim the starting "uv" and " " (whitespace)
+        // Trim the starting "uv" and " " (whitespace)
         let start_trimmed = uv_version_output_stdout
             .trim_start_matches("uv")
             .trim_start_matches(' ');
-        // remove the tailing part " (c4d0caaee 2024-12-19)\n"
-        let first_whitespace_index = start_trimmed
-            .find(' ')
-            .expect("the output of `uv --version` changed, please file an issue to Topgrade");
-        // this should be our version str "0.5.11"
-        &start_trimmed[..first_whitespace_index]
+        // Remove the tailing part " (c4d0caaee 2024-12-19)\n", if it's there
+        match start_trimmed.find(' ') {
+            None => start_trimmed.trim_end_matches('\n'), // Otherwise, just strip the newline
+            Some(i) => &start_trimmed[..i],
+        }
+
+        // After trimming, it should be a string in 2 possible formats, both can be handled by `Version::parse()`
+        //
+        // 1. "0.5.11"
+        // 2. "0.5.11+1"
     };
     let version =
-        Version::parse(version_str).expect("the output of `uv --version` changed, please file an issue to Topgrade");
+        Version::parse(version_str).wrap_err_with(|| output_changed_message!("uv --version", "Invalid version"))?;
 
     if version < Version::new(0, 4, 25) {
         // For uv before version 0.4.25 (exclusive), the `self` sub-command only
