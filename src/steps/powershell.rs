@@ -621,7 +621,7 @@ mod windows {
             t!("Failed to reset Microsoft Store"),
             t!("Initiated Microsoft Store reset. Updates should begin shortly."),
         ]
-        .map(|msg| powershell.clean_translation(&msg));
+        .map(|msg| powershell.clean_translation(&msg).to_string());
 
         // First fallback: open Microsoft Store updates page
         println!("{}", translations[0]);
