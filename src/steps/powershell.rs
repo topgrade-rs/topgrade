@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::cell::Cell;
 use std::path::PathBuf;
 use std::process::Command;
@@ -196,54 +195,61 @@ impl Powershell {
         self.profile.as_ref()
     }
 
-    // Simplify translation with auto-cleaning
-    fn t(&self, key: &str, params: Option<Vec<(&str, &str)>>) -> Cow<'static, str> {
-        let translated = if key.starts_with("en.") {
-            // Direct translation key reference
-            t!(key)
-        } else {
-            // Standard translation lookup
-            match key {
-                "Powershell is not installed" => t!("Powershell is not installed"),
-                "Administrator privileges required - you will see a UAC prompt" => {
-                    t!("Administrator privileges required - you will see a UAC prompt")
+    // Simplified translation approach that doesn't use t!() with dynamic keys
+    fn get_translation(&self, key: &str) -> String {
+        let translation = match key {
+            "powershell_not_installed" => t!("Powershell is not installed").to_string(),
+            "admin_privileges_required" => {
+                t!("Administrator privileges required - you will see a UAC prompt").to_string()
+            }
+            "starting_windows_update" => t!("Starting Windows Update...").to_string(),
+            "windows_update_completed" => t!("Windows Update check completed").to_string(),
+            "microsoft_store_update_failed" => t!("Microsoft Store update failed").to_string(),
+            "attempting_open_store" => t!("Attempting to open Microsoft Store updates page...").to_string(),
+            "failed_open_store" => t!("Failed to open Microsoft Store").to_string(),
+            "opened_store_page" => {
+                t!("Opened Microsoft Store updates page. Please check for updates manually.").to_string()
+            }
+            "attempting_reset_store" => t!("Attempting to reset Microsoft Store...").to_string(),
+            "failed_reset_store" => t!("Failed to reset Microsoft Store").to_string(),
+            "initiated_store_reset" => t!("Initiated Microsoft Store reset. Updates should begin shortly.").to_string(),
+            "scanning_for_updates" => t!("Scanning for updates...").to_string(),
+            "processing_powershell_modules" => t!("Processing PowerShell modules...").to_string(),
+            "gallery_not_accessible" => {
+                t!("Unable to connect to PowerShell Gallery. Module updates skipped.").to_string()
+            }
+            "will_load_modules" => t!("Will still attempt to load existing modules").to_string(),
+            "powershell_module_processing_complete" => t!("PowerShell module processing complete.").to_string(),
+            "powershell_modules_update_check_completed" => t!("PowerShell Modules update check completed").to_string(),
+            "microsoft_store_update_check_completed" => t!("Microsoft Store update check completed").to_string(),
+            "checking_connectivity" => t!("Checking connectivity to PowerShell Gallery...").to_string(),
+            "gallery_accessible" => t!("PowerShell Gallery is accessible").to_string(),
+            "gallery_not_accessible_full" => {
+                t!("PowerShell Gallery is not accessible. Module updates will be skipped.").to_string()
+            }
+            "processing_module" => t!("Processing module: %{moduleName}").to_string(),
+            "unloading_module" => t!("Unloading module: %{moduleName}").to_string(),
+            "updating_module" => t!("Updating module: %{moduleName}").to_string(),
+            "retry_attempt" => t!("Retry attempt %{attempt} of %{max}...").to_string(),
+            "update_failed" => t!("Failed to update module after multiple attempts").to_string(),
+            "reloading_module" => t!("Reloading module: %{moduleName}").to_string(),
+            "import_success" => t!("Successfully imported module: %{moduleName}").to_string(),
+            "import_failed" => t!("Could not reload module: %{moduleName} - %{error}").to_string(),
+            "process_failed" => t!("Failed to process module: %{moduleName} - %{error}").to_string(),
+            "attempting_store_update" => {
+                t!("Attempting to update Microsoft Store apps using MDM method...").to_string()
+            }
+            _ => {
+                // If it's a dynamic operation name completion message
+                if key.ends_with("_check_completed") {
+                    let op_name = &key[0..key.len() - 16]; // Remove "_check_completed"
+                    return format!("{} check completed", op_name);
                 }
-                "Starting Windows Update..." => t!("Starting Windows Update..."),
-                "Windows Update check completed" => t!("Windows Update check completed"),
-                "Microsoft Store update failed" => t!("Microsoft Store update failed"),
-                "Attempting to open Microsoft Store updates page..." => {
-                    t!("Attempting to open Microsoft Store updates page...")
-                }
-                "Failed to open Microsoft Store" => t!("Failed to open Microsoft Store"),
-                "Opened Microsoft Store updates page. Please check for updates manually." => {
-                    t!("Opened Microsoft Store updates page. Please check for updates manually.")
-                }
-                "Attempting to reset Microsoft Store..." => t!("Attempting to reset Microsoft Store..."),
-                "Failed to reset Microsoft Store" => t!("Failed to reset Microsoft Store"),
-                "Initiated Microsoft Store reset. Updates should begin shortly." => {
-                    t!("Initiated Microsoft Store reset. Updates should begin shortly.")
-                }
-                "Scanning for updates..." => t!("Scanning for updates..."),
-                _ => Cow::Borrowed(key),
+                key.to_string()
             }
         };
 
-        if let Some(params) = params {
-            // Handle parameter substitution properly
-            let mut result = translated.to_string();
-            for (key, value) in params {
-                result = result.replace(&format!("{{{}}}", key), value);
-            }
-            Cow::Owned(self.clean_translation(&result))
-        } else {
-            let cleaned = self.clean_translation(&translated);
-            if cleaned == translated {
-                // Fix: Convert to owned value even when unchanged
-                translated.into_owned().into()
-            } else {
-                Cow::Owned(cleaned)
-            }
-        }
+        self.clean_translation(&translation)
     }
 
     // Helper function to clean translated strings by removing locale prefixes
@@ -277,37 +283,27 @@ impl Powershell {
 
         // Create gallery check script using cleaner builder pattern
         let gallery_check_script = ScriptBuilder::new(scripts::GALLERY_CHECK_TEMPLATE)
-            .add_translation(
-                "checking_connectivity",
-                "en.Checking connectivity to PowerShell Gallery...",
-            )
-            .add_translation("gallery_accessible", "en.PowerShell Gallery is accessible")
+            .add_translation("checking_connectivity", self.get_translation("checking_connectivity"))
+            .add_translation("gallery_accessible", self.get_translation("gallery_accessible"))
             .add_translation(
                 "gallery_not_accessible",
-                "en.PowerShell Gallery is not accessible. Module updates will be skipped.",
+                self.get_translation("gallery_not_accessible_full"),
             )
             .build(|t| self.clean_translation(t));
 
         // Create modules update script with cleaner builder pattern
         let update_modules_script = ScriptBuilder::new(scripts::MODULES_UPDATE_TEMPLATE)
-            .add_translation("processing_module", "en.Processing module: {moduleName}")
-            .add_translation("unloading_module", "en.Unloading module: {moduleName}")
-            .add_translation("updating_module", "en.Updating module: {moduleName}")
+            .add_translation("processing_module", self.get_translation("processing_module"))
+            .add_translation("unloading_module", self.get_translation("unloading_module"))
+            .add_translation("updating_module", self.get_translation("updating_module"))
             .with_param("update_command", &update_command)
-            .add_translation("retry_attempt", "en.Retry attempt {attempt} of {max}...")
-            .add_translation("update_failed", "en.Failed to update module after multiple attempts")
-            .add_translation("reloading_module", "en.Reloading module: {moduleName}")
-            .add_translation("import_success", "en.Successfully imported module: {moduleName}")
-            .add_translation("import_failed", "en.Could not reload module: {moduleName} - {error}")
-            .add_translation("process_failed", "en.Failed to process module: {moduleName} - {error}")
+            .add_translation("retry_attempt", self.get_translation("retry_attempt"))
+            .add_translation("update_failed", self.get_translation("update_failed"))
+            .add_translation("reloading_module", self.get_translation("reloading_module"))
+            .add_translation("import_success", self.get_translation("import_success"))
+            .add_translation("import_failed", self.get_translation("import_failed"))
+            .add_translation("process_failed", self.get_translation("process_failed"))
             .build(|t| self.clean_translation(t));
-
-        // Use direct t!() macro for these simple strings
-        let processing_modules = t!("Processing PowerShell modules...");
-        let gallery_connection_failed = t!("Unable to connect to PowerShell Gallery. Module updates skipped.");
-        let will_load_modules = t!("Will still attempt to load existing modules");
-        let processing_complete = t!("PowerShell module processing complete.");
-        let update_check_completed = t!("PowerShell Modules update check completed");
 
         format!(
             r#"Write-Host "{}" -ForegroundColor Cyan
@@ -324,21 +320,17 @@ if ($galleryAvailable) {{
 
 Write-Host "{}" -ForegroundColor Green
 Write-Host "{}" -ForegroundColor Green"#,
-            self.clean_translation(&processing_modules),
-            self.clean_translation(&gallery_connection_failed),
-            self.clean_translation(&will_load_modules),
-            self.clean_translation(&processing_complete),
-            self.clean_translation(&update_check_completed)
+            self.get_translation("processing_powershell_modules"),
+            self.get_translation("gallery_not_accessible"),
+            self.get_translation("will_load_modules"),
+            self.get_translation("powershell_module_processing_complete"),
+            self.get_translation("powershell_modules_update_check_completed")
         )
     }
 
     // Consolidated command creation with improved error handling
     fn create_command(&self, ctx: &ExecutionContext) -> Result<Executor> {
-        // Fix the type mismatch by adding .to_string()
-        let powershell = require_option(
-            self.path.as_ref(),
-            self.t("Powershell is not installed", None).to_string(),
-        )?;
+        let powershell = require_option(self.path.as_ref(), self.get_translation("powershell_not_installed"))?;
 
         Ok(if let Some(sudo) = ctx.sudo() {
             let mut cmd = ctx.run_type().execute(sudo);
@@ -369,10 +361,7 @@ Write-Host "{}" -ForegroundColor Green"#,
     // Extract elevation check to separate method to improve readability
     fn check_elevation(&self, ctx: &ExecutionContext) {
         if ctx.sudo().is_some() && !Self::is_process_elevated() && !self.uac_prompt_shown.get() {
-            println!(
-                "{}",
-                self.clean_translation(&t!("Administrator privileges required - you will see a UAC prompt"))
-            );
+            println!("{}", self.get_translation("admin_privileges_required"));
             self.uac_prompt_shown.set(true);
         }
     }
@@ -407,7 +396,7 @@ Write-Host "{}" -ForegroundColor Green"#,
 
         // Only show scanning message if no UAC prompt will be shown
         if !will_elevate {
-            println!("{}", self.clean_translation(&t!("Scanning for updates...")));
+            println!("{}", self.get_translation("scanning_for_updates"));
         }
 
         // Execute the operation
@@ -415,14 +404,14 @@ Write-Host "{}" -ForegroundColor Green"#,
 
         // Show completion message if operation succeeded and we're not elevating
         if result.is_ok() && !will_elevate {
-            // Use string literal with parameter substitution
+            // Use operation-specific completed message based on the operation_name
             let completed_message = match operation_name {
-                "PowerShell Modules" => t!("PowerShell Modules update check completed"),
-                "Windows Update" => t!("Windows Update check completed"),
-                "Microsoft Store" => t!("Microsoft Store update check completed"),
-                _ => t!("{operation_name} check completed", operation_name = operation_name),
+                "PowerShell Modules" => self.get_translation("powershell_modules_update_check_completed"),
+                "Windows Update" => self.get_translation("windows_update_completed"),
+                "Microsoft Store" => self.get_translation("microsoft_store_update_check_completed"),
+                _ => self.get_translation(&format!("{}_check_completed", operation_name.to_lowercase())),
             };
-            println!("{}", self.clean_translation(&completed_message));
+            println!("{}", completed_message);
         }
 
         result
@@ -476,10 +465,10 @@ impl Powershell {
         // Build command with appropriate flags
         let script = format!(
             "Write-Output '{}'; Install-WindowsUpdate{}{} -Confirm:$false; Write-Output '{}'",
-            self.clean_translation(&t!("Starting Windows Update...")),
+            self.get_translation("starting_windows_update"),
             verbose_flag,
             accept_flag,
-            self.clean_translation(&t!("Windows Update check completed"))
+            self.get_translation("windows_update_completed")
         );
 
         self.execute_operation(ctx, "Windows Update", || self.execute_script(ctx, &script))
@@ -564,11 +553,7 @@ mod windows {
                 Ok(_) => Ok(()),
                 Err(e) => {
                     // Log error and try fallbacks
-                    println!(
-                        "{}: {}",
-                        powershell.clean_translation(&t!("Microsoft Store update failed")),
-                        e
-                    );
+                    println!("{}: {}", powershell.get_translation("microsoft_store_update_failed"), e);
 
                     try_microsoft_store_fallbacks(powershell, ctx)?;
 
@@ -585,45 +570,37 @@ mod windows {
         ScriptBuilder::new(scripts::MS_STORE_UPDATE_TEMPLATE)
             .add_translation(
                 "attempting_store_update",
-                "en.Attempting to update Microsoft Store apps using MDM method...",
+                powershell.get_translation("attempting_store_update"),
             )
             .with_param("verbose_flag", verbose_flag)
-            .add_translation("update_completed", "en.Microsoft Store update check completed")
+            .add_translation(
+                "update_completed",
+                powershell.get_translation("microsoft_store_update_check_completed"),
+            )
             .build(|t| powershell.clean_translation(t))
     }
 
     fn try_microsoft_store_fallbacks(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
-        // Prepare translations to avoid repeated calls
-        let translations = [
-            t!("Attempting to open Microsoft Store updates page..."),
-            t!("Failed to open Microsoft Store"),
-            t!("Opened Microsoft Store updates page. Please check for updates manually."),
-            t!("Attempting to reset Microsoft Store..."),
-            t!("Failed to reset Microsoft Store"),
-            t!("Initiated Microsoft Store reset. Updates should begin shortly."),
-        ]
-        .map(|msg| powershell.clean_translation(&msg).to_string());
-
         // First fallback: open Microsoft Store updates page
-        println!("{}", translations[0]);
+        println!("{}", powershell.get_translation("attempting_open_store"));
 
         // Try to open the Microsoft Store updates page
         let store_script = r#"$Launcher = [Windows.System.Launcher,Windows.System,ContentType=WindowsRuntime];
                 $Launcher::LaunchUriAsync([uri]'ms-windows-store://downloadsandupdates').GetAwaiter().GetResult()"#;
 
         if let Err(e) = powershell.execute_script(ctx, store_script) {
-            println!("{}: {}", translations[1], e);
+            println!("{}: {}", powershell.get_translation("failed_open_store"), e);
         } else {
-            println!("{}", translations[2]);
+            println!("{}", powershell.get_translation("opened_store_page"));
         }
 
         // Second fallback: wsreset
-        println!("{}", translations[3]);
+        println!("{}", powershell.get_translation("attempting_reset_store"));
 
         if let Err(e) = ctx.run_type().execute("wsreset.exe").arg("-i").status_checked() {
-            println!("{}: {}", translations[4], e);
+            println!("{}: {}", powershell.get_translation("failed_reset_store"), e);
         } else {
-            println!("{}", translations[5]);
+            println!("{}", powershell.get_translation("initiated_store_reset"));
         }
 
         Ok(())
