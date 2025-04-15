@@ -23,17 +23,63 @@ mod scripts {
     pub(super) const GALLERY_CHECK_TEMPLATE: &str = r#"# First test connectivity to PowerShell Gallery
 $galleryAvailable = $false
 Write-Host "{checking_connectivity}" -ForegroundColor Cyan
+
+# Primary method: Use PowerShell's native repository commands
 try {{
-  $request = [System.Net.WebRequest]::Create("https://www.powershellgallery.com/api/v2")
-  $request.Method = "HEAD"
-  $request.Timeout = 10000
-  $response = $request.GetResponse()
-  $galleryAvailable = $true
-  $response.Close()
-  Write-Host "{gallery_accessible}" -ForegroundColor Green
-}} catch {{
-  Write-Host "{gallery_not_accessible}" -ForegroundColor Red
-  Write-Host "  $($_.Exception.Message)" -ForegroundColor Red
+    # Test if PowerShellGet module is available and try to use it
+    if (Get-Module -ListAvailable -Name PowerShellGet -ErrorAction SilentlyContinue) {{
+        # Check if PSGallery is registered and accessible
+        $repository = Get-PSRepository -Name PSGallery -ErrorAction Stop
+        
+        if ($repository.InstallationPolicy -ne 'Untrusted') {{
+            # If PSGallery is trusted, we can assume it's accessible
+            $galleryAvailable = $true
+            Write-Host "{gallery_accessible}" -ForegroundColor Green
+        }}
+        else {{
+            # Additional check: Try to find a common module with short timeout
+            $moduleSearchJob = Start-Job -ScriptBlock {{ 
+                Find-Module -Name PowerShellGet -Repository PSGallery -ErrorAction Stop | Select-Object -First 1 
+            }}
+            
+            # Wait for the job with timeout (5 seconds)
+            if (Wait-Job $moduleSearchJob -Timeout 5) {{
+                $result = Receive-Job $moduleSearchJob
+                if ($result) {{
+                    $galleryAvailable = $true
+                    Write-Host "{gallery_accessible}" -ForegroundColor Green
+                }}
+            }}
+            
+            # Ensure the job is cleaned up
+            Remove-Job $moduleSearchJob -Force -ErrorAction SilentlyContinue
+        }}
+    }}
+    else {{
+        # Fallback to a simpler test if PowerShellGet isn't available
+        $module = Find-Module -Name PowerShellGet -Repository PSGallery -ErrorAction Stop -MaximumVersion 9999.0
+        if ($module) {{
+            $galleryAvailable = $true
+            Write-Host "{gallery_accessible}" -ForegroundColor Green
+        }}
+    }}
+}}
+catch {{
+    # Fallback method: Try a direct web request if PowerShell commands failed
+    try {{
+        $request = [System.Net.WebRequest]::Create("https://www.powershellgallery.com/api/v2")
+        $request.Method = "HEAD"
+        $request.Timeout = 5000
+        $response = $request.GetResponse()
+        $galleryAvailable = $true
+        $response.Close()
+        Write-Host "{gallery_accessible}" -ForegroundColor Green
+    }}
+    catch {{
+        $galleryAvailable = $false
+        Write-Host "{gallery_not_accessible}" -ForegroundColor Red
+        Write-Host "  $($_.Exception.Message)" -ForegroundColor Red
+    }}
 }}"#;
 
     pub(super) const MODULES_UPDATE_TEMPLATE: &str = r#"Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {{
