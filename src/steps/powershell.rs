@@ -331,6 +331,16 @@ Write-Host "{}" -ForegroundColor Green"#,
         })
     }
 
+    /// Helper method that returns PowerShell code to pause and wait for a keypress
+    fn get_pause_code(&self) -> &str {
+        r#"
+# Keep window open if running in a separate window
+if ($Host.Name -eq 'ConsoleHost' -and $Host.UI.RawUI.KeyAvailable -eq $false) {
+    Write-Host "Press any key to continue..." -ForegroundColor Yellow
+    $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+}"#
+    }
+
     // Execute script with improved error handling
     fn execute_script(&self, ctx: &ExecutionContext, script: &str) -> Result<()> {
         // Check elevation status first
@@ -340,11 +350,14 @@ Write-Host "{}" -ForegroundColor Green"#,
         #[cfg(windows)]
         self.execution_policy_args_if_needed()?;
 
+        // Append pause code to keep the PowerShell window open
+        let script_with_pause = format!("{}\n{}", script, self.get_pause_code());
+
         // Create and execute command in one go
         self.create_command(ctx)?
             .args(Self::default_args())
             .arg(PS_COMMAND)
-            .arg(script)
+            .arg(script_with_pause)
             .status_checked()
     }
 
