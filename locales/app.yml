@@ -5,54 +5,81 @@ _version: 2
   es: "Procesando módulos de PowerShell..."
   fr: "Traitement des modules PowerShell..."
   zh_TW: "正在處理 PowerShell 模組..."
+  lt: "Apdorojami PowerShell moduliai..."
+  zh_CN: "正在处理 PowerShell 模块..."
+  de: "PowerShell-Module werden verarbeitet..."
 
 "Processing module: {moduleName}":
   en: "Processing module: %{moduleName}"
   es: "Procesando módulo: %{moduleName}"
   fr: "Traitement du module : %{moduleName}"
   zh_TW: "正在處理模組：%{moduleName}"
+  lt: "Apdorojamas modulis: %{moduleName}"
+  zh_CN: "正在处理模块：%{moduleName}"
+  de: "Verarbeite Modul: %{moduleName}"
 
 "Unloading module: {moduleName}":
   en: "Unloading module: %{moduleName}"
   es: "Descargando módulo: %{moduleName}"
   fr: "Déchargement du module : %{moduleName}"
   zh_TW: "正在卸載模組：%{moduleName}"
+  lt: "Iškraunamas modulis: %{moduleName}"
+  zh_CN: "正在卸载模块：%{moduleName}"
+  de: "Entlade Modul: %{moduleName}"
 
 "Updating module: {moduleName}":
   en: "Updating module: %{moduleName}"
   es: "Actualizando módulo: %{moduleName}"
   fr: "Mise à jour du module : %{moduleName}"
   zh_TW: "正在更新模組：%{moduleName}"
+  lt: "Atnaujinamas modulis: %{moduleName}"
+  zh_CN: "正在更新模块：%{moduleName}"
+  de: "Aktualisiere Modul: %{moduleName}"
 
 "Reloading module: {moduleName}":
   en: "Reloading module: %{moduleName}"
   es: "Recargando módulo: %{moduleName}"
   fr: "Rechargement du module : %{moduleName}"
   zh_TW: "正在重新載入模組：%{moduleName}"
+  lt: "Perkraunamas modulis: %{moduleName}"
+  zh_CN: "正在重新加载模块：%{moduleName}"
+  de: "Lade Modul neu: %{moduleName}"
 
 "Successfully imported module: {moduleName}":
   en: "Successfully imported module: %{moduleName}"
   es: "Módulo importado con éxito: %{moduleName}"
   fr: "Module importé avec succès : %{moduleName}"
   zh_TW: "成功導入模組：%{moduleName}"
+  lt: "Sėkmingai importuotas modulis: %{moduleName}"
+  zh_CN: "成功导入模块：%{moduleName}"
+  de: "Modul erfolgreich importiert: %{moduleName}"
 
 "Could not reload module: {moduleName} - {error}":
   en: "Could not reload module: %{moduleName} - %{error}"
   es: "No se pudo recargar el módulo: %{moduleName} - %{error}"
   fr: "Impossible de recharger le module : %{moduleName} - %{error}"
   zh_TW: "無法重新載入模組：%{moduleName} - %{error}"
+  lt: "Nepavyko perkrauti modulio: %{moduleName} - %{error}"
+  zh_CN: "无法重新加载模块：%{moduleName} - %{error}"
+  de: "Konnte Modul nicht neu laden: %{moduleName} - %{error}"
 
 "Failed to process module: {moduleName} - {error}":
   en: "Failed to process module: %{moduleName} - %{error}"
   es: "Error al procesar el módulo: %{moduleName} - %{error}"
   fr: "Échec du traitement du module : %{moduleName} - %{error}"
   zh_TW: "處理模組失敗：%{moduleName} - %{error}"
+  lt: "Nepavyko apdoroti modulio: %{moduleName} - %{error}"
+  zh_CN: "处理模块失败：%{moduleName} - %{error}"
+  de: "Fehler beim Verarbeiten des Moduls: %{moduleName} - %{error}"
 
 "PowerShell module processing complete.":
   en: "PowerShell module processing complete."
   es: "Procesamiento de módulos de PowerShell completo."
   fr: "Traitement des modules PowerShell terminé."
   zh_TW: "PowerShell 模組處理完成。"
+  lt: "PowerShell modulių apdorojimas baigtas."
+  zh_CN: "PowerShell 模块处理完成。"
+  de: "PowerShell-Modulverarbeitung abgeschlossen."
 
 "Current system locale is {system_locale}":
   en: "Current system locale is %{system_locale}"
@@ -284,8 +311,8 @@ _version: 2
   zh_CN: "找到 Pacman 配置备份："
   zh_TW: "找到 Pacman 設定備份檔："
   de: "Pacman-Backup-Konfigurationsdateien gefunden:"
-"The package audit was successful, but vulnerable packages still remain on the system":
-  en: "The package audit was successful, but vulnerable packages still remain on the system"
+? "The package audit was successful, but vulnerable packages still remain on the system"
+: en: "The package audit was successful, but vulnerable packages still remain on the system"
   lt: "Paketų patikra buvo sėkminga, tačiau sistemoje vis dar yra pažeidžiamų paketų"
   es: "La auditoría del paquete fue exitosa, pero aún quedan paquetes vulnerables en el sistema"
   fr: "L'audit des paquets a réussi, mais des paquets vulnérables restent toujours sur le système"
@@ -636,8 +663,8 @@ _version: 2
   zh_CN: "配置更新"
   zh_TW: "設定更新"
   de: "Konfigurationsaktualisierung"
-"Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?":
-  en: "Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?"
+? "Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?"
+: en: "Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?"
   lt: "Vykdysime `waydroid upgrade`, kuris sustabdys veikiančią konteinerį, ar tai priimtina?"
   es: "Se ejecutará `waydroid update`, lo que DETENDRÁ el contenedor en ejecución. ¿Está bien?"
   fr: "`waydroid upgrade` va s'exécuter, ce qui ARRÊTERA le conteneur en cours d'exécution, est-ce ok ?"
@@ -828,8 +855,8 @@ _version: 2
   zh_CN: "无法找到安装在 WSL 中的 Topgrade"
   zh_TW: "尚未在 WSL 內安裝 Topgrade"
   de: "Konnte Topgrade nicht in WSL finden"
-"Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported.":
-  en: "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."
+? "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."
+: en: "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."
   lt: "Apsvarstykite PSWindowsUpdate įdiegimą, nes Windows Update per USOClient nepalaikomas."
   es: "Considere instalar PSWindowsUpdate ya que no se admite el uso de Windows Update a través de USOClient."
   fr: "Envisagez d'installer PSWindowsUpdate car l'utilisation de Windows Update via USOClient n'est pas prise en charge."
@@ -892,8 +919,8 @@ _version: 2
   zh_CN: "无法获取 Composer 目录：%{error}"
   zh_TW: "無法取得 composer 資料夾：%{error}"
   de: "Fehler beim Abrufen des Composer-Verzeichnisses: %{error}"
-"Composer directory {composer_home} isn't a descendant of the user's home directory":
-  en: "Composer directory %{composer_home} isn't a descendant of the user's home directory"
+? "Composer directory {composer_home} isn't a descendant of the user's home directory"
+: en: "Composer directory %{composer_home} isn't a descendant of the user's home directory"
   lt: "Composer katalogas %{composer_home} nėra vartotojo namų katalogo palikuonis"
   es: "El directorio de composer %{composer_home} no es descendiente del directorio de inicio del usuario"
   fr: "Le répertoire de Composer %{composer_home} n'est pas un descendant du répertoire home de l'utilisateur"
@@ -908,8 +935,8 @@ _version: 2
   zh_CN: "Composer"
   zh_TW: "Composer"
   de: "Composer"
-"Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK.":
-  en: "Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK."
+? "Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK."
+: en: "Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK."
   lt: "Klaida vykdant `dotnet tool list`. Tai tikėtina, kai įdiegtas dotnet vykdymo aplinkas, bet nėra SDK."
   es: "Error al ejecutar `dotnet tool list`. Esto es lo esperado cuando se instala un entorno de ejecución dotnet pero no un SDK."
   fr: "Erreur lors de l'exécution de `dotnet tool list`. Ce comportement est attendu lorsque le runtime dotnet est installé mais pas le SDK."
@@ -1072,9 +1099,9 @@ _version: 2
   en: 'File "/etc/os-release" does not exist or is empty'
   lt: 'Failas "/etc/os-release" neegzistuoja arba yra tuščias'
   es: 'El archivo "/etc/os-release" no existe o está vacío'
-  fr: "Le fichier \"/etc/os-release\" n'existe pas ou est vide"
+  fr: 'Le fichier "/etc/os-release" n''existe pas ou est vide'
   zh_CN: "文件 “/etc/os-release” 不存在或为空"
-  zh_TW: '「/etc/os-release」不存在或為空'
+  zh_TW: "「/etc/os-release」不存在或為空"
   de: 'Datei "/etc/os-release" existiert nicht oder ist leer'
 "Failed getting the system package manager":
   en: "Failed getting the system package manager"
@@ -1415,128 +1442,128 @@ _version: 2
   zh_TW: "Microsoft Store 更新檢查完成"
   de: "Microsoft Store Update-Überprüfung abgeschlossen"
 
-  "Administrator privileges required - you will see a UAC prompt":
-    en: "Administrator privileges required - you will see a UAC prompt"
-    lt: "Reikalingos administratoriaus teisės - pamatysite UAC užklausą"
-    es: "Se requieren privilegios de administrador - verá un mensaje UAC"
-    fr: "Privilèges d'administrateur requis - vous verrez une invite UAC"
-    zh_CN: "需要管理员权限 - 您将看到 UAC 提示"
-    zh_TW: "需要管理員權限 - 您將看到 UAC 提示"
-    de: "Administratorrechte erforderlich - Sie werden eine UAC-Eingabeaufforderung sehen"
+"Administrator privileges required - you will see a UAC prompt":
+  en: "Administrator privileges required - you will see a UAC prompt"
+  lt: "Reikalingos administratoriaus teisės - pamatysite UAC užklausą"
+  es: "Se requieren privilegios de administrador - verá un mensaje UAC"
+  fr: "Privilèges d'administrateur requis - vous verrez une invite UAC"
+  zh_CN: "需要管理员权限 - 您将看到 UAC 提示"
+  zh_TW: "需要管理員權限 - 您將看到 UAC 提示"
+  de: "Administratorrechte erforderlich - Sie werden eine UAC-Eingabeaufforderung sehen"
 
-  "Starting Windows Update...":
-    en: "Starting Windows Update..."
-    lt: "Pradedamas Windows atnaujinimas..."
-    es: "Iniciando actualización de Windows..."
-    fr: "Démarrage de la mise à jour Windows..."
-    zh_CN: "正在启动 Windows 更新..."
-    zh_TW: "正在啟動 Windows 更新..."
-    de: "Starte Windows Update..."
+"Starting Windows Update...":
+  en: "Starting Windows Update..."
+  lt: "Pradedamas Windows atnaujinimas..."
+  es: "Iniciando actualización de Windows..."
+  fr: "Démarrage de la mise à jour Windows..."
+  zh_CN: "正在启动 Windows 更新..."
+  zh_TW: "正在啟動 Windows 更新..."
+  de: "Starte Windows Update..."
 
-  "Windows Update check completed":
-    en: "Windows Update check completed"
-    lt: "Windows atnaujinimų patikra baigta"
-    es: "Verificación de actualizaciones de Windows completada"
-    fr: "Vérification des mises à jour Windows terminée"
-    zh_CN: "Windows 更新检查完成"
-    zh_TW: "Windows 更新檢查完成"
-    de: "Windows Update-Überprüfung abgeschlossen"
+"Windows Update check completed":
+  en: "Windows Update check completed"
+  lt: "Windows atnaujinimų patikra baigta"
+  es: "Verificación de actualizaciones de Windows completada"
+  fr: "Vérification des mises à jour Windows terminée"
+  zh_CN: "Windows 更新检查完成"
+  zh_TW: "Windows 更新檢查完成"
+  de: "Windows Update-Überprüfung abgeschlossen"
 
-  "Microsoft Store update failed":
-    en: "Microsoft Store update failed"
-    lt: "Microsoft Store atnaujinimas nepavyko"
-    es: "Actualización de Microsoft Store fallida"
-    fr: "Échec de la mise à jour du Microsoft Store"
-    zh_CN: "Microsoft Store 更新失败"
-    zh_TW: "Microsoft Store 更新失敗"
-    de: "Microsoft Store-Update fehlgeschlagen"
+"Microsoft Store update failed":
+  en: "Microsoft Store update failed"
+  lt: "Microsoft Store atnaujinimas nepavyko"
+  es: "Actualización de Microsoft Store fallida"
+  fr: "Échec de la mise à jour du Microsoft Store"
+  zh_CN: "Microsoft Store 更新失败"
+  zh_TW: "Microsoft Store 更新失敗"
+  de: "Microsoft Store-Update fehlgeschlagen"
 
-  "Attempting to open Microsoft Store updates page...":
-    en: "Attempting to open Microsoft Store updates page..."
-    lt: "Bandoma atidaryti Microsoft Store atnaujinimų puslapį..."
-    es: "Intentando abrir la página de actualizaciones de Microsoft Store..."
-    fr: "Tentative d'ouverture de la page de mises à jour du Microsoft Store..."
-    zh_CN: "正在尝试打开 Microsoft Store 更新页面..."
-    zh_TW: "正在嘗試打開 Microsoft Store 更新頁面..."
-    de: "Versuche Microsoft Store-Updates-Seite zu öffnen..."
+"Attempting to open Microsoft Store updates page...":
+  en: "Attempting to open Microsoft Store updates page..."
+  lt: "Bandoma atidaryti Microsoft Store atnaujinimų puslapį..."
+  es: "Intentando abrir la página de actualizaciones de Microsoft Store..."
+  fr: "Tentative d'ouverture de la page de mises à jour du Microsoft Store..."
+  zh_CN: "正在尝试打开 Microsoft Store 更新页面..."
+  zh_TW: "正在嘗試打開 Microsoft Store 更新頁面..."
+  de: "Versuche Microsoft Store-Updates-Seite zu öffnen..."
 
-  "Failed to open Microsoft Store":
-    en: "Failed to open Microsoft Store"
-    lt: "Nepavyko atidaryti Microsoft Store"
-    es: "Error al abrir Microsoft Store"
-    fr: "Échec de l'ouverture du Microsoft Store"
-    zh_CN: "无法打开 Microsoft Store"
-    zh_TW: "無法打開 Microsoft Store"
-    de: "Fehler beim Öffnen des Microsoft Store"
+"Failed to open Microsoft Store":
+  en: "Failed to open Microsoft Store"
+  lt: "Nepavyko atidaryti Microsoft Store"
+  es: "Error al abrir Microsoft Store"
+  fr: "Échec de l'ouverture du Microsoft Store"
+  zh_CN: "无法打开 Microsoft Store"
+  zh_TW: "無法打開 Microsoft Store"
+  de: "Fehler beim Öffnen des Microsoft Store"
 
-  "Opened Microsoft Store updates page. Please check for updates manually.":
-    en: "Opened Microsoft Store updates page. Please check for updates manually."
-    lt: "Atidaryta Microsoft Store atnaujinimų puslapis. Prašome patikrinti atnaujinimus rankiniu būdu."
-    es: "Se abrió la página de actualizaciones de Microsoft Store. Compruebe las actualizaciones manualmente."
-    fr: "Page de mises à jour du Microsoft Store ouverte. Veuillez vérifier les mises à jour manuellement."
-    zh_CN: "已打开 Microsoft Store 更新页面。请手动检查更新。"
-    zh_TW: "已打開 Microsoft Store 更新頁面。請手動檢查更新。"
-    de: "Microsoft Store-Updates-Seite geöffnet. Bitte manuell nach Updates suchen."
+"Opened Microsoft Store updates page. Please check for updates manually.":
+  en: "Opened Microsoft Store updates page. Please check for updates manually."
+  lt: "Atidaryta Microsoft Store atnaujinimų puslapis. Prašome patikrinti atnaujinimus rankiniu būdu."
+  es: "Se abrió la página de actualizaciones de Microsoft Store. Compruebe las actualizaciones manualmente."
+  fr: "Page de mises à jour du Microsoft Store ouverte. Veuillez vérifier les mises à jour manuellement."
+  zh_CN: "已打开 Microsoft Store 更新页面。请手动检查更新。"
+  zh_TW: "已打開 Microsoft Store 更新頁面。請手動檢查更新。"
+  de: "Microsoft Store-Updates-Seite geöffnet. Bitte manuell nach Updates suchen."
 
-  "Attempting to reset Microsoft Store...":
-    en: "Attempting to reset Microsoft Store..."
-    lt: "Bandoma atkurti Microsoft Store..."
-    es: "Intentando restablecer Microsoft Store..."
-    fr: "Tentative de réinitialisation du Microsoft Store..."
-    zh_CN: "正在尝试重置 Microsoft Store..."
-    zh_TW: "正在嘗試重置 Microsoft Store..."
-    de: "Versuche Microsoft Store zurückzusetzen..."
+"Attempting to reset Microsoft Store...":
+  en: "Attempting to reset Microsoft Store..."
+  lt: "Bandoma atkurti Microsoft Store..."
+  es: "Intentando restablecer Microsoft Store..."
+  fr: "Tentative de réinitialisation du Microsoft Store..."
+  zh_CN: "正在尝试重置 Microsoft Store..."
+  zh_TW: "正在嘗試重置 Microsoft Store..."
+  de: "Versuche Microsoft Store zurückzusetzen..."
 
-  "Failed to reset Microsoft Store":
-    en: "Failed to reset Microsoft Store"
-    lt: "Nepavyko atkurti Microsoft Store"
-    es: "Error al restablecer Microsoft Store"
-    fr: "Échec de la réinitialisation du Microsoft Store"
-    zh_CN: "无法重置 Microsoft Store"
-    zh_TW: "無法重置 Microsoft Store"
-    de: "Fehler beim Zurücksetzen des Microsoft Store"
+"Failed to reset Microsoft Store":
+  en: "Failed to reset Microsoft Store"
+  lt: "Nepavyko atkurti Microsoft Store"
+  es: "Error al restablecer Microsoft Store"
+  fr: "Échec de la réinitialisation du Microsoft Store"
+  zh_CN: "无法重置 Microsoft Store"
+  zh_TW: "無法重置 Microsoft Store"
+  de: "Fehler beim Zurücksetzen des Microsoft Store"
 
-  "Initiated Microsoft Store reset. Updates should begin shortly.":
-    en: "Initiated Microsoft Store reset. Updates should begin shortly."
-    lt: "Inicijuotas Microsoft Store atkūrimas. Atnaujinimai turėtų prasidėti netrukus."
-    es: "Se inició el restablecimiento de Microsoft Store. Las actualizaciones deberían comenzar en breve."
-    fr: "Réinitialisation du Microsoft Store initiée. Les mises à jour devraient commencer sous peu."
-    zh_CN: "已启动 Microsoft Store 重置。更新应该很快开始。"
-    zh_TW: "已啟動 Microsoft Store 重置。更新應該很快開始。"
-    de: "Microsoft Store-Reset eingeleitet. Updates sollten in Kürze beginnen."
+"Initiated Microsoft Store reset. Updates should begin shortly.":
+  en: "Initiated Microsoft Store reset. Updates should begin shortly."
+  lt: "Inicijuotas Microsoft Store atkūrimas. Atnaujinimai turėtų prasidėti netrukus."
+  es: "Se inició el restablecimiento de Microsoft Store. Las actualizaciones deberían comenzar en breve."
+  fr: "Réinitialisation du Microsoft Store initiée. Les mises à jour devraient commencer sous peu."
+  zh_CN: "已启动 Microsoft Store 重置。更新应该很快开始。"
+  zh_TW: "已啟動 Microsoft Store 重置。更新應該很快開始。"
+  de: "Microsoft Store-Reset eingeleitet. Updates sollten in Kürze beginnen."
 
-  "Unable to connect to PowerShell Gallery. Module updates skipped.":
-    en: "Unable to connect to PowerShell Gallery. Module updates skipped."
-    lt: "Nepavyksta prisijungti prie PowerShell Gallery. Modulių atnaujinimai praleisti."
-    es: "No se puede conectar con PowerShell Gallery. Actualizaciones de módulos omitidas."
-    fr: "Impossible de se connecter à la Galerie PowerShell. Mises à jour des modules ignorées."
-    zh_CN: "无法连接到 PowerShell Gallery。模块更新已跳过。"
-    zh_TW: "無法連接到 PowerShell Gallery。模組更新已跳過。"
-    de: "Keine Verbindung zur PowerShell Gallery möglich. Modulaktualisierungen übersprungen."
+"Unable to connect to PowerShell Gallery. Module updates skipped.":
+  en: "Unable to connect to PowerShell Gallery. Module updates skipped."
+  lt: "Nepavyksta prisijungti prie PowerShell Gallery. Modulių atnaujinimai praleisti."
+  es: "No se puede conectar con PowerShell Gallery. Actualizaciones de módulos omitidas."
+  fr: "Impossible de se connecter à la Galerie PowerShell. Mises à jour des modules ignorées."
+  zh_CN: "无法连接到 PowerShell Gallery。模块更新已跳过。"
+  zh_TW: "無法連接到 PowerShell Gallery。模組更新已跳過。"
+  de: "Keine Verbindung zur PowerShell Gallery möglich. Modulaktualisierungen übersprungen."
 
-  "Will still attempt to load existing modules":
-    en: "Will still attempt to load existing modules"
-    lt: "Vis tiek bus bandoma įkelti esamus modulius"
-    es: "Se intentará cargar los módulos existentes"
-    fr: "Tentera quand même de charger les modules existants"
-    zh_CN: "仍将尝试加载现有模块"
-    zh_TW: "仍將嘗試載入現有模組"
-    de: "Es wird trotzdem versucht, vorhandene Module zu laden"
+"Will still attempt to load existing modules":
+  en: "Will still attempt to load existing modules"
+  lt: "Vis tiek bus bandoma įkelti esamus modulius"
+  es: "Se intentará cargar los módulos existentes"
+  fr: "Tentera quand même de charger les modules existants"
+  zh_CN: "仍将尝试加载现有模块"
+  zh_TW: "仍將嘗試載入現有模組"
+  de: "Es wird trotzdem versucht, vorhandene Module zu laden"
 
-  "PowerShell Modules update check completed":
-    en: "PowerShell Modules update check completed"
-    lt: "PowerShell modulių atnaujinimų patikra baigta"
-    es: "Verificación de actualización de módulos PowerShell completada"
-    fr: "Vérification des mises à jour des modules PowerShell terminée"
-    zh_CN: "PowerShell 模块更新检查完成"
-    zh_TW: "PowerShell 模組更新檢查完成"
-    de: "PowerShell-Module-Update-Überprüfung abgeschlossen"
-    
-  "<output from `deb-get clean` omitted>":
-    en: "<output from `deb-get clean` omitted>"
-    lt: "<išvestis iš `deb-get clean` praleista>"
-    es: "<salida de `deb-get clean` omitido>"
-    fr: "<sortie de `deb-get clean` omise>"
-    zh_CN: "<省略了 `deb-get clean` 的输出>"
-    zh_TW: "<省略了 `deb-get clean` 的輸出>"
-    de: "<Ausgabe von `deb-get clean` ausgelassen>"
+"PowerShell Modules update check completed":
+  en: "PowerShell Modules update check completed"
+  lt: "PowerShell modulių atnaujinimų patikra baigta"
+  es: "Verificación de actualización de módulos PowerShell completada"
+  fr: "Vérification des mises à jour des modules PowerShell terminée"
+  zh_CN: "PowerShell 模块更新检查完成"
+  zh_TW: "PowerShell 模組更新檢查完成"
+  de: "PowerShell-Module-Update-Überprüfung abgeschlossen"
+
+"<output from `deb-get clean` omitted>":
+  en: "<output from `deb-get clean` omitted>"
+  lt: "<išvestis iš `deb-get clean` praleista>"
+  es: "<salida de `deb-get clean` omitido>"
+  fr: "<sortie de `deb-get clean` omise>"
+  zh_CN: "<省略了 `deb-get clean` 的输出>"
+  zh_TW: "<省略了 `deb-get clean` 的輸出>"
+  de: "<Ausgabe von `deb-get clean` ausgelassen>"

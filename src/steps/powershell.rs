@@ -198,52 +198,42 @@ impl Powershell {
     // Simplified translation approach that doesn't use t!() with dynamic keys
     fn get_translation(&self, key: &str) -> String {
         let translation = match key {
-            "powershell_not_installed" => t!("Powershell is not installed").to_string(),
-            "admin_privileges_required" => {
-                t!("Administrator privileges required - you will see a UAC prompt").to_string()
-            }
-            "starting_windows_update" => t!("Starting Windows Update...").to_string(),
-            "windows_update_completed" => t!("Windows Update check completed").to_string(),
-            "microsoft_store_update_failed" => t!("Microsoft Store update failed").to_string(),
-            "attempting_open_store" => t!("Attempting to open Microsoft Store updates page...").to_string(),
-            "failed_open_store" => t!("Failed to open Microsoft Store").to_string(),
-            "opened_store_page" => {
-                t!("Opened Microsoft Store updates page. Please check for updates manually.").to_string()
-            }
-            "attempting_reset_store" => t!("Attempting to reset Microsoft Store...").to_string(),
-            "failed_reset_store" => t!("Failed to reset Microsoft Store").to_string(),
-            "initiated_store_reset" => t!("Initiated Microsoft Store reset. Updates should begin shortly.").to_string(),
-            "scanning_for_updates" => t!("Scanning for updates...").to_string(),
-            "processing_powershell_modules" => t!("Processing PowerShell modules...").to_string(),
-            "gallery_not_accessible" => {
-                t!("Unable to connect to PowerShell Gallery. Module updates skipped.").to_string()
-            }
-            "will_load_modules" => t!("Will still attempt to load existing modules").to_string(),
-            "powershell_module_processing_complete" => t!("PowerShell module processing complete.").to_string(),
-            "powershell_modules_update_check_completed" => t!("PowerShell Modules update check completed").to_string(),
-            "microsoft_store_update_check_completed" => t!("Microsoft Store update check completed").to_string(),
-            "checking_connectivity" => t!("Checking connectivity to PowerShell Gallery...").to_string(),
-            "gallery_accessible" => t!("PowerShell Gallery is accessible").to_string(),
-            "gallery_not_accessible_full" => {
-                t!("PowerShell Gallery is not accessible. Module updates will be skipped.").to_string()
-            }
-            "processing_module" => t!("Processing module: %{moduleName}").to_string(),
-            "unloading_module" => t!("Unloading module: %{moduleName}").to_string(),
-            "updating_module" => t!("Updating module: %{moduleName}").to_string(),
-            "retry_attempt" => t!("Retry attempt %{attempt} of %{max}...").to_string(),
-            "update_failed" => t!("Failed to update module after multiple attempts").to_string(),
-            "reloading_module" => t!("Reloading module: %{moduleName}").to_string(),
-            "import_success" => t!("Successfully imported module: %{moduleName}").to_string(),
-            "import_failed" => t!("Could not reload module: %{moduleName} - %{error}").to_string(),
-            "process_failed" => t!("Failed to process module: %{moduleName} - %{error}").to_string(),
-            "attempting_store_update" => {
-                t!("Attempting to update Microsoft Store apps using MDM method...").to_string()
-            }
+            "powershell_not_installed" => t!("powershell_not_installed"),
+            "admin_privileges_required" => t!("admin_privileges_required"),
+            "starting_windows_update" => t!("starting_windows_update"),
+            "windows_update_completed" => t!("windows_update_completed"),
+            "microsoft_store_update_failed" => t!("microsoft_store_update_failed"),
+            "attempting_open_store" => t!("attempting_open_store"),
+            "failed_open_store" => t!("failed_open_store"),
+            "opened_store_page" => t!("opened_store_page"),
+            "attempting_reset_store" => t!("attempting_reset_store"),
+            "failed_reset_store" => t!("failed_reset_store"),
+            "initiated_store_reset" => t!("initiated_store_reset"),
+            "scanning_for_updates" => t!("scanning_for_updates"),
+            "processing_powershell_modules" => t!("processing_powershell_modules"),
+            "gallery_not_accessible" => t!("gallery_not_accessible"),
+            "will_load_modules" => t!("will_load_modules"),
+            "powershell_module_processing_complete" => t!("powershell_module_processing_complete"),
+            "powershell_modules_update_check_completed" => t!("powershell_modules_update_check_completed"),
+            "microsoft_store_update_check_completed" => t!("microsoft_store_update_check_completed"),
+            "checking_connectivity" => t!("checking_connectivity"),
+            "gallery_accessible" => t!("gallery_accessible"),
+            "gallery_not_accessible_full" => t!("gallery_not_accessible_full"),
+            "processing_module" => t!("processing_module"),
+            "unloading_module" => t!("unloading_module"),
+            "updating_module" => t!("updating_module"),
+            "retry_attempt" => t!("retry_attempt"),
+            "update_failed" => t!("update_failed"),
+            "reloading_module" => t!("reloading_module"),
+            "import_success" => t!("import_success"),
+            "import_failed" => t!("import_failed"),
+            "process_failed" => t!("process_failed"),
+            "attempting_store_update" => t!("attempting_store_update"),
             _ => {
                 // If it's a dynamic operation name completion message
                 if key.ends_with("_check_completed") {
                     let op_name = &key[0..key.len() - 16]; // Remove "_check_completed"
-                    return format!("{} check completed", op_name);
+                    return format!("{} {}", op_name, t!("check_completed"));
                 }
                 key.to_string()
             }
