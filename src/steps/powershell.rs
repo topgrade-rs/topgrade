@@ -25,52 +25,52 @@ $galleryAvailable = $false
 Write-Host "{checking_connectivity}" -ForegroundColor Cyan
 
 # Try multiple methods to check connectivity
-try {{
+try {
     # Method 1: Direct Find-Module test
-    try {{
+    try {
         Write-Host "  Trying direct Find-Module test..." -ForegroundColor Yellow
         $module = Find-Module -Name PowerShellGet -Repository PSGallery -ErrorAction Stop
-        if ($module) {{
+        if ($module) {
             $galleryAvailable = $true
             Write-Host "{gallery_accessible}" -ForegroundColor Green
-        }}
-    }}
-    catch {{
+        }
+    }
+    catch {
         Write-Host "  Direct Find-Module failed: $($_.Exception.Message)" -ForegroundColor Yellow
         
         # Method 2: Check if PSGallery is registered
-        try {{
+        try {
             Write-Host "  Checking PSGallery registration..." -ForegroundColor Yellow
             $repository = Get-PSRepository -Name PSGallery -ErrorAction Stop
             
-            if ($repository.InstallationPolicy -eq 'Trusted') {{
+            if ($repository.InstallationPolicy -eq 'Trusted') {
                 $galleryAvailable = $true
                 Write-Host "{gallery_accessible}" -ForegroundColor Green
-            }}
-            else {{
+            }
+            else {
                 # Method 3: Use a background job with longer timeout
                 Write-Host "  Using background job with 10-second timeout..." -ForegroundColor Yellow
-                $moduleSearchJob = Start-Job -ScriptBlock {{ 
+                $moduleSearchJob = Start-Job -ScriptBlock { 
                     Find-Module -Name PowerShellGet -Repository PSGallery -ErrorAction Stop | Select-Object -First 1
-                }}
+                }
                 
-                if (Wait-Job $moduleSearchJob -Timeout 10) {{
+                if (Wait-Job $moduleSearchJob -Timeout 10) {
                     $result = Receive-Job $moduleSearchJob
-                    if ($result) {{
+                    if ($result) {
                         $galleryAvailable = $true
                         Write-Host "{gallery_accessible}" -ForegroundColor Green
-                    }}
-                }}
+                    }
+                }
                 
                 # Ensure the job is cleaned up
                 Remove-Job $moduleSearchJob -Force -ErrorAction SilentlyContinue
-            }}
-        }}
-        catch {{
+            }
+        }
+        catch {
             Write-Host "  PSRepository check failed: $($_.Exception.Message)" -ForegroundColor Yellow
             
             # Method 4: Direct web request with longer timeout
-            try {{
+            try {
                 Write-Host "  Trying direct web request..." -ForegroundColor Yellow
                 $request = [System.Net.WebRequest]::Create("https://www.powershellgallery.com/api/v2")
                 $request.Method = "HEAD"
@@ -79,91 +79,93 @@ try {{
                 $galleryAvailable = $true
                 $response.Close()
                 Write-Host "{gallery_accessible}" -ForegroundColor Green
-            }}
-            catch {{
+            }
+            catch {
                 Write-Host "  Web request failed: $($_.Exception.Message)" -ForegroundColor Yellow
-            }}
-        }}
-    }}
-}}
-catch {{
+            }
+        }
+    }
+}
+catch {
     Write-Host "  All connectivity checks failed" -ForegroundColor Red
-}}
+}
 
 # Final result
-if ($galleryAvailable) {{
+if ($galleryAvailable) {
     Write-Host "Gallery connectivity confirmed!" -ForegroundColor Green
-}} else {{
+} else {
     Write-Host "{gallery_not_accessible}" -ForegroundColor Red
     Write-Host "  Note: If you can use Find-Module manually, there may be an issue with the detection logic." -ForegroundColor Yellow
-}}"#;
+}"#;
 
-    pub(super) const MODULES_UPDATE_TEMPLATE: &str = r#"Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {{
+    pub(super) const MODULES_UPDATE_TEMPLATE: &str = r#"Get-Module -ListAvailable | Select-Object -Property Name -Unique | ForEach-Object {
     $moduleName = $_.Name
-    try {{
+    try {
       # Only process modules installed via Install-Module
-      if (Get-InstalledModule -Name $moduleName -ErrorAction SilentlyContinue) {{
+      if (Get-InstalledModule -Name $moduleName -ErrorAction SilentlyContinue) {
         # Process each module individually - unload, update, reload
-        Write-Host "{processing_module}" -ForegroundColor Cyan
+        Write-Host ("Processing module: {0}" -f $moduleName) -ForegroundColor Cyan
 
         # Check if the module is loaded and unload it if necessary
-        Write-Host "  {unloading_module}" -ForegroundColor Yellow
-        if (Get-Module -Name $moduleName -ErrorAction SilentlyContinue) {{
+        Write-Host ("  Unloading module: {0}" -f $moduleName) -ForegroundColor Yellow
+        if (Get-Module -Name $moduleName -ErrorAction SilentlyContinue) {
           Remove-Module -Name $moduleName -Force -ErrorAction SilentlyContinue
-        }} else {{
+        } else {
           Write-Host "    Module is not currently loaded" -ForegroundColor Yellow
-        }}
+        }
 
         # Update the module
-        Write-Host "  {updating_module}" -ForegroundColor Cyan
+        Write-Host ("  Updating module: {0}" -f $moduleName) -ForegroundColor Cyan
         $updateAttempts = 0
         $maxAttempts = 2
         $updateSuccess = $false
 
-        while (-not $updateSuccess -and $updateAttempts -lt $maxAttempts) {{
-          try {{
+        while (-not $updateSuccess -and $updateAttempts -lt $maxAttempts) {
+          try {
             $updateAttempts++
             {update_command}
             $updateSuccess = $true
-          }} catch {{
-            if ($updateAttempts -lt $maxAttempts) {{
-              Write-Host "    {retry_attempt}" -ForegroundColor Yellow
+          } catch {
+            if ($updateAttempts -lt $maxAttempts) {
+              Write-Host ("    Retry attempt {0} of {1}..." -f $updateAttempts, $maxAttempts) -ForegroundColor Yellow
               Start-Sleep -Seconds 2
-            }} else {{
-              Write-Host "    {update_failed}" -ForegroundColor Red
-              Write-Host "    $($_.Exception.Message)" -ForegroundColor Red
-            }}
-          }}
-        }}
+            } else {
+              Write-Host "    Failed to update module after multiple attempts" -ForegroundColor Red
+              Write-Host ("    " + $_.Exception.Message) -ForegroundColor Red
+            }
+          }
+        }
 
         # Reload the module
-        try {{
-          Write-Host "  {reloading_module}" -ForegroundColor Green
+        try {
+          Write-Host ("  Reloading module: {0}" -f $moduleName) -ForegroundColor Green
           Import-Module $moduleName -ErrorAction Stop
-          Write-Host "  {import_success}" -ForegroundColor Green
-        }} catch {{
-          Write-Host "  {import_failed}" -ForegroundColor Yellow
-        }}
-      }}
-    }} catch {{
-      Write-Host "{process_failed}" -ForegroundColor Red
-    }}
-  }}"#;
+          Write-Host ("  Successfully imported module: {0}" -f $moduleName) -ForegroundColor Green
+        } catch {
+          Write-Host ("  Could not reload module: {0}" -f $moduleName) -ForegroundColor Yellow
+          Write-Host ("    " + $_.Exception.Message) -ForegroundColor Yellow
+        }
+      }
+    } catch {
+      Write-Host ("Failed to process module: {0}" -f $moduleName) -ForegroundColor Red
+      Write-Host ("    " + $_.Exception.Message) -ForegroundColor Red
+    }
+  }"#;
 
     #[cfg(windows)]
-    pub(super) const MS_STORE_UPDATE_TEMPLATE: &str = r#"try {{
+    pub(super) const MS_STORE_UPDATE_TEMPLATE: &str = r#"try {
         Write-Output "{attempting_store_update}"
         $result = (Get-CimInstance{verbose_flag} -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" -ErrorAction Stop |
         Invoke-CimMethod{verbose_flag} -MethodName UpdateScanMethod -ErrorAction Stop).ReturnValue
 
-        if ($result -eq 0) {{
+        if ($result -eq 0) {
             Write-Output "{update_completed}"
-        }} else {{
+        } else {
             Write-Output "FAIL_PRIMARY_NONZERO:$result"
-        }}
-    }} catch {{
+        }
+    } catch {
         Write-Output "FAIL_PRIMARY_EXCEPTION:$($_.Exception.Message)"
-    }}"#;
+    }"#;
 }
 
 // Improved ScriptBuilder with more functional interface
@@ -345,16 +347,16 @@ impl Powershell {
 
         // Create modules update script with cleaner builder pattern
         let update_modules_script = ScriptBuilder::new(scripts::MODULES_UPDATE_TEMPLATE)
-            .add_translation("processing_module", self.get_translation("processing_module"))
-            .add_translation("unloading_module", self.get_translation("unloading_module"))
-            .add_translation("updating_module", self.get_translation("updating_module"))
+            .add_translation("processing_module", "Processing module: {0}")
+            .add_translation("unloading_module", "Unloading module: {0}")
+            .add_translation("updating_module", "Updating module: {0}")
             .with_param("update_command", &update_command)
-            .add_translation("retry_attempt", self.get_translation("retry_attempt"))
-            .add_translation("update_failed", self.get_translation("update_failed"))
-            .add_translation("reloading_module", self.get_translation("reloading_module"))
-            .add_translation("import_success", self.get_translation("import_success"))
-            .add_translation("import_failed", self.get_translation("import_failed"))
-            .add_translation("process_failed", self.get_translation("process_failed"))
+            .add_translation("retry_attempt", "Retry attempt {0} of {1}...")
+            .add_translation("update_failed", "Failed to update module after multiple attempts")
+            .add_translation("reloading_module", "Reloading module: {0}")
+            .add_translation("import_success", "Successfully imported module: {0}")
+            .add_translation("import_failed", "Could not reload module: {0}")
+            .add_translation("process_failed", "Failed to process module: {0}")
             .build(|t| self.clean_translation(t));
 
         format!(
@@ -490,6 +492,21 @@ if ($Host.Name -eq 'ConsoleHost' -and $Host.UI.RawUI.KeyAvailable -eq $false) {
             self.execute_script(ctx, &script)
         })
     }
+
+    #[cfg(windows)]
+    fn create_microsoft_store_script(powershell: &Powershell, verbose_flag: &str) -> String {
+        ScriptBuilder::new(scripts::MS_STORE_UPDATE_TEMPLATE)
+            .add_translation(
+                "attempting_store_update",
+                powershell.get_translation("attempting_store_update"),
+            )
+            .with_param("verbose_flag", verbose_flag)
+            .add_translation(
+                "update_completed",
+                powershell.get_translation("microsoft_store_update_check_completed"),
+            )
+            .build(|t| powershell.clean_translation(t))
+    }
 }
 
 #[cfg(windows)]
@@ -540,7 +557,6 @@ impl Powershell {
     }
 
     // Improved Windows Store script creation with better error handling
-    #[cfg(windows)]
     pub fn microsoft_store(&self, ctx: &ExecutionContext) -> Result<()> {
         windows::microsoft_store(self, ctx)
     }
@@ -611,7 +627,7 @@ mod windows {
     // More modular approach to Microsoft Store updates
     pub fn microsoft_store(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
         let verbose_flag = if ctx.config().verbose() { " -Verbose" } else { "" };
-        let ps_script = create_microsoft_store_script(powershell, verbose_flag);
+        let ps_script = Powershell::create_microsoft_store_script(powershell, verbose_flag);
 
         powershell.execute_operation(ctx, "Microsoft Store", || {
             match powershell.execute_script(ctx, &ps_script) {
@@ -629,20 +645,6 @@ mod windows {
                 }
             }
         })
-    }
-
-    fn create_microsoft_store_script(powershell: &Powershell, verbose_flag: &str) -> String {
-        ScriptBuilder::new(scripts::MS_STORE_UPDATE_TEMPLATE)
-            .add_translation(
-                "attempting_store_update",
-                powershell.get_translation("attempting_store_update"),
-            )
-            .with_param("verbose_flag", verbose_flag)
-            .add_translation(
-                "update_completed",
-                powershell.get_translation("microsoft_store_update_check_completed"),
-            )
-            .build(|t| powershell.clean_translation(t))
     }
 
     fn try_microsoft_store_fallbacks(powershell: &Powershell, ctx: &ExecutionContext) -> Result<()> {
