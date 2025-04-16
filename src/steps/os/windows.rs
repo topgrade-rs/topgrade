@@ -128,7 +128,7 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
     let winget = require("winget")?;
 
     print_separator("Winget");
-    
+
     // First update the winget source
     ctx.run_type()
         .execute(&winget)
