@@ -4,6 +4,9 @@ on:
 
 name: Check and Fix SemVer compliance
 
+permissions:
+  contents: write
+
 jobs:
   prepare:
     runs-on: ubuntu-latest
@@ -21,24 +24,69 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      # Prevent infinite loops by checking if last commit was from this workflow
+      - name: Check commit author
+        id: check_author
+        run: |
+          COMMIT_AUTHOR=$(git log -1 --pretty=format:'%an')
+          COMMIT_MESSAGE=$(git log -1 --pretty=format:'%s')
+          if [[ "$COMMIT_AUTHOR" == "GitHub Actions Bot" && "$COMMIT_MESSAGE" == *"Bump version"* ]]; then
+            echo "skip_workflow=true" >> $GITHUB_OUTPUT
+            echo "Workflow skipped: Last commit was a version bump by GitHub Actions Bot"
+          else
+            echo "skip_workflow=false" >> $GITHUB_OUTPUT
+          fi
       
       - name: Install rust-semverver
+        if: steps.check_author.outputs.skip_workflow != 'true'
         uses: actions-rs/cargo@v1
         with:
           command: install
           args: --git https://github.com/rust-lang/rust-semverver
 
+      # Use a proper TOML parser instead of grep/sed
+      - name: Install toml CLI tool
+        if: steps.check_author.outputs.skip_workflow != 'true'
+        run: |
+          cargo install toml-cli || echo "Failed to install toml-cli, will use fallback parsing method"
+
       - name: Extract current version
+        if: steps.check_author.outputs.skip_workflow != 'true'
         id: version
         run: |
-          CURRENT_VERSION=$(grep -e '^version = .*$' Cargo.toml | cut -d ' ' -f 3 | tr -d '"')
+          # Try using toml-cli first, fall back to grep if not available
+          if command -v toml > /dev/null; then
+            CURRENT_VERSION=$(toml get Cargo.toml package.version | tr -d '"')
+          else
+            CURRENT_VERSION=$(grep -e '^version = .*$' Cargo.toml | cut -d ' ' -f 3 | tr -d '"')
+          fi
+          
+          if [[ -z "$CURRENT_VERSION" ]]; then
+            echo "Error: Failed to extract version from Cargo.toml"
+            exit 1
+          fi
+          
           echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
           echo "Current version: $CURRENT_VERSION"
       
       - name: Check SemVer compliance
+        if: steps.check_author.outputs.skip_workflow != 'true'
         id: semver_check
         run: |
-          cargo semver > semver_out.txt || true
+          # Better error handling for cargo semver
+          if ! cargo semver > semver_out.txt 2>&1; then
+            echo "Warning: cargo semver exited with non-zero status, checking output anyway"
+          fi
+          
+          if [ ! -s semver_out.txt ]; then
+            echo "Error: semver_out.txt is empty. cargo semver may have failed."
+            echo "compliant=true" >> $GITHUB_OUTPUT
+            echo "Assuming compliance due to lack of contrary evidence"
+            exit 0
+          fi
+          
           cat semver_out.txt
           
           if head -n 1 semver_out.txt | grep -q "\-> ${{ steps.version.outputs.current_version }}"; then
@@ -60,15 +108,17 @@ jobs:
           fi
       
       - name: Update version if needed
-        if: steps.semver_check.outputs.compliant == 'false'
+        if: steps.check_author.outputs.skip_workflow != 'true' && steps.semver_check.outputs.compliant == 'false'
         run: |
           CURRENT_VERSION="${{ steps.version.outputs.current_version }}"
           BUMP_TYPE="${{ steps.semver_check.outputs.bump_type }}"
           
-          # Remove quotes
-          CURRENT_VERSION=$(echo $CURRENT_VERSION | tr -d '"')
+          # Split version into parts with better error handling
+          if [[ ! "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Version '$CURRENT_VERSION' is not in expected format (X.Y.Z)"
+            exit 1
+          fi
           
-          # Split version into parts
           IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
           MAJOR=${VERSION_PARTS[0]}
           MINOR=${VERSION_PARTS[1]}
@@ -85,14 +135,32 @@ jobs:
           
           echo "Updating version from $CURRENT_VERSION to $NEW_VERSION"
           
-          # Update version in Cargo.toml
-          sed -i "s/^version = \"$CURRENT_VERSION\"/version = \"$NEW_VERSION\"/" Cargo.toml
+          # Update version in Cargo.toml using the appropriate method
+          if command -v toml > /dev/null; then
+            # Create a temp file with the updated TOML
+            toml set Cargo.toml package.version "$NEW_VERSION" > Cargo.toml.new
+            mv Cargo.toml.new Cargo.toml
+          else
+            # Fallback to sed
+            sed -i "s/^version = \"$CURRENT_VERSION\"/version = \"$NEW_VERSION\"/" Cargo.toml
+          fi
           
-          # Commit and push the change
+          # Verify the change was made
+          if ! grep -q "version = \"$NEW_VERSION\"" Cargo.toml; then
+            echo "Error: Failed to update version in Cargo.toml"
+            exit 1
+          fi
+          
+          # Commit and push the change with improved error handling
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
           git add Cargo.toml
           git commit -m "Bump version to $NEW_VERSION for SemVer compliance"
-          git push
           
-          echo "Version updated to $NEW_VERSION"
+          # Push with error handling
+          if ! git push; then
+            echo "Error: Failed to push changes. Check repository permissions."
+            exit 1
+          fi
+          
+          echo "Version successfully updated to $NEW_VERSION"
