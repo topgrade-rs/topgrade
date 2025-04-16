@@ -35,13 +35,13 @@ fn run_command(ctx: &ExecutionContext, tool: &str, args: &[&str], step: Step) ->
 
     print_separator(tool);
 
-    let mut command = match ctx.sudo() {
-        Some(sudo) => {
-            let mut command = ctx.run_type().execute(sudo);
-            command.arg(tool_path);
-            command
-        }
-        None => ctx.run_type().execute(tool_path),
+    let mut command = if ctx.sudo().is_some() {
+        let sudo = ctx.sudo().as_ref().unwrap();
+        let mut command = ctx.run_type().execute(sudo);
+        command.arg(&tool_path);
+        command
+    } else {
+        ctx.run_type().execute(&tool_path)
     };
 
     command.args(args);
