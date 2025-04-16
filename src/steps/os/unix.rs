@@ -642,14 +642,17 @@ pub fn run_asdf(ctx: &ExecutionContext) -> Result<()> {
     // v0.15.0-31e8c93
     //
     // ```
+    // ```
+    // $ asdf version
+    // v0.16.7
+    // ```
     let version_stdout = version_output.stdout.trim();
     // trim the starting 'v'
     let mut remaining = version_stdout.trim_start_matches('v');
-    let idx = remaining
-        .find('-')
-        .ok_or_else(|| eyre!(output_changed_message!("asdf version", "no dash (-) found")))?;
-    // remove the hash part
-    remaining = &remaining[..idx];
+    // remove the hash part if present
+    if let Some(idx) = remaining.find('-') {
+        remaining = &remaining[..idx];
+    }
     let version =
         Version::parse(remaining).wrap_err_with(|| output_changed_message!("asdf version", "invalid version"))?;
     if version < Version::new(0, 15, 0) {
