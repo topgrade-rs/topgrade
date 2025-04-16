@@ -7,11 +7,55 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    versioning-strategy: "increase-if-necessary"
+    # Group minor and patch updates into a single PR to reduce noise
+    groups:
+      minor-patches:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Add security priority labels
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    # Add explicit security update handling
+    security-updates-only: false
       
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
+    # Only increase version requirements when necessary, making minimal changes
+    # to Cargo.toml while ensuring dependencies stay updated. This is more
+    # conservative than "auto" and helps prevent unexpected breaking changes.
     versioning-strategy: "increase-if-necessary"
+    # Group minor dependency updates into single PRs to reduce volume
+    groups:
+      minor-patches:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      dev-dependencies:
+        patterns:
+          - "*"
+        dependency-type: "development"
+    # Add security priority labels
+    labels:
+      - "dependencies"
+      - "rust"
+      - "security-review"
+    # Customize commit messages for better changelog integration
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    # Add explicit security update handling
+    security-updates-only: false
+    # Optional: Add reviewers for Rust dependencies
+    # reviewers:
+    #   - "your-username"
