@@ -11,6 +11,7 @@
   <img alt="Demo" src="doc/topgrade_demo.gif">
 </div>
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/topgrade-rs/topgrade/badge)](https://scorecard.dev/viewer/?uri=github.com/topgrade-rs/topgrade)
 
 ## Introduction
 
