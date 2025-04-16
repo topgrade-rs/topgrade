@@ -2,7 +2,7 @@ on:
   release:
     types: [published, edited]
 
-name: Check SemVer compliance
+name: Check and Fix SemVer compliance
 
 jobs:
   prepare:
@@ -18,10 +18,81 @@ jobs:
   semver:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions-rs/cargo@v1
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Install rust-semverver
+        uses: actions-rs/cargo@v1
         with:
           command: install
           args: --git https://github.com/rust-lang/rust-semverver
-      - run: eval "current_version=$(grep -e '^version = .*$' Cargo.toml | cut -d ' ' -f 3)"
-      - run: cargo semver | tee semver_out
-      - run: (head -n 1 semver_out | grep "\-> $current_version") || (echo "versioning mismatch" && return 1)
+
+      - name: Extract current version
+        id: version
+        run: |
+          CURRENT_VERSION=$(grep -e '^version = .*$' Cargo.toml | cut -d ' ' -f 3 | tr -d '"')
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+      
+      - name: Check SemVer compliance
+        id: semver_check
+        run: |
+          cargo semver > semver_out.txt || true
+          cat semver_out.txt
+          
+          if head -n 1 semver_out.txt | grep -q "\-> ${{ steps.version.outputs.current_version }}"; then
+            echo "compliant=true" >> $GITHUB_OUTPUT
+            echo "SemVer compliance check passed!"
+          else
+            echo "compliant=false" >> $GITHUB_OUTPUT
+            echo "SemVer compliance check failed - will determine appropriate version bump"
+            
+            # Parse semver output to determine required bump
+            if grep -q "MAJOR" semver_out.txt; then
+              BUMP_TYPE="major"
+            elif grep -q "MINOR" semver_out.txt; then
+              BUMP_TYPE="minor"
+            else
+              BUMP_TYPE="patch"
+            fi
+            echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Update version if needed
+        if: steps.semver_check.outputs.compliant == 'false'
+        run: |
+          CURRENT_VERSION="${{ steps.version.outputs.current_version }}"
+          BUMP_TYPE="${{ steps.semver_check.outputs.bump_type }}"
+          
+          # Remove quotes
+          CURRENT_VERSION=$(echo $CURRENT_VERSION | tr -d '"')
+          
+          # Split version into parts
+          IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
+          MAJOR=${VERSION_PARTS[0]}
+          MINOR=${VERSION_PARTS[1]}
+          PATCH=${VERSION_PARTS[2]}
+          
+          # Bump version based on semver requirements
+          if [ "$BUMP_TYPE" == "major" ]; then
+            NEW_VERSION="$((MAJOR + 1)).0.0"
+          elif [ "$BUMP_TYPE" == "minor" ]; then
+            NEW_VERSION="$MAJOR.$((MINOR + 1)).0"
+          else
+            NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+          fi
+          
+          echo "Updating version from $CURRENT_VERSION to $NEW_VERSION"
+          
+          # Update version in Cargo.toml
+          sed -i "s/^version = \"$CURRENT_VERSION\"/version = \"$NEW_VERSION\"/" Cargo.toml
+          
+          # Commit and push the change
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add Cargo.toml
+          git commit -m "Bump version to $NEW_VERSION for SemVer compliance"
+          git push
+          
+          echo "Version updated to $NEW_VERSION"
