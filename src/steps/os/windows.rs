@@ -65,7 +65,9 @@ fn run_command(ctx: &ExecutionContext, tool: &str, args: &[&str], step: Step) ->
 /// behavior to check whether WSL is properly set up or not.
 fn is_wsl_installed() -> Result<bool> {
     if let Some(wsl) = which("wsl") {
-        let result = Command::new(wsl).arg("-l").output_checked();
+        // Don't use `output_checked` as an execution failure log is not wanted
+        #[allow(clippy::disallowed_methods)]
+        let result = Command::new(wsl).arg("-l").output();
         if let Ok(output) = result {
             return Ok(output.status.success());
         }
