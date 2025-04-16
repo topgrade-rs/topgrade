@@ -125,13 +125,25 @@ pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
 
 /// Run the Windows Package Manager (winget) update
 pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
+    let winget = require("winget")?;
+
+    print_separator("Winget");
+    
+    // First update the winget source
+    ctx.run_type()
+        .execute(&winget)
+        .args(["source", "update"])
+        .status_checked()?;
+
     // Create a mutable vector so we can conditionally add the silent flag
     let mut args = vec!["upgrade", "--all"];
     if ctx.config().winget_silent_install() {
         args.push("--silent");
     }
 
-    run_command(ctx, "winget", &args, Step::Winget)
+    // Execute the upgrade command
+    ctx.run_type().execute(&winget).args(&args).status_checked()?;
+    Ok(())
 }
 
 /// Run the Scoop package manager update and cleanup if configured

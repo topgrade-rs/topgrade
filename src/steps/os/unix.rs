@@ -7,7 +7,7 @@ use std::process::Command;
 use std::{env::var, path::Path};
 
 use crate::command::CommandExt;
-use crate::{Step, HOME_DIR};
+use crate::{output_changed_message, Step, HOME_DIR};
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
@@ -238,7 +238,7 @@ pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
     let gdbus = require("gdbus")?;
     require_option(
         var("XDG_CURRENT_DESKTOP").ok().filter(|p| p.contains("GNOME")),
-        t!("Desktop doest not appear to be gnome").to_string(),
+        t!("Desktop does not appear to be GNOME").to_string(),
     )?;
     let output = Command::new("gdbus")
         .args([
@@ -253,12 +253,12 @@ pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
         ])
         .output_checked_utf8()?;
 
-    debug!("Checking for gnome extensions: {}", output);
+    debug!("Checking for GNOME extensions: {}", output);
     if !output.stdout.contains("org.gnome.Shell.Extensions") {
-        return Err(SkipStep(t!("Gnome shell extensions are unregistered in DBus").to_string()).into());
+        return Err(SkipStep(t!("GNOME shell extensions are unregistered in DBus").to_string()).into());
     }
 
-    print_separator(t!("Gnome Shell extensions"));
+    print_separator(t!("GNOME Shell extensions"));
 
     ctx.run_type()
         .execute(gdbus)
@@ -470,16 +470,10 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
         return Err(eyre!("`nix --version` output was empty"));
     }
 
-    let captures = NIX_VERSION_REGEX.captures(get_version_cmd_first_line_stdout);
-    let raw_version = match &captures {
-        None => {
-            return Err(eyre!(
-                "`nix --version` output was weird: {get_version_cmd_first_line_stdout:?}\n\
-                If the `nix --version` output format changed, please file an issue to Topgrade"
-            ));
-        }
-        Some(captures) => &captures[1],
-    };
+    let captures = NIX_VERSION_REGEX
+        .captures(get_version_cmd_first_line_stdout)
+        .ok_or_else(|| eyre!(output_changed_message!("nix --version", "regex did not match")))?;
+    let raw_version = &captures[1];
 
     let version =
         Version::parse(raw_version).wrap_err_with(|| format!("Unable to parse Nix version: {raw_version:?}"))?;
@@ -648,15 +642,19 @@ pub fn run_asdf(ctx: &ExecutionContext) -> Result<()> {
     // v0.15.0-31e8c93
     //
     // ```
+    // ```
+    // $ asdf version
+    // v0.16.7
+    // ```
     let version_stdout = version_output.stdout.trim();
     // trim the starting 'v'
     let mut remaining = version_stdout.trim_start_matches('v');
-    let idx = remaining
-        .find('-')
-        .expect("the output of `asdf version` changed, please file an issue to Topgrade");
-    // remove the hash part
-    remaining = &remaining[..idx];
-    let version = Version::parse(remaining).expect("should be a valid version");
+    // remove the hash part if present
+    if let Some(idx) = remaining.find('-') {
+        remaining = &remaining[..idx];
+    }
+    let version =
+        Version::parse(remaining).wrap_err_with(|| output_changed_message!("asdf version", "invalid version"))?;
     if version < Version::new(0, 15, 0) {
         ctx.run_type()
             .execute(&asdf)
