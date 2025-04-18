@@ -91,10 +91,13 @@ pub enum Step {
     Gcloud,
     Gem,
     Ghcup,
+    Ghcli,
+    Git,
     GitRepos,
     GithubCliExtensions,
     GnomeShellExtensions,
     Go,
+    GoogleCloudSdk,
     Guix,
     Haxelib,
     Helix,
@@ -193,9 +196,6 @@ pub enum Step {
     Yarn,
     Zigup,
     Zvm,
-    Ghcli,
-    Git,
-    GoogleCloudSdk,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
