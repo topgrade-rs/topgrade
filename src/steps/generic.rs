@@ -53,7 +53,8 @@ mod helpers {
         run_simple(ctx, cmd_name, display_name, args)
     }
 
-    // Only relevant for Unix-like systems that use sudo
+    /// Helper function for running commands that require sudo privileges
+    /// Only available on Unix-like platforms (Linux, macOS, BSD)
     #[cfg(unix)]
     pub fn run_sudo_update(ctx: &ExecutionContext, cmd_name: &str, display_name: &str, args: &[&str]) -> Result<()> {
         let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
