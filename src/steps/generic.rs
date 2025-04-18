@@ -1008,14 +1008,14 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
 enum Hx {
     Helix(PathBuf),
-    HxHexdump(()),
+    HxHexdump,
 }
 
 impl Hx {
     fn helix(self) -> Result<PathBuf> {
         match self {
             Hx::Helix(hx) => Ok(hx),
-            Hx::HxHexdump(_) => {
+            Hx::HxHexdump => {
                 Err(SkipStep("Command `hx` probably points to hx (hexdump alternative)".to_string()).into())
             }
         }
@@ -1030,7 +1030,7 @@ fn get_hx(ctx: &ExecutionContext) -> Result<Hx> {
 
     if String::from_utf8(output.stdout)?.contains("hexdump") {
         debug!("Detected `hx` as hx (hexdump alternative)");
-        Ok(Hx::HxHexdump(()))
+        Ok(Hx::HxHexdump)
     } else {
         debug!("Detected `hx` as Helix");
         Ok(Hx::Helix(hx))
