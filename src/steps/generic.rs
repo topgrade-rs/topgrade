@@ -1006,8 +1006,39 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+enum Hx {
+    Helix(PathBuf),
+    HxHexdump(()),
+}
+
+impl Hx {
+    fn helix(self) -> Result<PathBuf> {
+        match self {
+            Hx::Helix(hx) => Ok(hx),
+            Hx::HxHexdump(_) => {
+                Err(SkipStep("Command `hx` probably points to hx (hexdump alternative)".to_string()).into())
+            }
+        }
+    }
+}
+
+fn get_hx(ctx: &ExecutionContext) -> Result<Hx> {
+    let hx = require("hx")?;
+
+    // Check if `hx --help` mentions "hexdump". hx (hexdump alternative) does, Helix doesn't.
+    let output = ctx.run_type().execute(&hx).arg("--help").output_checked()?;
+
+    if String::from_utf8(output.stdout)?.contains("hexdump") {
+        debug!("Detected `hx` as hx (hexdump alternative)");
+        Ok(Hx::HxHexdump(()))
+    } else {
+        debug!("Detected `hx` as Helix");
+        Ok(Hx::Helix(hx))
+    }
+}
+
 pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
-    let helix = require("helix").or(require("hx"))?;
+    let helix = require("helix").or(get_hx(ctx)?.helix())?;
 
     print_separator("Helix");
 
