@@ -54,7 +54,7 @@ notify-rust = "~4.11"
 wildmatch = "2.3.0"
 rust-i18n = "3.0.1"
 sys-locale = "0.3.1"
-jetbrains-toolbox-updater = "3.0.0"
+jetbrains-toolbox-updater = "5.0.0"
 
 [package.metadata.generate-rpm]
 assets = [{ source = "target/release/topgrade", dest = "/usr/bin/topgrade" }]
