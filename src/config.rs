@@ -193,6 +193,9 @@ pub enum Step {
     Yarn,
     Zigup,
     Zvm,
+    Ghcli,
+    Git,
+    GoogleCloudSdk,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]

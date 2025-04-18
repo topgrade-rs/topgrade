@@ -355,37 +355,11 @@ pub fn run_choosenim(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_krew_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let krew = require("kubectl-krew")?;
-
-    print_separator("Krew");
-
-    ctx.run_type().execute(krew).args(["upgrade"]).status_checked()
-}
-
-pub fn run_gcloud_components_update(ctx: &ExecutionContext) -> Result<()> {
-    let gcloud = require("gcloud")?;
-
-    if gcloud.starts_with("/snap") {
-        Ok(())
-    } else {
-        print_separator("gcloud");
-
-        ctx.run_type()
-            .execute(gcloud)
-            .args(["components", "update", "--quiet"])
-            .status_checked()
-    }
+    run_simple(ctx, "kubectl-krew", "Krew", &["upgrade"])
 }
 
 pub fn run_jetpack(ctx: &ExecutionContext) -> Result<()> {
-    let jetpack = require("jetpack")?;
-
-    print_separator("Jetpack");
-
-    ctx.run_type()
-        .execute(jetpack)
-        .args(["global", "update"])
-        .status_checked()
+    run_simple(ctx, "jetpack", "Jetpack", &["global", "update"])
 }
 
 pub fn run_rtcl(ctx: &ExecutionContext) -> Result<()> {
@@ -1583,4 +1557,23 @@ pub fn run_jetbrains_rustrover(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_jetbrains_webstorm(ctx: &ExecutionContext) -> Result<()> {
     run_jetbrains_ide(ctx, require("webstorm")?, "WebStorm")
+}
+
+// helper for simple update steps
+fn run_simple(ctx: &ExecutionContext, cmd_name: &str, sep: &str, args: &[&str]) -> Result<()> {
+    let bin = require(cmd_name)?;
+    print_separator(sep);
+    ctx.run_type().execute(bin).args(args).status_checked()
+}
+
+/// Update Google Cloud SDK components using `gcloud components update`
+pub fn run_gcloud_components_update(ctx: &ExecutionContext) -> Result<()> {
+    let gcloud = require("gcloud")?;
+
+    print_separator("Google Cloud SDK");
+
+    ctx.run_type()
+        .execute(gcloud)
+        .args(["components", "update", "--quiet"])
+        .status_checked()
 }
