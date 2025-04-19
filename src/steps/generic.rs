@@ -37,13 +37,6 @@ mod helpers {
         ctx.run_type().execute(bin).args(args).status_checked()
     }
 
-    // Unix and macOS systems use this for certain functions
-    #[cfg(any(unix, target_os = "macos"))]
-    pub fn run_with_binary(ctx: &ExecutionContext, bin: PathBuf, sep: &str, args: &[&str]) -> Result<()> {
-        print_separator(sep);
-        ctx.run_type().execute(bin).args(args).status_checked()
-    }
-
     pub fn run_update_with_args(
         ctx: &ExecutionContext,
         cmd_name: &str,
@@ -51,23 +44,6 @@ mod helpers {
         args: &[&str],
     ) -> Result<()> {
         run_simple(ctx, cmd_name, display_name, args)
-    }
-
-    /// Helper function for running commands that require sudo privileges
-    /// Only available on Unix-like platforms (Linux, macOS, BSD)
-    #[cfg(unix)]
-    pub fn run_sudo_update(ctx: &ExecutionContext, cmd_name: &str, display_name: &str, args: &[&str]) -> Result<()> {
-        let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
-        let bin = require(cmd_name)?;
-
-        print_separator(display_name);
-        ctx.run_type().execute(sudo).arg(bin).args(args).status_checked()
-    }
-
-    // Used on systems that have package managers with update --all pattern
-    #[cfg(any(unix, target_os = "macos"))]
-    pub fn run_update_all(ctx: &ExecutionContext, cmd_name: &str, display_name: &str) -> Result<()> {
-        run_update_with_args(ctx, cmd_name, display_name, &["update", "--all"])
     }
 }
 
