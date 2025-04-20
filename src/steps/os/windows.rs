@@ -43,9 +43,17 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
     print_separator("winget");
 
     ctx.run_type()
-        .execute(winget)
-        .args(["upgrade", "--all"])
-        .status_checked()
+        .execute(&winget)
+        .args(["source", "update"])
+        .status_checked()?;
+
+    let mut args = vec!["upgrade", "--all"];
+    if ctx.config().winget_silent_install() {
+        args.push("--silent");
+    }
+
+    ctx.run_type().execute(&winget).args(args).status_checked()?;
+    Ok(())
 }
 
 pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
@@ -63,7 +71,6 @@ pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
             .args(["cache", "rm", "-a"])
             .status_checked()?
     }
-
     Ok(())
 }
 
