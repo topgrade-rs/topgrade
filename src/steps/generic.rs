@@ -1584,3 +1584,11 @@ pub fn run_jetbrains_rustrover(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_jetbrains_webstorm(ctx: &ExecutionContext) -> Result<()> {
     run_jetbrains_ide(ctx, require("webstorm")?, "WebStorm")
 }
+
+pub fn run_yazi(ctx: &ExecutionContext) -> Result<()> {
+    let ya = require("ya")?;
+
+    print_separator("Yazi packages");
+
+    ctx.run_type().execute(ya).args(["pack", "-u"]).status_checked()
+}
