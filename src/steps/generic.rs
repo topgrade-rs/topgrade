@@ -1025,15 +1025,15 @@ impl Hx {
 fn get_hx(ctx: &ExecutionContext) -> Result<Hx> {
     let hx = require("hx")?;
 
-    // Check if `hx --help` mentions "hexdump". hx (hexdump alternative) does, Helix doesn't.
+    // Check if `hx --help` mentions "helix". Helix does, hx (hexdump alternative) doesn't.
     let output = ctx.run_type().execute(&hx).arg("--help").output_checked()?;
 
-    if String::from_utf8(output.stdout)?.contains("hexdump") {
-        debug!("Detected `hx` as hx (hexdump alternative)");
-        Ok(Hx::HxHexdump)
-    } else {
+    if String::from_utf8(output.stdout)?.contains("helix") {
         debug!("Detected `hx` as Helix");
         Ok(Hx::Helix(hx))
+    } else {
+        debug!("Detected `hx` as hx (hexdump alternative)");
+        Ok(Hx::HxHexdump)
     }
 }
 
