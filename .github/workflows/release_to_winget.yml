@@ -6,7 +6,12 @@ jobs:
   publish:
     runs-on: windows-latest
     steps:
-      - uses: vedantmgoyal2009/winget-releaser@main
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
+      - uses: vedantmgoyal2009/winget-releaser@3e78d7ff0f525445bca5d6a989d31cdca383372e # main
         with:
           identifier: topgrade-rs.topgrade
           max-versions-to-keep: 5 # keep only latest 5 versions
