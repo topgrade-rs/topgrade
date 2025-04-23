@@ -486,8 +486,8 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
 
     debug!("Corrected raw Nix version: {corrected_raw_version}");
 
-    let version =
-        Version::parse(corrected_raw_version).wrap_err_with(|| output_changed_message!("nix --version", "Invalid version"))?;
+    let version = Version::parse(corrected_raw_version)
+        .wrap_err_with(|| output_changed_message!("nix --version", "Invalid version"))?;
 
     debug!("Nix version: {:?}", version);
 
