@@ -238,7 +238,7 @@ pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
     let gdbus = require("gdbus")?;
     require_option(
         var("XDG_CURRENT_DESKTOP").ok().filter(|p| p.contains("GNOME")),
-        t!("Desktop doest not appear to be gnome").to_string(),
+        t!("Desktop does not appear to be GNOME").to_string(),
     )?;
     let output = Command::new("gdbus")
         .args([
@@ -253,12 +253,12 @@ pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
         ])
         .output_checked_utf8()?;
 
-    debug!("Checking for gnome extensions: {}", output);
+    debug!("Checking for GNOME extensions: {}", output);
     if !output.stdout.contains("org.gnome.Shell.Extensions") {
-        return Err(SkipStep(t!("Gnome shell extensions are unregistered in DBus").to_string()).into());
+        return Err(SkipStep(t!("GNOME shell extensions are unregistered in DBus").to_string()).into());
     }
 
-    print_separator(t!("Gnome Shell extensions"));
+    print_separator(t!("GNOME Shell extensions"));
 
     ctx.run_type()
         .execute(gdbus)
@@ -475,8 +475,19 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
         .ok_or_else(|| eyre!(output_changed_message!("nix --version", "regex did not match")))?;
     let raw_version = &captures[1];
 
-    let version =
-        Version::parse(raw_version).wrap_err_with(|| format!("Unable to parse Nix version: {raw_version:?}"))?;
+    debug!("Raw Nix version: {raw_version}");
+
+    // Nix 2.29.0 outputs "2.29" instead of "2.29.0", so we need to add that if necessary.
+    let corrected_raw_version = if raw_version.chars().filter(|&c| c == '.').count() == 1 {
+        &format!("{raw_version}.0")
+    } else {
+        raw_version
+    };
+
+    debug!("Corrected raw Nix version: {corrected_raw_version}");
+
+    let version = Version::parse(corrected_raw_version)
+        .wrap_err_with(|| output_changed_message!("nix --version", "Invalid version"))?;
 
     debug!("Nix version: {:?}", version);
 
@@ -642,14 +653,17 @@ pub fn run_asdf(ctx: &ExecutionContext) -> Result<()> {
     // v0.15.0-31e8c93
     //
     // ```
+    // ```
+    // $ asdf version
+    // v0.16.7
+    // ```
     let version_stdout = version_output.stdout.trim();
     // trim the starting 'v'
     let mut remaining = version_stdout.trim_start_matches('v');
-    let idx = remaining
-        .find('-')
-        .ok_or_else(|| eyre!(output_changed_message!("asdf version", "no dash (-) found")))?;
-    // remove the hash part
-    remaining = &remaining[..idx];
+    // remove the hash part if present
+    if let Some(idx) = remaining.find('-') {
+        remaining = &remaining[..idx];
+    }
     let version =
         Version::parse(remaining).wrap_err_with(|| output_changed_message!("asdf version", "invalid version"))?;
     if version < Version::new(0, 15, 0) {
