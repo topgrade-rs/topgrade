@@ -1,7 +1,9 @@
 name: Publish to WinGet
 on:
   release:
-    types: [released]
+    # A release was published, or a pre-release was changed to a release.
+    # As this workflow only publishes and creates no assets, it can run when the release is published
+    types: [ released ]
 jobs:
   publish:
     runs-on: windows-latest

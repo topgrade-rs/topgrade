@@ -2,6 +2,8 @@ name: Publish release files for CD native and non-cd-native environments
 
 on:
   release:
+    # A draft was saved, or a release or pre-release was published without previously being saved as a draft.
+    # Runs on drafts so that it can add the assets before the release is published
     types: [ created ]
 
 jobs:
