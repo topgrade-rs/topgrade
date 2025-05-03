@@ -2,7 +2,7 @@ use crate::ctrlc;
 use crate::error::{DryRun, SkipStep};
 use crate::execution_context::ExecutionContext;
 use crate::report::{Report, StepResult};
-use crate::terminal::print_error;
+use crate::terminal::{print_error, print_separator};
 use crate::{config::Step, terminal::should_retry};
 use color_eyre::eyre::Result;
 use std::borrow::Cow;
@@ -27,6 +27,14 @@ impl<'a> Runner<'a> {
         F: Fn() -> Result<()>,
         M: Into<Cow<'a, str>> + Debug,
     {
+        todo!("This function will be removed and `execute_2` will be renamed to `execute`")
+    }
+
+    pub fn execute_2<F, M>(&mut self, step: Step, key: M, func: F) -> Result<()>
+    where
+        F: Fn(&ExecutionContext, &dyn Fn()) -> Result<()>,
+        M: Into<Cow<'a, str>> + Debug,
+    {
         if !self.ctx.config().should_run(step) {
             return Ok(());
         }
@@ -34,12 +42,14 @@ impl<'a> Runner<'a> {
         let key = key.into();
         debug!("Step {:?}", key);
 
-        // alter the `func` to put it in a span
+        let confirm_run = || Runner::confirm_run(&key);
+
+        // Alter the `func` to put it in a span, and add `ctx` and `confirm_run`
         let func = || {
             let span =
                 tracing::span!(parent: tracing::Span::none(), tracing::Level::TRACE, "step", step = ?step, key = %key);
             let _guard = span.enter();
-            func()
+            func(self.ctx, &confirm_run)
         };
 
         loop {
@@ -87,6 +97,10 @@ impl<'a> Runner<'a> {
         }
 
         Ok(())
+    }
+
+    fn confirm_run(key: &str) {
+        print_separator(key);
     }
 
     pub fn report(&self) -> &Report {
