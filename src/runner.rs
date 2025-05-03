@@ -42,7 +42,7 @@ impl<'a> Runner<'a> {
         let key = key.into();
         debug!("Step {:?}", key);
 
-        let confirm_run = || Runner::confirm_run(&key);
+        let confirm_run = || self.confirm_run(&key);
 
         // Alter the `func` to put it in a span, and add `ctx` and `confirm_run`
         let func = || {
@@ -99,7 +99,7 @@ impl<'a> Runner<'a> {
         Ok(())
     }
 
-    fn confirm_run(key: &str) {
+    fn confirm_run(&self, key: &str) {
         print_separator(key);
     }
 
