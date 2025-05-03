@@ -5,16 +5,17 @@ use std::process::Command;
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use etcetera::base_strategy::BaseStrategy;
 
 use crate::command::CommandExt;
 use crate::config::TmuxConfig;
 use crate::config::TmuxSessionMode;
 use crate::terminal::print_separator;
-use crate::HOME_DIR;
 use crate::{
     execution_context::ExecutionContext,
     utils::{which, PathExt},
 };
+use crate::{HOME_DIR, XDG_DIRS};
 
 use rust_i18n::t;
 #[cfg(unix)]
@@ -25,8 +26,19 @@ pub fn run_tpm(ctx: &ExecutionContext) -> Result<()> {
         // If `TMUX_PLUGIN_MANAGER_PATH` is set, search for
         // `$TMUX_PLUGIN_MANAGER_PATH/bin/update_plugins`
         Ok(var) => PathBuf::from(var).join("bin/update_plugins"),
-        // Otherwise, use the default location `~/.tmux/plugins/tpm/bin/update_plugins`
-        Err(_) => HOME_DIR.join(".tmux/plugins/tpm/bin/update_plugins"),
+        Err(_) => {
+            // Otherwise, use the default XDG location `~/.config/tmux/plugins/tpm/bin/update_plugins`
+            // or fallback on the standard default location `~/.tmux/plugins/tpm/bin/update_plugins`
+            #[cfg(unix)]
+            let xdg_path = XDG_DIRS.config_dir().join("tmux/plugins/tpm/bin/update_plugins");
+            #[cfg(windows)]
+            let xdg_path = HOME_DIR.join(".config/tmux/plugins/tpm/bin/update_plugins");
+            if xdg_path.exists() {
+                xdg_path
+            } else {
+                HOME_DIR.join(".tmux/plugins/tpm/bin/update_plugins")
+            }
+        }
     }
     .require()?;
 
