@@ -1562,13 +1562,12 @@ fn run_jetbrains_ide_generic<const IS_JETBRAINS: bool>(ctx: &ExecutionContext, b
     // "Only one instance of RustRover can be run at a time."
     if stdout.contains("Only one instance of ") && stdout.contains(" can be run at a time.") {
         // It's always paired with status code 1
-        if output
+        let status_code = output
             .status
             .code()
-            .ok_or_eyre("Failed to get status code; was killed with signal")?
-            != 1
-        {
-            return Err(eyre!("Expected status code 1 ('Only one instance of <IDE> can be run at a time.'), but received successful exit code. Output: {output:?}"));
+            .ok_or_eyre("Failed to get status code; was killed with signal")?;
+        if status_code != 1 {
+            return Err(eyre!("Expected status code 1 ('Only one instance of <IDE> can be run at a time.'), but found status code {}. Output: {output:?}", status_code));
         }
         // Don't crash, but don't be silent either
         warn!("{name} is already running, can't update it now.");
