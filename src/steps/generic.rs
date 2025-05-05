@@ -1548,6 +1548,9 @@ pub fn run_uv_python(ctx: &ExecutionContext) -> Result<()> {
     // Store which tools are installed before they're broken
     let tools = if ctx.config().uv_python_reinstall_tools() {
         // Example:
+        // black v25.1.0
+        // - black
+        // - blackd
         // get-pypi-latest-version v0.1.0
         // - get_pypi_latest_version
         // termdown v1.18.0
@@ -1564,7 +1567,7 @@ pub fn run_uv_python(ctx: &ExecutionContext) -> Result<()> {
             String::from_utf8(stdout)
                 .wrap_err("Expected valid utf8")?
                 .lines()
-                .step_by(2) // Ignore every second line
+                .filter(|l| !l.starts_with('-')) // Ignore lines starting with "-"
                 // Strip the version
                 .map(|line| {
                     line.split_once(' ')
