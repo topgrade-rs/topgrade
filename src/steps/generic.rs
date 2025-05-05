@@ -1493,7 +1493,8 @@ pub fn run_uv_python(ctx: &ExecutionContext) -> Result<()> {
         // We do not print a warning nor print the separator, because:
         //  - The uv_python step is not dependent on a single utility like pip_review is,
         //    if you have uv installed chances are you don't even use `uv python`
-        //  - The uv_python step is dangerous to run, most people might not want to run it
+        //  - The uv_python step for now only works with a single uv-managed python installation
+        //  - The uv_python step can be dangerous to run, most people might not want to run it
         return Err(SkipStep(String::from("uv_python is disabled by default")).into());
     }
 
