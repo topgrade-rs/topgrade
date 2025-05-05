@@ -1572,7 +1572,7 @@ pub fn run_uv_python(ctx: &ExecutionContext) -> Result<()> {
                 // Strip the version
                 .map(|line| {
                     line.split_once(' ')
-                        .ok_or_else(|| eyre!("Expected a space in that line"))
+                        .ok_or_else(|| eyre!(output_changed_message!("uv tool list", "Expected a space in that line")))
                         .map(|parts| parts.0.to_string())
                 })
                 .collect::<Result<Vec<String>>>()?,
