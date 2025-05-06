@@ -79,8 +79,7 @@ fn list_containers(crt: &Path, ignored_containers: Option<&Vec<String>>) -> Resu
     );
     let output = Command::new(crt)
         .args(["image", "ls", "--format", "{{.Repository}}:{{.Tag}} {{.ID}}"])
-        // TODO: Why do we ignore a non-zero exit code? Even when the list is empty the status code is 0
-        .output_checked_with_utf8(|_| Ok(()))?;
+        .output_checked_utf8()?;
 
     let mut retval = vec![];
     for line in output.stdout.lines() {
