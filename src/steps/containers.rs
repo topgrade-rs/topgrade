@@ -126,7 +126,7 @@ fn list_containers(crt: &Path, ignored_containers: Option<&Vec<String>>) -> Resu
         );
         let inspect_output = Command::new(crt)
             .args(["image", "inspect", image_id, "--format", "{{.Os}}/{{.Architecture}}"])
-            .output_checked_with_utf8(|_| Ok(()))?;
+            .output_checked_utf8()?;
         let mut platform = inspect_output.stdout;
         // truncate the tailing new line character
         platform.truncate(platform.len() - 1);
