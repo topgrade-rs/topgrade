@@ -164,7 +164,6 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
         // Don't crash, but don't be silent either.
         // This can happen in other ways than Docker Desktop not running, but even in those cases
         //  we don't want to crash, since the containers step is enabled by default.
-        // TODO: Is that ("but even in those cases we don't want to crash") correct?
         warn!(
             "{} seems to be non-functional right now (see above). Is WSL integration enabled for Docker Desktop? Is Docker Desktop running?",
             crt.display()
