@@ -156,10 +156,8 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
         .status
         .code()
         .ok_or_eyre("Couldn't get status code (terminated by signal)")?;
-    // TODO: check which it is and remove the other
     let stdout = std::str::from_utf8(&output.stdout).wrap_err("Expected output to be valid UTF-8")?;
-    let stderr = std::str::from_utf8(&output.stderr).wrap_err("Expected output to be valid UTF-8")?;
-    if (stdout.contains(DOCKER_NOT_RUNNING) || stderr.contains(DOCKER_NOT_RUNNING)) && status_code == 1 {
+    if stdout.contains(DOCKER_NOT_RUNNING) && status_code == 1 {
         // Write the output
         io::stdout().write_all(&output.stdout)?;
         io::stderr().write_all(&output.stderr)?;
