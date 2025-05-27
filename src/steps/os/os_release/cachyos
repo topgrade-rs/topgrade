@@ -1,4 +1,3 @@
-$ cat /etc/os-release
 NAME="CachyOS Linux"
 PRETTY_NAME="CachyOS"
 ID=cachyos
