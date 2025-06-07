@@ -475,8 +475,19 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
         .ok_or_else(|| eyre!(output_changed_message!("nix --version", "regex did not match")))?;
     let raw_version = &captures[1];
 
-    let version =
-        Version::parse(raw_version).wrap_err_with(|| format!("Unable to parse Nix version: {raw_version:?}"))?;
+    debug!("Raw Nix version: {raw_version}");
+
+    // Nix 2.29.0 outputs "2.29" instead of "2.29.0", so we need to add that if necessary.
+    let corrected_raw_version = if raw_version.chars().filter(|&c| c == '.').count() == 1 {
+        &format!("{raw_version}.0")
+    } else {
+        raw_version
+    };
+
+    debug!("Corrected raw Nix version: {corrected_raw_version}");
+
+    let version = Version::parse(corrected_raw_version)
+        .wrap_err_with(|| output_changed_message!("nix --version", "Invalid version"))?;
 
     debug!("Nix version: {:?}", version);
 
