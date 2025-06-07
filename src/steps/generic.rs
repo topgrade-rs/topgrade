@@ -705,7 +705,7 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep(
             "Skip pip3 update as it is externally managed and global.break-system-packages is not true".to_string(),
         )
-        .into());
+            .into());
     }
 
     print_separator("pip3");
@@ -820,7 +820,7 @@ pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
         d.push("tlpkg");
         d
     }
-    .require()?;
+        .require()?;
 
     let directory_writable = tempfile_in(&tlmgr_directory).is_ok();
     debug!("{:?} writable: {}", tlmgr_directory, directory_writable);
@@ -897,9 +897,9 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
                 "Composer directory {composer_home} isn't a descendant of the user's home directory",
                 composer_home = composer_home.display()
             )
-            .to_string(),
+                .to_string(),
         )
-        .into());
+            .into());
     }
 
     print_separator(t!("Composer"));
@@ -962,7 +962,7 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
                 t!("Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK.")
                     .to_string(),
             )
-            .into());
+                .into());
         }
     };
 
@@ -1306,7 +1306,7 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         debug!("poetry interpreter: {:?}, args: {:?}", interp, interp_args);
 
         let check_official_install_script =
-        "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
+            "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
         let mut command = Command::new(&interp);
         if let Some(args) = interp_args {
             command.arg(args);

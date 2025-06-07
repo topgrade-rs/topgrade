@@ -28,7 +28,7 @@ pub fn run_tpm(ctx: &ExecutionContext) -> Result<()> {
         // Otherwise, use the default location `~/.tmux/plugins/tpm/bin/update_plugins`
         Err(_) => HOME_DIR.join(".tmux/plugins/tpm/bin/update_plugins"),
     }
-    .require()?;
+        .require()?;
 
     print_separator("tmux plugins");
 

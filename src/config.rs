@@ -46,7 +46,18 @@ macro_rules! str_value {
 
 pub type Commands = BTreeMap<String, String>;
 
-#[derive(ValueEnum, EnumString, VariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
+#[derive(
+    ValueEnum,
+    EnumString,
+    VariantNames,
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Deserialize,
+    EnumIter,
+    Copy
+)]
 #[clap(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
@@ -1040,22 +1051,22 @@ impl Config {
     pub fn no_self_update(&self) -> bool {
         self.opt.no_self_update
             || self
-                .config_file
-                .misc
-                .as_ref()
-                .and_then(|misc| misc.no_self_update)
-                .unwrap_or(false)
+            .config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.no_self_update)
+            .unwrap_or(false)
     }
 
     /// Tell whether we should run in tmux.
     pub fn run_in_tmux(&self) -> bool {
         self.opt.run_in_tmux
             || self
-                .config_file
-                .misc
-                .as_ref()
-                .and_then(|misc| misc.run_in_tmux)
-                .unwrap_or(false)
+            .config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.run_in_tmux)
+            .unwrap_or(false)
     }
 
     /// The preferred way to run the new tmux session.
@@ -1071,11 +1082,11 @@ impl Config {
     pub fn cleanup(&self) -> bool {
         self.opt.cleanup
             || self
-                .config_file
-                .misc
-                .as_ref()
-                .and_then(|misc| misc.cleanup)
-                .unwrap_or(false)
+            .config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.cleanup)
+            .unwrap_or(false)
     }
 
     /// Tell whether we are dry-running.
@@ -1087,11 +1098,11 @@ impl Config {
     pub fn no_retry(&self) -> bool {
         self.opt.no_retry
             || self
-                .config_file
-                .misc
-                .as_ref()
-                .and_then(|misc| misc.no_retry)
-                .unwrap_or(false)
+            .config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.no_retry)
+            .unwrap_or(false)
     }
 
     /// List of remote hosts to run Topgrade in
@@ -1525,11 +1536,11 @@ impl Config {
     pub fn use_predefined_git_repos(&self) -> bool {
         !self.opt.disable_predefined_git_repos
             && self
-                .config_file
-                .git
-                .as_ref()
-                .and_then(|git| git.pull_predefined)
-                .unwrap_or(true)
+            .config_file
+            .git
+            .as_ref()
+            .and_then(|git| git.pull_predefined)
+            .unwrap_or(true)
     }
 
     pub fn verbose(&self) -> bool {
@@ -1764,7 +1775,6 @@ impl Config {
 
 #[cfg(test)]
 mod test {
-
     use crate::config::*;
     use color_eyre::eyre::eyre;
 

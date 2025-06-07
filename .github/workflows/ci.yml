@@ -42,7 +42,7 @@ jobs:
           diff original.txt sorted.txt
 
   main:
-    needs: [fmt, step-enum-sorted]
+    needs: [ fmt, step-enum-sorted ]
     name: ${{ matrix.target_name }} (check, clippy)
     runs-on: ${{ matrix.os }}
     strategy:

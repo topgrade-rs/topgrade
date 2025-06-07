@@ -126,7 +126,7 @@ impl Terminal {
                                     .unwrap_or(0)
                             )
                         ))
-                        .bold()
+                            .bold()
                     ))
                     .ok();
             }

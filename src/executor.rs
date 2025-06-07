@@ -86,7 +86,7 @@ impl Executor {
     /// See `std::process::Command::args`
     pub fn args<I, S>(&mut self, args: I) -> &mut Executor
     where
-        I: IntoIterator<Item = S>,
+        I: IntoIterator<Item=S>,
         S: AsRef<OsStr>,
     {
         match self {

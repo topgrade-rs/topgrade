@@ -16,7 +16,8 @@ In `topgrade`'s term, package manager is called `step`.
 To add a new `step` to `topgrade`:
 
 1. Add a new variant to
-   [`enum Step`](https://github.com/topgrade-rs/topgrade/blob/cb7adc8ced8a77addf2cb051d18bba9f202ab866/src/config.rs#L100)
+   [
+   `enum Step`](https://github.com/topgrade-rs/topgrade/blob/cb7adc8ced8a77addf2cb051d18bba9f202ab866/src/config.rs#L100)
 
    ```rust
    pub enum Step {
@@ -61,9 +62,9 @@ To add a new `step` to `topgrade`:
    [here](https://github.com/topgrade-rs/topgrade/blob/7e48c5dedcfd5d0124bb9f39079a03e27ed23886/src/main.rs#L201-L219)).
 
    Update function would usually do 3 things:
-   1. Check if the step is installed
-   2. Output the Separator
-   3. Invoke the step
+    1. Check if the step is installed
+    2. Output the Separator
+    3. Invoke the step
 
    Still, this is sufficient for most tools, but you may need some extra stuff
    with complicated `step`.

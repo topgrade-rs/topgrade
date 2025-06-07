@@ -609,9 +609,9 @@ fn main() {
 
             let skip_print = (error.downcast_ref::<StepFailed>().is_some())
                 || (error
-                    .downcast_ref::<io::Error>()
-                    .filter(|io_error| io_error.kind() == io::ErrorKind::Interrupted)
-                    .is_some());
+                .downcast_ref::<io::Error>()
+                .filter(|io_error| io_error.kind() == io::ErrorKind::Interrupted)
+                .is_some());
 
             if !skip_print {
                 // The `Debug` implementation of `eyre::Result` prints a multi-line

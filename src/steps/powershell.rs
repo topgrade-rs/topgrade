@@ -38,8 +38,8 @@ impl Powershell {
         Self::execute_with_command(path, &["-NoProfile", "-Command", "Split-Path $PROFILE"], |stdout| {
             Ok(stdout)
         })
-        .ok() // Convert the Result<String> to Option<String>
-        .and_then(|s| super::super::utils::PathExt::require(PathBuf::from(s)).ok())
+            .ok() // Convert the Result<String> to Option<String>
+            .and_then(|s| super::super::utils::PathExt::require(PathBuf::from(s)).ok())
     }
 
     fn execute_with_command<F>(path: &PathBuf, args: &[&str], f: F) -> Result<String>

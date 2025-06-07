@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - run: |
+      - uses: actions/checkout@v4
+      - run: |
           CONFIG_PATH=~/.config/topgrade.toml;
           if [ -f "$CONFIG_PATH" ]; then rm $CONFIG_PATH; fi
           cargo build; 
