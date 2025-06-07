@@ -1006,8 +1006,39 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+enum Hx {
+    Helix(PathBuf),
+    HxHexdump,
+}
+
+impl Hx {
+    fn helix(self) -> Result<PathBuf> {
+        match self {
+            Hx::Helix(hx) => Ok(hx),
+            Hx::HxHexdump => {
+                Err(SkipStep("Command `hx` probably points to hx (hexdump alternative)".to_string()).into())
+            }
+        }
+    }
+}
+
+fn get_hx(ctx: &ExecutionContext) -> Result<Hx> {
+    let hx = require("hx")?;
+
+    // Check if `hx --help` mentions "helix". Helix does, hx (hexdump alternative) doesn't.
+    let output = ctx.run_type().execute(&hx).arg("--help").output_checked()?;
+
+    if String::from_utf8(output.stdout)?.contains("helix") {
+        debug!("Detected `hx` as Helix");
+        Ok(Hx::Helix(hx))
+    } else {
+        debug!("Detected `hx` as hx (hexdump alternative)");
+        Ok(Hx::HxHexdump)
+    }
+}
+
 pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
-    let helix = require("helix").or(require("hx"))?;
+    let helix = require("helix").or(get_hx(ctx)?.helix())?;
 
     print_separator("Helix");
 
@@ -1583,4 +1614,12 @@ pub fn run_jetbrains_rustrover(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_jetbrains_webstorm(ctx: &ExecutionContext) -> Result<()> {
     run_jetbrains_ide(ctx, require("webstorm")?, "WebStorm")
+}
+
+pub fn run_yazi(ctx: &ExecutionContext) -> Result<()> {
+    let ya = require("ya")?;
+
+    print_separator("Yazi packages");
+
+    ctx.run_type().execute(ya).args(["pack", "-u"]).status_checked()
 }
