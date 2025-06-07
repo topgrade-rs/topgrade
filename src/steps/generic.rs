@@ -1360,3 +1360,11 @@ fn run_vscode_compatible<const VSCODIUM: bool>(ctx: &ExecutionContext) -> Result
 pub fn run_gcloud_components_update(ctx: &ExecutionContext) -> Result<()> {
     run_update_with_args(ctx, "gcloud", "Google Cloud SDK", &["components", "update", "--quiet"])
 }
+
+pub fn run_yazi(ctx: &ExecutionContext) -> Result<()> {
+    let ya = require("ya")?;
+
+    print_separator("Yazi packages");
+
+    ctx.run_type().execute(ya).args(["pack", "-u"]).status_checked()
+}

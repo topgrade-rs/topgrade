@@ -194,6 +194,7 @@ pub enum Step {
     Xcodes,
     Yadm,
     Yarn,
+    Yazi,
     Zigup,
     Zvm,
 }
