@@ -56,7 +56,7 @@ where
                 "{}",
                 t!("Path {path} doesn't exist", path = format!("{:?}", self.as_ref()))
             ))
-                .into())
+            .into())
         }
     }
 }
@@ -104,7 +104,7 @@ pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
                     binary_name = format!("{:?}", &binary_name)
                 )
             ))
-                .into()),
+            .into()),
             _ => {
                 panic!("Detecting {:?} failed: {}", &binary_name, e);
             }

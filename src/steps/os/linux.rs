@@ -997,7 +997,7 @@ pub fn run_distrobox_update(ctx: &ExecutionContext) -> Result<()> {
         (r, true) => r.arg("--root"),
         (r, false) => r,
     }
-        .status_checked()
+    .status_checked()
 }
 
 pub fn run_dkp_pacman_update(ctx: &ExecutionContext) -> Result<()> {

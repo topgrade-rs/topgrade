@@ -174,7 +174,7 @@ impl Yarn {
     pub fn should_use_sudo(&self) -> Result<bool> {
         let yarn_root = self.root()?;
         if !yarn_root.exists() {
-            return Err(SkipStep(format!("Yarn root at {} doesn't exist", yarn_root.display(), )).into());
+            return Err(SkipStep(format!("Yarn root at {} doesn't exist", yarn_root.display(),)).into());
         }
 
         let metadata = std::fs::metadata(&yarn_root)?;
@@ -209,7 +209,7 @@ impl Deno {
                         return Err(SkipStep(
                             "Deno (1.6.0-2.0.0) cannot be upgraded to a release candidate".to_string(),
                         )
-                            .into());
+                        .into());
                     }
                     "canary" => args.push("--canary"),
                     _ => {

@@ -188,7 +188,7 @@ pub fn topgrade_vagrant_box(ctx: &ExecutionContext, vagrant_box: &VagrantBox) ->
                 "{}",
                 t!("Skipping powered off box {vagrant_box}", vagrant_box = vagrant_box)
             ))
-                .into());
+            .into());
         } else {
             print_separator(seperator);
             _poweron = Some(vagrant.temporary_power_on(vagrant_box, ctx)?);

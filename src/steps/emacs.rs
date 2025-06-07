@@ -79,8 +79,8 @@ impl Emacs {
             self.directory.as_ref(),
             t!("Emacs directory does not exist").to_string(),
         )?
-            .join("init.el")
-            .require()?;
+        .join("init.el")
+        .require()?;
 
         print_separator("Emacs");
 

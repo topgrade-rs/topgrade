@@ -129,8 +129,8 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
                     beta || release.contains("Beta"),
                     regular
                         || !(release.contains("GM")
-                        || release.contains("Release Candidate")
-                        || release.contains("Beta")),
+                            || release.contains("Release Candidate")
+                            || release.contains("Beta")),
                 )
             });
 
