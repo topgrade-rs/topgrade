@@ -1439,7 +1439,17 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type()
         .execute(&uv_exec)
         .args(["tool", "upgrade", "--all"])
-        .status_checked()
+        .status_checked()?;
+
+    if ctx.config().cleanup() {
+        // 3. Prune cache
+        ctx.run_type()
+            .execute(&uv_exec)
+            .args(["cache", "prune"])
+            .status_checked()?;
+    }
+
+    Ok(())
 }
 
 /// Involve `zvm upgrade` to update ZVM
