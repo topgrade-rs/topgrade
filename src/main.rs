@@ -384,6 +384,9 @@ fn run() -> Result<()> {
     })?;
     runner.execute(Step::Conda, "conda", || generic::run_conda_update(&ctx))?;
     runner.execute(Step::Mamba, "mamba", || generic::run_mamba_update(&ctx))?;
+    runner.execute(Step::GoogleCloudSdk, "Google Cloud SDK", || {
+        generic::run_gcloud_components_update(&ctx)
+    })?;
     runner.execute(Step::Pixi, "pixi", || generic::run_pixi_update(&ctx))?;
     runner.execute(Step::Miktex, "miktex", || generic::run_miktex_packages_update(&ctx))?;
     runner.execute(Step::Pip3, "pip3", || generic::run_pip3_update(&ctx))?;
