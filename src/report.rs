@@ -36,7 +36,7 @@ impl Display for UpdatedComponents {
                     .map(|c| format!("- {c}"))
                     .collect::<Vec<_>>()
                     .join("\n");
-                write!(f, "{}", updates)?;
+                write!(f, "{updates}")?;
                 Ok(())
             }
         }
