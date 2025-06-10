@@ -22,6 +22,7 @@ jobs:
         env:
           TERM: xterm-256color
         run: |
+          rustup component add rustfmt
           cargo fmt --all -- --check
 
   step-enum-sorted:
