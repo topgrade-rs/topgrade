@@ -419,8 +419,8 @@ _version: 2
   lt: "Nepavyksta rasti jokių %{binary_names} PATH sąraše"
   es: "No se puede encontrar ninguno de %{binary_names} en PATH"
   fr: "Impossible de trouver %{binary_names} dans PATH"
-  zn_CH: "在 PATH 中找不到 %{binary_names}"
-  zn_TW: "在 PATH 中找不到 %{binary_names}"
+  zh_CH: "在 PATH 中找不到 %{binary_names}"
+  zh_TW: "在 PATH 中找不到 %{binary_names}"
   de: "Kann keines von %{binary_names} im PATH finden"
 "Failed to get a UTF-8 encoded hostname":
   en: "Failed to get a UTF-8 encoded hostname"
