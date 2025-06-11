@@ -1,17 +1,16 @@
-use std::ffi::OsString;
-use std::path::PathBuf;
-use std::process::Command;
-use std::{env, path::Path};
-use std::{fs, io::Write};
-
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use jetbrains_toolbox_updater::{find_jetbrains_toolbox, update_jetbrains_toolbox, FindError};
-use lazy_static::lazy_static;
 use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
+use std::ffi::OsString;
+use std::path::PathBuf;
+use std::process::Command;
+use std::sync::LazyLock;
+use std::{env, path::Path};
+use std::{fs, io::Write};
 use tempfile::tempfile_in;
 use tracing::{debug, error};
 
@@ -1233,9 +1232,8 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         use std::ffi::OsStr;
         use std::os::unix::ffi::OsStrExt;
 
-        lazy_static! {
-            static ref SHEBANG_REGEX: Regex = Regex::new(r"^#![ \t]*([^ \t\n]+)(?:[ \t]+([^\n]+)?)?").unwrap();
-        }
+        static SHEBANG_REGEX: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^#![ \t]*([^ \t\n]+)(?:[ \t]+([^\n]+)?)?").unwrap());
 
         let script = fs::read(poetry)?;
         if let Some(c) = SHEBANG_REGEX.captures(&script) {
@@ -1254,10 +1252,8 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
 
         use std::str;
 
-        lazy_static! {
-            static ref SHEBANG_REGEX: Regex =
-                Regex::new(r#"^#![ \t]*(?:"([^"\n]+)"|([^" \t\n]+))(?:[ \t]+([^\n]+)?)?"#).unwrap();
-        }
+        static SHEBANG_REGEX: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r#"^#![ \t]*(?:"([^"\n]+)"|([^" \t\n]+))(?:[ \t]+([^\n]+)?)?"#).unwrap());
 
         let data = fs::read(poetry)?;
 
