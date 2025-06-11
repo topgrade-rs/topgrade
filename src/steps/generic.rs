@@ -18,7 +18,9 @@ use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
 use crate::terminal::{print_separator, shell};
-use crate::utils::{check_is_python_2_or_shim, get_require_sudo_string, require, require_option, which, PathExt};
+use crate::utils::{
+    check_is_python_2_or_shim, get_require_sudo_string, require, require_one, require_option, which, PathExt,
+};
 use crate::HOME_DIR;
 use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
@@ -1302,7 +1304,7 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         debug!("poetry interpreter: {:?}, args: {:?}", interp, interp_args);
 
         let check_official_install_script =
-        "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
+            "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
         let mut command = Command::new(&interp);
         if let Some(args) = interp_args {
             command.arg(args);
@@ -1622,7 +1624,15 @@ pub fn run_jetbrains_goland(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_jetbrains_idea(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("idea")?, "IntelliJ IDEA")
+    run_jetbrains_ide(
+        ctx,
+        require_one([
+            "idea",
+            "intellij-idea-ultimate-edition",
+            "intellij-idea-community-edition",
+        ])?,
+        "IntelliJ IDEA",
+    )
 }
 
 pub fn run_jetbrains_mps(ctx: &ExecutionContext) -> Result<()> {
