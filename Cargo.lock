@@ -3002,7 +3002,6 @@ dependencies = [
  "glob",
  "home",
  "jetbrains-toolbox-updater",
- "lazy_static",
  "merge",
  "nix 0.29.0",
  "notify-rust",
