@@ -1,13 +1,8 @@
-<<<<<<< jb-plugins-instances
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process::Command;
 use std::{env, path::Path};
 use std::{fs, io::Write};
-
-=======
-use color_eyre::eyre::eyre;
->>>>>>> main
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use color_eyre::eyre::{eyre, OptionExt};
