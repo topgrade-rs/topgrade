@@ -1,6 +1,6 @@
 on:
   release:
-    types: [published, edited]
+    types: [ published, edited ]
 
 name: Check SemVer compliance
 

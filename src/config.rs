@@ -1764,7 +1764,6 @@ impl Config {
 
 #[cfg(test)]
 mod test {
-
     use crate::config::*;
     use color_eyre::eyre::eyre;
 

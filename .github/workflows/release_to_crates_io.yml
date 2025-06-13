@@ -4,7 +4,7 @@ on:
   #   types:
   #     - completed
   release:
-    types: [published]
+    types: [ published ]
 
 name: Publish to crates.io on release
 

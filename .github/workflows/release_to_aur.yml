@@ -4,7 +4,7 @@ on:
   # Step "Publish binary AUR package" needs the binaries built by the following 
   # workflow, so we wait for it to complete.
   workflow_run:
-    workflows: ["Publish release files for CD native and non-cd-native environments"]
+    workflows: [ "Publish release files for CD native and non-cd-native environments" ]
     types:
       - completed
 
