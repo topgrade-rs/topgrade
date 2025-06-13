@@ -115,6 +115,9 @@ pub trait CommandExt {
     ///
     /// Returns an `Err` if the command failed to execute, if `succeeded` returns an `Err`, or if
     /// the output contains invalid UTF-8.
+    // This function is currently unused, but is useful and makes sense with `output_checked_with`
+    //  and `output_checked_utf8` existing.
+    #[allow(dead_code)]
     #[track_caller]
     fn output_checked_with_utf8(
         &mut self,
