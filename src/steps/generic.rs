@@ -1233,7 +1233,7 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         use std::ffi::OsStr;
         use std::os::unix::ffi::OsStrExt;
 
-        static SHEBANG_REGEX: LazyLock<Regex> =
+        static SHEBANG_REGEX: LazyLock<regex::bytes::Regex> =
             LazyLock::new(|| regex::bytes::Regex::new(r"^#![ \t]*([^ \t\n]+)(?:[ \t]+([^\n]+)?)?").unwrap());
 
         let script = fs::read(poetry)?;
@@ -1253,7 +1253,7 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
 
         use std::str;
 
-        static SHEBANG_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+        static SHEBANG_REGEX: LazyLock<regex::bytes::Regex> = LazyLock::new(|| {
             regex::bytes::Regex::new(r#"^#![ \t]*(?:"([^"\n]+)"|([^" \t\n]+))(?:[ \t]+([^\n]+)?)?"#).unwrap()
         });
 
@@ -1447,12 +1447,11 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<Vec<UpdatedComponent>> {
 
     // Extract if the self-update happened
 
-    lazy_static! {
-        static ref UV_SELF_REGEX: Regex = Regex::new(
-            r"success: (?:(?:You're on the latest version of uv \((?:v[\.0-9]+)\))|(?:Upgraded uv from (v[\.0-9]+) to (v[\.0-9]+)!))"
-        )
-        .expect("Uv self-update output regex always compiles");
-    }
+    static UV_SELF_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(
+        r"success: (?:(?:You're on the latest version of uv \((?:v[\.0-9]+)\))|(?:Upgraded uv from (v[\.0-9]+) to (v[\.0-9]+)!))"
+    ).expect("Uv self-update output regex always compiles")
+    });
 
     if let Some(output) = self_output {
         let captures = UV_SELF_REGEX
