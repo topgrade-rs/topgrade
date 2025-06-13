@@ -1,13 +1,3 @@
-<<<<<<< uv-python-release-update
-use std::cmp::Ordering;
-use std::ffi::OsString;
-use std::path::PathBuf;
-use std::process::Command;
-use std::{env, path::Path};
-use std::{fs, io::Write};
-
-=======
->>>>>>> main
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
@@ -15,16 +5,14 @@ use jetbrains_toolbox_updater::{find_jetbrains_toolbox, update_jetbrains_toolbox
 use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
-<<<<<<< uv-python-release-update
 use serde::Deserialize;
-=======
+use std::cmp::Ordering;
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::LazyLock;
 use std::{env, path::Path};
 use std::{fs, io::Write};
->>>>>>> main
 use tempfile::tempfile_in;
 use tracing::{debug, error};
 
