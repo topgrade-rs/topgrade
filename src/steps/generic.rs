@@ -1658,5 +1658,5 @@ pub fn run_yazi(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Yazi packages");
 
-    ctx.run_type().execute(ya).args(["pack", "-u"]).status_checked()
+    ctx.run_type().execute(ya).args(["pkg", "upgrade"]).status_checked()
 }
