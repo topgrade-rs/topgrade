@@ -12,8 +12,13 @@ jobs:
   aur-publish:
     runs-on: ubuntu-latest
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
       - name: Publish source AUR package
-        uses: aksh1618/update-aur-package@v1.0.5
+        uses: aksh1618/update-aur-package@93d86c3ea6e57fb485881f5ce8b15375dcd23918 # v1.0.5
         with:
           tag_version_prefix: v
           package_name: topgrade
@@ -21,7 +26,7 @@ jobs:
           commit_email: t.schoenauer@hgs-wt.at
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
       - name: Publish binary AUR package
-        uses: aksh1618/update-aur-package@v1.0.5
+        uses: aksh1618/update-aur-package@93d86c3ea6e57fb485881f5ce8b15375dcd23918 # v1.0.5
         with:
           tag_version_prefix: v
           package_name: topgrade-bin

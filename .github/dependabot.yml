@@ -8,3 +8,8 @@ updates:
     schedule:
       # Check for updates to GitHub Actions every week
       interval: "weekly"
+
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: daily

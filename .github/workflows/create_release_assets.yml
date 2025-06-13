@@ -4,16 +4,26 @@ on:
   release:
     types: [ created ]
 
+permissions:
+  contents: read
+
 jobs:
   # Publish release files for CD native environments
   native_build:
+    permissions:
+      contents: write  # for softprops/action-gh-release to create GitHub release
     strategy:
       fail-fast: false
       matrix:
         platform: [ ubuntu-22.04, macos-latest, macos-13, windows-latest ]
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install cargo-deb
         run: cargo install cargo-deb
@@ -80,12 +90,14 @@ jobs:
         shell: bash
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2
         with:
           files: assets/*
 
   # Publish release files for non-CD-native environments
   cross_build:
+    permissions:
+      contents: write  # for softprops/action-gh-release to create GitHub release
     strategy:
       fail-fast: false
       matrix:
@@ -99,7 +111,12 @@ jobs:
           ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install cargo-deb cross compilation dependencies
         run: sudo apt-get install libc6-arm64-cross libgcc-s1-arm64-cross
@@ -120,7 +137,7 @@ jobs:
         run: rustup target add ${{ matrix.target }}
 
       - name: install cross
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@9903ab6feadaec33945de535fe9d181b91802a55 # v2.50.0
         with:
           tool: cross@0.2.5
 
@@ -168,6 +185,6 @@ jobs:
         shell: bash
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2
         with:
           files: assets/*
