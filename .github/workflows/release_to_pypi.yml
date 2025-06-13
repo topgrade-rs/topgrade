@@ -2,7 +2,10 @@ name: Update PyPi
 
 on:
   release:
-    types: [published]
+    # A release, pre-release, or draft of a release was published.
+    # This runs on drafts so that it can add the assets before the release is published (this workflow builds the
+    #  wheels, attaches them to the release as assets, then publishes them to PyPI)
+    types: [ created ]
 
 permissions:
   contents: read

@@ -5,10 +5,10 @@ on:
   #   workflows: ["Check SemVer compliance"]
   #   types:
   #     - completed
-  workflow_dispatch:
-  push:
-    tags:
-      - "v*"
+  release:
+    # A release was published, or a pre-release was changed to a release.
+    # As this workflow only publishes and creates no assets, it can run when the release is published
+    types: [ released ]
 
 jobs:
   homebrew-publish:

@@ -33,7 +33,7 @@
 4. Write the release notes
 
    We usually use GitHub's [Automatically generated release notes][auto_gen_release_notes]
-   functionality to generate release notes, but you write your own one instead.
+   functionality to generate release notes, but you can also write your own one instead.
 
    [auto_gen_release_notes]: https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
 
@@ -44,12 +44,16 @@
 
    And the CI will publish the new binary to:
 
+[//]: # ( TODO: Homebrew: is this still the case / why is this not working correctly? )
+
    1. AUR
    2. PyPi
    3. Homebrew (seems that this is not working correctly)
    4. Winget
 
 6. Manually release it to Crates.io
+
+[//]: # ( TODO: isn't this already automatically done? See https://github.com/topgrade-rs/topgrade/blob/main/.github/workflows/release_to_crates_io.yml )
    
    > Yeah, this is unfortunate, our CI won't do this for us. We should probably add one.
 
@@ -62,8 +66,3 @@
    > You can also take a look at the official tutorial [Publishing on crates.io][doc]
    >
    > [doc]: https://doc.rust-lang.org/cargo/reference/publishing.html
-
-
-
-
-
