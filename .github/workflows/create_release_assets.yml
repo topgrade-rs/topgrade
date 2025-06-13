@@ -15,6 +15,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install needed components
+        run: |
+          rustup component add rustfmt
+          rustup component add clippy
+
       - name: Install cargo-deb
         run: cargo install cargo-deb
         if: ${{ startsWith(matrix.platform, 'ubuntu-') }}
@@ -100,6 +105,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install needed components
+        run: |
+          rustup component add rustfmt
+          rustup component add clippy
 
       - name: Install cargo-deb cross compilation dependencies
         run: sudo apt-get install libc6-arm64-cross libgcc-s1-arm64-cross
