@@ -1253,8 +1253,9 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
 
         use std::str;
 
-        static SHEBANG_REGEX: LazyLock<Regex> =
-            LazyLock::new(|| regex::bytes::Regex::new(r#"^#![ \t]*(?:"([^"\n]+)"|([^" \t\n]+))(?:[ \t]+([^\n]+)?)?"#).unwrap());
+        static SHEBANG_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+            regex::bytes::Regex::new(r#"^#![ \t]*(?:"([^"\n]+)"|([^" \t\n]+))(?:[ \t]+([^\n]+)?)?"#).unwrap()
+        });
 
         let data = fs::read(poetry)?;
 
