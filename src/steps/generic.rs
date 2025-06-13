@@ -1,6 +1,6 @@
-use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use color_eyre::eyre::{eyre, OptionExt};
 use jetbrains_toolbox_updater::{find_jetbrains_toolbox, update_jetbrains_toolbox, FindError};
 use regex::bytes::Regex;
 use rust_i18n::t;
@@ -12,7 +12,7 @@ use std::sync::LazyLock;
 use std::{env, path::Path};
 use std::{fs, io::Write};
 use tempfile::tempfile_in;
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
@@ -1549,21 +1549,52 @@ pub fn run_jetbrains_toolbox(_ctx: &ExecutionContext) -> Result<()> {
     }
 }
 
-fn run_jetbrains_ide(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result<()> {
-    print_separator(format!("JetBrains {name} plugins"));
+fn run_jetbrains_ide_generic<const IS_JETBRAINS: bool>(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result<()> {
+    let prefix = if IS_JETBRAINS { "JetBrains " } else { "" };
+    print_separator(format!("{prefix}{name} plugins"));
 
     // The `update` command is undocumented, but tested on all of the below.
-    ctx.run_type().execute(bin).arg("update").status_checked()
+    let output = ctx.run_type().execute(&bin).arg("update").output()?;
+    let output = match output {
+        ExecutorOutput::Dry => return Ok(()),
+        ExecutorOutput::Wet(output) => output,
+    };
+    // Write the output which we swallowed in all cases
+    std::io::stdout().lock().write_all(&output.stdout).unwrap();
+    std::io::stderr().lock().write_all(&output.stderr).unwrap();
+
+    let stdout = String::from_utf8(output.stdout.clone()).wrap_err("Expected valid UTF-8 output")?;
+
+    // "Only one instance of RustRover can be run at a time."
+    if stdout.contains("Only one instance of ") && stdout.contains(" can be run at a time.") {
+        // It's always paired with status code 1
+        let status_code = output
+            .status
+            .code()
+            .ok_or_eyre("Failed to get status code; was killed with signal")?;
+        if status_code != 1 {
+            return Err(eyre!("Expected status code 1 ('Only one instance of <IDE> can be run at a time.'), but found status code {}. Output: {output:?}", status_code));
+        }
+        // Don't crash, but don't be silent either
+        warn!("{name} is already running, can't update it now.");
+        Err(SkipStep(format!("{name} is already running, can't update it now.")).into())
+    } else if !output.status.success() {
+        // Unknown failure
+        Err(eyre!("Running `{bin:?} update` failed. Output: {output:?}"))
+    } else {
+        // Success. Output was already written above
+        Ok(())
+    }
+}
+
+fn run_jetbrains_ide(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result<()> {
+    run_jetbrains_ide_generic::<true>(ctx, bin, name)
 }
 
 pub fn run_android_studio(ctx: &ExecutionContext) -> Result<()> {
     // We don't use `run_jetbrains_ide` here because that would print "JetBrains Android Studio",
     //  which is incorrect as Android Studio is made by Google. Just "Android Studio" is fine.
-    let bin = require("studio")?;
-
-    print_separator("Android Studio plugins");
-
-    ctx.run_type().execute(bin).arg("update").status_checked()
+    run_jetbrains_ide_generic::<false>(ctx, require("studio")?, "Android Studio")
 }
 
 pub fn run_jetbrains_aqua(ctx: &ExecutionContext) -> Result<()> {
