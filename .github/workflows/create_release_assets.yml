@@ -3,6 +3,7 @@ name: Publish release files for CD native and non-cd-native environments
 on:
   release:
     types: [ created ]
+  workflow_dispatch:
 
 jobs:
   # Publish release files for CD native environments
@@ -10,6 +11,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Use the Ubuntu 22.04 image to link with a low version of glibc
+        #
+        # https://github.com/topgrade-rs/topgrade/issues/1095
         platform: [ ubuntu-22.04, macos-latest, macos-13, windows-latest ]
     runs-on: ${{ matrix.platform }}
     steps:
