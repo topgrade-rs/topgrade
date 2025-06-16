@@ -112,6 +112,29 @@ pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
     }
 }
 
+pub fn require_one<T: AsRef<OsStr> + Debug>(binary_names: impl IntoIterator<Item = T>) -> Result<PathBuf> {
+    let mut failed_bins = Vec::new();
+    for bin in binary_names {
+        match require(&bin) {
+            Ok(path) => return Ok(path),
+            Err(_) => failed_bins.push(bin),
+        }
+    }
+
+    Err(SkipStep(format!(
+        "{}",
+        t!(
+            "Cannot find any of {binary_names} in PATH",
+            binary_names = failed_bins
+                .iter()
+                .map(|bin| format!("{:?}", bin))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    ))
+    .into())
+}
+
 #[allow(dead_code)]
 pub fn require_option<T>(option: Option<T>, cause: String) -> Result<T> {
     if let Some(value) = option {
