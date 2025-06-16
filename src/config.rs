@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::collections::BTreeMap;
+use indexmap::IndexMap;
 use std::fs::{write, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -44,7 +44,7 @@ macro_rules! str_value {
     };
 }
 
-pub type Commands = BTreeMap<String, String>;
+pub type Commands = IndexMap<String, String>;
 
 #[derive(ValueEnum, EnumString, VariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
 #[clap(rename_all = "snake_case")]
