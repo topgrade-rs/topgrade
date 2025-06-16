@@ -5,8 +5,8 @@ on:
     types: [ created ]
   # When a release failed, and there is something you need to fix in this 
   # YML file, you can manually re-run the job via this event to re-do the
-  # release. (Simply re-run the job through GitHub UI won't work as the CI
-  # file needs a fix.)
+  # release. (Simply re-run the job through GitHub UI won't work as it would use
+  # the old YML file, which needs a fix.)
   workflow_dispatch:
     inputs:
       # The GitHub Action (softprops/action-gh-release) used in this pipeline 
