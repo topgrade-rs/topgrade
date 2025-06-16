@@ -18,6 +18,8 @@ use tracing::{debug, error, warn};
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
+use crate::output_changed_message;
+use crate::step::Step;
 use crate::terminal::{print_separator, shell};
 use crate::utils::{
     check_is_python_2_or_shim, get_require_sudo_string, require, require_one, require_option, which, PathExt,
@@ -27,7 +29,6 @@ use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
     terminal::print_warning,
 };
-use crate::{output_changed_message, Step};
 
 #[cfg(target_os = "linux")]
 pub fn is_wsl() -> Result<bool> {

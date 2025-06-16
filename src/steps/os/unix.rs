@@ -1,5 +1,5 @@
 use crate::command::CommandExt;
-use crate::{output_changed_message, Step, HOME_DIR};
+use crate::{output_changed_message, HOME_DIR};
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
@@ -28,6 +28,7 @@ use crate::execution_context::ExecutionContext;
 use crate::executor::Executor;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use crate::executor::RunType;
+use crate::step::Step;
 use crate::terminal::print_separator;
 use crate::utils::{get_require_sudo_string, require, require_option, PathExt};
 
