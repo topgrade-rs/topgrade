@@ -10,8 +10,9 @@ use tracing::{debug, error};
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
+use crate::step::Step;
 use crate::terminal::print_separator;
-use crate::{error::SkipStep, utils, Step};
+use crate::{error::SkipStep, utils};
 
 #[derive(Debug, Copy, Clone, EnumString)]
 #[strum(serialize_all = "lowercase")]
