@@ -502,6 +502,7 @@ fn run() -> Result<()> {
     runner.execute(Step::JetbrainsWebstorm, "JetBrains WebStorm plugins", || {
         generic::run_jetbrains_webstorm(&ctx)
     })?;
+    runner.execute(Step::UvPython, "uv python", || generic::run_uv_python(&ctx))?;
     runner.execute(Step::Yazi, "Yazi packages", || generic::run_yazi(&ctx))?;
 
     if should_run_powershell {
