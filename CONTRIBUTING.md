@@ -16,7 +16,7 @@ In `topgrade`'s term, package manager is called `step`.
 To add a new `step` to `topgrade`:
 
 1. Add a new variant to
-   [`enum Step`](https://github.com/topgrade-rs/topgrade/blob/cb7adc8ced8a77addf2cb051d18bba9f202ab866/src/config.rs#L100)
+   [`enum Step`](https://github.com/topgrade-rs/topgrade/blob/master/src/step.rs)
 
    ```rust
    pub enum Step {
@@ -61,17 +61,17 @@ To add a new `step` to `topgrade`:
    [here](https://github.com/topgrade-rs/topgrade/blob/7e48c5dedcfd5d0124bb9f39079a03e27ed23886/src/main.rs#L201-L219)).
 
    Update function would usually do 3 things:
-   1. Check if the step is installed
-   2. Output the Separator
-   3. Invoke the step
+    1. Check if the step is installed
+    2. Output the Separator
+    3. Invoke the step
 
    Still, this is sufficient for most tools, but you may need some extra stuff
    with complicated `step`.
 
-3. Finally, invoke that update function in `main.rs`
+3. Add a match arm to `Step::run()`
 
    ```rust
-   runner.execute(Step::Xxx, "xxx", || ItsModule::run_xxx(&ctx))?;
+   Xxx => runner.execute(*self, "xxx", || ItsModule::run_xxx(ctx))?
    ```
 
    We use [conditional compilation](https://doc.rust-lang.org/reference/conditional-compilation.html)
@@ -87,6 +87,12 @@ To add a new `step` to `topgrade`:
    ```
 
    Congrats, you just added a new `step` :)
+
+4. Finally, add the step to `default_steps()` in `step.rs`
+   ```rust
+   steps.push(Xxx)
+   ```
+   Try to keep the conditional compilation the same as in the above step 3.
 
 ## Modification to the configuration entries
 
@@ -138,7 +144,7 @@ without arguments (e.g., "hello world"), we can simply translate them according
 arguments, e.g., "hello <NAME>", please follow this convention:
 
 ```yml
-"hello {name}":        # key
+"hello {name}": # key
   en: "hello %{name}"  # translation
 ```
 

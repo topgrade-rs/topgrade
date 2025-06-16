@@ -1,8 +1,8 @@
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
+use crate::step::Step;
 use crate::terminal::print_separator;
 use crate::utils::{get_require_sudo_string, require_option};
-use crate::Step;
 use color_eyre::eyre::Result;
 use std::process::Command;
 
