@@ -4,6 +4,19 @@ on:
   release:
     types: [ created ]
   workflow_dispatch:
+    inputs:
+      # When a release failed, and there is something you need to fix in this 
+      # YML file, you can manually re-run the job via this event to re-do the
+      # release. (Simply re-run the job through GitHub UI won't work as the CI
+      # file needs a fix.)
+      #
+      # The GitHub Action used in this file needs a tag, in the case described
+      # above, it should be an existing tag. E.g., the release of v16.0.4 failed,
+      # you should specify "v16.0.4" here.
+      existing_tag: 
+        description: "The tag of the release that you wanna fix"
+        required: true
+        type: string
 
 jobs:
   # Publish release files for CD native environments
@@ -88,9 +101,19 @@ jobs:
         if: ${{ matrix.platform == 'windows-latest' }}
         shell: bash
 
+      - name: Determine tag name
+        id: determine_tag_name
+        run: |
+          if [ -n "${{ github.event.release.tag_name }}" ]; then
+            echo "tag_name=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag_name=${{ github.event.inputs.existing_tag }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.determine_tag_name.outputs.tag_name }}
           files: assets/*
 
   # Publish release files for non-CD-native environments
@@ -181,7 +204,17 @@ jobs:
         if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'armv7-unknown-linux-gnueabihf' }}
         shell: bash
 
+      - name: Determine tag name
+        id: determine_tag_name
+        run: |
+          if [ -n "${{ github.event.release.tag_name }}" ]; then
+            echo "tag_name=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag_name=${{ github.event.inputs.existing_tag }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.determine_tag_name.outputs.tag_name }}
           files: assets/*
