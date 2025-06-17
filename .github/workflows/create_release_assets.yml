@@ -58,11 +58,21 @@ jobs:
       - name: Build in Release profile with all features enabled
         run: cargo build --release --all-features
 
+      - name: Determine tag name
+        id: determine_tag_name
+        shell: bash # Or it won't work on Windows
+        run: |
+          if [ -n "${{ github.event.release.tag_name }}" ]; then
+            echo "tag_name=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag_name=${{ github.event.inputs.existing_tag }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Rename Release (Unix)
         run: |
           cargo install default-target
           mkdir -p assets
-          FILENAME=topgrade-${{github.event.release.tag_name}}-$(default-target)
+          FILENAME=topgrade-${{ steps.determine_tag_name.outputs.tag_name }}-$(default-target)
           mv target/release/topgrade assets
           cd assets
           tar --format=ustar -czf $FILENAME.tar.gz topgrade
@@ -93,7 +103,7 @@ jobs:
         run: |
           cargo install default-target
           mkdir assets
-          FILENAME=topgrade-${{github.event.release.tag_name}}-$(default-target)
+          FILENAME=topgrade-${{steps.determine_tag_name.outputs.tag_name}}-$(default-target)
           mv target/release/topgrade.exe assets/topgrade.exe
           cd assets
           powershell Compress-Archive -Path * -Destination ${FILENAME}.zip
@@ -102,14 +112,6 @@ jobs:
         if: ${{ matrix.platform == 'windows-latest' }}
         shell: bash
 
-      - name: Determine tag name
-        id: determine_tag_name
-        run: |
-          if [ -n "${{ github.event.release.tag_name }}" ]; then
-            echo "tag_name=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
-          else
-            echo "tag_name=${{ github.event.inputs.existing_tag }}" >> $GITHUB_OUTPUT
-          fi
 
       - name: Release
         uses: softprops/action-gh-release@v2
@@ -177,10 +179,20 @@ jobs:
       - name: Build in Release profile with all features enabled
         run: cross build --release --all-features --target ${{matrix.target}}
 
+      - name: Determine tag name
+        id: determine_tag_name
+        shell: bash # Or it won't work on Windows
+        run: |
+          if [ -n "${{ github.event.release.tag_name }}" ]; then
+            echo "tag_name=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag_name=${{ github.event.inputs.existing_tag }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Rename Release
         run: |
           mkdir -p assets
-          FILENAME=topgrade-${{github.event.release.tag_name}}-${{matrix.target}}
+          FILENAME=topgrade-${{steps.determine_tag_name.outputs.tag_name}}-${{matrix.target}}
           mv target/${{matrix.target}}/release/topgrade assets
           cd assets
           tar --format=ustar -czf $FILENAME.tar.gz topgrade
@@ -205,14 +217,6 @@ jobs:
         if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'armv7-unknown-linux-gnueabihf' }}
         shell: bash
 
-      - name: Determine tag name
-        id: determine_tag_name
-        run: |
-          if [ -n "${{ github.event.release.tag_name }}" ]; then
-            echo "tag_name=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
-          else
-            echo "tag_name=${{ github.event.inputs.existing_tag }}" >> $GITHUB_OUTPUT
-          fi
 
       - name: Release
         uses: softprops/action-gh-release@v2
