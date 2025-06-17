@@ -8,6 +8,7 @@ use strum::{EnumCount, EnumIter, EnumString, VariantNames};
 
 #[cfg(feature = "self-update")]
 use crate::self_update;
+use crate::step::Step::GitRepos;
 use crate::steps::remote::vagrant;
 #[allow(clippy::wildcard_imports)]
 use crate::steps::*;
@@ -58,8 +59,8 @@ pub enum Step {
     Gcloud,
     Gem,
     Ghcup,
-    GithubCliExtensions,
     GitRepos,
+    GithubCliExtensions,
     GnomeShellExtensions,
     Go,
     Guix,
@@ -302,10 +303,10 @@ impl Step {
             Gcloud => runner.execute(*self, "gcloud", || generic::run_gcloud_components_update(ctx))?,
             Gem => runner.execute(*self, "gem", || generic::run_gem(ctx))?,
             Ghcup => runner.execute(*self, "ghcup", || generic::run_ghcup_update(ctx))?,
+            GitRepos => runner.execute(*self, "Git Repositories", || git::run_git_pull(ctx))?,
             GithubCliExtensions => runner.execute(*self, "GitHub CLI Extenstions", || {
                 generic::run_ghcli_extensions_upgrade(ctx)
             })?,
-            GitRepos => runner.execute(*self, "Git Repositories", || git::run_git_pull(ctx))?,
             GnomeShellExtensions =>
             {
                 #[cfg(all(unix, not(any(target_os = "macos", target_os = "android"))))]
