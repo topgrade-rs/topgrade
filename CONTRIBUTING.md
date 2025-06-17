@@ -16,7 +16,7 @@ In `topgrade`'s term, package manager is called `step`.
 To add a new `step` to `topgrade`:
 
 1. Add a new variant to
-   [`enum Step`](https://github.com/topgrade-rs/topgrade/blob/master/src/step.rs)
+   [`enum Step`](https://github.com/topgrade-rs/topgrade/blob/main/src/step.rs)
 
    ```rust
    pub enum Step {
@@ -32,9 +32,9 @@ To add a new `step` to `topgrade`:
 2. Implement the update function
 
    You need to find the appropriate location where this update function goes, it should be
-   a file under [`src/steps`](https://github.com/topgrade-rs/topgrade/tree/master/src/steps),
+   a file under [`src/steps`](https://github.com/topgrade-rs/topgrade/tree/main/src/steps),
    the file names are self-explanatory, for example, `step`s related to `zsh` are
-   placed in [`steps/zsh.rs`](https://github.com/topgrade-rs/topgrade/blob/master/src/steps/zsh.rs).
+   placed in [`steps/zsh.rs`](https://github.com/topgrade-rs/topgrade/blob/main/src/steps/zsh.rs).
 
    Then you implement the update function, and put it in the file where it belongs.
 
@@ -97,14 +97,14 @@ To add a new `step` to `topgrade`:
 ## Modification to the configuration entries
 
 If your PR has the configuration options
-(in [`src/config.rs`](https://github.com/topgrade-rs/topgrade/blob/master/src/config.rs))
+(in [`src/config.rs`](https://github.com/topgrade-rs/topgrade/blob/main/src/config.rs))
 modified:
 
 1. Adding new options
 2. Changing the existing options
 
 Be sure to apply your changes to
-[`config.example.toml`](https://github.com/topgrade-rs/topgrade/blob/master/config.example.toml),
+[`config.example.toml`](https://github.com/topgrade-rs/topgrade/blob/main/config.example.toml),
 and have some basic documentations guiding user how to use these options.
 
 ## Breaking changes
