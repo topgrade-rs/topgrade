@@ -4,6 +4,7 @@ use crate::step::Step;
 use crate::terminal::print_separator;
 use crate::utils::require;
 use crate::utils::which;
+use color_eyre::Result;
 
 pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     //let pkg = require("pkg")?;
