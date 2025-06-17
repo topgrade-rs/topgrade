@@ -21,7 +21,6 @@ jobs:
     steps:
       - name: Determine version
         id: determine_version
-        shell: bash # Or it won't work on Windows
         run: |
           if [ -n "${{ github.event.inputs.version }}" ]; then
             echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
