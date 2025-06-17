@@ -200,9 +200,9 @@ impl Step {
             }
             Audit => {
                 #[cfg(target_os = "dragonfly")]
-                runner.execute(*self, "DragonFly Audit", || (dragonfly::audit_packages(ctx)))?;
+                runner.execute(*self, "DragonFly Audit", || dragonfly::audit_packages(ctx))?;
                 #[cfg(target_os = "freebsd")]
-                runner.execute(*self, "FreeBSD Audit", || (freebsd::audit_packages(ctx)))?
+                runner.execute(*self, "FreeBSD Audit", || freebsd::audit_packages(ctx))?
             }
             AutoCpufreq =>
             {
@@ -247,7 +247,7 @@ impl Step {
             Chocolatey =>
             {
                 #[cfg(windows)]
-                runner.execute(*self, "Chocolatey", || (windows::run_chocolatey(ctx)))?
+                runner.execute(*self, "Chocolatey", || windows::run_chocolatey(ctx))?
             }
             Choosenim => runner.execute(*self, "choosenim", || generic::run_choosenim(ctx))?,
             CinnamonSpices =>
@@ -399,7 +399,7 @@ impl Step {
             MicrosoftStore =>
             {
                 #[cfg(windows)]
-                runner.execute(*self, "Microsoft Store", || (windows::microsoft_store(ctx)))?
+                runner.execute(*self, "Microsoft Store", || windows::microsoft_store(ctx))?
             }
             Miktex => runner.execute(*self, "miktex", || generic::run_miktex_packages_update(ctx))?,
             Mise =>
@@ -447,13 +447,13 @@ impl Step {
             Pixi => runner.execute(*self, "pixi", || generic::run_pixi_update(ctx))?,
             Pkg => {
                 #[cfg(target_os = "dragonfly")]
-                runner.execute(*self, "Dragonfly BSD Packages", || (dragonfly::upgrade_packages(ctx)))?;
+                runner.execute(*self, "Dragonfly BSD Packages", || dragonfly::upgrade_packages(ctx))?;
                 #[cfg(target_os = "freebsd")]
-                runner.execute(*self, "FreeBSD Packages", || (freebsd::upgrade_packages(ctx)))?;
+                runner.execute(*self, "FreeBSD Packages", || freebsd::upgrade_packages(ctx))?;
                 #[cfg(target_os = "openbsd")]
-                runner.execute(*self, "OpenBSD Packages", || (openbsd::upgrade_packages(ctx)))?;
+                runner.execute(*self, "OpenBSD Packages", || openbsd::upgrade_packages(ctx))?;
                 #[cfg(target_os = "android")]
-                runner.execute(*self, "Termux Packages", || (android::upgrade_packages(ctx)))?
+                runner.execute(*self, "Termux Packages", || android::upgrade_packages(ctx))?
             }
             Pkgin =>
             {
@@ -511,7 +511,7 @@ impl Step {
             Scoop =>
             {
                 #[cfg(windows)]
-                runner.execute(*self, "Scoop", || (windows::run_scoop(ctx)))?
+                runner.execute(*self, "Scoop", || windows::run_scoop(ctx))?
             }
             Sdkman =>
             {
@@ -522,7 +522,7 @@ impl Step {
                 #[cfg(feature = "self-update")]
                 {
                     if std::env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() && !ctx.config().no_self_update() {
-                        runner.execute(*self, "Self Update", || (self_update::self_update(ctx)))?;
+                        runner.execute(*self, "Self Update", || self_update::self_update(ctx))?;
                     }
                 }
             }
@@ -579,13 +579,13 @@ impl Step {
                     runner.execute(*self, "pihole", || linux::run_pihole_update(ctx))?;
                 }
                 #[cfg(windows)]
-                runner.execute(*self, "Windows update", || (windows::windows_update(ctx)))?;
+                runner.execute(*self, "Windows update", || windows::windows_update(ctx))?;
                 #[cfg(target_os = "macos")]
                 runner.execute(*self, "System update", || macos::upgrade_macos(ctx))?;
                 #[cfg(target_os = "freebsd")]
-                runner.execute(*self, "FreeBSD Upgrade", || (freebsd::upgrade_freebsd(ctx)))?;
+                runner.execute(*self, "FreeBSD Upgrade", || freebsd::upgrade_freebsd(ctx))?;
                 #[cfg(target_os = "openbsd")]
-                runner.execute(*self, "OpenBSD Upgrade", || (openbsd::upgrade_openbsd(ctx)))?
+                runner.execute(*self, "OpenBSD Upgrade", || openbsd::upgrade_openbsd(ctx))?
             }
             Tldr =>
             {
