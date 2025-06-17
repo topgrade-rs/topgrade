@@ -518,7 +518,7 @@ impl Step {
             SelfUpdate => {
                 #[cfg(feature = "self-update")]
                 {
-                    if env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() && !ctx.config().no_self_update() {
+                    if std::env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() && !ctx.config().no_self_update() {
                         runner.execute(*self, "Self Update", || (self_update::self_update(ctx)))?;
                     }
                 }
