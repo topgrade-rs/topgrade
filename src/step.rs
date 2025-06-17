@@ -8,7 +8,6 @@ use strum::{EnumCount, EnumIter, EnumString, VariantNames};
 
 #[cfg(feature = "self-update")]
 use crate::self_update;
-use crate::step::Step::GitRepos;
 use crate::steps::remote::vagrant;
 #[allow(clippy::wildcard_imports)]
 use crate::steps::*;
