@@ -3,6 +3,7 @@ use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::terminal::print_separator;
 use crate::utils::{get_require_sudo_string, require_option};
+use color_eyre::Result;
 use rust_i18n::t;
 use std::process::Command;
 
