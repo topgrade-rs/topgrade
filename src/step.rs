@@ -2,6 +2,7 @@ use crate::execution_context::ExecutionContext;
 use crate::runner::Runner;
 use clap::ValueEnum;
 use color_eyre::Result;
+#[cfg(target_os = "linux")]
 use rust_i18n::t;
 use serde::Deserialize;
 use strum::{EnumCount, EnumIter, EnumString, VariantNames};
@@ -170,7 +171,11 @@ impl Step {
         use Step::*;
 
         match *self {
-            AM => runner.execute(*self, "am", || linux::run_am(ctx))?,
+            AM =>
+            {
+                #[cfg(target_os = "linux")]
+                runner.execute(*self, "am", || linux::run_am(ctx))?
+            }
             AndroidStudio => runner.execute(*self, "Android Studio Plugins", || generic::run_android_studio(ctx))?,
             AppMan =>
             {
@@ -208,16 +213,14 @@ impl Step {
             Bob => runner.execute(*self, "Bob", || generic::run_bob(ctx))?,
             BrewCask => {
                 #[cfg(target_os = "macos")]
-                runner.execute(*self, "Brew Cask", || {
-                    (unix::run_brew_cask(ctx, unix::BrewVariant::Path))
-                })?;
+                runner.execute(*self, "Brew Cask", || unix::run_brew_cask(ctx, unix::BrewVariant::Path))?;
                 #[cfg(target_os = "macos")]
                 runner.execute(*self, "Brew Cask (Intel)", || {
-                    (unix::run_brew_cask(ctx, unix::BrewVariant::MacIntel))
+                    unix::run_brew_cask(ctx, unix::BrewVariant::MacIntel)
                 })?;
                 #[cfg(target_os = "macos")]
                 runner.execute(*self, "Brew Cask (ARM)", || {
-                    (unix::run_brew_cask(ctx, unix::BrewVariant::MacArm))
+                    unix::run_brew_cask(ctx, unix::BrewVariant::MacArm)
                 })?
             }
             BrewFormula => {
@@ -225,11 +228,11 @@ impl Step {
                 runner.execute(*self, "Brew", || unix::run_brew_formula(ctx, unix::BrewVariant::Path))?;
                 #[cfg(target_os = "macos")]
                 runner.execute(*self, "Brew (ARM)", || {
-                    (unix::run_brew_formula(ctx, unix::BrewVariant::MacArm))
+                    unix::run_brew_formula(ctx, unix::BrewVariant::MacArm)
                 })?;
                 #[cfg(target_os = "macos")]
                 runner.execute(*self, "Brew (Intel)", || {
-                    (unix::run_brew_formula(ctx, unix::BrewVariant::MacIntel))
+                    unix::run_brew_formula(ctx, unix::BrewVariant::MacIntel)
                 })?
             }
             Bun => runner.execute(*self, "bun", || generic::run_bun(ctx))?,
@@ -379,13 +382,13 @@ impl Step {
             Macports =>
             {
                 #[cfg(target_os = "macos")]
-                runner.execute(*self, "MacPorts", || (macos::run_macports(ctx)))?
+                runner.execute(*self, "MacPorts", || macos::run_macports(ctx))?
             }
             Mamba => runner.execute(*self, "mamba", || generic::run_mamba_update(ctx))?,
             Mas =>
             {
                 #[cfg(target_os = "macos")]
-                runner.execute(*self, "App Store", || (macos::run_mas(ctx)))?
+                runner.execute(*self, "App Store", || macos::run_mas(ctx))?
             }
             Maza =>
             {
@@ -553,7 +556,7 @@ impl Step {
             Sparkle =>
             {
                 #[cfg(target_os = "macos")]
-                runner.execute(*self, "Sparkle", || (macos::run_sparkle(ctx)))?
+                runner.execute(*self, "Sparkle", || macos::run_sparkle(ctx))?
             }
             Spicetify => runner.execute(*self, "spicetify", || generic::spicetify_upgrade(ctx))?,
             Stack => runner.execute(*self, "stack", || generic::run_stack_update(ctx))?,
@@ -578,7 +581,7 @@ impl Step {
                 #[cfg(windows)]
                 runner.execute(*self, "Windows update", || (windows::windows_update(ctx)))?;
                 #[cfg(target_os = "macos")]
-                runner.execute(*self, "System update", || (macos::upgrade_macos(ctx)))?;
+                runner.execute(*self, "System update", || macos::upgrade_macos(ctx))?;
                 #[cfg(target_os = "freebsd")]
                 runner.execute(*self, "FreeBSD Upgrade", || (freebsd::upgrade_freebsd(ctx)))?;
                 #[cfg(target_os = "openbsd")]
@@ -635,22 +638,22 @@ impl Step {
             Winget =>
             {
                 #[cfg(windows)]
-                runner.execute(*self, "Winget", || (windows::run_winget(ctx)))?
+                runner.execute(*self, "Winget", || windows::run_winget(ctx))?
             }
             Wsl =>
             {
                 #[cfg(windows)]
-                runner.execute(*self, "WSL", || (windows::run_wsl_topgrade(ctx)))?
+                runner.execute(*self, "WSL", || windows::run_wsl_topgrade(ctx))?
             }
             WslUpdate =>
             {
                 #[cfg(windows)]
-                runner.execute(*self, "WSL", || (|| windows::update_wsl(ctx)))?
+                runner.execute(*self, "WSL", || windows::update_wsl(ctx))?
             }
             Xcodes =>
             {
                 #[cfg(target_os = "macos")]
-                runner.execute(*self, "Xcodes", || (macos::update_xcodes(ctx)))?
+                runner.execute(*self, "Xcodes", || macos::update_xcodes(ctx))?
             }
             Yadm =>
             {
