@@ -79,7 +79,7 @@ impl Powershell {
 
     pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
         print_separator(t!("Powershell Modules Update"));
-        let mut cmd_args = vec!["Update-Module"];
+        let mut cmd_args = vec!["-Command", "Update-Module"];
 
         if ctx.config().verbose() {
             cmd_args.push("-Verbose");
