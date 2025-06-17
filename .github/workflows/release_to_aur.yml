@@ -8,23 +8,41 @@ on:
     types:
       - completed
   workflow_dispatch:
+    inputs:
+      # Example: 16.0.4
+      version:
+        description: "The version of this manual release, e.g., 16.0.4"
+        required: false
+        type: string
 
 jobs:
   aur-publish:
     runs-on: ubuntu-latest
     steps:
+      - name: Determine version
+        id: determine_version
+        shell: bash # Or it won't work on Windows
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            # GITHUB_REF should be something like "v16.0.4", remove the prefix v here
+            echo "version=${GITHUB_REF#v}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Publish source AUR package
-        uses: aksh1618/update-aur-package@v1.0.5
+        uses: varabyte/update-aur-package@v1.0.5
         with:
-          tag_version_prefix: v
+          version: ${{ steps.determine_version.outputs.version }}
           package_name: topgrade
           commit_username: "Thomas Schönauer"
           commit_email: t.schoenauer@hgs-wt.at
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+
       - name: Publish binary AUR package
-        uses: aksh1618/update-aur-package@v1.0.5
+        uses: varabyte/update-aur-package@v1.0.5
         with:
-          tag_version_prefix: v
+          version: ${{ steps.determine_version.outputs.version }}
           package_name: topgrade-bin
           commit_username: "Thomas Schönauer"
           commit_email: t.schoenauer@hgs-wt.at
