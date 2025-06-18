@@ -146,6 +146,17 @@ pub trait CommandExt {
     #[track_caller]
     fn status_checked_with(&mut self, succeeded: impl Fn(ExitStatus) -> Result<(), ()>) -> eyre::Result<()>;
 
+    /// Like [`status_checked_with`], but still returns the [`ExitStatus`].
+    ///
+    /// Useful for commands that returns specific status codes for different reasons, such as
+    /// returning `0` if a package is installed, `1` if the package is not installed, and other
+    /// codes for other errors.
+    #[track_caller]
+    fn status_checked_with_returning(
+        &mut self,
+        succeeded: impl Fn(ExitStatus) -> Result<(), ()>,
+    ) -> eyre::Result<ExitStatus>;
+
     /// Like [`Command::spawn`], but gives a nice error message if the command fails to
     /// execute.
     #[track_caller]
@@ -192,6 +203,13 @@ impl CommandExt for Command {
     }
 
     fn status_checked_with(&mut self, succeeded: impl Fn(ExitStatus) -> Result<(), ()>) -> eyre::Result<()> {
+        self.status_checked_with_returning(succeeded).map(|_| {})
+    }
+
+    fn status_checked_with_returning(
+        &mut self,
+        succeeded: impl Fn(ExitStatus) -> Result<(), ()>,
+    ) -> eyre::Result<ExitStatus> {
         let command = log(self);
         let message = format!("Failed to execute `{command}`");
 
@@ -201,7 +219,7 @@ impl CommandExt for Command {
         let status = self.status().with_context(|| message.clone())?;
 
         if succeeded(status).is_ok() {
-            Ok(())
+            Ok(status)
         } else {
             let (program, _) = get_program_and_args(self);
             let err = TopgradeError::ProcessFailed(program, status);
@@ -213,13 +231,13 @@ impl CommandExt for Command {
 
     fn spawn_checked(&mut self) -> eyre::Result<Self::Child> {
         let command = log(self);
-        let message = format!("Failed to execute `{command}`");
 
         // This is where we implement `spawn_checked`, which is what we prefer to use instead of
         // `spawn`, so we allow `Command::spawn` here.
         #[allow(clippy::disallowed_methods)]
         {
-            self.spawn().with_context(|| message.clone())
+            self.spawn()
+                .with_context(move || format!("Failed to execute `{command}`"))
         }
     }
 }

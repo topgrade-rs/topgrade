@@ -568,13 +568,8 @@ impl Step {
                     // by other package managers.
                     runner.execute(Shell, "packer.nu", || linux::run_packer_nu(ctx))?;
 
-                    match ctx.distribution() {
-                        Ok(distribution) => {
-                            runner.execute(System, "System update", || distribution.upgrade(ctx))?;
-                        }
-                        Err(e) => {
-                            println!("{}", t!("Error detecting current distribution: {error}", error = e));
-                        }
+                    if let Some(distribution) = ctx.distribution() {
+                        runner.execute(System, "System update", || distribution.upgrade(ctx))?;
                     }
                     runner.execute(*self, "pihole", || linux::run_pihole_update(ctx))?;
                 }

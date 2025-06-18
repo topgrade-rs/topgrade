@@ -21,7 +21,7 @@ pub struct ExecutionContext<'a> {
     /// True if topgrade is running under ssh.
     under_ssh: bool,
     #[cfg(target_os = "linux")]
-    distribution: &'a Result<Distribution>,
+    distribution: Option<&'a Distribution>,
 }
 
 impl<'a> ExecutionContext<'a> {
@@ -29,7 +29,7 @@ impl<'a> ExecutionContext<'a> {
         run_type: RunType,
         sudo: Option<Sudo>,
         config: &'a Config,
-        #[cfg(target_os = "linux")] distribution: &'a Result<Distribution>,
+        #[cfg(target_os = "linux")] distribution: Option<&'a Distribution>,
     ) -> Self {
         let under_ssh = var("SSH_CLIENT").is_ok() || var("SSH_TTY").is_ok();
         Self {
@@ -73,7 +73,7 @@ impl<'a> ExecutionContext<'a> {
     }
 
     #[cfg(target_os = "linux")]
-    pub fn distribution(&self) -> &Result<Distribution> {
+    pub fn distribution(&self) -> Option<&Distribution> {
         self.distribution
     }
 }
