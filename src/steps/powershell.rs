@@ -56,11 +56,12 @@ impl Powershell {
         &self,
         ctx: &'a ExecutionContext,
         additional_args: &[&str],
+        use_sudo: bool,
     ) -> Result<impl CommandExt + 'a> {
         let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
         let executor = &mut ctx.run_type();
-        let mut command = if let Some(sudo) = ctx.sudo() {
-            let mut cmd = executor.execute(sudo);
+        let mut command = if use_sudo && ctx.sudo().is_some() {
+            let mut cmd = executor.execute(ctx.sudo().clone().unwrap());
             cmd.arg(powershell);
             cmd
         } else {
@@ -77,23 +78,6 @@ impl Powershell {
         Ok(command)
     }
 
-    /// Builds a command without sudo (Unix only - for user-scope modules)
-    #[cfg(not(windows))]
-    fn build_command_without_sudo<'a>(
-        &self,
-        ctx: &'a ExecutionContext,
-        additional_args: &[&str],
-    ) -> Result<impl CommandExt + 'a> {
-        let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
-        let executor = &mut ctx.run_type();
-
-        // Always execute directly without sudo on Unix systems
-        let mut command = executor.execute(powershell);
-        command.args(Self::common_args()).args(additional_args);
-        Ok(command)
-    }
-
-    #[cfg(not(windows))]
     pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
         print_separator("Powershell Modules Update");
 
@@ -109,19 +93,28 @@ impl Powershell {
             cmd_args.push("-Verbose");
         }
 
-        // Update user-scope modules WITHOUT sudo (to avoid root ownership issues)
-        println!("Updating user-scope modules...");
-        let mut user_cmd_args = cmd_args.clone();
-        user_cmd_args.extend_from_slice(&["-Scope", "CurrentUser"]);
+        #[cfg(not(windows))]
+        {
+            // Update user-scope modules WITHOUT sudo (to avoid root ownership issues)
+            println!("Updating user-scope modules...");
+            let mut user_cmd_args = cmd_args.clone();
+            user_cmd_args.extend_from_slice(&["-Scope", "CurrentUser"]);
+            self.build_command_internal(ctx, &user_cmd_args, false)?
+                .status_checked()?;
 
-        self.build_command_without_sudo(ctx, &user_cmd_args)?.status_checked()?;
+            // Update system-scope modules WITH sudo (if available)
+            println!("Updating system-scope modules...");
+            let mut system_cmd_args = cmd_args.clone();
+            system_cmd_args.extend_from_slice(&["-Scope", "AllUsers"]);
+            self.build_command_internal(ctx, &system_cmd_args, true)?
+                .status_checked()?;
+        }
 
-        // Update system-scope modules WITH sudo (if available)
-        println!("Updating system-scope modules...");
-        let mut system_cmd_args = cmd_args.clone();
-        system_cmd_args.extend_from_slice(&["-Scope", "AllUsers"]);
-
-        self.build_command_internal(ctx, &system_cmd_args)?.status_checked()?;
+        #[cfg(windows)]
+        {
+            // On Windows, run Update-Module once with sudo if available
+            self.build_command_internal(ctx, &cmd_args, true)?.status_checked()?;
+        }
 
         Ok(())
     }
@@ -212,7 +205,7 @@ mod windows {
 
         // Pass the command string using the -Command flag
         powershell
-            .build_command_internal(ctx, &["-Command", &command_str])?
+            .build_command_internal(ctx, &["-Command", &command_str], true)?
             .status_checked()
     }
 
@@ -224,7 +217,7 @@ mod windows {
             Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue'";
 
         powershell
-            .build_command_internal(ctx, &["-Command", update_command])?
+            .build_command_internal(ctx, &["-Command", update_command], true)?
             .status_checked()
     }
 
@@ -239,37 +232,4 @@ mod windows {
             .map(|result| !result.stdout.is_empty())
             .unwrap_or(false)
     }
-}
-
-impl Powershell {
-    pub fn run(&self, ctx: &ExecutionContext) -> Result<()> {
-        #[cfg(not(windows))]
-        {
-            self.update_modules(ctx)
-        }
-        #[cfg(windows)]
-        {
-            // On Windows, use the existing logic
-            print_separator("Powershell Modules Update");
-
-            let mut cmd_args = vec!["-Command", "Update-Module"];
-
-            // Add -Force option if --yes is enabled
-            if ctx.config().yes(Step::Powershell) {
-                cmd_args.push("-Force");
-            }
-
-            // Add -Verbose option if verbose mode is enabled
-            if ctx.config().verbose() {
-                cmd_args.push("-Verbose");
-            }
-
-            self.build_command_internal(ctx, &cmd_args)?.status_checked()
-        }
-    }
-}
-
-pub fn run_powershell(ctx: &ExecutionContext) -> Result<()> {
-    let powershell = Powershell::new();
-    powershell.run(ctx)
 }
