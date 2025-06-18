@@ -243,8 +243,8 @@ mod windows {
     }
 }
 
-impl Step for Powershell {
-    fn run(&self, ctx: &ExecutionContext) -> Result<()> {
+impl Powershell {
+    pub fn run(&self, ctx: &ExecutionContext) -> Result<()> {
         #[cfg(not(windows))]
         {
             self.update_modules(ctx)
@@ -270,4 +270,9 @@ impl Step for Powershell {
                 .status_checked()
         }
     }
+}
+
+pub fn run_powershell(ctx: &ExecutionContext) -> Result<()> {
+    let powershell = Powershell::new();
+    powershell.run(ctx)
 }
