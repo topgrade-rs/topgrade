@@ -77,18 +77,51 @@ impl Powershell {
         Ok(command)
     }
 
-    pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
-        print_separator(t!("Powershell Modules Update"));
-        let mut cmd_args = vec!["Update-Module"];
+    /// Builds a command without sudo (Unix only - for user-scope modules)
+    #[cfg(not(windows))]
+    fn build_command_without_sudo<'a>(
+        &self,
+        ctx: &'a ExecutionContext,
+        additional_args: &[&str],
+    ) -> Result<impl CommandExt + 'a> {
+        let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
+        let executor = &mut ctx.run_type();
 
-        if ctx.config().verbose() {
-            cmd_args.push("-Verbose");
+        // Always execute directly without sudo on Unix systems
+        let mut command = executor.execute(powershell);
+        command.args(Self::common_args()).args(additional_args);
+        Ok(command)
+    }
+
+    #[cfg(not(windows))]
+    pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
+        print_separator("Powershell Modules Update");
+
+        // Update user-scope modules WITHOUT sudo (to avoid root ownership issues)
+        println!("Updating user-scope modules...");
+        let user_result = self.build_command_without_sudo(ctx, &["-Command", "Update-Module", "-Scope", "CurrentUser"])?
+            .status_checked();
+        
+        match user_result {
+            Ok(_) => println!("✓ User-scope modules updated successfully"),
+            Err(e) => {
+                println!("⚠ Failed to update user-scope modules: {}", e);
+            }
         }
-        if ctx.config().yes(Step::Powershell) {
-            cmd_args.push("-Force");
+
+        // Update system-scope modules WITH sudo (if available)
+        println!("Updating system-scope modules...");
+        let system_result = self.build_command_internal(ctx, &["-Command", "Update-Module", "-Scope", "AllUsers"])?
+            .status_checked();
+        
+        match system_result {
+            Ok(_) => println!("✓ System-scope modules updated successfully"),
+            Err(e) => {
+                println!("⚠ Failed to update system-scope modules: {}", e);
+            }
         }
-        println!("{}", t!("Updating modules..."));
-        self.build_command_internal(ctx, &cmd_args)?.status_checked()
+
+        Ok(())
     }
 
     fn common_args() -> &'static [&'static str] {
