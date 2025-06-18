@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use crate::executor::RunType;
+#[cfg(target_os = "linux")]
 use crate::steps::linux::Distribution;
 use crate::sudo::Sudo;
 use crate::utils::{get_require_sudo_string, require_option};
