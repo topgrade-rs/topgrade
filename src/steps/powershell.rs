@@ -98,12 +98,12 @@ impl Powershell {
         print_separator("Powershell Modules Update");
 
         let mut cmd_args = vec!["-Command", "Update-Module"];
-        
+
         // Add -Force option if --yes is enabled
         if ctx.config().yes(Step::Powershell) {
             cmd_args.push("-Force");
         }
-        
+
         // Add -Verbose option if verbose mode is enabled
         if ctx.config().verbose() {
             cmd_args.push("-Verbose");
@@ -113,17 +113,15 @@ impl Powershell {
         println!("Updating user-scope modules...");
         let mut user_cmd_args = cmd_args.clone();
         user_cmd_args.extend_from_slice(&["-Scope", "CurrentUser"]);
-        
-        self.build_command_without_sudo(ctx, &user_cmd_args)?
-            .status_checked()?;
+
+        self.build_command_without_sudo(ctx, &user_cmd_args)?.status_checked()?;
 
         // Update system-scope modules WITH sudo (if available)
         println!("Updating system-scope modules...");
         let mut system_cmd_args = cmd_args.clone();
         system_cmd_args.extend_from_slice(&["-Scope", "AllUsers"]);
-        
-        self.build_command_internal(ctx, &system_cmd_args)?
-            .status_checked()?;
+
+        self.build_command_internal(ctx, &system_cmd_args)?.status_checked()?;
 
         Ok(())
     }
@@ -253,21 +251,20 @@ impl Powershell {
         {
             // On Windows, use the existing logic
             print_separator("Powershell Modules Update");
-            
+
             let mut cmd_args = vec!["-Command", "Update-Module"];
-            
+
             // Add -Force option if --yes is enabled
             if ctx.config().yes(Step::Powershell) {
                 cmd_args.push("-Force");
             }
-            
+
             // Add -Verbose option if verbose mode is enabled
             if ctx.config().verbose() {
                 cmd_args.push("-Verbose");
             }
 
-            self.build_command_internal(ctx, &cmd_args)?
-                .status_checked()
+            self.build_command_internal(ctx, &cmd_args)?.status_checked()
         }
     }
 }
