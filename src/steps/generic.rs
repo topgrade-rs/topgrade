@@ -18,7 +18,9 @@ use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
 use crate::terminal::{print_separator, shell};
-use crate::utils::{check_is_python_2_or_shim, get_require_sudo_string, require, require_option, which, PathExt};
+use crate::utils::{
+    check_is_python_2_or_shim, get_require_sudo_string, require, require_one, require_option, which, PathExt,
+};
 use crate::HOME_DIR;
 use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
@@ -1302,7 +1304,7 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         debug!("poetry interpreter: {:?}, args: {:?}", interp, interp_args);
 
         let check_official_install_script =
-        "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
+            "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
         let mut command = Command::new(&interp);
         if let Some(args) = interp_args {
             command.arg(args);
@@ -1594,7 +1596,16 @@ fn run_jetbrains_ide(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result
 pub fn run_android_studio(ctx: &ExecutionContext) -> Result<()> {
     // We don't use `run_jetbrains_ide` here because that would print "JetBrains Android Studio",
     //  which is incorrect as Android Studio is made by Google. Just "Android Studio" is fine.
-    run_jetbrains_ide_generic::<false>(ctx, require("studio")?, "Android Studio")
+    run_jetbrains_ide_generic::<false>(
+        ctx,
+        require_one([
+            "studio",
+            "android-studio",
+            "android-studio-beta",
+            "android-studio-canary",
+        ])?,
+        "Android Studio",
+    )
 }
 
 pub fn run_jetbrains_aqua(ctx: &ExecutionContext) -> Result<()> {
@@ -1602,31 +1613,43 @@ pub fn run_jetbrains_aqua(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_jetbrains_clion(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("clion")?, "CLion")
+    run_jetbrains_ide(ctx, require_one(["clion", "clion-eap"])?, "CLion")
 }
 
 pub fn run_jetbrains_datagrip(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("datagrip")?, "DataGrip")
+    run_jetbrains_ide(ctx, require_one(["datagrip", "datagrip-eap"])?, "DataGrip")
 }
 
 pub fn run_jetbrains_dataspell(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("dataspell")?, "DataSpell")
+    run_jetbrains_ide(ctx, require_one(["dataspell", "dataspell-eap"])?, "DataSpell")
 }
 
 pub fn run_jetbrains_gateway(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("gateway")?, "Gateway")
+    run_jetbrains_ide(
+        ctx,
+        require_one(["gateway", "jetbrains-gateway", "jetbrains-gateway-eap"])?,
+        "Gateway",
+    )
 }
 
 pub fn run_jetbrains_goland(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("goland")?, "Goland")
+    run_jetbrains_ide(ctx, require_one(["goland", "goland-eap"])?, "Goland")
 }
 
 pub fn run_jetbrains_idea(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("idea")?, "IntelliJ IDEA")
+    run_jetbrains_ide(
+        ctx,
+        require_one([
+            "idea",
+            "intellij-idea-ultimate-edition",
+            "intellij-idea-community-edition",
+        ])?,
+        "IntelliJ IDEA",
+    )
 }
 
 pub fn run_jetbrains_mps(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("mps")?, "MPS")
+    run_jetbrains_ide(ctx, require_one(["mps", "jetbrains-mps"])?, "MPS")
 }
 
 pub fn run_jetbrains_phpstorm(ctx: &ExecutionContext) -> Result<()> {
@@ -1634,23 +1657,31 @@ pub fn run_jetbrains_phpstorm(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_jetbrains_pycharm(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("pycharm")?, "PyCharm")
+    run_jetbrains_ide(
+        ctx,
+        require_one(["pycharm", "pycharm-professional", "pycharm-eap"])?,
+        "PyCharm",
+    )
 }
 
 pub fn run_jetbrains_rider(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("rider")?, "Rider")
+    run_jetbrains_ide(ctx, require_one(["rider", "rider-eap"])?, "Rider")
 }
 
 pub fn run_jetbrains_rubymine(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("rubymine")?, "RubyMine")
+    run_jetbrains_ide(
+        ctx,
+        require_one(["rubymine", "jetbrains-rubymine", "rubymine-eap"])?,
+        "RubyMine",
+    )
 }
 
 pub fn run_jetbrains_rustrover(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("rustrover")?, "RustRover")
+    run_jetbrains_ide(ctx, require_one(["rustrover", "rustrover-eap"])?, "RustRover")
 }
 
 pub fn run_jetbrains_webstorm(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("webstorm")?, "WebStorm")
+    run_jetbrains_ide(ctx, require_one(["webstorm", "webstorm-eap"])?, "WebStorm")
 }
 
 pub fn run_yazi(ctx: &ExecutionContext) -> Result<()> {
@@ -1658,5 +1689,5 @@ pub fn run_yazi(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Yazi packages");
 
-    ctx.run_type().execute(ya).args(["pack", "-u"]).status_checked()
+    ctx.run_type().execute(ya).args(["pkg", "upgrade"]).status_checked()
 }
