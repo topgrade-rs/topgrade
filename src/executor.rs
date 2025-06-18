@@ -206,6 +206,7 @@ impl Executor {
         }
     }
 
+    #[allow(dead_code)]
     /// Set stdin, stdout, stderr to `Stdio::null()`
     pub fn null_stdio(&mut self) -> &mut Self {
         match self {
