@@ -122,8 +122,8 @@ fn run() -> Result<()> {
 
     debug!("Version: {}", crate_version!());
     debug!("OS: {}", env!("TARGET"));
-    debug!("{:?}", std::env::args());
-    debug!("Binary path: {:?}", std::env::current_exe());
+    debug!("{:?}", env::args());
+    debug!("Binary path: {:?}", env::current_exe());
     debug!("self-update Feature Enabled: {:?}", cfg!(feature = "self-update"));
     debug!("Configuration: {:?}", config);
 
@@ -139,11 +139,19 @@ fn run() -> Result<()> {
     let should_run_powershell = powershell.profile().is_some() && config.should_run(Step::Powershell);
     let emacs = emacs::Emacs::new();
     #[cfg(target_os = "linux")]
-    let distribution = linux::Distribution::detect();
+    let distribution = linux::Distribution::detect()
+        .inspect_err(|r| debug!("Failed to detect linux distro: {}", r))
+        .ok();
 
     let sudo = config.sudo_command().map_or_else(sudo::Sudo::detect, sudo::Sudo::new);
     let run_type = executor::RunType::new(config.dry_run());
-    let ctx = execution_context::ExecutionContext::new(run_type, sudo, &config);
+    let ctx = execution_context::ExecutionContext::new(
+        run_type,
+        sudo,
+        &config,
+        #[cfg(target_os = "linux")]
+        distribution.as_ref(),
+    );
     let mut runner = runner::Runner::new(&ctx);
 
     // If
@@ -220,13 +228,10 @@ fn run() -> Result<()> {
         // by other package managers.
         runner.execute(Step::Shell, "packer.nu", || linux::run_packer_nu(&ctx))?;
 
-        match &distribution {
-            Ok(distribution) => {
-                runner.execute(Step::System, "System update", || distribution.upgrade(&ctx))?;
-            }
-            Err(e) => {
-                println!("{}", t!("Error detecting current distribution: {error}", error = e));
-            }
+        if let Some(distribution) = &distribution {
+            runner.execute(Step::System, "System update", || distribution.upgrade(&ctx))?;
+        } else {
+            debug!("Skipping system update as linux distro could not be determined");
         }
         runner.execute(Step::ConfigUpdate, "config-update", || linux::run_config_update(&ctx))?;
 
@@ -540,7 +545,7 @@ fn run() -> Result<()> {
 
         #[cfg(target_os = "linux")]
         {
-            if let Ok(distribution) = &distribution {
+            if let Some(distribution) = &distribution {
                 distribution.show_summary();
             }
         }
