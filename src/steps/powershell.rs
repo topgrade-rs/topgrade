@@ -118,7 +118,11 @@ impl Powershell {
             let target_idx = valid_policies.iter().position(|&p| p == policy);
 
             let output = Command::new(powershell)
-                .args(["-NoProfile", "-Command", "Get-ExecutionPolicy"])
+                .args([
+                    "-NoProfile",
+                    "-Command",
+                    "Import-Module Microsoft.PowerShell.Security -ErrorAction SilentlyContinue; Get-ExecutionPolicy",
+                ])
                 .output_checked_utf8();
 
             if let Ok(output) = output {
