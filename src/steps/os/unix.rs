@@ -654,11 +654,15 @@ pub fn run_asdf(ctx: &ExecutionContext) -> Result<()> {
     // $ asdf version
     // v0.16.7
     // ```
+    // ```
+    // $ asdf version
+    // 0.18.0 (revision unknown)
+    // ```
     let version_stdout = version_output.stdout.trim();
     // trim the starting 'v'
     let mut remaining = version_stdout.trim_start_matches('v');
-    // remove the hash part if present
-    if let Some(idx) = remaining.find('-') {
+    // remove the hash or revision part if present
+    if let Some(idx) = remaining.find(['-', ' ']) {
         remaining = &remaining[..idx];
     }
     let version =
