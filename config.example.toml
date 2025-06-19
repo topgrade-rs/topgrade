@@ -213,6 +213,8 @@
 # Manually select Windows updates
 # accept_all_updates = false
 
+# updates_auto_reboot = true
+
 # open_remotes_in_new_terminal = true
 
 # wsl_update_pre_release = true
