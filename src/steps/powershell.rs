@@ -3,7 +3,6 @@ use std::process::Command;
 
 use color_eyre::eyre::Result;
 use rust_i18n::t;
-use tracing::debug;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
@@ -84,12 +83,9 @@ impl Powershell {
     }
 
     pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
-        debug!("PowerShell update_modules called");
         print_separator("Powershell Modules Update");
-        debug!("After print_separator");
 
         let mut cmd_args = vec!["-Command", "Update-Module"];
-        debug!("Command args: {:?}", cmd_args);
 
         // Add -Force option if --yes is enabled
         if ctx.config().yes(Step::Powershell) {
@@ -101,27 +97,20 @@ impl Powershell {
             cmd_args.push("-Verbose");
         }
 
-        debug!("Final command args: {:?}", cmd_args);
-
         #[cfg(not(windows))]
         {
-            debug!("Running on Unix, executing without sudo");
             // On Unix, run Update-Module without sudo since PowerShell Core defaults to CurrentUser scope
             // and Update-Module updates all modules regardless of their original installation scope
             self.build_command_internal(ctx, &cmd_args, false)?.status_checked()?;
-            debug!("Unix command completed");
         }
 
         #[cfg(windows)]
         {
-            debug!("Running on Windows, executing with sudo");
             // On Windows, use sudo if available since Windows PowerShell 5.1 defaults to AllUsers scope
             // and may need administrator privileges
             self.build_command_internal(ctx, &cmd_args, true)?.status_checked()?;
-            debug!("Windows command completed");
         }
 
-        debug!("update_modules completed successfully");
         Ok(())
     }
 
