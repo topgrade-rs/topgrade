@@ -83,7 +83,7 @@ impl Powershell {
     }
 
     pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
-        print_separator("Powershell Modules Update");
+        print_separator(t!("Powershell Modules Update"));
 
         let mut cmd_args = vec!["-Command", "Update-Module"];
 
