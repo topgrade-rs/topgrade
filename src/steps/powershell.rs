@@ -3,6 +3,7 @@ use std::process::Command;
 
 use color_eyre::eyre::Result;
 use rust_i18n::t;
+use tracing::debug;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
