@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 
-use std::collections::BTreeMap;
 use std::fs::{write, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -12,6 +11,7 @@ use clap_complete::Shell;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use etcetera::base_strategy::BaseStrategy;
+use indexmap::IndexMap;
 use merge::Merge;
 use regex::Regex;
 use regex_split::RegexSplit;
@@ -44,7 +44,7 @@ macro_rules! str_value {
     };
 }
 
-pub type Commands = BTreeMap<String, String>;
+pub type Commands = IndexMap<String, String>;
 
 #[derive(ValueEnum, EnumString, VariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
 #[clap(rename_all = "snake_case")]
