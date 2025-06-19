@@ -136,7 +136,7 @@ fn run() -> Result<()> {
     }
 
     let powershell = powershell::Powershell::new();
-    let should_run_powershell = powershell.profile().is_some() && config.should_run(Step::Powershell);
+    let should_run_powershell = powershell.is_available() && config.should_run(Step::Powershell);
     let emacs = emacs::Emacs::new();
     #[cfg(target_os = "linux")]
     let distribution = linux::Distribution::detect();

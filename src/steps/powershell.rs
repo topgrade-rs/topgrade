@@ -22,6 +22,10 @@ impl Powershell {
         Powershell { path, profile }
     }
 
+    pub fn is_available(&self) -> bool {
+        self.path.is_some()
+    }
+
     #[cfg(windows)]
     pub fn windows_powershell() -> Self {
         Powershell {
@@ -56,11 +60,12 @@ impl Powershell {
         &self,
         ctx: &'a ExecutionContext,
         additional_args: &[&str],
+        use_sudo: bool,
     ) -> Result<impl CommandExt + 'a> {
         let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
         let executor = &mut ctx.run_type();
-        let mut command = if let Some(sudo) = ctx.sudo() {
-            let mut cmd = executor.execute(sudo);
+        let mut command = if use_sudo && ctx.sudo().is_some() {
+            let mut cmd = executor.execute(ctx.sudo().clone().unwrap());
             cmd.arg(powershell);
             cmd
         } else {
@@ -79,16 +84,34 @@ impl Powershell {
 
     pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
         print_separator(t!("Powershell Modules Update"));
-        let mut cmd_args = vec!["Update-Module"];
 
-        if ctx.config().verbose() {
-            cmd_args.push("-Verbose");
-        }
+        let mut cmd_args = vec!["-Command", "Update-Module"];
+
+        // Add -Force option if --yes is enabled
         if ctx.config().yes(Step::Powershell) {
             cmd_args.push("-Force");
         }
-        println!("{}", t!("Updating modules..."));
-        self.build_command_internal(ctx, &cmd_args)?.status_checked()
+
+        // Add -Verbose option if verbose mode is enabled
+        if ctx.config().verbose() {
+            cmd_args.push("-Verbose");
+        }
+
+        #[cfg(not(windows))]
+        {
+            // On Unix, run Update-Module without sudo since PowerShell Core defaults to CurrentUser scope
+            // and Update-Module updates all modules regardless of their original installation scope
+            self.build_command_internal(ctx, &cmd_args, false)?.status_checked()?;
+        }
+
+        #[cfg(windows)]
+        {
+            // On Windows, use sudo if available since Windows PowerShell 5.1 defaults to AllUsers scope
+            // and may need administrator privileges
+            self.build_command_internal(ctx, &cmd_args, true)?.status_checked()?;
+        }
+
+        Ok(())
     }
 
     fn common_args() -> &'static [&'static str] {
@@ -177,7 +200,7 @@ mod windows {
 
         // Pass the command string using the -Command flag
         powershell
-            .build_command_internal(ctx, &["-Command", &command_str])?
+            .build_command_internal(ctx, &["-Command", &command_str], true)?
             .status_checked()
     }
 
@@ -189,7 +212,7 @@ mod windows {
             Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue'";
 
         powershell
-            .build_command_internal(ctx, &["-Command", update_command])?
+            .build_command_internal(ctx, &["-Command", update_command], true)?
             .status_checked()
     }
 
