@@ -22,6 +22,10 @@ impl Powershell {
         Powershell { path, profile }
     }
 
+    pub fn is_available(&self) -> bool {
+        self.path.is_some()
+    }
+
     #[cfg(windows)]
     pub fn windows_powershell() -> Self {
         Powershell {
