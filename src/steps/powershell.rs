@@ -22,6 +22,10 @@ impl Powershell {
         Powershell { path, profile }
     }
 
+    pub fn is_available(&self) -> bool {
+        self.path.is_some()
+    }
+
     #[cfg(windows)]
     pub fn windows_powershell() -> Self {
         Powershell {
@@ -79,7 +83,7 @@ impl Powershell {
     }
 
     pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
-        print_separator("Powershell Modules Update");
+        print_separator(t!("Powershell Modules Update"));
 
         let mut cmd_args = vec!["-Command", "Update-Module"];
 
@@ -95,24 +99,15 @@ impl Powershell {
 
         #[cfg(not(windows))]
         {
-            // Update user-scope modules WITHOUT sudo (to avoid root ownership issues)
-            println!("Updating user-scope modules...");
-            let mut user_cmd_args = cmd_args.clone();
-            user_cmd_args.extend_from_slice(&["-Scope", "CurrentUser"]);
-            self.build_command_internal(ctx, &user_cmd_args, false)?
-                .status_checked()?;
-
-            // Update system-scope modules WITH sudo (if available)
-            println!("Updating system-scope modules...");
-            let mut system_cmd_args = cmd_args.clone();
-            system_cmd_args.extend_from_slice(&["-Scope", "AllUsers"]);
-            self.build_command_internal(ctx, &system_cmd_args, true)?
-                .status_checked()?;
+            // On Unix, run Update-Module without sudo since PowerShell Core defaults to CurrentUser scope
+            // and Update-Module updates all modules regardless of their original installation scope
+            self.build_command_internal(ctx, &cmd_args, false)?.status_checked()?;
         }
 
         #[cfg(windows)]
         {
-            // On Windows, run Update-Module once with sudo if available
+            // On Windows, use sudo if available since Windows PowerShell 5.1 defaults to AllUsers scope
+            // and may need administrator privileges
             self.build_command_internal(ctx, &cmd_args, true)?.status_checked()?;
         }
 
