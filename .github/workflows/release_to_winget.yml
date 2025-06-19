@@ -2,6 +2,8 @@ name: Publish to WinGet
 on:
   release:
     types: [released]
+  workflow_dispatch:
+
 jobs:
   publish:
     runs-on: windows-latest
