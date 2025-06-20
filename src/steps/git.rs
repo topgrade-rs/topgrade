@@ -13,8 +13,8 @@ use tokio::runtime;
 use tracing::{debug, error};
 
 use crate::command::CommandExt;
-use crate::config::Step;
 use crate::execution_context::ExecutionContext;
+use crate::step::Step;
 use crate::steps::emacs::Emacs;
 use crate::terminal::print_separator;
 use crate::utils::{require, PathExt};

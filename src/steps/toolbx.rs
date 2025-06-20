@@ -1,7 +1,7 @@
 use color_eyre::eyre::Result;
 
 use crate::command::CommandExt;
-use crate::config::Step;
+use crate::step::Step;
 use crate::terminal::print_separator;
 use crate::{execution_context::ExecutionContext, utils::require};
 use std::path::Path;
