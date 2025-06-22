@@ -464,7 +464,7 @@ impl Step {
             Pnpm => runner.execute(*self, "pnpm", || node::run_pnpm_upgrade(ctx))?,
             Poetry => runner.execute(*self, "Poetry", || generic::run_poetry(ctx))?,
             Powershell => {
-                let powershell = powershell::Powershell::new();
+                let powershell = ctx.powershell();
                 if powershell.is_available() {
                     runner.execute(Powershell, "Powershell Modules Update", || {
                         powershell.update_modules(ctx)
