@@ -218,11 +218,11 @@ pub fn windows_update(ctx: &ExecutionContext, powershell: &powershell::Powershel
 
         powershell.windows_update(ctx)
     } else {
-        print_warning(t!(
-            "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."
-        ));
+        print_warning(
+            "The PSWindowsUpdate PowerShell module isn't installed so Topgrade can't run Windows Update.\nInstall PSWindowsUpdate by running `Install-Module PSWindowsUpdate` in PowerShell."
+        );
 
-        Err(SkipStep(t!("USOClient not supported.").to_string()).into())
+        Err(SkipStep("PSWindowsUpdate is not installed".to_string()).into())
     }
 }
 

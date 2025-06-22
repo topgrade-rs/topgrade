@@ -782,22 +782,6 @@ _version: 2
   zh_CN: "无法找到安装在 WSL 中的 Topgrade"
   zh_TW: "尚未在 WSL 內安裝 Topgrade"
   de: "Konnte Topgrade nicht in WSL finden"
-"Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported.":
-  en: "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."
-  lt: "Apsvarstykite PSWindowsUpdate įdiegimą, nes Windows Update per USOClient nepalaikomas."
-  es: "Considere instalar PSWindowsUpdate ya que no se admite el uso de Windows Update a través de USOClient."
-  fr: "Envisagez d'installer PSWindowsUpdate car l'utilisation de Windows Update via USOClient n'est pas prise en charge."
-  zh_CN: "目前不支持使用 USOClient 管理 Windows 更新。建议安装 PSWindowsUpdate。"
-  zh_TW: "目前不支援使用 USOClient 管理 Windows 更新。建議安裝 PSWindowsUpdate。"
-  de: "Erwägen Sie die Installation von PSWindowsUpdate, da die Verwendung von Windows Update über USOClient nicht unterstützt wird."
-"USOClient not supported.":
-  en: "USOClient not supported."
-  lt: "USOClient nepalaikomas."
-  es: "USOClient no es admitido."
-  fr: "USOClient n'est pas pris en charge."
-  zh_CN: "不支持 USOClient"
-  zh_TW: "不支援 USOClient。"
-  de: "USOClient wird nicht unterstützt."
 "Connecting to {hostname}...":
   en: "Connecting to %{hostname}..."
   lt: "Jungiamasi prie %{hostname}..."
