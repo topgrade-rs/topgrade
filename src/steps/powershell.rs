@@ -34,7 +34,7 @@ impl Powershell {
             .or_else(|| which("powershell").map(|p| (Some(p), false)))
             .unwrap_or((None, false));
 
-        let profile = path.as_ref().and_then(Self::get_profile);
+        let profile = path.as_ref().and_then(|path| Self::get_profile(path, is_pwsh));
 
         Self { path, profile, is_pwsh }
     }
@@ -43,29 +43,12 @@ impl Powershell {
         self.path.is_some()
     }
 
-    #[cfg(windows)]
-    pub fn windows_powershell() -> Self {
-        if terminal::is_dumb() {
-            return Self {
-                path: None,
-                profile: None,
-                is_pwsh: false,
-            };
-        }
-
-        Self {
-            path: which("powershell"),
-            profile: None,
-            is_pwsh: false,
-        }
-    }
-
     pub fn profile(&self) -> Option<&PathBuf> {
         self.profile.as_ref()
     }
 
-    fn get_profile(path: &PathBuf) -> Option<PathBuf> {
-        let profile = Self::build_command_internal(path, "Split-Path $PROFILE")
+    fn get_profile(path: &PathBuf, is_pwsh: bool) -> Option<PathBuf> {
+        let profile = Self::build_command_internal(path, is_pwsh, "Split-Path $PROFILE")
             .output_checked_utf8()
             .map(|output| output.stdout.trim().to_string())
             .and_then(|s| PathBuf::from(s).require())
@@ -75,11 +58,17 @@ impl Powershell {
     }
 
     /// Builds an "internal" powershell command
-    fn build_command_internal(path: &PathBuf, cmd: &str) -> Command {
+    fn build_command_internal(path: &PathBuf, is_pwsh: bool, cmd: &str) -> Command {
         let mut command = Command::new(path);
 
         command.args(["-NoProfile", "-Command"]);
         command.arg(cmd);
+
+        // If topgrade was run from pwsh, but we are trying to run powershell, then
+        // the inherited PSModulePath breaks module imports
+        if !is_pwsh {
+            command.env_remove("PSModulePath");
+        }
 
         command
     }
@@ -105,6 +94,12 @@ impl Powershell {
 
         command.args(["-NoProfile", "-Command"]);
         command.arg(cmd);
+
+        // If topgrade was run from pwsh, but we are trying to run powershell, then
+        // the inherited PSModulePath breaks module imports
+        if !self.is_pwsh {
+            command.env_remove("PSModulePath");
+        }
 
         Ok(command)
     }
@@ -158,7 +153,7 @@ impl Powershell {
             // Find the index of our target policy
             let target_idx = valid_policies.iter().position(|&p| p == policy);
 
-            let mut command = Self::build_command_internal(powershell, "Get-ExecutionPolicy");
+            let mut command = Self::build_command_internal(powershell, self.is_pwsh, "Get-ExecutionPolicy");
 
             let current_policy = command
                 .output_checked_utf8()
@@ -187,7 +182,7 @@ impl Powershell {
         if let Some(powershell) = &self.path {
             let cmd = format!("Get-Module -ListAvailable {}", module_name);
 
-            return Self::build_command_internal(powershell, &cmd)
+            return Self::build_command_internal(powershell, self.is_pwsh, &cmd)
                 .output_checked()
                 .map(|output| !output.stdout.trim_ascii().is_empty())
                 .unwrap_or(false);

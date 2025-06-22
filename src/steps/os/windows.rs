@@ -7,7 +7,6 @@ use tracing::debug;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
-use crate::powershell;
 use crate::step::Step;
 use crate::terminal::{print_separator, print_warning};
 use crate::utils::{require, which};
@@ -226,7 +225,7 @@ pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
-    let powershell = powershell::Powershell::windows_powershell();
+    let powershell = ctx.powershell();
 
     print_separator(t!("Windows Update"));
 
@@ -244,7 +243,7 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
-    let powershell = powershell::Powershell::windows_powershell();
+    let powershell = ctx.powershell();
 
     print_separator(t!("Microsoft Store"));
 
