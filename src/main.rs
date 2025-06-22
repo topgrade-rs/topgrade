@@ -136,7 +136,6 @@ fn run() -> Result<()> {
     }
 
     let powershell = powershell::Powershell::new();
-    let should_run_powershell = powershell.profile().is_some() && config.should_run(Step::Powershell);
     let emacs = emacs::Emacs::new();
     #[cfg(target_os = "linux")]
     let distribution = linux::Distribution::detect();
@@ -504,7 +503,7 @@ fn run() -> Result<()> {
     })?;
     runner.execute(Step::Yazi, "Yazi packages", || generic::run_yazi(&ctx))?;
 
-    if should_run_powershell {
+    if powershell.is_available() && config.should_run(Step::Powershell) {
         runner.execute(Step::Powershell, "Powershell Modules Update", || {
             powershell.update_modules(&ctx)
         })?;
