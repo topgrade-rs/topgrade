@@ -465,7 +465,7 @@ impl Step {
             Poetry => runner.execute(*self, "Poetry", || generic::run_poetry(ctx))?,
             Powershell => {
                 let powershell = powershell::Powershell::new();
-                if powershell.profile().is_some() {
+                if powershell.is_available() {
                     runner.execute(Powershell, "Powershell Modules Update", || {
                         powershell.update_modules(ctx)
                     })?;

@@ -10,26 +10,53 @@ use tracing::debug;
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
-use crate::terminal::{is_dumb, print_separator};
+use crate::terminal::{self, print_separator};
 use crate::utils::{require_option, which, PathExt};
 
 pub struct Powershell {
     path: Option<PathBuf>,
     profile: Option<PathBuf>,
+    is_pwsh: bool,
 }
 
 impl Powershell {
     pub fn new() -> Self {
-        let path = which("pwsh").or_else(|| which("powershell")).filter(|_| !is_dumb());
+        if terminal::is_dumb() {
+            return Self {
+                path: None,
+                profile: None,
+                is_pwsh: false,
+            };
+        }
+
+        let (path, is_pwsh) = which("pwsh")
+            .map(|p| (Some(p), true))
+            .or_else(|| which("powershell").map(|p| (Some(p), false)))
+            .unwrap_or((None, false));
+
         let profile = path.as_ref().and_then(Self::get_profile);
-        Self { path, profile }
+
+        Self { path, profile, is_pwsh }
+    }
+
+    pub fn is_available(&self) -> bool {
+        self.path.is_some()
     }
 
     #[cfg(windows)]
     pub fn windows_powershell() -> Self {
-        Powershell {
-            path: which("powershell").filter(|_| !is_dumb()),
+        if terminal::is_dumb() {
+            return Self {
+                path: None,
+                profile: None,
+                is_pwsh: false,
+            };
+        }
+
+        Self {
+            path: which("powershell"),
             profile: None,
+            is_pwsh: false,
         }
     }
 
@@ -59,11 +86,11 @@ impl Powershell {
 
     /// Builds a "primary" powershell command (uses dry-run if required):
     /// {powershell} -NoProfile -Command {cmd}
-    fn build_command<'a>(&self, ctx: &'a ExecutionContext, cmd: &str) -> Result<impl CommandExt + 'a> {
+    fn build_command<'a>(&self, ctx: &'a ExecutionContext, cmd: &str, use_sudo: bool) -> Result<impl CommandExt + 'a> {
         let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
         let executor = &mut ctx.run_type();
-        let mut command = if let Some(sudo) = ctx.sudo() {
-            let mut cmd = executor.execute(sudo);
+        let mut command = if use_sudo && ctx.sudo().is_some() {
+            let mut cmd = executor.execute(ctx.sudo().as_ref().unwrap());
             cmd.arg(powershell);
             cmd
         } else {
@@ -96,7 +123,17 @@ impl Powershell {
 
         println!("{}", t!("Updating modules..."));
 
-        self.build_command(ctx, &cmd)?.status_checked()
+        if self.is_pwsh {
+            // For PowerShell Core, run Update-Module without sudo since it defaults to CurrentUser scope
+            // and Update-Module updates all modules regardless of their original installation scope
+            self.build_command(ctx, &cmd, false)?.status_checked()?;
+        } else {
+            // For (Windows) PowerShell, use sudo if available since it defaults to AllUsers scope
+            // and may need administrator privileges
+            self.build_command(ctx, &cmd, true)?.status_checked()?;
+        }
+
+        Ok(())
     }
 
     #[cfg(windows)]
@@ -179,7 +216,7 @@ impl Powershell {
             UpdatesAutoReboot::Ask => (), // Prompting is the default for Install-WindowsUpdate
         }
 
-        self.build_command(ctx, &cmd)?.status_checked()
+        self.build_command(ctx, &cmd, true)?.status_checked()
     }
 
     pub fn microsoft_store(&self, ctx: &ExecutionContext) -> Result<()> {
@@ -189,6 +226,6 @@ impl Powershell {
             -ClassName \"MDM_EnterpriseModernAppManagement_AppManagement01\" | \
             Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue'";
 
-        self.build_command(ctx, cmd)?.status_checked()
+        self.build_command(ctx, cmd, true)?.status_checked()
     }
 }
