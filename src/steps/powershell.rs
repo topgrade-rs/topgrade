@@ -216,11 +216,27 @@ impl Powershell {
 
     pub fn microsoft_store(&self, ctx: &ExecutionContext) -> Result<()> {
         println!("{}", t!("Scanning for updates..."));
-        let cmd = "Start-Process powershell -Verb RunAs -ArgumentList '-Command', \
-            '(Get-CimInstance -Namespace \"Root\\cimv2\\mdm\\dmmap\" \
-            -ClassName \"MDM_EnterpriseModernAppManagement_AppManagement01\" | \
-            Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue'";
 
-        self.build_command(ctx, cmd, true)?.status_checked()
+        // Scan for updates using the MDM UpdateScanMethod
+        // This method is also available for non-MDM devices
+        let cmd = r#"(Get-CimInstance -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" | Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue"#;
+
+        self.build_command(ctx, cmd, true)?.output_checked_with_utf8(|output| {
+            if !output.status.success() {
+                return Err(());
+            }
+            let ret_val = output.stdout.trim();
+            debug!("Command return value: {}", ret_val);
+            if ret_val == "0" {
+                Ok(())
+            } else {
+                Err(())
+            }
+        })?;
+        println!(
+            "{}",
+            t!("Success, Microsoft Store apps are being updated in the background")
+        );
+        Ok(())
     }
 }
