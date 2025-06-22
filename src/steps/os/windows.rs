@@ -210,9 +210,7 @@ pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     }
 }
 
-pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
-    let powershell = powershell::Powershell::windows_powershell();
-
+pub fn windows_update(ctx: &ExecutionContext, powershell: &powershell::Powershell) -> Result<()> {
     print_separator(t!("Windows Update"));
 
     if powershell.supports_windows_update() {
@@ -228,9 +226,7 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
     }
 }
 
-pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
-    let powershell = powershell::Powershell::windows_powershell();
-
+pub fn microsoft_store(ctx: &ExecutionContext, powershell: &powershell::Powershell) -> Result<()> {
     print_separator(t!("Microsoft Store"));
 
     powershell.microsoft_store(ctx)

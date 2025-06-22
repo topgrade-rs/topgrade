@@ -207,9 +207,11 @@ fn run() -> Result<()> {
         runner.execute(Step::Chocolatey, "Chocolatey", || windows::run_chocolatey(&ctx))?;
         runner.execute(Step::Scoop, "Scoop", || windows::run_scoop(&ctx))?;
         runner.execute(Step::Winget, "Winget", || windows::run_winget(&ctx))?;
-        runner.execute(Step::System, "Windows update", || windows::windows_update(&ctx))?;
+        runner.execute(Step::System, "Windows update", || {
+            windows::windows_update(&ctx, &powershell)
+        })?;
         runner.execute(Step::MicrosoftStore, "Microsoft Store", || {
-            windows::microsoft_store(&ctx)
+            windows::microsoft_store(&ctx, &powershell)
         })?;
     }
 
