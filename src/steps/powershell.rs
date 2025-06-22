@@ -24,10 +24,10 @@ impl Powershell {
 
     #[cfg(windows)]
     pub fn windows_powershell() -> Self {
-        Powershell {
-            path: which("powershell").filter(|_| !is_dumb()),
-            profile: None,
-        }
+        // Prefer pwsh (PowerShell 7+) over powershell.exe to avoid environment conflicts
+        let path = which("pwsh").or_else(|| which("powershell")).filter(|_| !is_dumb());
+
+        Powershell { path, profile: None }
     }
 
     pub fn profile(&self) -> Option<&PathBuf> {
@@ -69,8 +69,11 @@ impl Powershell {
 
         #[cfg(windows)]
         {
-            // Check execution policy and return early if it's not set correctly
-            self.execution_policy_args_if_needed()?;
+            // Only check execution policy on Windows with legacy PowerShell
+            // PowerShell 7+ (pwsh) handles modules better and doesn't need this check
+            if self.is_legacy_windows_powershell() {
+                self.execution_policy_args_if_needed()?;
+            }
         }
 
         command.args(Self::common_args()).args(additional_args);
@@ -96,6 +99,19 @@ impl Powershell {
     }
 
     #[cfg(windows)]
+    fn is_legacy_windows_powershell(&self) -> bool {
+        self.path
+            .as_ref()
+            .map(|p| {
+                p.file_name()
+                    .and_then(|name| name.to_str())
+                    .map(|name| name.to_lowercase().contains("powershell.exe"))
+                    .unwrap_or(false)
+            })
+            .unwrap_or(false)
+    }
+
+    #[cfg(windows)]
     pub fn execution_policy_args_if_needed(&self) -> Result<()> {
         if !self.is_execution_policy_set("RemoteSigned") {
             Err(color_eyre::eyre::eyre!(
@@ -118,10 +134,11 @@ impl Powershell {
             let target_idx = valid_policies.iter().position(|&p| p == policy);
 
             let output = Command::new(powershell)
+                .env_remove("PSModulePath") // Remove environment variable that causes conflicts when run from pwsh
                 .args([
                     "-NoProfile",
                     "-Command",
-                    "Import-Module Microsoft.PowerShell.Security -ErrorAction SilentlyContinue; Get-ExecutionPolicy",
+                    "Get-ExecutionPolicy", // Let auto-import handle the module loading
                 ])
                 .output_checked_utf8();
 
@@ -197,12 +214,13 @@ mod windows {
             .status_checked()
     }
 
-    fn has_module(powershell: &PathBuf, command: &str) -> bool {
+    fn has_module(powershell: &PathBuf, module_name: &str) -> bool {
         Command::new(powershell)
+            .env_remove("PSModulePath") // Prevent environment conflicts
             .args([
                 "-NoProfile",
                 "-Command",
-                &format!("Get-Module -ListAvailable {}", command),
+                &format!("Get-Module -ListAvailable {}", module_name),
             ])
             .output_checked_utf8()
             .map(|result| !result.stdout.is_empty())
