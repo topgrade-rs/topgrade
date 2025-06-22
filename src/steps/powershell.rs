@@ -82,15 +82,20 @@ impl Powershell {
 
     pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
         print_separator(t!("Powershell Modules Update"));
+
         let mut cmd_args = vec!["Update-Module"];
 
         if ctx.config().verbose() {
             cmd_args.push("-Verbose");
+            println!("{}", t!("Checking for PowerShell module updates..."));
+        } else {
+            println!("{}", t!("Updating modules..."));
         }
+
         if ctx.config().yes(Step::Powershell) {
             cmd_args.push("-Force");
         }
-        println!("{}", t!("Updating modules..."));
+
         self.build_command_internal(ctx, &cmd_args)?.status_checked()
     }
 

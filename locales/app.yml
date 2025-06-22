@@ -104,6 +104,14 @@ _version: 2
   zh_CN: "正在更新模块..."
   zh_TW: "正在更新模組..."
   de: "Module werden aktualisiert..."
+"Checking for PowerShell module updates...":
+  en: "Checking for PowerShell module updates..."
+  lt: "Tikrinami PowerShell modulių atnaujinimai..."
+  es: "Comprobando actualizaciones de módulos PowerShell..."
+  fr: "Vérification des mises à jour des modules PowerShell..."
+  zh_CN: "正在检查 PowerShell 模块更新..."
+  zh_TW: "正在檢查 PowerShell 模組更新..."
+  de: "Überprüfe PowerShell-Modul-Updates..."
 "Powershell Modules Update":
   en: "Powershell Modules Update"
   lt: "PowerShell modulių atnaujinimas"
@@ -1235,6 +1243,7 @@ _version: 2
 "Microsoft Store":
   en: "Microsoft Store"
   lt: "Microsoft parduotuvė"
+
   es: "Tienda de Microsoft"
   fr: "Microsoft Store"
   zh_CN: "Microsoft Store"
