@@ -94,13 +94,9 @@ impl NPM {
         let args = ["update", self.global_location_arg()];
         if use_sudo {
             let sudo = require_option(ctx.sudo().clone(), get_require_sudo_string())?;
-            ctx.run_type()
-                .execute(sudo)
-                .arg(&self.command)
-                .args(args)
-                .status_checked()?;
+            ctx.execute(sudo).arg(&self.command).args(args).status_checked()?;
         } else {
-            ctx.run_type().execute(&self.command).args(args).status_checked()?;
+            ctx.execute(&self.command).args(args).status_checked()?;
         }
 
         Ok(())
@@ -158,13 +154,12 @@ impl Yarn {
 
         if use_sudo {
             let sudo = require_option(ctx.sudo().clone(), get_require_sudo_string())?;
-            ctx.run_type()
-                .execute(sudo)
+            ctx.execute(sudo)
                 .arg(self.yarn.as_ref().unwrap_or(&self.command))
                 .args(args)
                 .status_checked()?;
         } else {
-            ctx.run_type().execute(&self.command).args(args).status_checked()?;
+            ctx.execute(&self.command).args(args).status_checked()?;
         }
 
         Ok(())
@@ -245,11 +240,7 @@ impl Deno {
             }
         }
 
-        ctx.run_type()
-            .execute(&self.command)
-            .arg("upgrade")
-            .args(args)
-            .status_checked()?;
+        ctx.execute(&self.command).arg("upgrade").args(args).status_checked()?;
         Ok(())
     }
 
@@ -376,7 +367,6 @@ pub fn run_volta_packages_upgrade(ctx: &ExecutionContext) -> Result<()> {
     }
 
     let list_output = ctx
-        .run_type()
         .execute(&volta)
         .args(["list", "--format=plain"])
         .output_checked_utf8()?
@@ -400,10 +390,7 @@ pub fn run_volta_packages_upgrade(ctx: &ExecutionContext) -> Result<()> {
     }
 
     for package in &installed_packages {
-        ctx.run_type()
-            .execute(&volta)
-            .args(["install", package])
-            .status_checked()?;
+        ctx.execute(&volta).args(["install", package]).status_checked()?;
     }
 
     Ok(())

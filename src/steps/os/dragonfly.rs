@@ -9,7 +9,7 @@ use std::process::Command;
 pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     print_separator(t!("DragonFly BSD Packages"));
-    let mut cmd = ctx.run_type().execute(sudo);
+    let mut cmd = ctx.execute(sudo);
     cmd.args(["/usr/local/sbin/pkg", "upgrade"]);
     if ctx.config().yes(Step::System) {
         cmd.arg("-y");

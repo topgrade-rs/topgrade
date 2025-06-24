@@ -139,7 +139,7 @@ fn run() -> Result<()> {
     let distribution = linux::Distribution::detect();
 
     let sudo = config.sudo_command().map_or_else(sudo::Sudo::detect, sudo::Sudo::new);
-    let run_type = executor::RunType::new(config.dry_run());
+    let run_type = execution_context::RunType::new(config.dry_run());
     let ctx = execution_context::ExecutionContext::new(
         run_type,
         sudo,
