@@ -252,7 +252,7 @@ pub fn run_aqua(ctx: &ExecutionContext) -> Result<()> {
     let aqua = get_aqua(ctx)?.aqua_cli()?;
 
     print_separator("Aqua");
-    if ctx.run_type().dry() {
+    if ctx.dry_run() {
         println!("{}", t!("Updating aqua ..."));
         println!("{}", t!("Updating aqua installed cli tools ..."));
         Ok(())

@@ -371,7 +371,7 @@ impl RepoStep {
     /// This function will create an async runtime and do the real job so the
     /// function itself is not async.
     fn pull_repos(&self, ctx: &ExecutionContext) -> Result<()> {
-        if ctx.run_type().dry() {
+        if ctx.dry_run() {
             self.repos
                 .iter()
                 .for_each(|repo| println!("{}", t!("Would pull {repo}", repo = repo.display())));

@@ -361,7 +361,7 @@ pub fn run_volta_packages_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Volta");
 
-    if ctx.run_type().dry() {
+    if ctx.dry_run() {
         print_info(t!("Updating Volta packages..."));
         return Ok(());
     }

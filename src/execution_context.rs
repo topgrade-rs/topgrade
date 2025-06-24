@@ -10,37 +10,8 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::Mutex;
 
-/// An enum telling whether Topgrade should perform dry runs or actually perform the steps.
-#[derive(Clone, Copy, Debug)]
-pub enum RunType {
-    /// Executing commands will just print the command with its argument.
-    Dry,
-
-    /// Executing commands will perform actual execution.
-    Wet,
-}
-
-impl RunType {
-    /// Create a new instance from a boolean telling whether to dry run.
-    pub fn new(dry_run: bool) -> Self {
-        if dry_run {
-            RunType::Dry
-        } else {
-            RunType::Wet
-        }
-    }
-
-    /// Tells whether we're performing a dry run.
-    pub fn dry(self) -> bool {
-        match self {
-            RunType::Dry => true,
-            RunType::Wet => false,
-        }
-    }
-}
-
 pub struct ExecutionContext<'a> {
-    run_type: RunType,
+    dry_run: bool,
     sudo: Option<Sudo>,
     config: &'a Config,
     /// Name of a tmux session to execute commands in, if any.
@@ -52,10 +23,10 @@ pub struct ExecutionContext<'a> {
 }
 
 impl<'a> ExecutionContext<'a> {
-    pub fn new(run_type: RunType, sudo: Option<Sudo>, config: &'a Config) -> Self {
+    pub fn new(dry_run: bool, sudo: Option<Sudo>, config: &'a Config) -> Self {
         let under_ssh = var("SSH_CLIENT").is_ok() || var("SSH_TTY").is_ok();
         Self {
-            run_type,
+            dry_run,
             sudo,
             config,
             tmux_session: Mutex::new(None),
@@ -65,9 +36,10 @@ impl<'a> ExecutionContext<'a> {
 
     /// Create an instance of `Executor` that should run `program`.
     pub fn execute<S: AsRef<OsStr>>(&self, program: S) -> Executor {
-        match self.run_type {
-            RunType::Dry => Executor::Dry(DryCommand::new(program)),
-            RunType::Wet => Executor::Wet(Command::new(program)),
+        if self.dry_run {
+            Executor::Dry(DryCommand::new(program))
+        } else {
+            Executor::Wet(Command::new(program))
         }
     }
 
@@ -78,8 +50,8 @@ impl<'a> ExecutionContext<'a> {
         Ok(sudo.execute_elevated(self, command, interactive))
     }
 
-    pub fn run_type(&self) -> RunType {
-        self.run_type
+    pub fn dry_run(&self) -> bool {
+        self.dry_run
     }
 
     pub fn sudo(&self) -> &Option<Sudo> {

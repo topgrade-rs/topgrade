@@ -18,7 +18,7 @@ use crate::execution_context::ExecutionContext;
 pub fn self_update(ctx: &ExecutionContext) -> Result<()> {
     print_separator(t!("Self update"));
 
-    if ctx.run_type().dry() {
+    if ctx.dry_run() {
         println!("{}", t!("Would self-update"));
         Ok(())
     } else {
