@@ -32,13 +32,12 @@ pub struct YayParu {
 impl ArchPackageManager for YayParu {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
         if ctx.config().show_arch_news() {
-            ctx.run_type()
-                .execute(&self.executable)
+            ctx.execute(&self.executable)
                 .arg("-Pw")
                 .status_checked_with_codes(&[1, 0])?;
         }
 
-        let mut command = ctx.run_type().execute(&self.executable);
+        let mut command = ctx.execute(&self.executable);
 
         command
             .arg("--pacman")
@@ -53,7 +52,7 @@ impl ArchPackageManager for YayParu {
         command.status_checked()?;
 
         if ctx.config().cleanup() {
-            let mut command = ctx.run_type().execute(&self.executable);
+            let mut command = ctx.execute(&self.executable);
             command.arg("--pacman").arg(&self.pacman).arg("-Scc");
             if ctx.config().yes(Step::System) {
                 command.arg("--noconfirm");
@@ -80,7 +79,7 @@ pub struct GarudaUpdate {
 
 impl ArchPackageManager for GarudaUpdate {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
-        let mut command = ctx.run_type().execute(&self.executable);
+        let mut command = ctx.execute(&self.executable);
 
         command
             .env("PATH", get_execution_path())
@@ -111,7 +110,7 @@ pub struct Trizen {
 
 impl ArchPackageManager for Trizen {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
-        let mut command = ctx.run_type().execute(&self.executable);
+        let mut command = ctx.execute(&self.executable);
 
         command
             .arg("-Syu")
@@ -124,7 +123,7 @@ impl ArchPackageManager for Trizen {
         command.status_checked()?;
 
         if ctx.config().cleanup() {
-            let mut command = ctx.run_type().execute(&self.executable);
+            let mut command = ctx.execute(&self.executable);
             command.arg("-Sc");
             if ctx.config().yes(Step::System) {
                 command.arg("--noconfirm");
@@ -151,7 +150,7 @@ pub struct Pacman {
 impl ArchPackageManager for Pacman {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
         let sudo = require_option(ctx.sudo().as_ref(), "sudo is required to run pacman".into())?;
-        let mut command = ctx.run_type().execute(sudo);
+        let mut command = ctx.execute(sudo);
         command
             .arg(&self.executable)
             .arg("-Syu")
@@ -162,7 +161,7 @@ impl ArchPackageManager for Pacman {
         command.status_checked()?;
 
         if ctx.config().cleanup() {
-            let mut command = ctx.run_type().execute(sudo);
+            let mut command = ctx.execute(sudo);
             command.arg(&self.executable).arg("-Scc");
             if ctx.config().yes(Step::System) {
                 command.arg("--noconfirm");
@@ -196,7 +195,7 @@ impl Pikaur {
 
 impl ArchPackageManager for Pikaur {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
-        let mut command = ctx.run_type().execute(&self.executable);
+        let mut command = ctx.execute(&self.executable);
 
         command
             .arg("-Syu")
@@ -210,7 +209,7 @@ impl ArchPackageManager for Pikaur {
         command.status_checked()?;
 
         if ctx.config().cleanup() {
-            let mut command = ctx.run_type().execute(&self.executable);
+            let mut command = ctx.execute(&self.executable);
             command.arg("-Sc");
             if ctx.config().yes(Step::System) {
                 command.arg("--noconfirm");
@@ -235,7 +234,7 @@ impl Pamac {
 }
 impl ArchPackageManager for Pamac {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
-        let mut command = ctx.run_type().execute(&self.executable);
+        let mut command = ctx.execute(&self.executable);
 
         command
             .arg("upgrade")
@@ -249,7 +248,7 @@ impl ArchPackageManager for Pamac {
         command.status_checked()?;
 
         if ctx.config().cleanup() {
-            let mut command = ctx.run_type().execute(&self.executable);
+            let mut command = ctx.execute(&self.executable);
             command.arg("clean");
             if ctx.config().yes(Step::System) {
                 command.arg("--no-confirm");
@@ -277,11 +276,7 @@ impl ArchPackageManager for Aura {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
         use semver::Version;
 
-        let version_cmd_output = ctx
-            .run_type()
-            .execute(&self.executable)
-            .arg("--version")
-            .output_checked_utf8()?;
+        let version_cmd_output = ctx.execute(&self.executable).arg("--version").output_checked_utf8()?;
         // Output will be something like: "aura x.x.x\n"
         let version_cmd_stdout = version_cmd_output.stdout;
         let version_str = version_cmd_stdout.trim_start_matches("aura ").trim_end();
@@ -294,7 +289,7 @@ impl ArchPackageManager for Aura {
         let version_no_sudo = Version::new(4, 0, 6);
 
         if version >= version_no_sudo {
-            let mut cmd = ctx.run_type().execute(&self.executable);
+            let mut cmd = ctx.execute(&self.executable);
             cmd.arg("-Au")
                 .args(ctx.config().aura_aur_arguments().split_whitespace());
             if ctx.config().yes(Step::System) {
@@ -302,7 +297,7 @@ impl ArchPackageManager for Aura {
             }
             cmd.status_checked()?;
 
-            let mut cmd = ctx.run_type().execute(&self.executable);
+            let mut cmd = ctx.execute(&self.executable);
             cmd.arg("-Syu")
                 .args(ctx.config().aura_pacman_arguments().split_whitespace());
             if ctx.config().yes(Step::System) {
@@ -315,7 +310,7 @@ impl ArchPackageManager for Aura {
                 t!("Aura(<0.4.6) requires sudo installed to work with AUR packages").to_string(),
             )?;
 
-            let mut cmd = ctx.run_type().execute(sudo);
+            let mut cmd = ctx.execute(sudo);
             cmd.arg(&self.executable)
                 .arg("-Au")
                 .args(ctx.config().aura_aur_arguments().split_whitespace());
@@ -324,7 +319,7 @@ impl ArchPackageManager for Aura {
             }
             cmd.status_checked()?;
 
-            let mut cmd = ctx.run_type().execute(sudo);
+            let mut cmd = ctx.execute(sudo);
             cmd.arg(&self.executable)
                 .arg("-Syu")
                 .args(ctx.config().aura_pacman_arguments().split_whitespace());

@@ -47,8 +47,7 @@ To add a new `step` to `topgrade`:
        print_separator("xxx");
 
        // Invoke the new step to get things updated!
-       ctx.run_type()
-          .execute(xxx)
+       ctx.execute(xxx)
           .arg(/* args required by this step */)
           .status_checked()
    }
