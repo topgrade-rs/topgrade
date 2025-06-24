@@ -25,7 +25,6 @@ fn get_execution_path() -> OsString {
 pub trait ArchPackageManager {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()>;
 
-    // Default implmentation for managers that pass to pacman
     fn package_installed(&self, package: &str, ctx: &ExecutionContext) -> Result<bool>;
 }
 
