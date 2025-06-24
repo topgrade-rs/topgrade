@@ -75,13 +75,12 @@ impl Powershell {
     /// Builds a "primary" powershell command (uses dry-run if required):
     /// {powershell} -NoProfile -Command {cmd}
     fn build_command<'a>(&self, ctx: &'a ExecutionContext, cmd: &str, use_sudo: bool) -> Result<impl CommandExt + 'a> {
-        let executor = &mut ctx.run_type();
         let mut command = if use_sudo && ctx.sudo().is_some() {
-            let mut cmd = executor.execute(ctx.sudo().as_ref().unwrap());
+            let mut cmd = ctx.execute(ctx.sudo().as_ref().unwrap());
             cmd.arg(&self.path);
             cmd
         } else {
-            executor.execute(&self.path)
+            ctx.execute(&self.path)
         };
 
         #[cfg(windows)]

@@ -21,11 +21,11 @@ pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
 
     let mut command = match ctx.sudo() {
         Some(sudo) => {
-            let mut command = ctx.run_type().execute(sudo);
+            let mut command = ctx.execute(sudo);
             command.arg(choco);
             command
         }
-        None => ctx.run_type().execute(choco),
+        None => ctx.execute(choco),
     };
 
     command.args(["upgrade", "all"]);
@@ -42,22 +42,19 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("winget");
 
-    ctx.run_type()
-        .execute(&winget)
-        .args(["source", "update"])
-        .status_checked()?;
+    ctx.execute(&winget).args(["source", "update"]).status_checked()?;
 
     let mut command = if ctx.config().winget_use_sudo() {
         match ctx.sudo() {
             Some(sudo) => {
-                let mut command = ctx.run_type().execute(sudo);
+                let mut command = ctx.execute(sudo);
                 command.arg(winget);
                 command
             }
-            None => ctx.run_type().execute(winget),
+            None => ctx.execute(winget),
         }
     } else {
-        ctx.run_type().execute(winget)
+        ctx.execute(winget)
     };
 
     let mut args = vec!["upgrade", "--all"];
@@ -75,15 +72,12 @@ pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Scoop");
 
-    ctx.run_type().execute(&scoop).args(["update"]).status_checked()?;
-    ctx.run_type().execute(&scoop).args(["update", "*"]).status_checked()?;
+    ctx.execute(&scoop).args(["update"]).status_checked()?;
+    ctx.execute(&scoop).args(["update", "*"]).status_checked()?;
 
     if ctx.config().cleanup() {
-        ctx.run_type().execute(&scoop).args(["cleanup", "*"]).status_checked()?;
-        ctx.run_type()
-            .execute(&scoop)
-            .args(["cache", "rm", "-a"])
-            .status_checked()?
+        ctx.execute(&scoop).args(["cleanup", "*"]).status_checked()?;
+        ctx.execute(&scoop).args(["cache", "rm", "-a"]).status_checked()?
     }
     Ok(())
 }
@@ -97,7 +91,7 @@ pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Update WSL"));
 
-    let mut wsl_command = ctx.run_type().execute(wsl);
+    let mut wsl_command = ctx.execute(wsl);
     wsl_command.args(["--update"]);
 
     if ctx.config().wsl_update_pre_release() {
@@ -153,7 +147,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
         .trim_end()
         .to_owned();
 
-    let mut command = ctx.run_type().execute(wsl);
+    let mut command = ctx.execute(wsl);
 
     // The `arg` method automatically quotes its arguments.
     // This means we can't append additional arguments to `topgrade` in WSL

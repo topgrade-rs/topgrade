@@ -59,7 +59,7 @@ pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
             args.push("--yes");
         }
 
-        ctx.run_type().execute(&toolbx).args(&args).status_checked()?;
+        ctx.execute(&toolbx).args(&args).status_checked()?;
     }
 
     Ok(())

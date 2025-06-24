@@ -16,19 +16,12 @@ pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
 
     print_separator("MacPorts");
-    ctx.run_type()
-        .execute(sudo)
-        .args(["port", "selfupdate"])
-        .status_checked()?;
-    ctx.run_type()
-        .execute(sudo)
+    ctx.execute(sudo).args(["port", "selfupdate"]).status_checked()?;
+    ctx.execute(sudo)
         .args(["port", "-u", "upgrade", "outdated"])
         .status_checked()?;
     if ctx.config().cleanup() {
-        ctx.run_type()
-            .execute(sudo)
-            .args(["port", "-N", "reclaim"])
-            .status_checked()?;
+        ctx.execute(sudo).args(["port", "-N", "reclaim"]).status_checked()?;
     }
 
     Ok(())
@@ -38,7 +31,7 @@ pub fn run_mas(ctx: &ExecutionContext) -> Result<()> {
     let mas = require("mas")?;
     print_separator(t!("macOS App Store"));
 
-    ctx.run_type().execute(mas).arg("upgrade").status_checked()
+    ctx.execute(mas).arg("upgrade").status_checked()
 }
 
 pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
@@ -59,7 +52,7 @@ pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
         }
     }
 
-    let mut command = ctx.run_type().execute("softwareupdate");
+    let mut command = ctx.execute("softwareupdate");
     command.args(["--install", "--all"]);
 
     if should_ask {
@@ -88,7 +81,7 @@ pub fn run_sparkle(ctx: &ExecutionContext) -> Result<()> {
             .arg(application.path())
             .output_checked_utf8();
         if probe.is_ok() {
-            let mut command = ctx.run_type().execute(&sparkle);
+            let mut command = ctx.execute(&sparkle);
             command.args(["bundle", "--check-immediately", "--application"]);
             command.arg(application.path());
             command.status_checked()?;
@@ -103,12 +96,7 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
 
     let should_ask = !(ctx.config().yes(Step::Xcodes) || ctx.config().dry_run());
 
-    let releases = ctx
-        .run_type()
-        .execute(&xcodes)
-        .args(["update"])
-        .output_checked_utf8()?
-        .stdout;
+    let releases = ctx.execute(&xcodes).args(["update"]).output_checked_utf8()?.stdout;
 
     let releases_installed: Vec<String> = releases
         .lines()
@@ -165,12 +153,7 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
         process_xcodes_releases(releases_regular, should_ask, ctx)?;
     }
 
-    let releases_new = ctx
-        .run_type()
-        .execute(&xcodes)
-        .args(["list"])
-        .output_checked_utf8()?
-        .stdout;
+    let releases_new = ctx.execute(&xcodes).args(["list"]).output_checked_utf8()?.stdout;
 
     let releases_gm_new_installed: HashSet<_> = releases_new
         .lines()
@@ -200,7 +183,6 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
                 prompt_yesno(t!("Would you like to move the former Xcode release to the trash?").as_ref())?;
             if answer_uninstall {
                 let _ = ctx
-                    .run_type()
                     .execute(&xcodes)
                     .args([
                         "uninstall",
@@ -227,7 +209,6 @@ pub fn process_xcodes_releases(releases_filtered: Vec<String>, should_ask: bool,
             let answer_install = prompt_yesno(t!("Would you like to install it?").as_ref())?;
             if answer_install {
                 let _ = ctx
-                    .run_type()
                     .execute(xcodes)
                     .args(["install", &releases_filtered.last().cloned().unwrap_or_default()])
                     .status_checked();
