@@ -34,7 +34,7 @@ pub fn upgrade_openbsd(ctx: &ExecutionContext) -> Result<()> {
         vec!["/usr/sbin/syspatch"]
     };
 
-    ctx.run_type().execute(sudo).args(&args).status_checked()
+    ctx.execute(sudo).args(&args).status_checked()
 }
 
 pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
@@ -49,8 +49,7 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     }
 
     if ctx.config().cleanup() {
-        ctx.run_type()
-            .execute(sudo)
+        ctx.execute(sudo)
             .args(["/usr/sbin/pkg_delete", "-ac"])
             .status_checked()?;
     }
@@ -60,7 +59,7 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
         args.push("-Dsnap");
     }
 
-    ctx.run_type().execute(sudo).args(&args).status_checked()?;
+    ctx.execute(sudo).args(&args).status_checked()?;
 
     Ok(())
 }

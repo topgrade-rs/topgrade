@@ -23,10 +23,7 @@ pub fn run_zr(ctx: &ExecutionContext) -> Result<()> {
     print_separator("zr");
 
     let cmd = format!("source {} && zr --update", zshrc().display());
-    ctx.run_type()
-        .execute(zsh)
-        .args(["-l", "-c", cmd.as_str()])
-        .status_checked()
+    ctx.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
 }
 
 fn zdotdir() -> PathBuf {
@@ -44,8 +41,7 @@ pub fn run_antidote(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("antidote");
 
-    ctx.run_type()
-        .execute(zsh)
+    ctx.execute(zsh)
         .arg("-c")
         .arg(format!("source {} && antidote update", antidote.display()))
         .status_checked()
@@ -57,7 +53,7 @@ pub fn run_antibody(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("antibody");
 
-    ctx.run_type().execute(antibody).arg("update").status_checked()
+    ctx.execute(antibody).arg("update").status_checked()
 }
 
 pub fn run_antigen(ctx: &ExecutionContext) -> Result<()> {
@@ -70,10 +66,7 @@ pub fn run_antigen(ctx: &ExecutionContext) -> Result<()> {
     print_separator("antigen");
 
     let cmd = format!("source {} && (antigen selfupdate ; antigen update)", zshrc.display());
-    ctx.run_type()
-        .execute(zsh)
-        .args(["-l", "-c", cmd.as_str()])
-        .status_checked()
+    ctx.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
 }
 
 pub fn run_zgenom(ctx: &ExecutionContext) -> Result<()> {
@@ -86,10 +79,7 @@ pub fn run_zgenom(ctx: &ExecutionContext) -> Result<()> {
     print_separator("zgenom");
 
     let cmd = format!("source {} && zgenom selfupdate && zgenom update", zshrc.display());
-    ctx.run_type()
-        .execute(zsh)
-        .args(["-l", "-c", cmd.as_str()])
-        .status_checked()
+    ctx.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
 }
 
 pub fn run_zplug(ctx: &ExecutionContext) -> Result<()> {
@@ -102,10 +92,7 @@ pub fn run_zplug(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zplug");
 
-    ctx.run_type()
-        .execute(zsh)
-        .args(["-i", "-c", "zplug update"])
-        .status_checked()
+    ctx.execute(zsh).args(["-i", "-c", "zplug update"]).status_checked()
 }
 
 pub fn run_zinit(ctx: &ExecutionContext) -> Result<()> {
@@ -119,10 +106,7 @@ pub fn run_zinit(ctx: &ExecutionContext) -> Result<()> {
     print_separator("zinit");
 
     let cmd = format!("source {} && zinit self-update && zinit update --all", zshrc.display());
-    ctx.run_type()
-        .execute(zsh)
-        .args(["-i", "-c", cmd.as_str()])
-        .status_checked()
+    ctx.execute(zsh).args(["-i", "-c", cmd.as_str()]).status_checked()
 }
 
 pub fn run_zi(ctx: &ExecutionContext) -> Result<()> {
@@ -134,7 +118,7 @@ pub fn run_zi(ctx: &ExecutionContext) -> Result<()> {
     print_separator("zi");
 
     let cmd = format!("source {} && zi self-update && zi update --all", zshrc.display());
-    ctx.run_type().execute(zsh).args(["-i", "-c", &cmd]).status_checked()
+    ctx.execute(zsh).args(["-i", "-c", &cmd]).status_checked()
 }
 
 pub fn run_zim(ctx: &ExecutionContext) -> Result<()> {
@@ -152,8 +136,7 @@ pub fn run_zim(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zim");
 
-    ctx.run_type()
-        .execute(zsh)
+    ctx.execute(zsh)
         .args(["-i", "-c", "zimfw upgrade && zimfw update"])
         .status_checked()
 }
@@ -219,8 +202,7 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
     }
 
     custom_repos.remove(&oh_my_zsh);
-    ctx.run_type()
-        .execute("zsh")
+    ctx.execute("zsh")
         .arg(oh_my_zsh.join("tools/upgrade.sh"))
         // oh-my-zsh returns 80 when it is already updated and no changes pulled
         // in this update.

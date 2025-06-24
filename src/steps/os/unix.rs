@@ -26,8 +26,6 @@ use crate::error::SkipStep;
 use crate::execution_context::ExecutionContext;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use crate::executor::Executor;
-#[cfg(any(target_os = "linux", target_os = "macos"))]
-use crate::executor::RunType;
 use crate::step::Step;
 use crate::terminal::print_separator;
 use crate::utils::{get_require_sudo_string, require, require_option, PathExt};
@@ -75,19 +73,41 @@ impl BrewVariant {
         }
     }
 
-    fn execute(self, run_type: RunType) -> Executor {
+    /// Execute an "internal" brew command, i.e. one that should always be run
+    /// even when dry-running. Basically just a wrapper around [`Command::new`]
+    /// that uses `arch` to run using the correct architecture if needed.
+    #[cfg(target_os = "macos")]
+    fn execute_internal(self) -> Command {
         match self {
             BrewVariant::MacIntel if cfg!(target_arch = "aarch64") => {
-                let mut command = run_type.execute("arch");
+                let mut command = Command::new("arch");
                 command.arg("-x86_64").arg(self.binary_name());
                 command
             }
             BrewVariant::MacArm if cfg!(target_arch = "x86_64") => {
-                let mut command = run_type.execute("arch");
+                let mut command = Command::new("arch");
                 command.arg("-arm64e").arg(self.binary_name());
                 command
             }
-            _ => run_type.execute(self.binary_name()),
+            _ => Command::new(self.binary_name()),
+        }
+    }
+
+    /// Execute a brew command. Uses `arch` to run using the correct
+    /// architecture on macOS if needed.
+    fn execute(self, ctx: &ExecutionContext) -> Executor {
+        match self {
+            BrewVariant::MacIntel if cfg!(target_arch = "aarch64") => {
+                let mut command = ctx.execute("arch");
+                command.arg("-x86_64").arg(self.binary_name());
+                command
+            }
+            BrewVariant::MacArm if cfg!(target_arch = "x86_64") => {
+                let mut command = ctx.execute("arch");
+                command.arg("-arm64e").arg(self.binary_name());
+                command
+            }
+            _ => ctx.execute(self.binary_name()),
         }
     }
 
@@ -121,7 +141,6 @@ pub fn run_fisher(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Fisher");
 
     let version_str = ctx
-        .run_type()
         .execute(&fish)
         .args(["-c", "fisher --version"])
         .output_checked_utf8()?
@@ -130,13 +149,10 @@ pub fn run_fisher(ctx: &ExecutionContext) -> Result<()> {
 
     if version_str.starts_with("fisher version 3.") {
         // v3 - see https://github.com/topgrade-rs/topgrade/pull/37#issuecomment-1283844506
-        ctx.run_type().execute(&fish).args(["-c", "fisher"]).status_checked()
+        ctx.execute(&fish).args(["-c", "fisher"]).status_checked()
     } else {
         // v4
-        ctx.run_type()
-            .execute(&fish)
-            .args(["-c", "fisher update"])
-            .status_checked()
+        ctx.execute(&fish).args(["-c", "fisher update"]).status_checked()
     }
 }
 
@@ -145,8 +161,7 @@ pub fn run_bashit(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Bash-it");
 
-    ctx.run_type()
-        .execute("bash")
+    ctx.execute("bash")
         .args(["-lic", &format!("bash-it update {}", ctx.config().bashit_branch())])
         .status_checked()
 }
@@ -169,7 +184,7 @@ pub fn run_oh_my_bash(ctx: &ExecutionContext) -> Result<()> {
     let mut update_script = oh_my_bash;
     update_script.push_str("/tools/upgrade.sh");
 
-    ctx.run_type().execute("bash").arg(update_script).status_checked()
+    ctx.execute("bash").arg(update_script).status_checked()
 }
 
 pub fn run_oh_my_fish(ctx: &ExecutionContext) -> Result<()> {
@@ -178,7 +193,7 @@ pub fn run_oh_my_fish(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("oh-my-fish");
 
-    ctx.run_type().execute(fish).args(["-c", "omf update"]).status_checked()
+    ctx.execute(fish).args(["-c", "omf update"]).status_checked()
 }
 
 pub fn run_pkgin(ctx: &ExecutionContext) -> Result<()> {
@@ -187,14 +202,14 @@ pub fn run_pkgin(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Pkgin");
 
-    let mut command = ctx.run_type().execute(sudo);
+    let mut command = ctx.execute(sudo);
     command.arg(&pkgin).arg("update");
     if ctx.config().yes(Step::Pkgin) {
         command.arg("-y");
     }
     command.status_checked()?;
 
-    let mut command = ctx.run_type().execute(sudo);
+    let mut command = ctx.execute(sudo);
     command.arg(&pkgin).arg("upgrade");
     if ctx.config().yes(Step::Pkgin) {
         command.arg("-y");
@@ -210,10 +225,7 @@ pub fn run_fish_plug(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("fish-plug");
 
-    ctx.run_type()
-        .execute(fish)
-        .args(["-c", "plug update"])
-        .status_checked()
+    ctx.execute(fish).args(["-c", "plug update"]).status_checked()
 }
 
 /// Upgrades `fundle` and `fundle` plugins.
@@ -227,8 +239,7 @@ pub fn run_fundle(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("fundle");
 
-    ctx.run_type()
-        .execute(fish)
+    ctx.execute(fish)
         .args(["-c", "fundle self-update && fundle update"])
         .status_checked()
 }
@@ -260,8 +271,7 @@ pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("GNOME Shell extensions"));
 
-    ctx.run_type()
-        .execute(gdbus)
+    ctx.execute(gdbus)
         .args([
             "call",
             "--session",
@@ -318,8 +328,7 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
             print_separator(format!("{} ({})", variant.step_title(), sudo_as_user));
 
             let sudo = crate::utils::require_option(ctx.sudo().as_ref(), crate::utils::get_require_sudo_string())?;
-            ctx.run_type()
-                .execute(sudo)
+            ctx.execute(sudo)
                 .current_dir("/tmp") // brew needs a writable current directory
                 .args([
                     "--set-home",
@@ -332,11 +341,10 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
         }
     }
     print_separator(variant.step_title());
-    let run_type = ctx.run_type();
 
-    variant.execute(run_type).arg("update").status_checked()?;
+    variant.execute(ctx).arg("update").status_checked()?;
 
-    let mut command = variant.execute(run_type);
+    let mut command = variant.execute(ctx);
     command.args(["upgrade", "--formula"]);
 
     if ctx.config().brew_fetch_head() {
@@ -346,11 +354,11 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
     command.status_checked()?;
 
     if ctx.config().cleanup() {
-        variant.execute(run_type).arg("cleanup").status_checked()?;
+        variant.execute(ctx).arg("cleanup").status_checked()?;
     }
 
     if ctx.config().brew_autoremove() {
-        variant.execute(run_type).arg("autoremove").status_checked()?;
+        variant.execute(ctx).arg("autoremove").status_checked()?;
     }
 
     Ok(())
@@ -363,10 +371,9 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
         return Err(SkipStep(t!("Not a custom brew for macOS").to_string()).into());
     }
     print_separator(format!("{} - Cask", variant.step_title()));
-    let run_type = ctx.run_type();
 
     let cask_upgrade_exists = variant
-        .execute(RunType::Wet)
+        .execute_internal()
         .args(["--repository", "buo/cask-upgrade"])
         .output_checked_utf8()
         .map(|p| Path::new(p.stdout.trim()).exists())?;
@@ -391,10 +398,10 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
         }
     }
 
-    variant.execute(run_type).args(&brew_args).status_checked()?;
+    variant.execute(ctx).args(&brew_args).status_checked()?;
 
     if ctx.config().cleanup() {
-        variant.execute(run_type).arg("cleanup").status_checked()?;
+        variant.execute(ctx).arg("cleanup").status_checked()?;
     }
 
     Ok(())
@@ -402,8 +409,6 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
 
 pub fn run_guix(ctx: &ExecutionContext) -> Result<()> {
     let guix = require("guix")?;
-
-    let run_type = ctx.run_type();
 
     let output = Command::new(&guix).arg("pull").output_checked_utf8();
     debug!("guix pull output: {:?}", output);
@@ -413,7 +418,7 @@ pub fn run_guix(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Guix");
 
     if should_upgrade {
-        return run_type.execute(&guix).args(["package", "-u"]).status_checked();
+        return ctx.execute(&guix).args(["package", "-u"]).status_checked();
     }
     Err(SkipStep(t!("Guix Pull Failed, Skipping").to_string()).into())
 }
@@ -441,10 +446,9 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
         }
     }
 
-    let run_type = ctx.run_type();
-    run_type.execute(nix_channel).arg("--update").status_checked()?;
+    ctx.execute(nix_channel).arg("--update").status_checked()?;
 
-    let mut get_version_cmd = ctx.run_type().execute(&nix);
+    let mut get_version_cmd = ctx.execute(&nix);
     get_version_cmd.arg("--version");
     let get_version_cmd_output = get_version_cmd.output_checked_utf8()?;
     let get_version_cmd_first_line_stdout = get_version_cmd_output
@@ -498,8 +502,7 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     };
 
     if Path::new(&manifest_json_path).exists() {
-        run_type
-            .execute(nix)
+        ctx.execute(nix)
             .args(nix_args())
             .arg("profile")
             .arg("upgrade")
@@ -507,7 +510,7 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
             .arg("--verbose")
             .status_checked()
     } else {
-        let mut command = run_type.execute(nix_env);
+        let mut command = ctx.execute(nix_env);
         command.arg("--upgrade");
         if let Some(args) = ctx.config().nix_env_arguments() {
             command.args(args.split_whitespace());
@@ -553,11 +556,7 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
             .arg("upgrade-nix")
             .status_checked()
     } else {
-        ctx.run_type()
-            .execute(&nix)
-            .args(nix_args)
-            .arg("upgrade-nix")
-            .status_checked()
+        ctx.execute(&nix).args(nix_args).arg("upgrade-nix").status_checked()
     }
 }
 
@@ -635,8 +634,6 @@ fn flake_dir(var: &'static str) -> Option<PathBuf> {
 ///
 /// See: https://github.com/viperML/nh
 pub fn run_nix_helper(ctx: &ExecutionContext) -> Result<()> {
-    let run_type = ctx.run_type();
-
     require("nix")?;
     let nix_helper = require("nh")?;
 
@@ -669,7 +666,7 @@ pub fn run_nix_helper(ctx: &ExecutionContext) -> Result<()> {
     let nh_switch = |ty: &'static str| -> Result<()> {
         print_separator(format!("nh {ty}"));
 
-        let mut cmd = run_type.execute(&nix_helper);
+        let mut cmd = ctx.execute(&nix_helper);
         cmd.arg(ty);
         cmd.arg("switch");
         cmd.arg("-u");
@@ -712,7 +709,7 @@ pub fn run_yadm(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("yadm");
 
-    ctx.run_type().execute(yadm).arg("pull").status_checked()
+    ctx.execute(yadm).arg("pull").status_checked()
 }
 
 pub fn run_asdf(ctx: &ExecutionContext) -> Result<()> {
@@ -749,16 +746,10 @@ pub fn run_asdf(ctx: &ExecutionContext) -> Result<()> {
     let version =
         Version::parse(remaining).wrap_err_with(|| output_changed_message!("asdf version", "invalid version"))?;
     if version < Version::new(0, 15, 0) {
-        ctx.run_type()
-            .execute(&asdf)
-            .arg("update")
-            .status_checked_with_codes(&[42])?;
+        ctx.execute(&asdf).arg("update").status_checked_with_codes(&[42])?;
     }
 
-    ctx.run_type()
-        .execute(&asdf)
-        .args(["plugin", "update", "--all"])
-        .status_checked()
+    ctx.execute(&asdf).args(["plugin", "update", "--all"]).status_checked()
 }
 
 pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
@@ -766,12 +757,9 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("mise");
 
-    ctx.run_type()
-        .execute(&mise)
-        .args(["plugins", "update"])
-        .status_checked()?;
+    ctx.execute(&mise).args(["plugins", "update"]).status_checked()?;
 
-    ctx.run_type().execute(&mise).arg("upgrade").status_checked()
+    ctx.execute(&mise).arg("upgrade").status_checked()
 }
 
 pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
@@ -779,7 +767,7 @@ pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("home-manager");
 
-    let mut cmd = ctx.run_type().execute(home_manager);
+    let mut cmd = ctx.execute(home_manager);
     cmd.arg("switch");
 
     if let Some(extra_args) = ctx.config().home_manager() {
@@ -793,14 +781,14 @@ pub fn run_tldr(ctx: &ExecutionContext) -> Result<()> {
     let tldr = require("tldr")?;
 
     print_separator("TLDR");
-    ctx.run_type().execute(tldr).arg("--update").status_checked()
+    ctx.execute(tldr).arg("--update").status_checked()
 }
 
 pub fn run_pearl(ctx: &ExecutionContext) -> Result<()> {
     let pearl = require("pearl")?;
     print_separator("pearl");
 
-    ctx.run_type().execute(pearl).arg("update").status_checked()
+    ctx.execute(pearl).arg("update").status_checked()
 }
 
 pub fn run_pyenv(ctx: &ExecutionContext) -> Result<()> {
@@ -821,7 +809,7 @@ pub fn run_pyenv(ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep(t!("pyenv-update plugin is not installed").to_string()).into());
     }
 
-    ctx.run_type().execute(pyenv).arg("update").status_checked()
+    ctx.execute(pyenv).arg("update").status_checked()
 }
 
 pub fn run_sdkman(ctx: &ExecutionContext) -> Result<()> {
@@ -850,34 +838,25 @@ pub fn run_sdkman(ctx: &ExecutionContext) -> Result<()> {
 
     if selfupdate_enabled == "true" {
         let cmd_selfupdate = format!("source {} && sdk selfupdate", &sdkman_init_path);
-        ctx.run_type()
-            .execute(&bash)
+        ctx.execute(&bash)
             .args(["-c", cmd_selfupdate.as_str()])
             .status_checked()?;
     }
 
     let cmd_update = format!("source {} && sdk update", &sdkman_init_path);
-    ctx.run_type()
-        .execute(&bash)
-        .args(["-c", cmd_update.as_str()])
-        .status_checked()?;
+    ctx.execute(&bash).args(["-c", cmd_update.as_str()]).status_checked()?;
 
     let cmd_upgrade = format!("source {} && sdk upgrade", &sdkman_init_path);
-    ctx.run_type()
-        .execute(&bash)
-        .args(["-c", cmd_upgrade.as_str()])
-        .status_checked()?;
+    ctx.execute(&bash).args(["-c", cmd_upgrade.as_str()]).status_checked()?;
 
     if ctx.config().cleanup() {
         let cmd_flush_archives = format!("source {} && sdk flush archives", &sdkman_init_path);
-        ctx.run_type()
-            .execute(&bash)
+        ctx.execute(&bash)
             .args(["-c", cmd_flush_archives.as_str()])
             .status_checked()?;
 
         let cmd_flush_temp = format!("source {} && sdk flush temp", &sdkman_init_path);
-        ctx.run_type()
-            .execute(&bash)
+        ctx.execute(&bash)
             .args(["-c", cmd_flush_temp.as_str()])
             .status_checked()?;
     }
@@ -898,7 +877,7 @@ pub fn run_bun_packages(ctx: &ExecutionContext) -> Result<()> {
         return Ok(());
     }
 
-    ctx.run_type().execute(bun).args(["-g", "update"]).status_checked()
+    ctx.execute(bun).args(["-g", "update"]).status_checked()
 }
 
 /// Update dotfiles with `rcm(7)`.
@@ -908,14 +887,14 @@ pub fn run_rcm(ctx: &ExecutionContext) -> Result<()> {
     let rcup = require("rcup")?;
 
     print_separator("rcm");
-    ctx.run_type().execute(rcup).arg("-v").status_checked()
+    ctx.execute(rcup).arg("-v").status_checked()
 }
 
 pub fn run_maza(ctx: &ExecutionContext) -> Result<()> {
     let maza = require("maza")?;
 
     print_separator("maza");
-    ctx.run_type().execute(maza).arg("update").status_checked()
+    ctx.execute(maza).arg("update").status_checked()
 }
 
 pub fn reboot() -> Result<()> {

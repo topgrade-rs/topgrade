@@ -61,7 +61,7 @@ impl Sudo {
     /// See: https://github.com/topgrade-rs/topgrade/issues/205
     pub fn elevate(&self, ctx: &ExecutionContext) -> Result<()> {
         print_separator("Sudo");
-        let mut cmd = ctx.run_type().execute(self);
+        let mut cmd = ctx.execute(&self.path);
         match self.kind {
             SudoKind::Doas => {
                 // `doas` doesn't have anything like `sudo -v` to cache credentials,
@@ -115,7 +115,7 @@ impl Sudo {
 
     /// Execute a command with `sudo`.
     pub fn execute_elevated(&self, ctx: &ExecutionContext, command: &Path, interactive: bool) -> Executor {
-        let mut cmd = ctx.run_type().execute(self);
+        let mut cmd = ctx.execute(&self.path);
 
         if let SudoKind::Sudo = self.kind {
             cmd.arg("--preserve-env=DIFFPROG");

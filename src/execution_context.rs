@@ -2,16 +2,47 @@
 use color_eyre::eyre::Result;
 use rust_i18n::t;
 use std::env::var;
+use std::ffi::OsStr;
 use std::path::Path;
+use std::process::Command;
 use std::sync::{LazyLock, Mutex};
 
-use crate::executor::RunType;
+use crate::executor::DryCommand;
 use crate::powershell::Powershell;
 #[cfg(target_os = "linux")]
 use crate::steps::linux::Distribution;
 use crate::sudo::Sudo;
 use crate::utils::{get_require_sudo_string, require_option};
 use crate::{config::Config, executor::Executor};
+
+/// An enum telling whether Topgrade should perform dry runs or actually perform the steps.
+#[derive(Clone, Copy, Debug)]
+pub enum RunType {
+    /// Executing commands will just print the command with its argument.
+    Dry,
+
+    /// Executing commands will perform actual execution.
+    Wet,
+}
+
+impl RunType {
+    /// Create a new instance from a boolean telling whether to dry run.
+    pub fn new(dry_run: bool) -> Self {
+        if dry_run {
+            RunType::Dry
+        } else {
+            RunType::Wet
+        }
+    }
+
+    /// Tells whether we're performing a dry run.
+    pub fn dry(self) -> bool {
+        match self {
+            RunType::Dry => true,
+            RunType::Wet => false,
+        }
+    }
+}
 
 pub struct ExecutionContext<'a> {
     run_type: RunType,
@@ -48,6 +79,16 @@ impl<'a> ExecutionContext<'a> {
         }
     }
 
+    /// Create an instance of `Executor` that should run `program`.
+    pub fn execute<S: AsRef<OsStr>>(&self, program: S) -> Executor {
+        match self.run_type {
+            RunType::Dry => Executor::Dry(DryCommand::new(program)),
+            RunType::Wet => Executor::Wet(Command::new(program)),
+        }
+    }
+
+    /// Create an instance of `Executor` that should run `program`,
+    /// using sudo to elevate privileges.
     pub fn execute_elevated(&self, command: &Path, interactive: bool) -> Result<Executor> {
         let sudo = require_option(self.sudo.as_ref(), get_require_sudo_string())?;
         Ok(sudo.execute_elevated(self, command, interactive))
