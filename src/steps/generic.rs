@@ -1399,11 +1399,24 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         // After 0.4.25 (inclusive), running `uv self` succeeds regardless of the
         // feature gate, so the above approach won't work.
         //
-        // We run `uv self update` directly, if it outputs:
+        // We run `uv self update` directly, and ignore an error if it outputs:
         //
-        // "uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.\n"
+        // "error: uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.\n"
+        //
+        // or:
+        //
+        // "
+        // error: Self-update is only available for uv binaries installed via the standalone installation scripts.
+        //
+        // If you installed uv with pip, brew, or another package manager, update uv with `pip install --upgrade`, `brew upgrade`, or similar.
+        // "
+        //
+        // These two error messages can both occur, in different situations.
 
-        const ERROR_MSG: &str = "uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.";
+        const ERROR_MSGS: [&str; 2] = [
+            "uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.",
+            "Self-update is only available for uv binaries installed via the standalone installation scripts.",
+        ];
 
         let output = ctx
             .run_type()
@@ -1418,7 +1431,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         };
         let stderr = std::str::from_utf8(&output.stderr).expect("output should be UTF-8 encoded");
 
-        if stderr.contains(ERROR_MSG) {
+        if ERROR_MSGS.iter().any(|&n| stderr.contains(n)) {
             // Feature `self-update` is disabled, nothing to do.
         } else {
             // Feature is enabled, flush the captured output so that users know we did the self-update.
