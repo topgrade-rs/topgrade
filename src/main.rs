@@ -232,7 +232,8 @@ fn run() -> Result<()> {
                     run_shell().context("Failed to execute shell")?;
                 }
                 Ok(Key::Char('r' | 'R')) => {
-                    reboot().context("Failed to reboot")?;
+                    println!("{}", t!("Rebooting..."));
+                    reboot(&ctx).context("Failed to reboot")?;
                 }
                 Ok(Key::Char('q' | 'Q')) => (),
                 _ => {

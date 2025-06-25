@@ -20,11 +20,7 @@ pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Chocolatey");
 
     let mut command = match ctx.sudo() {
-        Some(sudo) => {
-            let mut command = ctx.execute(sudo);
-            command.arg(choco);
-            command
-        }
+        Some(sudo) => sudo.execute(ctx, &choco)?,
         None => ctx.execute(choco),
     };
 
@@ -46,11 +42,7 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
 
     let mut command = if ctx.config().winget_use_sudo() {
         match ctx.sudo() {
-            Some(sudo) => {
-                let mut command = ctx.execute(sudo);
-                command.arg(winget);
-                command
-            }
+            Some(sudo) => sudo.execute(ctx, &winget)?,
             None => ctx.execute(winget),
         }
     } else {
@@ -242,10 +234,10 @@ pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
     powershell.microsoft_store(ctx)
 }
 
-pub fn reboot() -> Result<()> {
+pub fn reboot(ctx: &ExecutionContext) -> Result<()> {
     // If this works, it won't return, but if it doesn't work, it may return a useful error
     // message.
-    Command::new("shutdown").args(["/R", "/T", "0"]).status_checked()
+    ctx.execute("shutdown.exe").args(["/R", "/T", "0"]).status_checked()
 }
 
 pub fn insert_startup_scripts(git_repos: &mut RepoStep) -> Result<()> {
