@@ -214,14 +214,6 @@ _version: 2
   zh_CN: "正在跳过"
   zh_TW: "正在略過"
   de: "Überspringe"
-"Aura(<0.4.6) requires sudo installed to work with AUR packages":
-  en: "Aura(<0.4.6) requires sudo installed to work with AUR packages"
-  lt: "Aura (<0.4.6) reikalauja sudo įdiegimo, kad galėtų naudoti AUR paketus"
-  es: "Aura(<0.4.6) requiere tener sudo instalado para funcionar con paquetes AUR"
-  fr: "Aura(<0.4.6) nécessite sudo pour fonctionner avec les paquets AUR"
-  zh_CN: "Aura(<0.4.6) 依赖 sudo 安装 AUR 软件包。"
-  zh_TW: "Aura（<0.4.6）依賴 sudo 安裝 AUR 套件"
-  de: "Aura(<0.4.6) benötigt sudo zur Verwendung von AUR-Paketen"
 "Pacman backup configuration files found:":
   en: "Pacman backup configuration files found:"
   lt: "Rasti Pacman atsarginės konfigūracijos failai:"
