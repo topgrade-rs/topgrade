@@ -117,15 +117,11 @@ impl NPM {
 
 struct Yarn {
     command: PathBuf,
-    yarn: Option<PathBuf>,
 }
 
 impl Yarn {
     fn new(command: PathBuf) -> Self {
-        Self {
-            command,
-            yarn: require("yarn").ok(),
-        }
+        Self { command }
     }
 
     fn has_global_subcmd(&self) -> bool {
@@ -153,8 +149,7 @@ impl Yarn {
 
         if use_sudo {
             let sudo = ctx.require_sudo()?;
-            let command = self.yarn.as_ref().unwrap_or(&self.command);
-            sudo.execute(ctx, command)?.args(args).status_checked()?;
+            sudo.execute(ctx, &self.command)?.args(args).status_checked()?;
         } else {
             ctx.execute(&self.command).args(args).status_checked()?;
         }
