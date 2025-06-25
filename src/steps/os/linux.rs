@@ -505,29 +505,34 @@ fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
-    let apt = which("apt-fast")
-        .or_else(|| {
-            if which("mist").is_some() {
-                Some(PathBuf::from("mist"))
-            } else {
-                None
-            }
-        })
-        .or_else(|| {
-            if Path::new("/usr/bin/nala").exists() {
-                Some(Path::new("/usr/bin/nala").to_path_buf())
-            } else {
-                None
-            }
-        })
-        .unwrap_or_else(|| PathBuf::from("apt-get"));
+enum AptKind {
+    AptFast,
+    Mist,
+    Nala,
+    AptGet,
+}
 
-    let is_mist = apt.ends_with("mist");
-    let is_nala = apt.ends_with("nala");
+fn detect_apt() -> Result<(AptKind, PathBuf)> {
+    use AptKind::*;
+
+    if let Some(apt_fast) = which("apt-fast") {
+        Ok((AptFast, apt_fast))
+    } else if let Some(mist) = which("mist") {
+        Ok((Mist, mist))
+    } else if Path::new("/usr/bin/nala").exists() {
+        Ok((Nala, Path::new("/usr/bin/nala").to_path_buf()))
+    } else {
+        Ok((AptGet, require("apt-get")?))
+    }
+}
+
+fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
+    use AptKind::*;
+
+    let (kind, apt) = detect_apt()?;
 
     // MIST does not require `sudo`
-    if is_mist {
+    if matches!(kind, Mist) {
         ctx.execute(&apt).arg("update").status_checked()?;
         ctx.execute(&apt).arg("upgrade").status_checked()?;
 
@@ -537,14 +542,14 @@ fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
     }
 
     let sudo = ctx.require_sudo()?;
-    if !is_nala {
+    if !matches!(kind, Nala) {
         sudo.execute(ctx, &apt)?
             .arg("update")
             .status_checked_with_codes(&[0, 100])?;
     }
 
     let mut command = sudo.execute(ctx, &apt)?;
-    if is_nala {
+    if matches!(kind, Nala) {
         command.arg("upgrade");
     } else {
         command.arg("dist-upgrade");
@@ -797,26 +802,8 @@ fn should_skip_needrestart() -> Result<()> {
     }
 
     if matches!(distribution, Distribution::Debian) {
-        let apt = which("apt-fast")
-            .or_else(|| {
-                if which("mist").is_some() {
-                    Some(PathBuf::from("mist"))
-                } else {
-                    None
-                }
-            })
-            .or_else(|| {
-                if Path::new("/usr/bin/nala").exists() {
-                    Some(Path::new("/usr/bin/nala").to_path_buf())
-                } else {
-                    None
-                }
-            })
-            .unwrap_or_else(|| PathBuf::from("apt-get"));
-
-        let is_nala = apt.ends_with("nala");
-
-        if is_nala {
+        let (apt_kind, _) = detect_apt()?;
+        if matches!(apt_kind, AptKind::Nala) {
             return Err(SkipStep(String::from(msg)).into());
         }
     }
