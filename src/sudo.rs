@@ -1,4 +1,5 @@
 use std::ffi::OsStr;
+use std::path::Path;
 use std::path::PathBuf;
 
 use color_eyre::eyre::Context;
@@ -67,6 +68,15 @@ impl Sudo {
     /// Create Sudo from SudoKind, if found in the system
     pub fn new(kind: SudoKind) -> Option<Self> {
         which(kind.as_ref()).map(|path| Self { path, kind })
+    }
+
+    /// Gets the path to the `sudo` binary. Do not use this to execute `sudo` directly - either use
+    /// [`Sudo::elevate`], or if you need to specify arguments to `sudo`, use [`Sudo::elevate_opts`].
+    /// This way, sudo options can be specified generically and the actual arguments customized
+    /// depending on the sudo kind.
+    #[allow(unused)]
+    pub fn path(&self) -> &Path {
+        self.path.as_ref()
     }
 
     /// Elevate permissions with `sudo`.
@@ -277,10 +287,4 @@ pub enum SudoKind {
     Pkexec,
     Run0,
     Please,
-}
-
-impl AsRef<OsStr> for Sudo {
-    fn as_ref(&self) -> &OsStr {
-        self.path.as_ref()
-    }
 }

@@ -11,7 +11,6 @@ use crate::command::CommandExt;
 use crate::error::TopgradeError;
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
-use crate::utils::require_option;
 use crate::utils::which;
 use crate::{config, output_changed_message};
 
@@ -150,20 +149,17 @@ pub struct Pacman {
 
 impl ArchPackageManager for Pacman {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
-        let sudo = require_option(ctx.sudo().as_ref(), "sudo is required to run pacman".into())?;
-        let mut command = ctx.execute(sudo);
-        command
-            .arg(&self.executable)
-            .arg("-Syu")
-            .env("PATH", get_execution_path());
+        let sudo = ctx.require_sudo()?;
+        let mut command = sudo.execute(ctx, &self.executable)?;
+        command.arg("-Syu").env("PATH", get_execution_path());
         if ctx.config().yes(Step::System) {
             command.arg("--noconfirm");
         }
         command.status_checked()?;
 
         if ctx.config().cleanup() {
-            let mut command = ctx.execute(sudo);
-            command.arg(&self.executable).arg("-Scc");
+            let mut command = sudo.execute(ctx, &self.executable)?;
+            command.arg("-Scc");
             if ctx.config().yes(Step::System) {
                 command.arg("--noconfirm");
             }
@@ -306,23 +302,18 @@ impl ArchPackageManager for Aura {
             }
             cmd.status_checked()?;
         } else {
-            let sudo = crate::utils::require_option(
-                ctx.sudo().as_ref(),
-                t!("Aura(<0.4.6) requires sudo installed to work with AUR packages").to_string(),
-            )?;
+            let sudo = ctx.require_sudo()?;
 
-            let mut cmd = ctx.execute(sudo);
-            cmd.arg(&self.executable)
-                .arg("-Au")
+            let mut cmd = sudo.execute(ctx, &self.executable)?;
+            cmd.arg("-Au")
                 .args(ctx.config().aura_aur_arguments().split_whitespace());
             if ctx.config().yes(Step::System) {
                 cmd.arg("--noconfirm");
             }
             cmd.status_checked()?;
 
-            let mut cmd = ctx.execute(sudo);
-            cmd.arg(&self.executable)
-                .arg("-Syu")
+            let mut cmd = sudo.execute(ctx, &self.executable)?;
+            cmd.arg("-Syu")
                 .args(ctx.config().aura_pacman_arguments().split_whitespace());
             if ctx.config().yes(Step::System) {
                 cmd.arg("--noconfirm");

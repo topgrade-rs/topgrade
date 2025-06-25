@@ -3,7 +3,6 @@ use color_eyre::eyre::Result;
 use rust_i18n::t;
 use std::env::var;
 use std::ffi::OsStr;
-use std::path::Path;
 use std::process::Command;
 use std::sync::{LazyLock, Mutex};
 
@@ -11,8 +10,8 @@ use crate::executor::DryCommand;
 use crate::powershell::Powershell;
 #[cfg(target_os = "linux")]
 use crate::steps::linux::Distribution;
-use crate::sudo::{Sudo, SudoExecuteOpts};
-use crate::utils::{get_require_sudo_string, require_option};
+use crate::sudo::Sudo;
+use crate::utils::require_option;
 use crate::{config::Config, executor::Executor};
 
 /// An enum telling whether Topgrade should perform dry runs or actually perform the steps.
@@ -87,26 +86,19 @@ impl<'a> ExecutionContext<'a> {
         }
     }
 
-    /// Create an instance of `Executor` that should run `program`,
-    /// using sudo to elevate privileges.
-    pub fn execute_elevated(&self, command: &Path, interactive: bool) -> Result<Executor> {
-        let sudo = require_option(self.sudo.as_ref(), get_require_sudo_string())?;
-        sudo.execute_opts(
-            self,
-            command,
-            SudoExecuteOpts {
-                interactive,
-                ..Default::default()
-            },
-        )
-    }
-
     pub fn run_type(&self) -> RunType {
         self.run_type
     }
 
     pub fn sudo(&self) -> &Option<Sudo> {
         &self.sudo
+    }
+
+    pub fn require_sudo(&self) -> Result<&Sudo> {
+        require_option(
+            self.sudo.as_ref(),
+            t!("Require sudo or counterpart but not found, skip").to_string(),
+        )
     }
 
     pub fn config(&self) -> &Config {

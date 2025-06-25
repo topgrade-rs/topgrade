@@ -20,10 +20,9 @@ use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
 use crate::output_changed_message;
 use crate::step::Step;
+use crate::sudo::SudoExecuteOpts;
 use crate::terminal::{print_separator, shell};
-use crate::utils::{
-    check_is_python_2_or_shim, get_require_sudo_string, require, require_one, require_option, which, PathExt,
-};
+use crate::utils::{check_is_python_2_or_shim, require, require_one, require_option, which, PathExt};
 use crate::HOME_DIR;
 use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
@@ -126,13 +125,19 @@ pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
     {
         ctx.execute(gem).args(["update", "--system"]).status_checked()?;
     } else {
-        let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
+        let sudo = ctx.require_sudo()?;
         if !Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
-            ctx.execute(sudo)
-                .arg("-EH")
-                .arg(gem)
-                .args(["update", "--system"])
-                .status_checked()?;
+            sudo.execute_opts(
+                ctx,
+                &gem,
+                SudoExecuteOpts {
+                    preserve_env: Some(&[]),
+                    set_home: true,
+                    ..Default::default()
+                },
+            )?
+            .args(["update", "--system"])
+            .status_checked()?;
         }
     }
 
@@ -154,10 +159,8 @@ pub fn run_haxelib_update(ctx: &ExecutionContext) -> Result<()> {
     let mut command = if directory_writable {
         ctx.execute(&haxelib)
     } else {
-        let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
-        let mut c = ctx.execute(sudo);
-        c.arg(&haxelib);
-        c
+        let sudo = ctx.require_sudo()?;
+        sudo.execute(ctx, &haxelib)?
     };
 
     command.arg("update").status_checked()
@@ -439,10 +442,8 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
     let mut command = if is_root_install {
         ctx.execute(&vcpkg)
     } else {
-        let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
-        let mut c = ctx.execute(sudo);
-        c.arg(&vcpkg);
-        c
+        let sudo = ctx.require_sudo()?;
+        sudo.execute(ctx, &vcpkg)?
     };
 
     command.args(["upgrade", "--no-dry-run"]).status_checked()
@@ -850,10 +851,8 @@ pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
     let mut command = if directory_writable {
         ctx.execute(&tlmgr)
     } else {
-        let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
-        let mut c = ctx.execute(sudo);
-        c.arg(&tlmgr);
-        c
+        let sudo = ctx.require_sudo()?;
+        sudo.execute(ctx, &tlmgr)?
     };
     command.args(["update", "--self", "--all"]);
 
@@ -932,9 +931,8 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
                 };
 
                 if has_update {
-                    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
-                    ctx.execute(sudo)
-                       .arg(&composer)
+                    let sudo = ctx.require_sudo()?;
+                    sudo.execute(ctx, &composer)?
                        .arg("self-update")
                        .status_checked()?;
                 }
@@ -1173,16 +1171,12 @@ pub fn run_bob(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_certbot(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
+    let sudo = ctx.require_sudo()?;
     let certbot = require("certbot")?;
 
     print_separator("Certbot");
 
-    let mut cmd = ctx.execute(sudo);
-    cmd.arg(certbot);
-    cmd.arg("renew");
-
-    cmd.status_checked()
+    sudo.execute(ctx, &certbot)?.arg("renew").status_checked()
 }
 
 /// Run `$ freshclam` to update ClamAV signature database
@@ -1223,10 +1217,9 @@ pub fn run_lensfun_update_data(ctx: &ExecutionContext) -> Result<()> {
     const EXIT_CODE_WHEN_NO_UPDATE: i32 = 1;
 
     if ctx.config().lensfun_use_sudo() {
-        let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
+        let sudo = ctx.require_sudo()?;
         print_separator(SEPARATOR);
-        ctx.execute(sudo)
-            .arg(lensfun_update_data)
+        sudo.execute(ctx, &lensfun_update_data)?
             // `lensfun-update-data` returns 1 when there is no update available
             // which should be considered success
             .status_checked_with_codes(&[EXIT_CODE_WHEN_NO_UPDATE])

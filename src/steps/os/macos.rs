@@ -3,7 +3,6 @@ use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::terminal::{print_separator, prompt_yesno};
 use crate::utils::require;
-use crate::utils::{get_require_sudo_string, require_option};
 use color_eyre::eyre::Result;
 use rust_i18n::t;
 use std::collections::HashSet;
@@ -12,16 +11,16 @@ use std::process::Command;
 use tracing::debug;
 
 pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
-    require("port")?;
-    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
+    let sudo = ctx.require_sudo()?;
+    let port = require("port")?;
 
     print_separator("MacPorts");
-    ctx.execute(sudo).args(["port", "selfupdate"]).status_checked()?;
-    ctx.execute(sudo)
-        .args(["port", "-u", "upgrade", "outdated"])
+    sudo.execute(ctx, &port)?.arg("selfupdate").status_checked()?;
+    sudo.execute(ctx, &port)?
+        .args(["-u", "upgrade", "outdated"])
         .status_checked()?;
     if ctx.config().cleanup() {
-        ctx.execute(sudo).args(["port", "-N", "reclaim"]).status_checked()?;
+        sudo.execute(ctx, &port)?.args(["-N", "reclaim"]).status_checked()?;
     }
 
     Ok(())
