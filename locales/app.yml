@@ -1136,6 +1136,14 @@ _version: 2
   zh_CN: "找不到权限管理程序（sudo 等），跳过"
   zh_TW: "找不到權限管理程式（sudo 等），略過"
   de: "Benötigt sudo oder Äquivalent, aber nicht gefunden, überspringe"
+"{sudo_kind} does not support the {option} option":
+  en: "%{sudo_kind} does not support the %{option} option"
+  lt: "%{sudo_kind} nepalaiko parinkties %{option}"
+  es: "%{sudo_kind} no admite la opción %{option}"
+  fr: "%{sudo_kind} ne prend pas en charge l’option %{option}"
+  zh_CN: "%{sudo_kind} 不支持 %{option} 选项"
+  zh_TW: "%{sudo_kind} 不支援 %{option} 選項"
+  de: "%{sudo_kind} unterstützt die Option %{option} nicht"
 "sudo as user '{user}'":
   en: "sudo as user '%{user}'"
   lt: "sudo kaip vartotojas '%{user}'"
