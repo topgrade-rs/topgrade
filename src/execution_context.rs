@@ -11,7 +11,7 @@ use crate::executor::DryCommand;
 use crate::powershell::Powershell;
 #[cfg(target_os = "linux")]
 use crate::steps::linux::Distribution;
-use crate::sudo::Sudo;
+use crate::sudo::{Sudo, SudoExecuteOpts};
 use crate::utils::{get_require_sudo_string, require_option};
 use crate::{config::Config, executor::Executor};
 
@@ -91,7 +91,14 @@ impl<'a> ExecutionContext<'a> {
     /// using sudo to elevate privileges.
     pub fn execute_elevated(&self, command: &Path, interactive: bool) -> Result<Executor> {
         let sudo = require_option(self.sudo.as_ref(), get_require_sudo_string())?;
-        Ok(sudo.execute_elevated(self, command, interactive))
+        sudo.execute_opts(
+            self,
+            command,
+            SudoExecuteOpts {
+                interactive,
+                ..Default::default()
+            },
+        )
     }
 
     pub fn run_type(&self) -> RunType {
