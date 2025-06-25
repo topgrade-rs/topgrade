@@ -1,5 +1,3 @@
-use crate::command::CommandExt;
-use crate::{output_changed_message, Step, HOME_DIR};
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
@@ -20,6 +18,10 @@ use std::sync::LazyLock;
 use std::{env::var, path::Path};
 use tracing::debug;
 
+use crate::command::CommandExt;
+use crate::sudo::SudoExecuteOpts;
+use crate::{output_changed_message, Step, HOME_DIR};
+
 #[cfg(target_os = "linux")]
 use super::linux::Distribution;
 use crate::error::SkipStep;
@@ -27,7 +29,7 @@ use crate::execution_context::ExecutionContext;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use crate::executor::Executor;
 use crate::terminal::print_separator;
-use crate::utils::{get_require_sudo_string, require, require_option, PathExt};
+use crate::utils::{require, PathExt};
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 const INTEL_BREW: &str = "/usr/local/bin/brew";
@@ -191,20 +193,20 @@ pub fn run_oh_my_fish(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_pkgin(ctx: &ExecutionContext) -> Result<()> {
+    let sudo = ctx.require_sudo()?;
     let pkgin = require("pkgin")?;
-    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
 
     print_separator("Pkgin");
 
-    let mut command = ctx.execute(sudo);
-    command.arg(&pkgin).arg("update");
+    let mut command = sudo.execute(ctx, &pkgin)?;
+    command.arg("update");
     if ctx.config().yes(Step::Pkgin) {
         command.arg("-y");
     }
     command.status_checked()?;
 
-    let mut command = ctx.execute(sudo);
-    command.arg(&pkgin).arg("upgrade");
+    let mut command = sudo.execute(ctx, &pkgin)?;
+    command.arg("upgrade");
     if ctx.config().yes(Step::Pkgin) {
         command.arg("-y");
     }
@@ -241,7 +243,7 @@ pub fn run_fundle(ctx: &ExecutionContext) -> Result<()> {
 #[cfg(not(any(target_os = "android", target_os = "macos")))]
 pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
     let gdbus = require("gdbus")?;
-    require_option(
+    crate::utils::require_option(
         var("XDG_CURRENT_DESKTOP").ok().filter(|p| p.contains("GNOME")),
         t!("Desktop does not appear to be GNOME").to_string(),
     )?;
@@ -321,16 +323,19 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
             let sudo_as_user = t!("sudo as user '{user}'", user = user.name);
             print_separator(format!("{} ({})", variant.step_title(), sudo_as_user));
 
-            let sudo = crate::utils::require_option(ctx.sudo().as_ref(), crate::utils::get_require_sudo_string())?;
-            ctx.execute(sudo)
-                .current_dir("/tmp") // brew needs a writable current directory
-                .args([
-                    "--set-home",
-                    &format!("--user={}", user.name),
-                    &format!("{}", binary_name.to_string_lossy()),
-                    "update",
-                ])
-                .status_checked()?;
+            let sudo = ctx.require_sudo()?;
+            sudo.execute_opts(
+                ctx,
+                &binary_name,
+                SudoExecuteOpts {
+                    set_home: true,
+                    user: Some(&user.name),
+                    ..Default::default()
+                },
+            )?
+            .current_dir("/tmp") // brew needs a writable current directory
+            .arg("update")
+            .status_checked()?;
             return Ok(());
         }
     }
@@ -545,10 +550,18 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     let nix_args = nix_args();
     if multi_user {
-        ctx.execute_elevated(&nix, true)?
-            .args(nix_args)
-            .arg("upgrade-nix")
-            .status_checked()
+        let sudo = ctx.require_sudo()?;
+        sudo.execute_opts(
+            ctx,
+            &nix,
+            SudoExecuteOpts {
+                interactive: true,
+                ..Default::default()
+            },
+        )?
+        .args(nix_args)
+        .arg("upgrade-nix")
+        .status_checked()
     } else {
         ctx.execute(&nix).args(nix_args).arg("upgrade-nix").status_checked()
     }
@@ -813,8 +826,10 @@ pub fn run_maza(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(maza).arg("update").status_checked()
 }
 
-pub fn reboot() -> Result<()> {
-    print!("{}", t!("Rebooting..."));
-
-    Command::new("sudo").arg("reboot").status_checked()
+pub fn reboot(ctx: &ExecutionContext) -> Result<()> {
+    if let Some(sudo) = ctx.sudo() {
+        sudo.execute(ctx, "reboot")?.status_checked()
+    } else {
+        ctx.execute("reboot").status_checked()
+    }
 }

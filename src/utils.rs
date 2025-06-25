@@ -222,12 +222,6 @@ pub mod merge_strategies {
     }
 }
 
-// Skip causes
-// TODO: Put them in a better place when we have more of them
-pub fn get_require_sudo_string() -> String {
-    t!("Require sudo or counterpart but not found, skip").to_string()
-}
-
 /// Return `Err(SkipStep)` if `python` is a Python 2 or shim.
 ///
 /// # Shim

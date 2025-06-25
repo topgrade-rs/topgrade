@@ -4,7 +4,6 @@ use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::utils::{get_require_sudo_string, require_option};
 use crate::HOME_DIR;
 use color_eyre::eyre::Result;
 #[cfg(target_os = "linux")]
@@ -93,8 +92,8 @@ impl NPM {
     fn upgrade(&self, ctx: &ExecutionContext, use_sudo: bool) -> Result<()> {
         let args = ["update", self.global_location_arg()];
         if use_sudo {
-            let sudo = require_option(ctx.sudo().clone(), get_require_sudo_string())?;
-            ctx.execute(sudo).arg(&self.command).args(args).status_checked()?;
+            let sudo = ctx.require_sudo()?;
+            sudo.execute(ctx, &self.command)?.args(args).status_checked()?;
         } else {
             ctx.execute(&self.command).args(args).status_checked()?;
         }
@@ -153,11 +152,9 @@ impl Yarn {
         let args = ["global", "upgrade"];
 
         if use_sudo {
-            let sudo = require_option(ctx.sudo().clone(), get_require_sudo_string())?;
-            ctx.execute(sudo)
-                .arg(self.yarn.as_ref().unwrap_or(&self.command))
-                .args(args)
-                .status_checked()?;
+            let sudo = ctx.require_sudo()?;
+            let command = self.yarn.as_ref().unwrap_or(&self.command);
+            sudo.execute(ctx, command)?.args(args).status_checked()?;
         } else {
             ctx.execute(&self.command).args(args).status_checked()?;
         }
