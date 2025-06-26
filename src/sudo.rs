@@ -5,7 +5,6 @@ use std::path::PathBuf;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use serde::Deserialize;
-use strum::AsRefStr;
 use strum::Display;
 
 use crate::command::CommandExt;
@@ -38,36 +37,32 @@ pub struct SudoExecuteOpts<'a> {
     pub user: Option<&'a str>,
 }
 
-impl Sudo {
-    /// Get the `sudo` binary or the `gsudo` binary in the case of `gsudo`
-    /// masquerading as the `sudo` binary.
-    fn determine_sudo_variant(sudo_p: PathBuf) -> (PathBuf, SudoKind) {
-        match which("gsudo") {
-            Some(gsudo_p) => {
-                match std::fs::canonicalize(&gsudo_p).unwrap() == std::fs::canonicalize(&sudo_p).unwrap() {
-                    true => (gsudo_p, SudoKind::Gsudo),
-                    false => (sudo_p, SudoKind::Sudo),
-                }
-            }
-            None => (sudo_p, SudoKind::Sudo),
-        }
-    }
+#[cfg(not(target_os = "windows"))]
+const DETECT_ORDER: [SudoKind; 5] = [
+    SudoKind::Doas,
+    SudoKind::Sudo,
+    SudoKind::Pkexec,
+    SudoKind::Run0,
+    SudoKind::Please,
+];
 
+#[cfg(target_os = "windows")]
+const DETECT_ORDER: [SudoKind; 2] = [SudoKind::Gsudo, SudoKind::Sudo];
+
+impl Sudo {
     /// Get the `sudo` binary for this platform.
     pub fn detect() -> Option<Self> {
-        which("doas")
-            .map(|p| (p, SudoKind::Doas))
-            .or_else(|| which("sudo").map(Self::determine_sudo_variant))
-            .or_else(|| which("gsudo").map(|p| (p, SudoKind::Gsudo)))
-            .or_else(|| which("pkexec").map(|p| (p, SudoKind::Pkexec)))
-            .or_else(|| which("run0").map(|p| (p, SudoKind::Run0)))
-            .or_else(|| which("please").map(|p| (p, SudoKind::Please)))
-            .map(|(path, kind)| Self { path, kind })
+        for kind in DETECT_ORDER {
+            if let Some(path) = kind.which() {
+                return Some(Self { path, kind });
+            }
+        }
+        None
     }
 
     /// Create Sudo from SudoKind, if found in the system
     pub fn new(kind: SudoKind) -> Option<Self> {
-        which(kind.as_ref()).map(|path| Self { path, kind })
+        kind.which().map(|path| Self { path, kind })
     }
 
     /// Gets the path to the `sudo` binary. Do not use this to execute `sudo` directly - either use
@@ -277,7 +272,7 @@ impl Sudo {
     }
 }
 
-#[derive(Clone, Copy, Debug, Display, Deserialize, AsRefStr)]
+#[derive(Clone, Copy, Debug, Display, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
 pub enum SudoKind {
@@ -287,4 +282,24 @@ pub enum SudoKind {
     Pkexec,
     Run0,
     Please,
+}
+
+impl SudoKind {
+    fn binary_name(self) -> &'static str {
+        match self {
+            SudoKind::Doas => "doas",
+            SudoKind::Sudo if cfg!(not(target_os = "windows")) => "sudo",
+            // on windows, hardcode the sudo path to ensure we find Windows Sudo
+            // rather than gsudo masquerading as sudo
+            SudoKind::Sudo => r"C:\Windows\System32\sudo.exe",
+            SudoKind::Gsudo => "gsudo",
+            SudoKind::Pkexec => "pkexec",
+            SudoKind::Run0 => "run0",
+            SudoKind::Please => "please",
+        }
+    }
+
+    fn which(self) -> Option<PathBuf> {
+        which(self.binary_name())
+    }
 }
