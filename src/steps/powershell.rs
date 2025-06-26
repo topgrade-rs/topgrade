@@ -174,6 +174,11 @@ mod windows {
         if ctx.config().accept_all_windows_updates() {
             command_str.push_str(" -AcceptAll");
         }
+        if ctx.config().windows_updates_auto_reboot() {
+            command_str.push_str(" -AutoReboot");
+        } else {
+            command_str.push_str(" -IgnoreReboot");
+        }
 
         // Pass the command string using the -Command flag
         powershell

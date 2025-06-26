@@ -239,6 +239,7 @@ pub struct Vagrant {
 #[serde(deny_unknown_fields)]
 pub struct Windows {
     accept_all_updates: Option<bool>,
+    updates_auto_reboot: Option<bool>,
     self_rename: Option<bool>,
     open_remotes_in_new_terminal: Option<bool>,
     wsl_update_pre_release: Option<bool>,
@@ -1207,6 +1208,15 @@ impl Config {
             .as_ref()
             .and_then(|windows| windows.accept_all_updates)
             .unwrap_or(true)
+    }
+
+    /// Whether to auto reboot for Windows updates that require it
+    pub fn windows_updates_auto_reboot(&self) -> bool {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|windows| windows.updates_auto_reboot)
+            .unwrap_or(false)
     }
 
     /// Whether to self rename the Topgrade executable during the run
