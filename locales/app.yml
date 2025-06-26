@@ -782,22 +782,6 @@ _version: 2
   zh_CN: "无法找到安装在 WSL 中的 Topgrade"
   zh_TW: "尚未在 WSL 內安裝 Topgrade"
   de: "Konnte Topgrade nicht in WSL finden"
-"Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported.":
-  en: "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."
-  lt: "Apsvarstykite PSWindowsUpdate įdiegimą, nes Windows Update per USOClient nepalaikomas."
-  es: "Considere instalar PSWindowsUpdate ya que no se admite el uso de Windows Update a través de USOClient."
-  fr: "Envisagez d'installer PSWindowsUpdate car l'utilisation de Windows Update via USOClient n'est pas prise en charge."
-  zh_CN: "目前不支持使用 USOClient 管理 Windows 更新。建议安装 PSWindowsUpdate。"
-  zh_TW: "目前不支援使用 USOClient 管理 Windows 更新。建議安裝 PSWindowsUpdate。"
-  de: "Erwägen Sie die Installation von PSWindowsUpdate, da die Verwendung von Windows Update über USOClient nicht unterstützt wird."
-"USOClient not supported.":
-  en: "USOClient not supported."
-  lt: "USOClient nepalaikomas."
-  es: "USOClient no es admitido."
-  fr: "USOClient n'est pas pris en charge."
-  zh_CN: "不支持 USOClient"
-  zh_TW: "不支援 USOClient。"
-  de: "USOClient wird nicht unterstützt."
 "Connecting to {hostname}...":
   en: "Connecting to %{hostname}..."
   lt: "Jungiamasi prie %{hostname}..."
@@ -1256,14 +1240,6 @@ _version: 2
   zh_CN: "成功，Microsoft Store 应用正在后台更新"
   zh_TW: "成功，Microsoft Store 應用程式正在後台更新"
   de: "Erfolg, Microsoft Store-Apps werden im Hintergrund aktualisiert"
-"Unable to update Microsoft Store apps, manual intervention is required":
-  en: "Unable to update Microsoft Store apps, manual intervention is required"
-  lt: "Nepavyksta atnaujinti Microsoft Store programų, reikia rankinio įsikišimo"
-  es: "No se pueden actualizar las aplicaciones de Microsoft Store, se requiere intervención manual"
-  fr: "Impossible de mettre à jour les applications du Microsoft Store, une intervention manuelle est nécessaire"
-  zh_CN: "无法更新 Microsoft Store 应用，需手动干预"
-  zh_TW: "無法更新 Microsoft Store 應用，需手動幹預"
-  de: "Microsoft Store-Apps können nicht aktualisiert werden, manuelles Eingreifen erforderlich"
 "No JetBrains Toolbox installation found":
   en: "No JetBrains Toolbox installation found"
   lt: "Nerasta JetBrains Toolbox įdiegimo"
