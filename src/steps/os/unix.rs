@@ -18,9 +18,7 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::sync::LazyLock;
 use std::{env::var, path::Path};
-use tracing::debug;
-use whoami::fallible::hostname;
-use whoami::fallible::username;
+use tracing::{debug, warn};
 
 #[cfg(target_os = "linux")]
 use super::linux::Distribution;
@@ -624,92 +622,88 @@ fn nix_profile_dir(nix: &Path) -> Result<Option<PathBuf>> {
     )
 }
 
+/// Returns a directory from an environment variable, if and only if it is a directory which
+/// contains a flake.nix
+fn flake_dir(var: &'static str) -> Option<PathBuf> {
+    std::env::var_os(var)
+        .map(PathBuf::from)
+        .take_if(|x| std::fs::exists(x.join("flake.nix")).is_ok_and(|x| x))
+}
+
 /// Update NixOS and home-manager through a flake using `nh`
 ///
 /// See: https://github.com/viperML/nh
 pub fn run_nix_helper(ctx: &ExecutionContext) -> Result<()> {
-    let nix = require("nix")?;
-    let nix_helper = require("nh")?;
-    let flake_path: PathBuf = std::env::var_os("FLAKE")
-        .ok_or_else(|| SkipStep("$FLAKE not set".into()))?
-        .require()?
-        .into();
-
-    flake_path.join("flake.nix").require()?;
-
     let run_type = ctx.run_type();
 
-    // we never dry run this because it doesn't perform any changes and because it ensures that the
-    // behaviour between dry and wet runs is the same i.e. the checks performed are the same
-    // between dry and wet runs
-    let run_nix_eval = |attr| -> Result<String> {
-        Ok(String::from_utf8(
-            std::process::Command::new(&nix)
-                .args(nix_args())
-                .arg("eval")
-                .arg(format!("{}#{attr}", flake_path.display()))
-                .arg("--apply")
-                .arg("builtins.attrNames")
-                .output_checked()?
-                .stdout,
-        )?)
-    };
+    require("nix")?;
+    let nix_helper = require("nh")?;
 
-    let nixos_cfg = run_nix_eval("nixosConfigurations");
-    let home_cfg = run_nix_eval("homeConfigurations");
+    let fallback_flake_path = flake_dir("NH_FLAKE");
+    let darwin_flake_path = flake_dir("NH_DARWIN_FLAKE");
+    let home_flake_path = flake_dir("NH_HOME_FLAKE");
+    let nixos_flake_path = flake_dir("NH_OS_FLAKE");
 
-    if nixos_cfg.as_ref().or(home_cfg.as_ref()).is_err() && !run_type.dry() {
-        return Err(SkipStep(t!("No flake configurations found for nh").to_string()).into());
+    let all_flake_paths: Vec<_> = [
+        fallback_flake_path.as_ref(),
+        darwin_flake_path.as_ref(),
+        home_flake_path.as_ref(),
+        nixos_flake_path.as_ref(),
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
+
+    // if none of the paths exist AND contain a `flake.nix`, skip
+    if all_flake_paths.is_empty() {
+        if flake_dir("FLAKE").is_some() {
+            warn!(
+                "{}",
+                t!("You have a flake inside of $FLAKE. This is deprecated for nh.")
+            );
+        }
+        return Err(SkipStep(t!("nh cannot find any configured flakes").into()).into());
     }
 
-    print_separator("nh flake");
-    run_type
-        .execute(&nix)
-        .args(nix_args())
-        .arg("flake")
-        .arg("update")
-        .arg("--flake")
-        .arg(&flake_path)
-        .status_checked()?;
-
-    let username = username().wrap_err_with(|| t!("No username found").to_string())?;
-    let hostname = hostname().wrap_err_with(|| t!("No hostname found").to_string())?;
-
-    // Let's not do any JSON parsing and just Keep It Simple
-    if nixos_cfg.is_ok_and(|x| x.contains(&format!(r#""{hostname}""#))) {
-        print_separator("nh os");
+    let nh_switch = |ty: &'static str| -> Result<()> {
+        print_separator(format!("nh {ty}"));
 
         let mut cmd = run_type.execute(&nix_helper);
-        cmd.arg("os");
+        cmd.arg(ty);
         cmd.arg("switch");
+        cmd.arg("-u");
 
         if !ctx.config().yes(Step::NixHelper) {
             cmd.arg("--ask");
         }
         cmd.status_checked()?;
+        Ok(())
+    };
+
+    // We assume that if the user has set these variables, we can throw an error if nh cannot find
+    // a flake there. So we do not anymore perform an eval check to find out wether we should skip
+    // or not.
+    #[cfg(target_os = "macos")]
+    if darwin_flake_path.is_some() || fallback_flake_path.is_some() {
+        nh_switch("darwin")?;
     }
 
-    if let Ok(home_cfg) = home_cfg {
-        let username_at_hostname = format!(r#""{username}@{hostname}""#);
-        if home_cfg.contains(&format!(r#""{username}""#)) || home_cfg.contains(&username_at_hostname) {
-            print_separator("nh home");
+    if home_flake_path.is_some() || fallback_flake_path.is_some() {
+        nh_switch("home")?;
+    }
 
-            let mut cmd = run_type.execute(&nix_helper);
-            cmd.arg("home");
-            cmd.arg("switch");
-
-            if !ctx.config().yes(Step::NixHelper) {
-                cmd.arg("--ask");
-            }
-            cmd.status_checked()?;
-        }
+    #[cfg(target_os = "linux")]
+    if matches!(Distribution::detect(), Ok(Distribution::NixOS))
+        && (nixos_flake_path.is_some() || fallback_flake_path.is_some())
+    {
+        nh_switch("os")?;
     }
 
     Ok(())
 }
 
 fn nix_args() -> [&'static str; 2] {
-    ["--extra-experimental-features", "nix-command flakes"]
+    ["--extra-experimental-features", "nix-command"]
 }
 
 pub fn run_yadm(ctx: &ExecutionContext) -> Result<()> {
