@@ -325,3 +325,8 @@
 # extensions should be updated for.
 # (default: this won't be set by default)
 # profile = ""
+
+[rustup]
+# If set, updates only these channels.
+# (default: [] (all channels))
+# channels = ["stable"]
