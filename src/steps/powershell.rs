@@ -6,9 +6,9 @@ use rust_i18n::t;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
+use crate::step::Step;
 use crate::terminal::{is_dumb, print_separator};
 use crate::utils::{require_option, which};
-use crate::Step;
 
 pub struct Powershell {
     path: Option<PathBuf>,
