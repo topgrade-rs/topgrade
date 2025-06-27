@@ -141,9 +141,9 @@ fn run() -> Result<()> {
     #[cfg(target_os = "linux")]
     let distribution = linux::Distribution::detect();
 
+    let dry_run = config.dry_run();
     let sudo = config.sudo_command().map_or_else(sudo::Sudo::detect, sudo::Sudo::new);
-    let run_type = executor::RunType::new(config.dry_run());
-    let ctx = execution_context::ExecutionContext::new(run_type, sudo, &config);
+    let ctx = execution_context::ExecutionContext::new(dry_run, sudo, &config);
     let mut runner = runner::Runner::new(&ctx);
 
     // If
@@ -563,7 +563,8 @@ fn run() -> Result<()> {
                     run_shell().context("Failed to execute shell")?;
                 }
                 Ok(Key::Char('r' | 'R')) => {
-                    reboot().context("Failed to reboot")?;
+                    println!("{}", t!("Rebooting..."));
+                    reboot(&ctx).context("Failed to reboot")?;
                 }
                 Ok(Key::Char('q' | 'Q')) => (),
                 _ => {

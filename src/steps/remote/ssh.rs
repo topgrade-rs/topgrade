@@ -23,7 +23,7 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
     let env = format!("TOPGRADE_PREFIX={hostname}");
     args.extend(["env", &env, "$SHELL", "-lc", topgrade]);
 
-    if ctx.config().run_in_tmux() && !ctx.run_type().dry() {
+    if ctx.config().run_in_tmux() && !ctx.dry_run() {
         #[cfg(unix)]
         {
             prepare_async_ssh_command(&mut args);
@@ -33,9 +33,9 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
 
         #[cfg(not(unix))]
         unreachable!("Tmux execution is only implemented in Unix");
-    } else if ctx.config().open_remotes_in_new_terminal() && !ctx.run_type().dry() && cfg!(windows) {
+    } else if ctx.config().open_remotes_in_new_terminal() && !ctx.dry_run() && cfg!(windows) {
         prepare_async_ssh_command(&mut args);
-        ctx.run_type().execute("wt").args(&args).spawn()?;
+        ctx.execute("wt").args(&args).spawn()?;
         Err(SkipStep(String::from(t!("Remote Topgrade launched in an external terminal"))).into())
     } else {
         let mut args = vec!["-t", hostname];
@@ -50,6 +50,6 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
         print_separator(format!("Remote ({hostname})"));
         println!("{}", t!("Connecting to {hostname}...", hostname = hostname));
 
-        ctx.run_type().execute(ssh).args(&args).status_checked()
+        ctx.execute(ssh).args(&args).status_checked()
     }
 }

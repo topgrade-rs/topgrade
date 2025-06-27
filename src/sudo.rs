@@ -5,9 +5,10 @@ use std::path::PathBuf;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use serde::Deserialize;
-use strum::AsRefStr;
+use strum::Display;
 
 use crate::command::CommandExt;
+use crate::error::UnsupportedSudo;
 use crate::execution_context::ExecutionContext;
 use crate::executor::Executor;
 use crate::terminal::print_separator;
@@ -21,36 +22,56 @@ pub struct Sudo {
     kind: SudoKind,
 }
 
-impl Sudo {
-    /// Get the `sudo` binary or the `gsudo` binary in the case of `gsudo`
-    /// masquerading as the `sudo` binary.
-    fn determine_sudo_variant(sudo_p: PathBuf) -> (PathBuf, SudoKind) {
-        match which("gsudo") {
-            Some(gsudo_p) => {
-                match std::fs::canonicalize(&gsudo_p).unwrap() == std::fs::canonicalize(&sudo_p).unwrap() {
-                    true => (gsudo_p, SudoKind::Gsudo),
-                    false => (sudo_p, SudoKind::Sudo),
-                }
-            }
-            None => (sudo_p, SudoKind::Sudo),
-        }
-    }
+#[derive(Clone, Debug, Default)]
+/// Generic sudo options, translated into flags to pass to `sudo`. Depending on the sudo kind, OS
+/// and system config, some options might be specified by default or unsupported.
+pub struct SudoExecuteOpts<'a> {
+    /// Run the command "interactively", i.e. inside a login shell.
+    pub interactive: bool,
+    /// Preserve environment variables across the sudo call. If an empty list is given, preserves
+    /// all existing environment variables.
+    pub preserve_env: Option<&'a [&'a str]>,
+    /// Set the HOME environment variable to the target user's home directory.
+    pub set_home: bool,
+    /// Run the command as a user other than the root user.
+    pub user: Option<&'a str>,
+}
 
+#[cfg(not(target_os = "windows"))]
+const DETECT_ORDER: [SudoKind; 5] = [
+    SudoKind::Doas,
+    SudoKind::Sudo,
+    SudoKind::Pkexec,
+    SudoKind::Run0,
+    SudoKind::Please,
+];
+
+#[cfg(target_os = "windows")]
+const DETECT_ORDER: [SudoKind; 2] = [SudoKind::Gsudo, SudoKind::Sudo];
+
+impl Sudo {
     /// Get the `sudo` binary for this platform.
     pub fn detect() -> Option<Self> {
-        which("doas")
-            .map(|p| (p, SudoKind::Doas))
-            .or_else(|| which("sudo").map(Self::determine_sudo_variant))
-            .or_else(|| which("gsudo").map(|p| (p, SudoKind::Gsudo)))
-            .or_else(|| which("pkexec").map(|p| (p, SudoKind::Pkexec)))
-            .or_else(|| which("run0").map(|p| (p, SudoKind::Run0)))
-            .or_else(|| which("please").map(|p| (p, SudoKind::Please)))
-            .map(|(path, kind)| Self { path, kind })
+        for kind in DETECT_ORDER {
+            if let Some(path) = kind.which() {
+                return Some(Self { path, kind });
+            }
+        }
+        None
     }
 
     /// Create Sudo from SudoKind, if found in the system
     pub fn new(kind: SudoKind) -> Option<Self> {
-        which(kind.as_ref()).map(|path| Self { path, kind })
+        kind.which().map(|path| Self { path, kind })
+    }
+
+    /// Gets the path to the `sudo` binary. Do not use this to execute `sudo` directly - either use
+    /// [`Sudo::elevate`], or if you need to specify arguments to `sudo`, use [`Sudo::elevate_opts`].
+    /// This way, sudo options can be specified generically and the actual arguments customized
+    /// depending on the sudo kind.
+    #[allow(unused)]
+    pub fn path(&self) -> &Path {
+        self.path.as_ref()
     }
 
     /// Elevate permissions with `sudo`.
@@ -61,7 +82,7 @@ impl Sudo {
     /// See: https://github.com/topgrade-rs/topgrade/issues/205
     pub fn elevate(&self, ctx: &ExecutionContext) -> Result<()> {
         print_separator("Sudo");
-        let mut cmd = ctx.run_type().execute(self);
+        let mut cmd = ctx.execute(&self.path);
         match self.kind {
             SudoKind::Doas => {
                 // `doas` doesn't have anything like `sudo -v` to cache credentials,
@@ -70,7 +91,7 @@ impl Sudo {
                 // See: https://man.openbsd.org/doas
                 cmd.arg("echo");
             }
-            SudoKind::Sudo => {
+            SudoKind::Sudo if cfg!(not(target_os = "windows")) => {
                 // From `man sudo` on macOS:
                 //   -v, --validate
                 //   Update the user's cached credentials, authenticating the user
@@ -79,12 +100,19 @@ impl Sudo {
                 //   command.  Not all security policies support cached credentials.
                 cmd.arg("-v");
             }
+            SudoKind::Sudo => {
+                // Windows `sudo` doesn't cache credentials, so we just execute a
+                // dummy command - the easiest on Windows is `rem` in cmd.
+                // See: https://learn.microsoft.com/en-us/windows/advanced-settings/sudo/
+                cmd.args(["cmd.exe", "/c", "rem"]);
+            }
             SudoKind::Gsudo => {
                 // `gsudo` doesn't have anything like `sudo -v` to cache credentials,
-                // so we just execute a dummy `echo` command so we have something
-                // unobtrusive to run.
+                // so we just execute a dummy command - the easiest on Windows is
+                // `rem` in cmd. `-d` tells it to run the command directly, without
+                // going through a shell (which could be powershell) first.
                 // See: https://gerardog.github.io/gsudo/docs/usage
-                cmd.arg("echo");
+                cmd.args(["-d", "cmd.exe", "/c", "rem"]);
             }
             SudoKind::Pkexec => {
                 // I don't think this does anything; `pkexec` usually asks for
@@ -114,24 +142,132 @@ impl Sudo {
     }
 
     /// Execute a command with `sudo`.
-    pub fn execute_elevated(&self, ctx: &ExecutionContext, command: &Path, interactive: bool) -> Executor {
-        let mut cmd = ctx.run_type().execute(self);
+    pub fn execute<S: AsRef<OsStr>>(&self, ctx: &ExecutionContext, command: S) -> Result<Executor> {
+        self.execute_opts(ctx, command, SudoExecuteOpts::default())
+    }
 
-        if let SudoKind::Sudo = self.kind {
-            cmd.arg("--preserve-env=DIFFPROG");
+    /// Execute a command with `sudo`, with custom options.
+    pub fn execute_opts<S: AsRef<OsStr>>(
+        &self,
+        ctx: &ExecutionContext,
+        command: S,
+        opts: SudoExecuteOpts,
+    ) -> Result<Executor> {
+        let mut cmd = ctx.execute(&self.path);
+
+        if opts.interactive {
+            match self.kind {
+                SudoKind::Sudo if cfg!(not(target_os = "windows")) => {
+                    cmd.arg("-i");
+                }
+                SudoKind::Gsudo => {
+                    // By default, gsudo runs all commands inside a shell, so it's effectively
+                    // always "interactive". If interactive is *not* specified, we add `-d`
+                    // to run outside of a shell - see below.
+                }
+                _ => {
+                    return Err(UnsupportedSudo {
+                        sudo_kind: self.kind,
+                        flag: "-i",
+                    }
+                    .into());
+                }
+            }
+        } else if let SudoKind::Gsudo = self.kind {
+            // The `-d` (direct) flag disables shell detection, running the command directly
+            // rather than through the current shell, making it "non-interactive".
+            // Additionally, if the current shell is pwsh >= 7.3.0, then not including this
+            // gives errors if the command to run has spaces in it: see
+            // https://github.com/gerardog/gsudo/issues/297
+            cmd.arg("-d");
         }
 
-        if interactive {
-            cmd.arg("-i");
+        if let Some(preserve_env) = opts.preserve_env {
+            if preserve_env.is_empty() {
+                match self.kind {
+                    SudoKind::Sudo => {
+                        cmd.arg("-E");
+                    }
+                    SudoKind::Gsudo => {
+                        cmd.arg("--copyEV");
+                    }
+                    _ => {
+                        return Err(UnsupportedSudo {
+                            sudo_kind: self.kind,
+                            flag: "-E",
+                        }
+                        .into());
+                    }
+                }
+            } else {
+                match self.kind {
+                    SudoKind::Sudo if cfg!(not(target_os = "windows")) => {
+                        cmd.arg(format!("--preserve_env={}", preserve_env.join(",")));
+                    }
+                    SudoKind::Run0 => {
+                        for env in preserve_env {
+                            cmd.arg(format!("--setenv={}", env));
+                        }
+                    }
+                    SudoKind::Please => {
+                        cmd.arg("-a");
+                        cmd.arg(preserve_env.join(","));
+                    }
+                    _ => {
+                        return Err(UnsupportedSudo {
+                            sudo_kind: self.kind,
+                            flag: "--preserve-env=list",
+                        }
+                        .into());
+                    }
+                }
+            }
+        }
+
+        if opts.set_home {
+            match self.kind {
+                SudoKind::Sudo if cfg!(not(target_os = "windows")) => {
+                    cmd.arg("-H");
+                }
+                _ => {
+                    return Err(UnsupportedSudo {
+                        sudo_kind: self.kind,
+                        flag: "-H",
+                    }
+                    .into());
+                }
+            }
+        }
+
+        if let Some(user) = opts.user {
+            match self.kind {
+                SudoKind::Sudo if cfg!(not(target_os = "windows")) => {
+                    cmd.args(["-u", user]);
+                }
+                SudoKind::Doas | SudoKind::Gsudo | SudoKind::Run0 | SudoKind::Please => {
+                    cmd.args(["-u", user]);
+                }
+                SudoKind::Pkexec => {
+                    cmd.args(["--user", user]);
+                }
+                _ => {
+                    // Windows sudo is the only one that doesn't have a `-u` flag
+                    return Err(UnsupportedSudo {
+                        sudo_kind: self.kind,
+                        flag: "-u",
+                    }
+                    .into());
+                }
+            }
         }
 
         cmd.arg(command);
 
-        cmd
+        Ok(cmd)
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, AsRefStr)]
+#[derive(Clone, Copy, Debug, Display, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
 pub enum SudoKind {
@@ -143,8 +279,22 @@ pub enum SudoKind {
     Please,
 }
 
-impl AsRef<OsStr> for Sudo {
-    fn as_ref(&self) -> &OsStr {
-        self.path.as_ref()
+impl SudoKind {
+    fn binary_name(self) -> &'static str {
+        match self {
+            SudoKind::Doas => "doas",
+            SudoKind::Sudo if cfg!(not(target_os = "windows")) => "sudo",
+            // on windows, hardcode the sudo path to ensure we find Windows Sudo
+            // rather than gsudo masquerading as sudo
+            SudoKind::Sudo => r"C:\Windows\System32\sudo.exe",
+            SudoKind::Gsudo => "gsudo",
+            SudoKind::Pkexec => "pkexec",
+            SudoKind::Run0 => "run0",
+            SudoKind::Please => "please",
+        }
+    }
+
+    fn which(self) -> Option<PathBuf> {
+        which(self.binary_name())
     }
 }

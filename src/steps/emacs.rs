@@ -60,7 +60,7 @@ impl Emacs {
     fn update_doom(doom: &Path, ctx: &ExecutionContext) -> Result<()> {
         print_separator("Doom Emacs");
 
-        let mut command = ctx.run_type().execute(doom);
+        let mut command = ctx.execute(doom);
         if ctx.config().yes(Step::Emacs) {
             command.arg("--force");
         }
@@ -84,7 +84,7 @@ impl Emacs {
 
         print_separator("Emacs");
 
-        let mut command = ctx.run_type().execute(emacs);
+        let mut command = ctx.execute(emacs);
 
         command
             .args(["--batch", "--debug-init", "-l"])

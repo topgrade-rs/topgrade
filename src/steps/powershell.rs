@@ -58,13 +58,10 @@ impl Powershell {
         additional_args: &[&str],
     ) -> Result<impl CommandExt + 'a> {
         let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
-        let executor = &mut ctx.run_type();
         let mut command = if let Some(sudo) = ctx.sudo() {
-            let mut cmd = executor.execute(sudo);
-            cmd.arg(powershell);
-            cmd
+            sudo.execute(ctx, powershell)?
         } else {
-            executor.execute(powershell)
+            ctx.execute(powershell)
         };
 
         #[cfg(windows)]
