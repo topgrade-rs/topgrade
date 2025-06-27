@@ -1,7 +1,7 @@
 //! Utilities for command execution
 use std::ffi::{OsStr, OsString};
 use std::path::Path;
-use std::process::{Child, Command, ExitStatus, Output};
+use std::process::{Child, Command, ExitStatus, Output, Stdio};
 
 use color_eyre::eyre::Result;
 use rust_i18n::t;
@@ -186,8 +186,13 @@ impl Executor {
     /// that can indicate success of a script
     #[allow(dead_code)]
     pub fn status_checked_with_codes(&mut self, codes: &[i32]) -> Result<()> {
+        self.status_checked_with_codes_returning(codes).map(|_| {})
+    }
+
+    /// An extensions of `status_checked_with_codes` that returns the status code
+    pub fn status_checked_with_codes_returning(&mut self, codes: &[i32]) -> Result<ExitStatus> {
         match self {
-            Executor::Wet(c) => c.status_checked_with(|status| {
+            Executor::Wet(c) => c.status_checked_with_returning(|status| {
                 if status.success() || status.code().as_ref().is_some_and(|c| codes.contains(c)) {
                     Ok(())
                 } else {
@@ -196,9 +201,22 @@ impl Executor {
             }),
             Executor::Dry(c) => {
                 c.dry_run();
-                Ok(())
+                Ok(ExitStatus::default())
             }
         }
+    }
+
+    #[allow(dead_code)]
+    /// Set stdin, stdout, stderr to `Stdio::null()`
+    pub fn null_stdio(&mut self) -> &mut Self {
+        match self {
+            Executor::Wet(c) => {
+                c.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+            }
+            Executor::Dry(_) => {}
+        }
+
+        self
     }
 }
 
@@ -261,11 +279,18 @@ impl CommandExt for Executor {
     }
 
     fn status_checked_with(&mut self, succeeded: impl Fn(ExitStatus) -> Result<(), ()>) -> Result<()> {
+        self.status_checked_with_returning(succeeded).map(|_| {})
+    }
+
+    fn status_checked_with_returning(
+        &mut self,
+        succeeded: impl Fn(ExitStatus) -> std::result::Result<(), ()>,
+    ) -> Result<ExitStatus> {
         match self {
-            Executor::Wet(c) => c.status_checked_with(succeeded),
+            Executor::Wet(c) => c.status_checked_with_returning(succeeded),
             Executor::Dry(c) => {
                 c.dry_run();
-                Ok(())
+                Ok(ExitStatus::default())
             }
         }
     }
