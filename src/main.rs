@@ -347,6 +347,7 @@ fn run() -> Result<()> {
         runner.execute(Step::Sdkman, "SDKMAN!", || unix::run_sdkman(&ctx))?;
         runner.execute(Step::Rcm, "rcm", || unix::run_rcm(&ctx))?;
         runner.execute(Step::Maza, "maza", || unix::run_maza(&ctx))?;
+        runner.execute(Step::Hyprpm, "hyperpm", || unix::run_hyprpm(&ctx))?;
     }
 
     #[cfg(not(any(
