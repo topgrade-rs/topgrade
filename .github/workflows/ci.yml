@@ -22,6 +22,7 @@ jobs:
         env:
           TERM: xterm-256color
         run: |
+          rustup component add rustfmt
           cargo fmt --all -- --check
 
   step-enum-sorted:
@@ -96,7 +97,9 @@ jobs:
         run: ${{ matrix.use_cross == true && 'cross' || 'cargo' }} check --locked --target ${{ matrix.target }}
 
       - name: Run cargo/cross clippy
-        run: ${{ matrix.use_cross == true && 'cross' || 'cargo' }} clippy --locked --target ${{ matrix.target }} --all-features -- -D warnings
+        run: |
+          rustup component add clippy
+          ${{ matrix.use_cross == true && 'cross' || 'cargo' }} clippy --locked --target ${{ matrix.target }} --all-features -- -D warnings
 
       - name: Run cargo test
         # ONLY run test with cargo

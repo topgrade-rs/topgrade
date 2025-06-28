@@ -1,11 +1,3 @@
-use std::ffi::OsStr;
-use std::fs;
-use std::os::unix::fs::MetadataExt;
-use std::path::Component;
-use std::path::PathBuf;
-use std::process::Command;
-use std::{env::var, path::Path};
-
 use crate::command::CommandExt;
 use crate::{output_changed_message, Step, HOME_DIR};
 use color_eyre::eyre::eyre;
@@ -13,12 +5,19 @@ use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use home;
 use ini::Ini;
-use lazy_static::lazy_static;
 #[cfg(target_os = "linux")]
 use nix::unistd::Uid;
 use regex::Regex;
 use rust_i18n::t;
 use semver::Version;
+use std::ffi::OsStr;
+use std::fs;
+use std::os::unix::fs::MetadataExt;
+use std::path::Component;
+use std::path::PathBuf;
+use std::process::Command;
+use std::sync::LazyLock;
+use std::{env::var, path::Path};
 use tracing::debug;
 
 #[cfg(target_os = "linux")]
@@ -461,10 +460,8 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
         "`nix --version` output"
     );
 
-    lazy_static! {
-        static ref NIX_VERSION_REGEX: Regex =
-            Regex::new(r"^nix \([^)]*\) ([0-9.]+)").expect("Nix version regex always compiles");
-    }
+    static NIX_VERSION_REGEX: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"^nix \([^)]*\) ([0-9.]+)").expect("Nix version regex always compiles"));
 
     if get_version_cmd_first_line_stdout.is_empty() {
         return Err(eyre!("`nix --version` output was empty"));
@@ -657,11 +654,15 @@ pub fn run_asdf(ctx: &ExecutionContext) -> Result<()> {
     // $ asdf version
     // v0.16.7
     // ```
+    // ```
+    // $ asdf version
+    // 0.18.0 (revision unknown)
+    // ```
     let version_stdout = version_output.stdout.trim();
     // trim the starting 'v'
     let mut remaining = version_stdout.trim_start_matches('v');
-    // remove the hash part if present
-    if let Some(idx) = remaining.find('-') {
+    // remove the hash or revision part if present
+    if let Some(idx) = remaining.find(['-', ' ']) {
         remaining = &remaining[..idx];
     }
     let version =
