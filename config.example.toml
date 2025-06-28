@@ -235,6 +235,7 @@
 # with some packages or may even cause the Winget-step to fail.
 # If any problems occur, please try running Topgrade without this option first
 # before reporting an issue.
+# (default: false)
 # winget_use_sudo = true
 
 

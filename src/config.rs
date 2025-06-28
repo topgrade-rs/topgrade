@@ -1237,7 +1237,7 @@ impl Config {
             .unwrap_or(false)
     }
 
-    // Should use sudo for Winget
+    /// Should use sudo for Winget
     pub fn winget_use_sudo(&self) -> bool {
         self.config_file
             .windows
