@@ -1,25 +1,26 @@
-use std::ffi::OsString;
-use std::path::PathBuf;
-use std::process::Command;
-use std::{env, path::Path};
-use std::{fs, io::Write};
-
-use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use color_eyre::eyre::{eyre, OptionExt};
 use jetbrains_toolbox_updater::{find_jetbrains_toolbox, update_jetbrains_toolbox, FindError};
-use lazy_static::lazy_static;
 use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
+use std::ffi::OsString;
+use std::path::PathBuf;
+use std::process::Command;
+use std::sync::LazyLock;
+use std::{env, path::Path};
+use std::{fs, io::Write};
 use tempfile::tempfile_in;
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
 use crate::terminal::{print_separator, shell};
-use crate::utils::{check_is_python_2_or_shim, get_require_sudo_string, require, require_option, which, PathExt};
+use crate::utils::{
+    check_is_python_2_or_shim, get_require_sudo_string, require, require_one, require_option, which, PathExt,
+};
 use crate::HOME_DIR;
 use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
@@ -1233,9 +1234,8 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         use std::ffi::OsStr;
         use std::os::unix::ffi::OsStrExt;
 
-        lazy_static! {
-            static ref SHEBANG_REGEX: Regex = Regex::new(r"^#![ \t]*([^ \t\n]+)(?:[ \t]+([^\n]+)?)?").unwrap();
-        }
+        static SHEBANG_REGEX: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^#![ \t]*([^ \t\n]+)(?:[ \t]+([^\n]+)?)?").unwrap());
 
         let script = fs::read(poetry)?;
         if let Some(c) = SHEBANG_REGEX.captures(&script) {
@@ -1254,10 +1254,8 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
 
         use std::str;
 
-        lazy_static! {
-            static ref SHEBANG_REGEX: Regex =
-                Regex::new(r#"^#![ \t]*(?:"([^"\n]+)"|([^" \t\n]+))(?:[ \t]+([^\n]+)?)?"#).unwrap();
-        }
+        static SHEBANG_REGEX: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r#"^#![ \t]*(?:"([^"\n]+)"|([^" \t\n]+))(?:[ \t]+([^\n]+)?)?"#).unwrap());
 
         let data = fs::read(poetry)?;
 
@@ -1306,7 +1304,7 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         debug!("poetry interpreter: {:?}, args: {:?}", interp, interp_args);
 
         let check_official_install_script =
-        "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
+            "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
         let mut command = Command::new(&interp);
         if let Some(args) = interp_args {
             command.arg(args);
@@ -1401,11 +1399,24 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         // After 0.4.25 (inclusive), running `uv self` succeeds regardless of the
         // feature gate, so the above approach won't work.
         //
-        // We run `uv self update` directly, if it outputs:
+        // We run `uv self update` directly, and ignore an error if it outputs:
         //
-        // "uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.\n"
+        // "error: uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.\n"
+        //
+        // or:
+        //
+        // "
+        // error: Self-update is only available for uv binaries installed via the standalone installation scripts.
+        //
+        // If you installed uv with pip, brew, or another package manager, update uv with `pip install --upgrade`, `brew upgrade`, or similar.
+        // "
+        //
+        // These two error messages can both occur, in different situations.
 
-        const ERROR_MSG: &str = "uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.";
+        const ERROR_MSGS: [&str; 2] = [
+            "uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.",
+            "Self-update is only available for uv binaries installed via the standalone installation scripts.",
+        ];
 
         let output = ctx
             .run_type()
@@ -1420,7 +1431,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         };
         let stderr = std::str::from_utf8(&output.stderr).expect("output should be UTF-8 encoded");
 
-        if stderr.contains(ERROR_MSG) {
+        if ERROR_MSGS.iter().any(|&n| stderr.contains(n)) {
             // Feature `self-update` is disabled, nothing to do.
         } else {
             // Feature is enabled, flush the captured output so that users know we did the self-update.
@@ -1439,7 +1450,17 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type()
         .execute(&uv_exec)
         .args(["tool", "upgrade", "--all"])
-        .status_checked()
+        .status_checked()?;
+
+    if ctx.config().cleanup() {
+        // 3. Prune cache
+        ctx.run_type()
+            .execute(&uv_exec)
+            .args(["cache", "prune"])
+            .status_checked()?;
+    }
+
+    Ok(())
 }
 
 /// Involve `zvm upgrade` to update ZVM
@@ -1543,21 +1564,61 @@ pub fn run_jetbrains_toolbox(_ctx: &ExecutionContext) -> Result<()> {
     }
 }
 
-fn run_jetbrains_ide(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result<()> {
-    print_separator(format!("JetBrains {name} plugins"));
+fn run_jetbrains_ide_generic<const IS_JETBRAINS: bool>(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result<()> {
+    let prefix = if IS_JETBRAINS { "JetBrains " } else { "" };
+    print_separator(format!("{prefix}{name} plugins"));
 
     // The `update` command is undocumented, but tested on all of the below.
-    ctx.run_type().execute(bin).arg("update").status_checked()
+    let output = ctx.run_type().execute(&bin).arg("update").output()?;
+    let output = match output {
+        ExecutorOutput::Dry => return Ok(()),
+        ExecutorOutput::Wet(output) => output,
+    };
+    // Write the output which we swallowed in all cases
+    std::io::stdout().lock().write_all(&output.stdout).unwrap();
+    std::io::stderr().lock().write_all(&output.stderr).unwrap();
+
+    let stdout = String::from_utf8(output.stdout.clone()).wrap_err("Expected valid UTF-8 output")?;
+
+    // "Only one instance of RustRover can be run at a time."
+    if stdout.contains("Only one instance of ") && stdout.contains(" can be run at a time.") {
+        // It's always paired with status code 1
+        let status_code = output
+            .status
+            .code()
+            .ok_or_eyre("Failed to get status code; was killed with signal")?;
+        if status_code != 1 {
+            return Err(eyre!("Expected status code 1 ('Only one instance of <IDE> can be run at a time.'), but found status code {}. Output: {output:?}", status_code));
+        }
+        // Don't crash, but don't be silent either
+        warn!("{name} is already running, can't update it now.");
+        Err(SkipStep(format!("{name} is already running, can't update it now.")).into())
+    } else if !output.status.success() {
+        // Unknown failure
+        Err(eyre!("Running `{bin:?} update` failed. Output: {output:?}"))
+    } else {
+        // Success. Output was already written above
+        Ok(())
+    }
+}
+
+fn run_jetbrains_ide(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result<()> {
+    run_jetbrains_ide_generic::<true>(ctx, bin, name)
 }
 
 pub fn run_android_studio(ctx: &ExecutionContext) -> Result<()> {
     // We don't use `run_jetbrains_ide` here because that would print "JetBrains Android Studio",
     //  which is incorrect as Android Studio is made by Google. Just "Android Studio" is fine.
-    let bin = require("studio")?;
-
-    print_separator("Android Studio plugins");
-
-    ctx.run_type().execute(bin).arg("update").status_checked()
+    run_jetbrains_ide_generic::<false>(
+        ctx,
+        require_one([
+            "studio",
+            "android-studio",
+            "android-studio-beta",
+            "android-studio-canary",
+        ])?,
+        "Android Studio",
+    )
 }
 
 pub fn run_jetbrains_aqua(ctx: &ExecutionContext) -> Result<()> {
@@ -1565,31 +1626,43 @@ pub fn run_jetbrains_aqua(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_jetbrains_clion(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("clion")?, "CLion")
+    run_jetbrains_ide(ctx, require_one(["clion", "clion-eap"])?, "CLion")
 }
 
 pub fn run_jetbrains_datagrip(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("datagrip")?, "DataGrip")
+    run_jetbrains_ide(ctx, require_one(["datagrip", "datagrip-eap"])?, "DataGrip")
 }
 
 pub fn run_jetbrains_dataspell(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("dataspell")?, "DataSpell")
+    run_jetbrains_ide(ctx, require_one(["dataspell", "dataspell-eap"])?, "DataSpell")
 }
 
 pub fn run_jetbrains_gateway(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("gateway")?, "Gateway")
+    run_jetbrains_ide(
+        ctx,
+        require_one(["gateway", "jetbrains-gateway", "jetbrains-gateway-eap"])?,
+        "Gateway",
+    )
 }
 
 pub fn run_jetbrains_goland(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("goland")?, "Goland")
+    run_jetbrains_ide(ctx, require_one(["goland", "goland-eap"])?, "Goland")
 }
 
 pub fn run_jetbrains_idea(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("idea")?, "IntelliJ IDEA")
+    run_jetbrains_ide(
+        ctx,
+        require_one([
+            "idea",
+            "intellij-idea-ultimate-edition",
+            "intellij-idea-community-edition",
+        ])?,
+        "IntelliJ IDEA",
+    )
 }
 
 pub fn run_jetbrains_mps(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("mps")?, "MPS")
+    run_jetbrains_ide(ctx, require_one(["mps", "jetbrains-mps"])?, "MPS")
 }
 
 pub fn run_jetbrains_phpstorm(ctx: &ExecutionContext) -> Result<()> {
@@ -1597,23 +1670,31 @@ pub fn run_jetbrains_phpstorm(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_jetbrains_pycharm(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("pycharm")?, "PyCharm")
+    run_jetbrains_ide(
+        ctx,
+        require_one(["pycharm", "pycharm-professional", "pycharm-eap"])?,
+        "PyCharm",
+    )
 }
 
 pub fn run_jetbrains_rider(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("rider")?, "Rider")
+    run_jetbrains_ide(ctx, require_one(["rider", "rider-eap"])?, "Rider")
 }
 
 pub fn run_jetbrains_rubymine(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("rubymine")?, "RubyMine")
+    run_jetbrains_ide(
+        ctx,
+        require_one(["rubymine", "jetbrains-rubymine", "rubymine-eap"])?,
+        "RubyMine",
+    )
 }
 
 pub fn run_jetbrains_rustrover(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("rustrover")?, "RustRover")
+    run_jetbrains_ide(ctx, require_one(["rustrover", "rustrover-eap"])?, "RustRover")
 }
 
 pub fn run_jetbrains_webstorm(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("webstorm")?, "WebStorm")
+    run_jetbrains_ide(ctx, require_one(["webstorm", "webstorm-eap"])?, "WebStorm")
 }
 
 pub fn run_yazi(ctx: &ExecutionContext) -> Result<()> {
@@ -1621,5 +1702,5 @@ pub fn run_yazi(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Yazi packages");
 
-    ctx.run_type().execute(ya).args(["pack", "-u"]).status_checked()
+    ctx.run_type().execute(ya).args(["pkg", "upgrade"]).status_checked()
 }

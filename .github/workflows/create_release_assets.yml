@@ -3,6 +3,21 @@ name: Publish release files for CD native and non-cd-native environments
 on:
   release:
     types: [ created ]
+  # When a release failed, and there is something you need to fix in this 
+  # YML file, you can manually re-run the job via this event to re-do the
+  # release. (Simply re-run the job through GitHub UI won't work as it would use
+  # the old YML file, which needs a fix.)
+  workflow_dispatch:
+    inputs:
+      # The GitHub Action (softprops/action-gh-release) used in this pipeline 
+      # needs a tag, you specify it through this parameter.
+      # 
+      # In the case described above, it should be an existing tag. E.g., the 
+      # release of v16.0.4 failed, you should specify "v16.0.4" here.
+      existing_tag: 
+        description: "The tag of the failed release that you wanna re-run and fix"
+        required: true
+        type: string
 
 jobs:
   # Publish release files for CD native environments
@@ -10,10 +25,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Use the Ubuntu 22.04 image to link with a low version of glibc
+        #
+        # https://github.com/topgrade-rs/topgrade/issues/1095
         platform: [ ubuntu-22.04, macos-latest, macos-13, windows-latest ]
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install needed components
+        run: |
+          rustup component add rustfmt
+          rustup component add clippy
 
       - name: Install cargo-deb
         run: cargo install cargo-deb
@@ -35,11 +58,21 @@ jobs:
       - name: Build in Release profile with all features enabled
         run: cargo build --release --all-features
 
+      - name: Determine tag name
+        id: determine_tag_name
+        shell: bash # Or it won't work on Windows
+        run: |
+          if [ -n "${{ github.event.release.tag_name }}" ]; then
+            echo "tag_name=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag_name=${{ github.event.inputs.existing_tag }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Rename Release (Unix)
         run: |
           cargo install default-target
           mkdir -p assets
-          FILENAME=topgrade-${{github.event.release.tag_name}}-$(default-target)
+          FILENAME=topgrade-${{ steps.determine_tag_name.outputs.tag_name }}-$(default-target)
           mv target/release/topgrade assets
           cd assets
           tar --format=ustar -czf $FILENAME.tar.gz topgrade
@@ -70,7 +103,7 @@ jobs:
         run: |
           cargo install default-target
           mkdir assets
-          FILENAME=topgrade-${{github.event.release.tag_name}}-$(default-target)
+          FILENAME=topgrade-${{steps.determine_tag_name.outputs.tag_name}}-$(default-target)
           mv target/release/topgrade.exe assets/topgrade.exe
           cd assets
           powershell Compress-Archive -Path * -Destination ${FILENAME}.zip
@@ -79,9 +112,11 @@ jobs:
         if: ${{ matrix.platform == 'windows-latest' }}
         shell: bash
 
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.determine_tag_name.outputs.tag_name }}
           files: assets/*
 
   # Publish release files for non-CD-native environments
@@ -100,6 +135,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install needed components
+        run: |
+          rustup component add rustfmt
+          rustup component add clippy
 
       - name: Install cargo-deb cross compilation dependencies
         run: sudo apt-get install libc6-arm64-cross libgcc-s1-arm64-cross
@@ -139,10 +179,20 @@ jobs:
       - name: Build in Release profile with all features enabled
         run: cross build --release --all-features --target ${{matrix.target}}
 
+      - name: Determine tag name
+        id: determine_tag_name
+        shell: bash # Or it won't work on Windows
+        run: |
+          if [ -n "${{ github.event.release.tag_name }}" ]; then
+            echo "tag_name=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag_name=${{ github.event.inputs.existing_tag }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Rename Release
         run: |
           mkdir -p assets
-          FILENAME=topgrade-${{github.event.release.tag_name}}-${{matrix.target}}
+          FILENAME=topgrade-${{steps.determine_tag_name.outputs.tag_name}}-${{matrix.target}}
           mv target/${{matrix.target}}/release/topgrade assets
           cd assets
           tar --format=ustar -czf $FILENAME.tar.gz topgrade
@@ -167,7 +217,9 @@ jobs:
         if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'armv7-unknown-linux-gnueabihf' }}
         shell: bash
 
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.determine_tag_name.outputs.tag_name }}
           files: assets/*
