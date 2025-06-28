@@ -2,7 +2,7 @@ use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use color_eyre::eyre::{eyre, OptionExt};
 use jetbrains_toolbox_updater::{find_jetbrains_toolbox, update_jetbrains_toolbox, FindError};
-use regex::bytes::Regex;
+use regex::Regex;
 use rust_i18n::t;
 use semver::Version;
 use std::ffi::OsString;
@@ -17,6 +17,7 @@ use tracing::{debug, error, warn};
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
+use crate::report::UpdatedComponent;
 use crate::terminal::{print_separator, shell};
 use crate::utils::{
     check_is_python_2_or_shim, get_require_sudo_string, require, require_one, require_option, which, PathExt,
@@ -1234,8 +1235,8 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         use std::ffi::OsStr;
         use std::os::unix::ffi::OsStrExt;
 
-        static SHEBANG_REGEX: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"^#![ \t]*([^ \t\n]+)(?:[ \t]+([^\n]+)?)?").unwrap());
+        static SHEBANG_REGEX: LazyLock<regex::bytes::Regex> =
+            LazyLock::new(|| regex::bytes::Regex::new(r"^#![ \t]*([^ \t\n]+)(?:[ \t]+([^\n]+)?)?").unwrap());
 
         let script = fs::read(poetry)?;
         if let Some(c) = SHEBANG_REGEX.captures(&script) {
@@ -1254,8 +1255,9 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
 
         use std::str;
 
-        static SHEBANG_REGEX: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r#"^#![ \t]*(?:"([^"\n]+)"|([^" \t\n]+))(?:[ \t]+([^\n]+)?)?"#).unwrap());
+        static SHEBANG_REGEX: LazyLock<regex::bytes::Regex> = LazyLock::new(|| {
+            regex::bytes::Regex::new(r#"^#![ \t]*(?:"([^"\n]+)"|([^" \t\n]+))(?:[ \t]+([^\n]+)?)?"#).unwrap()
+        });
 
         let data = fs::read(poetry)?;
 
@@ -1333,9 +1335,11 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
-pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
+pub fn run_uv(ctx: &ExecutionContext) -> Result<Vec<UpdatedComponent>> {
     let uv_exec = require("uv")?;
     print_separator("uv");
+
+    let mut updated = vec![];
 
     // 1. Run `uv self update` if the `uv` binary is built with the `self-update`
     //    cargo feature enabled.
@@ -1378,6 +1382,8 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
     let version =
         Version::parse(version_str).wrap_err_with(|| output_changed_message!("uv --version", "Invalid version"))?;
 
+    let mut self_output = None;
+
     if version < Version::new(0, 4, 25) {
         // For uv before version 0.4.25 (exclusive), the `self` sub-command only
         // exists under the `self-update` feature, we run `uv self --help` to check
@@ -1390,10 +1396,16 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
             .is_ok();
 
         if self_update_feature_enabled {
-            ctx.run_type()
+            let output = ctx
+                .run_type()
                 .execute(&uv_exec)
                 .args(["self", "update"])
-                .status_checked()?;
+                .output_checked()?;
+
+            std::io::stdout().write_all(&output.stdout)?;
+            std::io::stderr().write_all(&output.stderr)?;
+
+            self_output = Some(output);
         }
     } else {
         // After 0.4.25 (inclusive), running `uv self` succeeds regardless of the
@@ -1429,7 +1441,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
             ExecutorOutput::Wet(wet) => wet,
             ExecutorOutput::Dry => unreachable!("the whole function returns when we run `uv --version` under dry-run"),
         };
-        let stderr = std::str::from_utf8(&output.stderr).expect("output should be UTF-8 encoded");
+        let stderr = std::str::from_utf8(&output.stderr).wrap_err("Output should be valid UTF-8")?;
 
         if ERROR_MSGS.iter().any(|&n| stderr.contains(n)) {
             // Feature `self-update` is disabled, nothing to do.
@@ -1443,10 +1455,36 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
             if !output.status.success() {
                 return Err(eyre!("uv self update failed"));
             }
+
+            self_output = Some(output);
         }
     };
 
+    // Extract if the self-update happened
+
+    static UV_SELF_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(
+        r"success: (?:(?:You're on the latest version of uv \((?:v[\.0-9]+)\))|(?:Upgraded uv from (v[\.0-9]+) to (v[\.0-9]+)!))"
+    ).expect("Uv self-update output regex always compiles")
+    });
+
+    if let Some(output) = self_output {
+        let captures = UV_SELF_REGEX
+            .captures(std::str::from_utf8(&output.stderr).wrap_err("Output should be valid UTF-8")?)
+            .ok_or_else(|| eyre!(output_changed_message!("uv self update", "regex did not match")))?;
+        match (captures.get(1), captures.get(2)) {
+            (None, None) => (),
+            (Some(from_version), Some(to_version)) => updated.push(UpdatedComponent::new(
+                "(self-update) uv".to_string(),
+                Some(from_version.as_str().to_string()),
+                Some(to_version.as_str().to_string()),
+            )),
+            _ => unreachable!("Regex should match none or both groups"),
+        }
+    }
+
     // 2. Update the installed tools
+    // TODO: include this in `updated`
     ctx.run_type()
         .execute(&uv_exec)
         .args(["tool", "upgrade", "--all"])
@@ -1460,7 +1498,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
             .status_checked()?;
     }
 
-    Ok(())
+    Ok(updated)
 }
 
 /// Involve `zvm upgrade` to update ZVM
