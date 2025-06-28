@@ -100,6 +100,7 @@ pub enum Step {
     Helix,
     Helm,
     HomeManager,
+    Hyprpm,
     // These names are miscapitalized on purpose, so the CLI name is
     //  `jetbrains_pycharm` instead of `jet_brains_py_charm`.
     JetbrainsAqua,

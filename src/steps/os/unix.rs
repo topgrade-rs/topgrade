@@ -837,6 +837,14 @@ pub fn run_maza(ctx: &ExecutionContext) -> Result<()> {
     ctx.run_type().execute(maza).arg("update").status_checked()
 }
 
+pub fn run_hyprpm(ctx: &ExecutionContext) -> Result<()> {
+    let hyprpm = require("hyprpm")?;
+
+    print_separator("hyprpm");
+
+    ctx.run_type().execute(hyprpm).arg("update").status_checked()
+}
+
 pub fn reboot() -> Result<()> {
     print!("{}", t!("Rebooting..."));
 
