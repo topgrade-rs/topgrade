@@ -325,3 +325,9 @@
 # extensions should be updated for.
 # (default: this won't be set by default)
 # profile = ""
+
+[doom]
+# If this is set to true, the `--aot` flag is added to `doom upgrade`,
+# which enables ahead-of-time native compilation of packages.
+# (default: false)
+# aot = true

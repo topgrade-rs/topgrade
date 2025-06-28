@@ -501,6 +501,12 @@ pub struct VscodeConfig {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct DoomConfig {
+    aot: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 /// Configuration file
 pub struct ConfigFile {
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
@@ -574,6 +580,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     vscode: Option<VscodeConfig>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    doom: Option<DoomConfig>,
 }
 
 fn config_directory() -> PathBuf {
@@ -1759,6 +1768,14 @@ impl Config {
         } else {
             Some(profile.as_str())
         }
+    }
+
+    pub fn doom_aot(&self) -> bool {
+        self.config_file
+            .doom
+            .as_ref()
+            .and_then(|doom| doom.aot)
+            .unwrap_or(false)
     }
 }
 
