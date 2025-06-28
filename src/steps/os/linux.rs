@@ -1111,6 +1111,12 @@ pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_auto_cpufreq(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let auto_cpu_freq = require("auto-cpufreq")?;
+    if auto_cpu_freq != PathBuf::from("/usr/local/bin/auto-cpufreq") {
+        return Err(SkipStep(String::from(
+            "`auto-cpufreq` was not installed by the official installer, but presumably by a package manager.",
+        ))
+        .into());
+    }
 
     print_separator("auto-cpufreq");
 
