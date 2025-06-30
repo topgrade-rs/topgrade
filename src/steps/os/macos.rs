@@ -1,5 +1,6 @@
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
+use crate::executor::RunType;
 use crate::step::Step;
 use crate::terminal::{print_separator, prompt_yesno};
 use crate::utils::require;
@@ -38,7 +39,7 @@ pub fn run_mas(ctx: &ExecutionContext) -> Result<()> {
 pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
     print_separator(t!("macOS system update"));
 
-    let should_ask = !(ctx.config().yes(Step::System) || ctx.config().dry_run());
+    let should_ask = !(ctx.config().yes(Step::System) || ctx.run_type() == RunType::Dry);
     if should_ask {
         println!("{}", t!("Finding available software"));
         if system_update_available()? {
@@ -95,7 +96,7 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
     let xcodes = require("xcodes")?;
     print_separator("Xcodes");
 
-    let should_ask = !(ctx.config().yes(Step::Xcodes) || ctx.config().dry_run());
+    let should_ask = !(ctx.config().yes(Step::Xcodes) || ctx.run_type() == RunType::Dry);
 
     let releases = ctx.execute(&xcodes).args(["update"]).output_checked_utf8()?.stdout;
 

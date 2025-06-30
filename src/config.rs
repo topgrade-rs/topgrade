@@ -1,11 +1,5 @@
 #![allow(dead_code)]
 
-use std::fs::{write, File};
-use std::io::Write;
-use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::{env, fmt, fs};
-
 use clap::{Parser, ValueEnum};
 use clap_complete::Shell;
 use color_eyre::eyre::Context;
@@ -17,11 +11,17 @@ use regex::Regex;
 use regex_split::RegexSplit;
 use rust_i18n::t;
 use serde::Deserialize;
+use std::fs::{write, File};
+use std::io::Write;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::{env, fmt, fs};
 use strum::IntoEnumIterator;
 use which_crate::which;
 
 use super::utils::editor;
 use crate::command::CommandExt;
+use crate::execution_context::RunType;
 use crate::step::Step;
 use crate::sudo::SudoKind;
 use crate::utils::string_prepend_str;
@@ -707,9 +707,9 @@ pub struct CommandLineArgs {
     #[arg(short = 'c', long = "cleanup")]
     cleanup: bool,
 
-    /// Print what would be done
-    #[arg(short = 'n', long = "dry-run")]
-    dry_run: bool,
+    /// Pick between just running commands, running and logging commands, and just logging commands
+    #[arg(short = 'm', long = "run-type", value_enum)]
+    run_type: RunType,
 
     /// Do not ask to retry failed steps
     #[arg(long = "no-retry")]
@@ -1001,9 +1001,9 @@ impl Config {
                 .unwrap_or(false)
     }
 
-    /// Tell whether we are dry-running.
-    pub fn dry_run(&self) -> bool {
-        self.opt.dry_run
+    /// Get the [RunType] for the current execution
+    pub fn run_type(&self) -> RunType {
+        self.opt.run_type
     }
 
     /// Tell whether we should not attempt to retry anything.
