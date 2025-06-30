@@ -1,35 +1,32 @@
 //! Utilities for command execution
+use clap::ValueEnum;
+use color_eyre::eyre::Result;
+use rust_i18n::t;
+use serde::Deserialize;
 use std::ffi::{OsStr, OsString};
 use std::path::Path;
 use std::process::{Child, Command, ExitStatus, Output};
-
-use color_eyre::eyre::Result;
-use rust_i18n::t;
+use strum::EnumString;
 use tracing::debug;
 
 use crate::command::CommandExt;
 use crate::error::DryRun;
 
 /// An enum telling whether Topgrade should perform dry runs or actually perform the steps.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Default, EnumString, ValueEnum)]
 pub enum RunType {
     /// Executing commands will just print the command with its argument.
     Dry,
 
     /// Executing commands will perform actual execution.
+    #[default]
     Wet,
+
+    /// Executing commands will print the command and perform actual execution.
+    Damp,
 }
 
 impl RunType {
-    /// Create a new instance from a boolean telling whether to dry run.
-    pub fn new(dry_run: bool) -> Self {
-        if dry_run {
-            RunType::Dry
-        } else {
-            RunType::Wet
-        }
-    }
-
     /// Create an instance of `Executor` that should run `program`.
     pub fn execute<S: AsRef<OsStr>>(self, program: S) -> Executor {
         match self {
@@ -38,6 +35,7 @@ impl RunType {
                 ..Default::default()
             }),
             RunType::Wet => Executor::Wet(Command::new(program)),
+            RunType::Damp => Executor::Damp(Command::new(program)),
         }
     }
 
@@ -46,6 +44,7 @@ impl RunType {
         match self {
             RunType::Dry => true,
             RunType::Wet => false,
+            RunType::Damp => false,
         }
     }
 }
@@ -55,6 +54,7 @@ impl RunType {
 /// If the enum is set to `Dry`, execution will just print the command with its arguments.
 pub enum Executor {
     Wet(Command),
+    Damp(Command),
     Dry(DryCommand),
 }
 
@@ -64,7 +64,7 @@ impl Executor {
     /// Will give weird results for non-UTF-8 programs; see `to_string_lossy()`.
     pub fn get_program(&self) -> String {
         match self {
-            Executor::Wet(c) => c.get_program().to_string_lossy().into_owned(),
+            Executor::Wet(c) | Executor::Damp(c) => c.get_program().to_string_lossy().into_owned(),
             Executor::Dry(c) => c.program.to_string_lossy().into_owned(),
         }
     }
@@ -72,7 +72,7 @@ impl Executor {
     /// See `std::process::Command::arg`
     pub fn arg<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Executor {
         match self {
-            Executor::Wet(c) => {
+            Executor::Wet(c) | Executor::Damp(c) => {
                 c.arg(arg);
             }
             Executor::Dry(c) => {
@@ -90,7 +90,7 @@ impl Executor {
         S: AsRef<OsStr>,
     {
         match self {
-            Executor::Wet(c) => {
+            Executor::Wet(c) | Executor::Damp(c) => {
                 c.args(args);
             }
             Executor::Dry(c) => {
@@ -105,7 +105,7 @@ impl Executor {
     /// See `std::process::Command::current_dir`
     pub fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut Executor {
         match self {
-            Executor::Wet(c) => {
+            Executor::Wet(c) | Executor::Damp(c) => {
                 c.current_dir(dir);
             }
             Executor::Dry(c) => c.directory = Some(dir.as_ref().into()),
@@ -121,7 +121,7 @@ impl Executor {
         K: AsRef<OsStr>,
     {
         match self {
-            Executor::Wet(c) => {
+            Executor::Wet(c) | Executor::Damp(c) => {
                 c.env_remove(key);
             }
             Executor::Dry(_) => (),
@@ -138,7 +138,7 @@ impl Executor {
         V: AsRef<OsStr>,
     {
         match self {
-            Executor::Wet(c) => {
+            Executor::Wet(c) | Executor::Damp(c) => {
                 c.env(key, val);
             }
             Executor::Dry(_) => (),
@@ -157,6 +157,12 @@ impl Executor {
                 #[allow(clippy::disallowed_methods)]
                 c.spawn().map(ExecutorChild::Wet)?
             }
+            Executor::Damp(c) => {
+                log_real_command(c);
+                // See Executor::Wet
+                #[allow(clippy::disallowed_methods)]
+                c.spawn().map(ExecutorChild::Wet)?
+            }
             Executor::Dry(c) => {
                 c.dry_run();
                 ExecutorChild::Dry
@@ -172,6 +178,12 @@ impl Executor {
             Executor::Wet(c) => {
                 // We should use `output()` here rather than `output_checked()` since
                 // their semantics and behaviors are different.
+                #[allow(clippy::disallowed_methods)]
+                Ok(ExecutorOutput::Wet(c.output()?))
+            }
+            Executor::Damp(c) => {
+                log_real_command(c);
+                // See Executor::Wet
                 #[allow(clippy::disallowed_methods)]
                 Ok(ExecutorOutput::Wet(c.output()?))
             }
@@ -194,6 +206,16 @@ impl Executor {
                     Err(())
                 }
             }),
+            Executor::Damp(c) => {
+                log_real_command(c);
+                c.status_checked_with(|status| {
+                    if status.success() || status.code().as_ref().is_some_and(|c| codes.contains(c)) {
+                        Ok(())
+                    } else {
+                        Err(())
+                    }
+                })
+            }
             Executor::Dry(c) => {
                 c.dry_run();
                 Ok(())
@@ -253,6 +275,10 @@ impl CommandExt for Executor {
     fn output_checked_with(&mut self, succeeded: impl Fn(&Output) -> Result<(), ()>) -> Result<Output> {
         match self {
             Executor::Wet(c) => c.output_checked_with(succeeded),
+            Executor::Damp(c) => {
+                log_real_command(c);
+                c.output_checked_with(succeeded)
+            }
             Executor::Dry(c) => {
                 c.dry_run();
                 Err(DryRun().into())
@@ -263,6 +289,10 @@ impl CommandExt for Executor {
     fn status_checked_with(&mut self, succeeded: impl Fn(ExitStatus) -> Result<(), ()>) -> Result<()> {
         match self {
             Executor::Wet(c) => c.status_checked_with(succeeded),
+            Executor::Damp(c) => {
+                log_real_command(c);
+                c.status_checked_with(succeeded)
+            }
             Executor::Dry(c) => {
                 c.dry_run();
                 Ok(())
@@ -272,5 +302,23 @@ impl CommandExt for Executor {
 
     fn spawn_checked(&mut self) -> Result<Self::Child> {
         self.spawn()
+    }
+}
+
+fn log_real_command(c: &Command) {
+    println!(
+        "Executing {} {}",
+        c.get_program().to_string_lossy(),
+        c.get_args().map(|a| a.to_string_lossy()).collect::<Vec<_>>().join(" ")
+    );
+    let env = c.get_envs();
+    if env.len() != 0 {
+        println!(
+            "With env: {}",
+            env.filter(|(_, val)| val.is_some())
+                .map(|(key, val)| format!("{:?}={:?}", key, val.unwrap()))
+                .collect::<Vec<_>>()
+                .join(" ")
+        )
     }
 }
