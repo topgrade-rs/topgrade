@@ -799,18 +799,6 @@ pub struct CommandLineArgs {
 }
 
 impl CommandLineArgs {
-    /// Load the command line arguments
-    pub fn load() -> Self {
-        // Currently, clap doesn't allow for aliases to set values, so we can't alias
-        // --dry-run to --run-type dry
-        let mut args = CommandLineArgs::parse();
-        if args.dry_run {
-            args.run_type = RunType::Dry;
-        }
-
-        args
-    }
-
     pub fn edit_config(&self) -> bool {
         self.edit_config
     }
@@ -1021,7 +1009,11 @@ impl Config {
 
     /// Get the [RunType] for the current execution
     pub fn run_type(&self) -> RunType {
-        self.opt.run_type
+        if self.opt.dry_run {
+            RunType::Dry
+        } else {
+            self.opt.run_type
+        }
     }
 
     /// Tell whether we should not attempt to retry anything.

@@ -7,8 +7,8 @@ use std::process::exit;
 use std::time::Duration;
 
 use crate::breaking_changes::{first_run_of_major_release, print_breaking_changes, should_skip, write_keep_file};
-use clap::crate_version;
 use clap::CommandFactory;
+use clap::{crate_version, Parser};
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use console::Key;
@@ -66,7 +66,7 @@ fn run() -> Result<()> {
     install_color_eyre()?;
     ctrlc::set_handler();
 
-    let opt = CommandLineArgs::load();
+    let opt = CommandLineArgs::parse();
     // Set up the logger with the filter directives from:
     //     1. CLI option `--log-filter`
     //     2. `debug` if the `--verbose` option is present
