@@ -707,8 +707,14 @@ pub struct CommandLineArgs {
     #[arg(short = 'c', long = "cleanup")]
     cleanup: bool,
 
+    /// Print what would be done
+    ///
+    /// Alias for --run-type dry
+    #[arg(short = 'n', long = "dry-run")]
+    dry_run: bool,
+
     /// Pick between just running commands, running and logging commands, and just logging commands
-    #[arg(short = 'm', long = "run-type", value_enum, default_value_t)]
+    #[arg(short = 'r', long = "run-type", value_enum, default_value_t)]
     run_type: RunType,
 
     /// Do not ask to retry failed steps
@@ -793,6 +799,18 @@ pub struct CommandLineArgs {
 }
 
 impl CommandLineArgs {
+    /// Load the command line arguments
+    pub fn load() -> Self {
+        // Currently, clap doesn't allow for aliases to set values, so we can't alias
+        // --dry-run to --run-type dry
+        let mut args = CommandLineArgs::parse();
+        if args.dry_run {
+            args.run_type = RunType::Dry;
+        }
+
+        args
+    }
+
     pub fn edit_config(&self) -> bool {
         self.edit_config
     }
