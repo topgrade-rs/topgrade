@@ -708,7 +708,7 @@ pub struct CommandLineArgs {
     cleanup: bool,
 
     /// Pick between just running commands, running and logging commands, and just logging commands
-    #[arg(short = 'm', long = "run-type", value_enum)]
+    #[arg(short = 'm', long = "run-type", value_enum, default_value_t)]
     run_type: RunType,
 
     /// Do not ask to retry failed steps
