@@ -198,7 +198,7 @@ impl Executor {
 
     fn log_command(&self) {
         match self {
-            Executor::Wet(_) => return,
+            Executor::Wet(_) => (),
             Executor::Damp(c) => {
                 log_command(
                     "Executing {program_name} {arguments}",
