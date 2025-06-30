@@ -21,22 +21,26 @@ use rust_i18n::t;
 #[cfg(unix)]
 use std::os::unix::process::CommandExt as _;
 
+// update_plugins path is relative to the TPM path
+const UPDATE_PLUGINS: &str = "bin/update_plugins";
+// Default TPM path relative to the TMux config directory
+const TPM_PATH: &str = "plugins/tpm";
+
 pub fn run_tpm(ctx: &ExecutionContext) -> Result<()> {
     let tpm = match env::var("TMUX_PLUGIN_MANAGER_PATH") {
-        // If `TMUX_PLUGIN_MANAGER_PATH` is set, search for
-        // `$TMUX_PLUGIN_MANAGER_PATH/bin/update_plugins`
-        Ok(var) => PathBuf::from(var).join("bin/update_plugins"),
+        // Use `$TMUX_PLUGIN_MANAGER_PATH` if set,
+        Ok(var) => PathBuf::from(var).join(UPDATE_PLUGINS),
         Err(_) => {
-            // Otherwise, use the default XDG location `~/.config/tmux/plugins/tpm/bin/update_plugins`
-            // or fallback on the standard default location `~/.tmux/plugins/tpm/bin/update_plugins`
+            // otherwise, use the default XDG location `~/.config/tmux`
             #[cfg(unix)]
-            let xdg_path = XDG_DIRS.config_dir().join("tmux/plugins/tpm/bin/update_plugins");
+            let xdg_path = XDG_DIRS.config_dir().join("tmux").join(TPM_PATH).join(UPDATE_PLUGINS);
             #[cfg(windows)]
-            let xdg_path = HOME_DIR.join(".config/tmux/plugins/tpm/bin/update_plugins");
+            let xdg_path = HOME_DIR.join(".config/tmux").join(TPM_PATH).join(UPDATE_PLUGINS);
             if xdg_path.exists() {
                 xdg_path
             } else {
-                HOME_DIR.join(".tmux/plugins/tpm/bin/update_plugins")
+                // or fallback on the standard default location `~/.tmux`.
+                HOME_DIR.join(".tmux").join(TPM_PATH).join(UPDATE_PLUGINS)
             }
         }
     }
