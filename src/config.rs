@@ -84,6 +84,7 @@ pub enum Step {
     Dotnet,
     Elan,
     Emacs,
+    Falconf,
     Firmware,
     Flatpak,
     Flutter,
