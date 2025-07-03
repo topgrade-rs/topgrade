@@ -1117,7 +1117,7 @@ _version: 2
   fr: "Réessayer ? (y) Oui / (N) Non / (s) Shell / (q) Quitter"
   zh_CN: "再试一次？(y)是/(N)否/(s)Shell/(q)退出"
   zh_TW: "再試一次？ (y)是/(N)否/(s)殼層/(q)退出"
-  de: "Wiederholen? (y)a/(N)ein/(s)hell/(q)uit"
+  de: "Wiederholen? (y) Ja / (n) Nein / (s) Shell / (q) Beenden"
 
 # 'R', 'S', 'Q'  have to stay the same throughout all translations. Eg German would look like "\n(R) Neustarten\n(S) Konsole\n(Q) Beenden"
 '\n(R)eboot\n(S)hell\n(Q)uit':
