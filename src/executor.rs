@@ -207,7 +207,7 @@ pub enum ExecutorOutput {
     Dry,
 }
 
-/// A struct represending a command. Trying to execute it will just print its arguments.
+/// A struct representing a command. Trying to execute it will just print its arguments.
 #[derive(Default)]
 pub struct DryCommand {
     program: OsString,

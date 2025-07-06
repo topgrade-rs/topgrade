@@ -148,7 +148,7 @@ fn run() -> Result<()> {
 
     // If
     //
-    // 1. the breaking changes notification shouldnot be skipped
+    // 1. the breaking changes notification should't be skipped
     // 2. this is the first execution of a major release
     //
     // inform user of breaking changes

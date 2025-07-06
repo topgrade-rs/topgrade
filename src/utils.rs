@@ -232,7 +232,7 @@ pub fn get_require_sudo_string() -> String {
 ///
 /// # Shim
 /// On Windows, if you install `python` through `winget`, an actual `python`
-/// is installed as well as a `python3` shim. Shim is invokable, but when you
+/// is installed as well as a `python3` shim. Shim is invocable, but when you
 /// execute it, the Microsoft App Store will be launched instead of a Python
 /// shell.
 ///

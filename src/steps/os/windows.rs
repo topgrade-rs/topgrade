@@ -100,7 +100,7 @@ pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
 /// Detect if WSL is installed or not.
 ///
 /// For WSL, we cannot simply check if command `wsl` is installed as on newer
-/// versions of Windows (since windows 10 version 2004), this commmand is
+/// versions of Windows (since windows 10 version 2004), this command is
 /// installed by default.
 ///
 /// If the command is installed and the user hasn't installed any Linux distros
@@ -206,7 +206,7 @@ pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     if ran {
         Ok(())
     } else {
-        Err(SkipStep(t!("Could not find Topgrade in any WSL disribution").to_string()).into())
+        Err(SkipStep(t!("Could not find Topgrade in any WSL distribution").to_string()).into())
     }
 }
 

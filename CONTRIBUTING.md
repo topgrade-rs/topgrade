@@ -143,7 +143,7 @@ arguments, e.g., "hello <NAME>", please follow this convention:
 ```
 
 Arguments in the key should be in format `{argument_name}`, and they will have
-a preceeding `%` when used in translations.
+a preceding `%` when used in translations.
 
 [app_yml]: https://github.com/topgrade-rs/topgrade/blob/main/locales/app.yml
 

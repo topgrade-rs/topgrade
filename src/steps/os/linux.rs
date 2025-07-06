@@ -476,7 +476,7 @@ fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
 
     println!("{}", t!("Syncing portage"));
     if let Some(ego) = which("ego") {
-        // The Funtoo team doesn't reccomend running both ego sync and emerge --sync
+        // The Funtoo team doesn't recommend running both ego sync and emerge --sync
         run_type.execute(sudo).arg(ego).arg("sync").status_checked()?;
     } else {
         run_type
