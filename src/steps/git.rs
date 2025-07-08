@@ -92,7 +92,7 @@ pub fn run_git_pull(ctx: &ExecutionContext) -> Result<()> {
     // Handle user-defined repos
     if let Some(custom_git_repos) = config.git_repos() {
         for git_repo in custom_git_repos {
-            repos.glob_insert(git_repo);
+            repos.glob_insert(&shellexpand::tilde(git_repo));
         }
     }
 
