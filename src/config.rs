@@ -303,6 +303,13 @@ pub struct Flatpak {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
+pub struct Pixi {
+    include_release_notes: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 pub struct Brew {
     greedy_cask: Option<bool>,
     greedy_latest: Option<bool>,
@@ -559,6 +566,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     flatpak: Option<Flatpak>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    pixi: Option<Pixi>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     distrobox: Option<Distrobox>,
@@ -1343,6 +1353,15 @@ impl Config {
             .as_ref()
             .and_then(|s| s.pamac_arguments.as_deref())
             .unwrap_or("")
+    }
+
+    /// Show release notes of latest pixi release
+    pub fn show_pixi_release_notes(&self) -> bool {
+        self.config_file
+            .pixi
+            .as_ref()
+            .and_then(|s| s.include_release_notes)
+            .unwrap_or(false)
     }
 
     /// Show news on Arch Linux

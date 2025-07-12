@@ -325,3 +325,8 @@
 # extensions should be updated for.
 # (default: this won't be set by default)
 # profile = ""
+
+[pixi]
+# show the release notes of the latest pixi release
+# during the pixi step
+# include_release_notes = false

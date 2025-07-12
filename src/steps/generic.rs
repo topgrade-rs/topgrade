@@ -590,14 +590,30 @@ pub fn run_pixi_update(ctx: &ExecutionContext) -> Result<()> {
 
     // Check if `pixi --help` mentions self-update, if yes, self-update must be enabled.
     // pixi self-update --help works regardless of whether the feature is enabled.
-    let output = ctx.run_type().execute(&pixi).arg("--help").output_checked()?;
+    let top_level_help_output = ctx.run_type().execute(&pixi).arg("--help").output_checked()?;
 
-    if String::from_utf8(output.stdout)?.contains("self-update") {
-        ctx.run_type()
+    if String::from_utf8(top_level_help_output.stdout)?.contains("self-update") {
+        let self_update_help_output = ctx
+            .run_type()
             .execute(&pixi)
-            .args(["self-update"])
-            .status_checked()
-            .ok();
+            .args(["self-update", "--help"])
+            .output_checked()?;
+        // check if help mentions --no-release-note to check if it is superoted
+        if String::from_utf8(self_update_help_output.stdout)?.contains("--no-release-note")
+            && !ctx.config().show_pixi_release_notes()
+        {
+            ctx.run_type()
+                .execute(&pixi)
+                .args(["self-update", "--no-release-note"])
+                .status_checked()
+                .ok();
+        } else {
+            ctx.run_type()
+                .execute(&pixi)
+                .args(["self-update"])
+                .status_checked()
+                .ok();
+        };
     }
 
     ctx.run_type()
