@@ -99,7 +99,7 @@ const DETECT_ORDER: [SudoKind; 5] = [
 ];
 
 #[cfg(target_os = "windows")]
-const DETECT_ORDER: [SudoKind; 2] = [SudoKind::Gsudo, SudoKind::Sudo];
+const DETECT_ORDER: [SudoKind; 2] = [SudoKind::Gsudo, SudoKind::WinSudo];
 
 impl Sudo {
     /// Get the `sudo` binary for this platform.
@@ -143,7 +143,7 @@ impl Sudo {
                 // See: https://man.openbsd.org/doas
                 cmd.arg("echo");
             }
-            SudoKind::Sudo if cfg!(not(target_os = "windows")) => {
+            SudoKind::Sudo => {
                 // From `man sudo` on macOS:
                 //   -v, --validate
                 //   Update the user's cached credentials, authenticating the user
@@ -152,7 +152,7 @@ impl Sudo {
                 //   command.  Not all security policies support cached credentials.
                 cmd.arg("-v");
             }
-            SudoKind::Sudo => {
+            SudoKind::WinSudo => {
                 // Windows `sudo` doesn't cache credentials, so we just execute a
                 // dummy command - the easiest on Windows is `rem` in cmd.
                 // See: https://learn.microsoft.com/en-us/windows/advanced-settings/sudo/
@@ -209,7 +209,7 @@ impl Sudo {
 
         if opts.interactive {
             match self.kind {
-                SudoKind::Sudo if cfg!(not(target_os = "windows")) => {
+                SudoKind::Sudo => {
                     cmd.arg("-i");
                 }
                 SudoKind::Gsudo => {
@@ -217,7 +217,7 @@ impl Sudo {
                     // always "interactive". If interactive is *not* specified, we add `-d`
                     // to run outside of a shell - see below.
                 }
-                SudoKind::Doas | SudoKind::Sudo | SudoKind::Pkexec | SudoKind::Run0 | SudoKind::Please => {
+                SudoKind::Doas | SudoKind::WinSudo | SudoKind::Pkexec | SudoKind::Run0 | SudoKind::Please => {
                     return Err(UnsupportedSudo {
                         sudo_kind: self.kind,
                         option: "interactive",
@@ -242,7 +242,7 @@ impl Sudo {
                 SudoKind::Gsudo => {
                     cmd.arg("--copyEV");
                 }
-                SudoKind::Doas | SudoKind::Pkexec | SudoKind::Run0 | SudoKind::Please => {
+                SudoKind::Doas | SudoKind::WinSudo | SudoKind::Pkexec | SudoKind::Run0 | SudoKind::Please => {
                     return Err(UnsupportedSudo {
                         sudo_kind: self.kind,
                         option: "preserve_env",
@@ -251,7 +251,7 @@ impl Sudo {
                 }
             },
             SudoPreserveEnv::Some(vars) => match self.kind {
-                SudoKind::Sudo if cfg!(not(target_os = "windows")) => {
+                SudoKind::Sudo => {
                     cmd.arg(format!("--preserve_env={}", vars.join(",")));
                 }
                 SudoKind::Run0 => {
@@ -263,7 +263,7 @@ impl Sudo {
                     cmd.arg("-a");
                     cmd.arg(vars.join(","));
                 }
-                SudoKind::Doas | SudoKind::Sudo | SudoKind::Gsudo | SudoKind::Pkexec => {
+                SudoKind::Doas | SudoKind::WinSudo | SudoKind::Gsudo | SudoKind::Pkexec => {
                     return Err(UnsupportedSudo {
                         sudo_kind: self.kind,
                         option: "preserve_env_list",
@@ -276,11 +276,11 @@ impl Sudo {
 
         if opts.set_home {
             match self.kind {
-                SudoKind::Sudo if cfg!(not(target_os = "windows")) => {
+                SudoKind::Sudo => {
                     cmd.arg("-H");
                 }
                 SudoKind::Doas
-                | SudoKind::Sudo
+                | SudoKind::WinSudo
                 | SudoKind::Gsudo
                 | SudoKind::Pkexec
                 | SudoKind::Run0
@@ -296,7 +296,7 @@ impl Sudo {
 
         if let Some(user) = opts.user {
             match self.kind {
-                SudoKind::Sudo if cfg!(not(target_os = "windows")) => {
+                SudoKind::Sudo => {
                     cmd.args(["-u", user]);
                 }
                 SudoKind::Doas | SudoKind::Gsudo | SudoKind::Run0 | SudoKind::Please => {
@@ -305,7 +305,7 @@ impl Sudo {
                 SudoKind::Pkexec => {
                     cmd.args(["--user", user]);
                 }
-                SudoKind::Sudo => {
+                SudoKind::WinSudo => {
                     // Windows sudo is the only one that doesn't have a `-u` flag
                     return Err(UnsupportedSudo {
                         sudo_kind: self.kind,
@@ -322,12 +322,39 @@ impl Sudo {
     }
 }
 
+// We need separate `SudoKind` definitions for windows and unix,
+// so that we can have serde instantiate `WinSudo` on windows and
+// `Sudo` on unix when reading "sudo" from the config file.
+// NOTE: when adding a new variant or otherwise changing `SudoKind`,
+// make sure to keep both definitions in sync.
+
 #[derive(Clone, Copy, Debug, Display, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
+#[cfg(target_os = "windows")]
+pub enum SudoKind {
+    Doas,
+    #[expect(unused, reason = "Sudo is unix-only")]
+    #[serde(skip)]
+    Sudo,
+    #[serde(rename = "sudo")]
+    WinSudo,
+    Gsudo,
+    Pkexec,
+    Run0,
+    Please,
+}
+
+#[derive(Clone, Copy, Debug, Display, Deserialize)]
+#[serde(rename_all = "lowercase")]
+#[strum(serialize_all = "lowercase")]
+#[cfg(not(target_os = "windows"))]
 pub enum SudoKind {
     Doas,
     Sudo,
+    #[expect(unused, reason = "WinSudo is windows-only")]
+    #[serde(skip)]
+    WinSudo,
     Gsudo,
     Pkexec,
     Run0,
@@ -338,10 +365,10 @@ impl SudoKind {
     fn binary_name(self) -> &'static str {
         match self {
             SudoKind::Doas => "doas",
-            SudoKind::Sudo if cfg!(not(target_os = "windows")) => "sudo",
-            // on windows, hardcode the sudo path to ensure we find Windows Sudo
+            SudoKind::Sudo => "sudo",
+            // hardcode the path to ensure we find Windows Sudo
             // rather than gsudo masquerading as sudo
-            SudoKind::Sudo => r"C:\Windows\System32\sudo.exe",
+            SudoKind::WinSudo => r"C:\Windows\System32\sudo.exe",
             SudoKind::Gsudo => "gsudo",
             SudoKind::Pkexec => "pkexec",
             SudoKind::Run0 => "run0",
