@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 
-use std::collections::BTreeMap;
 use std::fs::{write, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -12,6 +11,7 @@ use clap_complete::Shell;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use etcetera::base_strategy::BaseStrategy;
+use indexmap::IndexMap;
 use merge::Merge;
 use regex::Regex;
 use regex_split::RegexSplit;
@@ -44,7 +44,7 @@ macro_rules! str_value {
     };
 }
 
-pub type Commands = BTreeMap<String, String>;
+pub type Commands = IndexMap<String, String>;
 
 #[derive(ValueEnum, EnumString, VariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
 #[clap(rename_all = "snake_case")]
@@ -134,6 +134,7 @@ pub enum Step {
     Mise,
     Myrepos,
     Nix,
+    NixHelper,
     Node,
     Opam,
     Pacdef,
@@ -191,6 +192,7 @@ pub enum Step {
     Xcodes,
     Yadm,
     Yarn,
+    Yazi,
     Zigup,
     Zvm,
 }
@@ -234,15 +236,26 @@ pub struct Vagrant {
     always_suspend: Option<bool>,
 }
 
+#[derive(Deserialize, Default, Debug, Copy, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum UpdatesAutoReboot {
+    Yes,
+    #[default]
+    No,
+    Ask,
+}
+
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Windows {
     accept_all_updates: Option<bool>,
+    updates_auto_reboot: Option<UpdatesAutoReboot>,
     self_rename: Option<bool>,
     open_remotes_in_new_terminal: Option<bool>,
     wsl_update_pre_release: Option<bool>,
     wsl_update_use_web_download: Option<bool>,
     winget_silent_install: Option<bool>,
+    winget_use_sudo: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -308,6 +321,13 @@ pub struct Firmware {
 #[allow(clippy::upper_case_acronyms)]
 pub struct Flatpak {
     use_sudo: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
+pub struct Pixi {
+    include_release_notes: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -571,6 +591,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     flatpak: Option<Flatpak>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    pixi: Option<Pixi>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     distrobox: Option<Distrobox>,
@@ -1237,6 +1260,15 @@ impl Config {
             .unwrap_or(true)
     }
 
+    /// Whether to auto reboot for Windows updates that require it
+    pub fn windows_updates_auto_reboot(&self) -> UpdatesAutoReboot {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|windows| windows.updates_auto_reboot)
+            .unwrap_or_default()
+    }
+
     /// Whether to self rename the Topgrade executable during the run
     pub fn self_rename(&self) -> bool {
         self.config_file
@@ -1261,6 +1293,15 @@ impl Config {
             .windows
             .as_ref()
             .and_then(|w| w.wsl_update_use_web_download)
+            .unwrap_or(false)
+    }
+
+    /// Should use sudo for Winget
+    pub fn winget_use_sudo(&self) -> bool {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|w| w.winget_use_sudo)
             .unwrap_or(false)
     }
 
@@ -1371,6 +1412,15 @@ impl Config {
             .as_ref()
             .and_then(|s| s.pamac_arguments.as_deref())
             .unwrap_or("")
+    }
+
+    /// Show release notes of latest pixi release
+    pub fn show_pixi_release_notes(&self) -> bool {
+        self.config_file
+            .pixi
+            .as_ref()
+            .and_then(|s| s.include_release_notes)
+            .unwrap_or(false)
     }
 
     /// Show news on Arch Linux

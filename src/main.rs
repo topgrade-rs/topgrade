@@ -314,6 +314,7 @@ fn run() -> Result<()> {
         runner.execute(Step::Yadm, "yadm", || unix::run_yadm(&ctx))?;
         runner.execute(Step::Nix, "nix", || unix::run_nix(&ctx))?;
         runner.execute(Step::Nix, "nix upgrade-nix", || unix::run_nix_self_upgrade(&ctx))?;
+        runner.execute(Step::NixHelper, "nh", || unix::run_nix_helper(&ctx))?;
         runner.execute(Step::Guix, "guix", || unix::run_guix(&ctx))?;
         runner.execute(Step::HomeManager, "home-manager", || unix::run_home_manager(&ctx))?;
         runner.execute(Step::Asdf, "asdf", || unix::run_asdf(&ctx))?;
@@ -502,6 +503,7 @@ fn run() -> Result<()> {
     runner.execute(Step::JetbrainsWebstorm, "JetBrains WebStorm plugins", || {
         generic::run_jetbrains_webstorm(&ctx)
     })?;
+    runner.execute(Step::Yazi, "Yazi packages", || generic::run_yazi(&ctx))?;
 
     if should_run_powershell {
         runner.execute(Step::Powershell, "Powershell Modules Update", || {

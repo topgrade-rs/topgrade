@@ -65,7 +65,7 @@ impl Distribution {
             Some("nobara") => Distribution::Nobara,
             Some("void") => Distribution::Void,
             Some("debian") | Some("pureos") | Some("Deepin") | Some("linuxmint") => Distribution::Debian,
-            Some("arch") | Some("manjaro-arm") | Some("garuda") | Some("artix") => Distribution::Arch,
+            Some("arch") | Some("manjaro-arm") | Some("garuda") | Some("artix") | Some("cachyos") => Distribution::Arch,
             Some("solus") => Distribution::Solus,
             Some("gentoo") | Some("funtoo") => Distribution::Gentoo,
             Some("exherbo") => Distribution::Exherbo,
@@ -1319,5 +1319,10 @@ mod tests {
     #[test]
     fn test_bazzite() {
         test_template(include_str!("os_release/bazzite"), Distribution::FedoraImmutable);
+    }
+
+    #[test]
+    fn test_cachyos() {
+        test_template(include_str!("os_release/cachyos"), Distribution::Arch);
     }
 }
