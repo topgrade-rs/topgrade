@@ -330,18 +330,10 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
             print_separator(format!("{} ({})", variant.step_title(), sudo_as_user));
 
             let sudo = ctx.require_sudo()?;
-            sudo.execute_opts(
-                ctx,
-                &binary_name,
-                SudoExecuteOpts {
-                    set_home: true,
-                    user: Some(&user.name),
-                    ..Default::default()
-                },
-            )?
-            .current_dir("/tmp") // brew needs a writable current directory
-            .arg("update")
-            .status_checked()?;
+            sudo.execute_opts(ctx, &binary_name, SudoExecuteOpts::new().set_home().user(&user.name))?
+                .current_dir("/tmp") // brew needs a writable current directory
+                .arg("update")
+                .status_checked()?;
             return Ok(());
         }
     }
@@ -557,17 +549,10 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let nix_args = nix_args();
     if multi_user {
         let sudo = ctx.require_sudo()?;
-        sudo.execute_opts(
-            ctx,
-            &nix,
-            SudoExecuteOpts {
-                interactive: true,
-                ..Default::default()
-            },
-        )?
-        .args(nix_args)
-        .arg("upgrade-nix")
-        .status_checked()
+        sudo.execute_opts(ctx, &nix, SudoExecuteOpts::new().interactive())?
+            .args(nix_args)
+            .arg("upgrade-nix")
+            .status_checked()
     } else {
         ctx.execute(&nix).args(nix_args).arg("upgrade-nix").status_checked()
     }

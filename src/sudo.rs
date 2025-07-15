@@ -23,18 +23,70 @@ pub struct Sudo {
 }
 
 #[derive(Clone, Debug, Default)]
-/// Generic sudo options, translated into flags to pass to `sudo`. Depending on the sudo kind, OS
-/// and system config, some options might be specified by default or unsupported.
+pub enum SudoPreserveEnv<'a> {
+    /// Preserve all environment variables.
+    All,
+    /// Preserve only the specified environment variables.
+    Some(&'a [&'a str]),
+    /// Preserve no environment variables.
+    #[default]
+    None,
+}
+
+/// Generic sudo options, translated into flags to pass to `sudo`.
+/// NOTE: Depending on the sudo kind, OS and system config, some options might be specified by
+/// default or unsupported.
+#[derive(Clone, Debug, Default)]
 pub struct SudoExecuteOpts<'a> {
     /// Run the command "interactively", i.e. inside a login shell.
     pub interactive: bool,
-    /// Preserve environment variables across the sudo call. If an empty list is given, preserves
-    /// all existing environment variables.
-    pub preserve_env: Option<&'a [&'a str]>,
+    /// Preserve environment variables across the sudo call.
+    pub preserve_env: SudoPreserveEnv<'a>,
     /// Set the HOME environment variable to the target user's home directory.
     pub set_home: bool,
     /// Run the command as a user other than the root user.
     pub user: Option<&'a str>,
+}
+
+impl<'a> SudoExecuteOpts<'a> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Run the command "interactively", i.e. inside a login shell.
+    #[allow(unused)]
+    pub fn interactive(mut self) -> Self {
+        self.interactive = true;
+        self
+    }
+
+    /// Preserve all environment variables across the sudo call.
+    #[allow(unused)]
+    pub fn preserve_env(mut self) -> Self {
+        self.preserve_env = SudoPreserveEnv::All;
+        self
+    }
+
+    /// Preserve only the specified environment variables across the sudo call.
+    #[allow(unused)]
+    pub fn preserve_env_list(mut self, vars: &'a [&'a str]) -> Self {
+        self.preserve_env = SudoPreserveEnv::Some(vars);
+        self
+    }
+
+    /// Set the HOME environment variable to the target user's home directory.
+    #[allow(unused)]
+    pub fn set_home(mut self) -> Self {
+        self.set_home = true;
+        self
+    }
+
+    /// Run the command as a user other than the root user.
+    #[allow(unused)]
+    pub fn user(mut self, user: &'a str) -> Self {
+        self.user = Some(user);
+        self
+    }
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -143,7 +195,7 @@ impl Sudo {
 
     /// Execute a command with `sudo`.
     pub fn execute<S: AsRef<OsStr>>(&self, ctx: &ExecutionContext, command: S) -> Result<Executor> {
-        self.execute_opts(ctx, command, SudoExecuteOpts::default())
+        self.execute_opts(ctx, command, SudoExecuteOpts::new())
     }
 
     /// Execute a command with `sudo`, with custom options.
@@ -182,46 +234,44 @@ impl Sudo {
             cmd.arg("-d");
         }
 
-        if let Some(preserve_env) = opts.preserve_env {
-            if preserve_env.is_empty() {
-                match self.kind {
-                    SudoKind::Sudo => {
-                        cmd.arg("-E");
+        match opts.preserve_env {
+            SudoPreserveEnv::All => match self.kind {
+                SudoKind::Sudo => {
+                    cmd.arg("-E");
+                }
+                SudoKind::Gsudo => {
+                    cmd.arg("--copyEV");
+                }
+                SudoKind::Doas | SudoKind::Pkexec | SudoKind::Run0 | SudoKind::Please => {
+                    return Err(UnsupportedSudo {
+                        sudo_kind: self.kind,
+                        option: "preserve_env",
                     }
-                    SudoKind::Gsudo => {
-                        cmd.arg("--copyEV");
-                    }
-                    SudoKind::Doas | SudoKind::Pkexec | SudoKind::Run0 | SudoKind::Please => {
-                        return Err(UnsupportedSudo {
-                            sudo_kind: self.kind,
-                            option: "preserve_env",
-                        }
-                        .into());
+                    .into());
+                }
+            },
+            SudoPreserveEnv::Some(vars) => match self.kind {
+                SudoKind::Sudo if cfg!(not(target_os = "windows")) => {
+                    cmd.arg(format!("--preserve_env={}", vars.join(",")));
+                }
+                SudoKind::Run0 => {
+                    for env in vars {
+                        cmd.arg(format!("--setenv={}", env));
                     }
                 }
-            } else {
-                match self.kind {
-                    SudoKind::Sudo if cfg!(not(target_os = "windows")) => {
-                        cmd.arg(format!("--preserve_env={}", preserve_env.join(",")));
-                    }
-                    SudoKind::Run0 => {
-                        for env in preserve_env {
-                            cmd.arg(format!("--setenv={}", env));
-                        }
-                    }
-                    SudoKind::Please => {
-                        cmd.arg("-a");
-                        cmd.arg(preserve_env.join(","));
-                    }
-                    SudoKind::Doas | SudoKind::Sudo | SudoKind::Gsudo | SudoKind::Pkexec => {
-                        return Err(UnsupportedSudo {
-                            sudo_kind: self.kind,
-                            option: "preserve_env list",
-                        }
-                        .into());
-                    }
+                SudoKind::Please => {
+                    cmd.arg("-a");
+                    cmd.arg(vars.join(","));
                 }
-            }
+                SudoKind::Doas | SudoKind::Sudo | SudoKind::Gsudo | SudoKind::Pkexec => {
+                    return Err(UnsupportedSudo {
+                        sudo_kind: self.kind,
+                        option: "preserve_env_list",
+                    }
+                    .into());
+                }
+            },
+            SudoPreserveEnv::None => {}
         }
 
         if opts.set_home {

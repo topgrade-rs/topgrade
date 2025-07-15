@@ -127,17 +127,9 @@ pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
     } else {
         let sudo = ctx.require_sudo()?;
         if !Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
-            sudo.execute_opts(
-                ctx,
-                &gem,
-                SudoExecuteOpts {
-                    preserve_env: Some(&[]),
-                    set_home: true,
-                    ..Default::default()
-                },
-            )?
-            .args(["update", "--system"])
-            .status_checked()?;
+            sudo.execute_opts(ctx, &gem, SudoExecuteOpts::new().preserve_env().set_home())?
+                .args(["update", "--system"])
+                .status_checked()?;
         }
     }
 
