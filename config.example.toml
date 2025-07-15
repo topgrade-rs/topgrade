@@ -117,7 +117,7 @@
 #     "Toolbox",
 #     "PyTorch"
 # ]
-# Additional conda environment paths to pull (`conda env update -p env_path`)
+# Additional conda environment paths to update (`conda env update -p env_path`)
 # env_paths = [
 #     "~/webserver/.conda/",
 #     "~/experiments/.conda/"
