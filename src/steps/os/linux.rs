@@ -993,15 +993,8 @@ pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
         }
 
         print_separator(t!("Configuration update"));
-        sudo.execute_opts(
-            ctx,
-            &pacdiff,
-            SudoExecuteOpts {
-                preserve_env: Some(&["DIFFPROG"]),
-                ..Default::default()
-            },
-        )?
-        .status_checked()?;
+        sudo.execute_opts(ctx, &pacdiff, SudoExecuteOpts::new().preserve_env_list(&["DIFFPROG"]))?
+            .status_checked()?;
     }
 
     Ok(())
