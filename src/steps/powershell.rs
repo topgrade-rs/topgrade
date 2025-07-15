@@ -156,6 +156,7 @@ impl Powershell {
 #[cfg(windows)]
 mod windows {
     use super::*;
+    use crate::config::UpdatesAutoReboot;
 
     pub fn supports_windows_update(powershell: &Powershell) -> bool {
         powershell
@@ -173,6 +174,11 @@ mod windows {
         let mut command_str = "Install-WindowsUpdate -Verbose".to_string();
         if ctx.config().accept_all_windows_updates() {
             command_str.push_str(" -AcceptAll");
+        }
+        match ctx.config().windows_updates_auto_reboot() {
+            UpdatesAutoReboot::Yes => command_str.push_str(" -AutoReboot"),
+            UpdatesAutoReboot::No => command_str.push_str(" -IgnoreReboot"),
+            UpdatesAutoReboot::Ask => (), // Prompting is the default for Install-WindowsUpdate
         }
 
         // Pass the command string using the -Command flag

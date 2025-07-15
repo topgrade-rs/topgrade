@@ -213,6 +213,10 @@
 # Manually select Windows updates
 # accept_all_updates = false
 
+# Controls whether to automatically reboot the computer when updates are
+# installed that request it. (default: "no", allowed values: "yes", "no", "ask")
+# updates_auto_reboot = "yes"
+
 # open_remotes_in_new_terminal = true
 
 # wsl_update_pre_release = true
@@ -325,6 +329,12 @@
 # extensions should be updated for.
 # (default: this won't be set by default)
 # profile = ""
+
+[pixi]
+# Show the release notes of the latest pixi release
+# during the pixi step
+# (default: false)
+# include_release_notes = false
 
 [rustup]
 # If set, updates only these channels.
