@@ -18,7 +18,7 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::sync::LazyLock;
 use std::{env::var, path::Path};
-use tracing::debug;
+use tracing::{debug, warn};
 
 #[cfg(target_os = "linux")]
 use super::linux::Distribution;
@@ -620,6 +620,86 @@ fn nix_profile_dir(nix: &Path) -> Result<Option<PathBuf>> {
             None
         },
     )
+}
+
+/// Returns a directory from an environment variable, if and only if it is a directory which
+/// contains a flake.nix
+fn flake_dir(var: &'static str) -> Option<PathBuf> {
+    std::env::var_os(var)
+        .map(PathBuf::from)
+        .take_if(|x| std::fs::exists(x.join("flake.nix")).is_ok_and(|x| x))
+}
+
+/// Update NixOS and home-manager through a flake using `nh`
+///
+/// See: https://github.com/viperML/nh
+pub fn run_nix_helper(ctx: &ExecutionContext) -> Result<()> {
+    let run_type = ctx.run_type();
+
+    require("nix")?;
+    let nix_helper = require("nh")?;
+
+    let fallback_flake_path = flake_dir("NH_FLAKE");
+    let darwin_flake_path = flake_dir("NH_DARWIN_FLAKE");
+    let home_flake_path = flake_dir("NH_HOME_FLAKE");
+    let nixos_flake_path = flake_dir("NH_OS_FLAKE");
+
+    let all_flake_paths: Vec<_> = [
+        fallback_flake_path.as_ref(),
+        darwin_flake_path.as_ref(),
+        home_flake_path.as_ref(),
+        nixos_flake_path.as_ref(),
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
+
+    // if none of the paths exist AND contain a `flake.nix`, skip
+    if all_flake_paths.is_empty() {
+        if flake_dir("FLAKE").is_some() {
+            warn!(
+                "{}",
+                t!("You have a flake inside of $FLAKE. This is deprecated for nh.")
+            );
+        }
+        return Err(SkipStep(t!("nh cannot find any configured flakes").into()).into());
+    }
+
+    let nh_switch = |ty: &'static str| -> Result<()> {
+        print_separator(format!("nh {ty}"));
+
+        let mut cmd = run_type.execute(&nix_helper);
+        cmd.arg(ty);
+        cmd.arg("switch");
+        cmd.arg("-u");
+
+        if !ctx.config().yes(Step::NixHelper) {
+            cmd.arg("--ask");
+        }
+        cmd.status_checked()?;
+        Ok(())
+    };
+
+    // We assume that if the user has set these variables, we can throw an error if nh cannot find
+    // a flake there. So we do not anymore perform an eval check to find out wether we should skip
+    // or not.
+    #[cfg(target_os = "macos")]
+    if darwin_flake_path.is_some() || fallback_flake_path.is_some() {
+        nh_switch("darwin")?;
+    }
+
+    if home_flake_path.is_some() || fallback_flake_path.is_some() {
+        nh_switch("home")?;
+    }
+
+    #[cfg(target_os = "linux")]
+    if matches!(Distribution::detect(), Ok(Distribution::NixOS))
+        && (nixos_flake_path.is_some() || fallback_flake_path.is_some())
+    {
+        nh_switch("os")?;
+    }
+
+    Ok(())
 }
 
 fn nix_args() -> [&'static str; 2] {
