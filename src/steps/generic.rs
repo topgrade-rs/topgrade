@@ -1,10 +1,3 @@
-use std::ffi::OsString;
-use std::iter::once;
-use std::path::PathBuf;
-use std::process::Command;
-use std::{env, path::Path};
-use std::{fs, io::Write};
-
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use color_eyre::eyre::{eyre, OptionExt};
@@ -12,7 +5,13 @@ use jetbrains_toolbox_updater::{find_jetbrains_toolbox, update_jetbrains_toolbox
 use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
+use std::ffi::OsString;
+use std::iter::once;
+use std::path::PathBuf;
+use std::process::Command;
 use std::sync::LazyLock;
+use std::{env, path::Path};
+use std::{fs, io::Write};
 use tempfile::tempfile_in;
 use tracing::{debug, error, warn};
 
