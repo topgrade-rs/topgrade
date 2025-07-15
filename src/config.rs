@@ -254,6 +254,7 @@ pub struct Windows {
     wsl_update_pre_release: Option<bool>,
     wsl_update_use_web_download: Option<bool>,
     winget_silent_install: Option<bool>,
+    winget_use_sudo: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1262,6 +1263,15 @@ impl Config {
             .windows
             .as_ref()
             .and_then(|w| w.wsl_update_use_web_download)
+            .unwrap_or(false)
+    }
+
+    /// Should use sudo for Winget
+    pub fn winget_use_sudo(&self) -> bool {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|w| w.winget_use_sudo)
             .unwrap_or(false)
     }
 
