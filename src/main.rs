@@ -137,7 +137,7 @@ fn run() -> Result<()> {
 
     #[cfg(target_os = "linux")]
     let distribution = linux::Distribution::detect()
-        .inspect_err(|r| debug!("Failed to detect linux distro: {}", r))
+        .inspect_err(|r| println!("{}", t!("Error detecting current distribution: {error}", error = r)))
         .ok();
 
     let sudo = config.sudo_command().map_or_else(sudo::Sudo::detect, sudo::Sudo::new);

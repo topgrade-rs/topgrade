@@ -2,8 +2,6 @@ use crate::execution_context::ExecutionContext;
 use crate::runner::Runner;
 use clap::ValueEnum;
 use color_eyre::Result;
-#[cfg(target_os = "linux")]
-use rust_i18n::t;
 use serde::Deserialize;
 use strum::{EnumCount, EnumIter, EnumString, VariantNames};
 
