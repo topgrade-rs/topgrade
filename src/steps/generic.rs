@@ -6,6 +6,7 @@ use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
 use std::ffi::OsString;
+use std::iter::once;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::LazyLock;
@@ -17,6 +18,8 @@ use tracing::{debug, error, warn};
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
+use crate::output_changed_message;
+use crate::step::Step;
 use crate::terminal::{print_separator, shell};
 use crate::utils::{
     check_is_python_2_or_shim, get_require_sudo_string, require, require_one, require_option, which, PathExt,
@@ -26,7 +29,6 @@ use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
     terminal::print_warning,
 };
-use crate::{output_changed_message, Step};
 
 #[cfg(target_os = "linux")]
 pub fn is_wsl() -> Result<bool> {
@@ -565,13 +567,33 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Conda");
 
-    let mut command = ctx.run_type().execute(&conda);
-    command.args(["update", "--all", "-n", "base"]);
-    if ctx.config().yes(Step::Conda) {
-        command.arg("--yes");
-    }
-    command.status_checked()?;
+    // Update named environments, starting with the always-present "base"
+    let base_env_name = "base".to_string();
+    let addl_env_names = ctx.config().conda_env_names().into_iter().flatten();
+    let env_names = once(&base_env_name).chain(addl_env_names);
 
+    for env_name in env_names {
+        let mut command = ctx.run_type().execute(&conda);
+        command.args(["update", "--all", "-n", env_name]);
+        if ctx.config().yes(Step::Conda) {
+            command.arg("--yes");
+        }
+        command.status_checked()?;
+    }
+
+    // Update any environments given by path
+    if let Some(env_paths) = ctx.config().conda_env_paths() {
+        for env_path in env_paths.iter() {
+            let mut command = ctx.run_type().execute(&conda);
+            command.args(["update", "--all", "-p", env_path]);
+            if ctx.config().yes(Step::Conda) {
+                command.arg("--yes");
+            }
+            command.status_checked()?;
+        }
+    }
+
+    // Cleanup (conda clean) is global (not tied to a particular environment)
     if ctx.config().cleanup() {
         let mut command = ctx.run_type().execute(conda);
         command.args(["clean", "--all"]);
