@@ -1,8 +1,8 @@
 use crate::ctrlc;
 use crate::error::{DryRun, SkipStep};
 use crate::execution_context::ExecutionContext;
-use crate::step::Step;
 use crate::report::{Report, StepResult, UpdatedComponent, UpdatedComponents};
+use crate::step::Step;
 use crate::terminal::print_error;
 use crate::terminal::should_retry;
 use color_eyre::eyre::Result;
