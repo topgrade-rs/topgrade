@@ -291,12 +291,12 @@ impl Step {
             Dotnet => runner.execute(*self, ".NET", || generic::run_dotnet_upgrade(ctx))?,
             Elan => runner.execute(*self, "elan", || generic::run_elan(ctx))?,
             Emacs => runner.execute(*self, "Emacs", || emacs::Emacs::new().upgrade(ctx))?,
+            Falconf => runner.execute(*self, "falconf sync", || generic::run_falconf(ctx))?,
             Firmware =>
             {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "Firmware", || linux::run_fwupdmgr(ctx))?
             }
-            Falconf => runner.execute(*self, "falconf sync", || generic::run_falconf(ctx))?,
             Flatpak =>
             {
                 #[cfg(target_os = "linux")]
