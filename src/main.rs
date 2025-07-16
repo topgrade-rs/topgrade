@@ -6,14 +6,6 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::time::Duration;
 
-use self::config::{CommandLineArgs, Config};
-use self::error::StepFailed;
-#[cfg(all(windows, feature = "self-update"))]
-use self::error::Upgraded;
-#[allow(clippy::wildcard_imports)]
-use self::steps::{remote::*, *};
-#[allow(clippy::wildcard_imports)]
-use self::terminal::*;
 use crate::breaking_changes::{first_run_of_major_release, print_breaking_changes, should_skip, write_keep_file};
 use clap::CommandFactory;
 use clap::{crate_version, Parser};
@@ -29,6 +21,14 @@ use once_cell::sync::Lazy;
 use rust_i18n::{i18n, t};
 use tracing::debug;
 
+use self::config::{CommandLineArgs, Config};
+use self::error::StepFailed;
+#[cfg(all(windows, feature = "self-update"))]
+use self::error::Upgraded;
+#[allow(clippy::wildcard_imports)]
+use self::steps::{remote::*, *};
+#[allow(clippy::wildcard_imports)]
+use self::terminal::*;
 use self::utils::{install_color_eyre, install_tracing, update_tracing};
 
 mod breaking_changes;

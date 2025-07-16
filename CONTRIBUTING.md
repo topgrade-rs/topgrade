@@ -86,13 +86,13 @@ To add a new `step` to `topgrade`:
    }
    ```
 
-   Congrats, you just added a new `step` :)
-
 4. Finally, add the step to `default_steps()` in `step.rs`
    ```rust
    steps.push(Xxx)
    ```
    Try to keep the conditional compilation the same as in the above step 3.
+
+   Congrats, you just added a new `step` :)
 
 ## Modification to the configuration entries
 
