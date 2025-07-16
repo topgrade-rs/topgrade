@@ -123,7 +123,7 @@ fn run() -> Result<()> {
     debug!("Version: {}", crate_version!());
     debug!("OS: {}", env!("TARGET"));
     debug!("{:?}", env::args());
-    debug!("Binary path: {:?}", std::env::current_exe());
+    debug!("Binary path: {:?}", env::current_exe());
     debug!("self-update Feature Enabled: {:?}", cfg!(feature = "self-update"));
     debug!("Configuration: {:?}", config);
 
@@ -136,7 +136,9 @@ fn run() -> Result<()> {
     }
 
     #[cfg(target_os = "linux")]
-    let distribution = linux::Distribution::detect();
+    let distribution = linux::Distribution::detect()
+        .inspect_err(|r| println!("{}", t!("Error detecting current distribution: {error}", error = r)))
+        .ok();
 
     let sudo = config.sudo_command().map_or_else(sudo::Sudo::detect, sudo::Sudo::new);
     let run_type = executor::RunType::new(config.dry_run());
@@ -145,7 +147,7 @@ fn run() -> Result<()> {
         sudo,
         &config,
         #[cfg(target_os = "linux")]
-        &distribution,
+        distribution.as_ref(),
     );
     let mut runner = runner::Runner::new(&ctx);
 
@@ -209,7 +211,7 @@ fn run() -> Result<()> {
 
         #[cfg(target_os = "linux")]
         {
-            if let Ok(distribution) = &distribution {
+            if let Some(distribution) = &distribution {
                 distribution.show_summary();
             }
         }

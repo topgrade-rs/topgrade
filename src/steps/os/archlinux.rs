@@ -10,6 +10,7 @@ use walkdir::WalkDir;
 use crate::command::CommandExt;
 use crate::error::TopgradeError;
 use crate::execution_context::ExecutionContext;
+use crate::executor::Executor;
 use crate::step::Step;
 use crate::utils::require_option;
 use crate::utils::which;
@@ -23,6 +24,8 @@ fn get_execution_path() -> OsString {
 
 pub trait ArchPackageManager {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()>;
+
+    fn package_installed(&self, package: &str, ctx: &ExecutionContext) -> Result<bool>;
 }
 
 pub struct YayParu {
@@ -64,6 +67,13 @@ impl ArchPackageManager for YayParu {
 
         Ok(())
     }
+
+    fn package_installed(&self, package: &str, ctx: &ExecutionContext) -> Result<bool> {
+        let mut command = ctx.run_type().execute(&self.executable);
+        command.arg("--pacman").arg(&self.pacman);
+
+        is_installed_pacman_command(command, package)
+    }
 }
 
 impl YayParu {
@@ -95,6 +105,10 @@ impl ArchPackageManager for GarudaUpdate {
         command.status_checked()?;
 
         Ok(())
+    }
+
+    fn package_installed(&self, package: &str, ctx: &ExecutionContext) -> Result<bool> {
+        is_installed_pacman_wrapper(ctx, &get_pacman_executable(), package)
     }
 }
 
@@ -135,6 +149,10 @@ impl ArchPackageManager for Trizen {
 
         Ok(())
     }
+
+    fn package_installed(&self, package: &str, ctx: &ExecutionContext) -> Result<bool> {
+        is_installed_pacman_wrapper(ctx, &get_pacman_executable(), package)
+    }
 }
 
 impl Trizen {
@@ -173,12 +191,16 @@ impl ArchPackageManager for Pacman {
 
         Ok(())
     }
+
+    fn package_installed(&self, package: &str, ctx: &ExecutionContext) -> Result<bool> {
+        is_installed_pacman_wrapper(ctx, &self.executable, package)
+    }
 }
 
 impl Pacman {
     pub fn get() -> Option<Self> {
         Some(Self {
-            executable: which("powerpill").unwrap_or_else(|| PathBuf::from("pacman")),
+            executable: get_pacman_executable(),
         })
     }
 }
@@ -221,6 +243,10 @@ impl ArchPackageManager for Pikaur {
 
         Ok(())
     }
+
+    fn package_installed(&self, package: &str, ctx: &ExecutionContext) -> Result<bool> {
+        is_installed_pacman_wrapper(ctx, &self.executable, package)
+    }
 }
 
 pub struct Pamac {
@@ -259,6 +285,10 @@ impl ArchPackageManager for Pamac {
         }
 
         Ok(())
+    }
+
+    fn package_installed(&self, package: &str, ctx: &ExecutionContext) -> Result<bool> {
+        is_installed_pacman_wrapper(ctx, &get_pacman_executable(), package)
     }
 }
 
@@ -311,7 +341,7 @@ impl ArchPackageManager for Aura {
             }
             cmd.status_checked()?;
         } else {
-            let sudo = crate::utils::require_option(
+            let sudo = require_option(
                 ctx.sudo().as_ref(),
                 t!("Aura(<0.4.6) requires sudo installed to work with AUR packages").to_string(),
             )?;
@@ -337,14 +367,38 @@ impl ArchPackageManager for Aura {
 
         Ok(())
     }
+
+    fn package_installed(&self, package: &str, ctx: &ExecutionContext) -> Result<bool> {
+        is_installed_pacman_wrapper(ctx, &self.executable, package)
+    }
 }
 
 fn box_package_manager<P: 'static + ArchPackageManager>(package_manager: P) -> Box<dyn ArchPackageManager> {
     Box::new(package_manager) as Box<dyn ArchPackageManager>
 }
 
+fn get_pacman_executable() -> PathBuf {
+    which("powerpill").unwrap_or_else(|| PathBuf::from("pacman"))
+}
+
+// Simple impl for wrappers that just call through to pacman
+fn is_installed_pacman_wrapper(ctx: &ExecutionContext, executable: &Path, package: &str) -> Result<bool> {
+    is_installed_pacman_command(ctx.run_type().execute(executable), package)
+}
+
+fn is_installed_pacman_command(mut command: Executor, package: &str) -> Result<bool> {
+    command
+        .arg("-Qi")
+        .arg(package)
+        .env("PATH", get_execution_path())
+        .null_stdio();
+
+    Ok(command.status_checked_with_codes_returning(&[0, 1])?.success())
+}
+
 pub fn get_arch_package_manager(ctx: &ExecutionContext) -> Option<Box<dyn ArchPackageManager>> {
-    let pacman = which("powerpill").unwrap_or_else(|| PathBuf::from("pacman"));
+    // Maybe store in the distribution enum
+    let pacman = get_pacman_executable();
 
     match ctx.config().arch_package_manager() {
         config::ArchPackageManager::Autodetect => GarudaUpdate::get()

@@ -12,6 +12,7 @@ use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::steps::generic::is_wsl;
 use crate::steps::os::archlinux;
+use crate::steps::os::archlinux::get_arch_package_manager;
 use crate::terminal::{print_separator, prompt_yesno};
 use crate::utils::{get_require_sudo_string, require, require_option, which, PathExt};
 use crate::HOME_DIR;
@@ -802,37 +803,55 @@ fn upgrade_neon(ctx: &ExecutionContext) -> Result<()> {
 /// 1. This is a redhat-based distribution
 /// 2. This is a debian-based distribution and it is using `nala` as the `apt`
 ///    alternative
-fn should_skip_needrestart() -> Result<()> {
-    let distribution = Distribution::detect()?;
+/// 3. This is an arch-based distribution and `needrestart` is installed by pacman (pacman hooks
+///    call `needrestart` for us)
+fn should_skip_needrestart(ctx: &ExecutionContext) -> Result<()> {
     let msg = t!("needrestart will be ran by the package manager");
+    let distribution = if let Some(distro) = ctx.distribution() {
+        distro
+    } else {
+        return Ok(());
+    };
 
     if distribution.redhat_based() {
         return Err(SkipStep(String::from(msg)).into());
     }
 
-    if matches!(distribution, Distribution::Debian) {
-        let apt = which("apt-fast")
-            .or_else(|| {
-                if which("mist").is_some() {
-                    Some(PathBuf::from("mist"))
-                } else {
-                    None
-                }
-            })
-            .or_else(|| {
-                if Path::new("/usr/bin/nala").exists() {
-                    Some(Path::new("/usr/bin/nala").to_path_buf())
-                } else {
-                    None
-                }
-            })
-            .unwrap_or_else(|| PathBuf::from("apt-get"));
+    match distribution {
+        Distribution::Debian => {
+            let apt = which("apt-fast")
+                .or_else(|| {
+                    if which("mist").is_some() {
+                        Some(PathBuf::from("mist"))
+                    } else {
+                        None
+                    }
+                })
+                .or_else(|| {
+                    if Path::new("/usr/bin/nala").exists() {
+                        Some(Path::new("/usr/bin/nala").to_path_buf())
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or_else(|| PathBuf::from("apt-get"));
 
-        let is_nala = apt.ends_with("nala");
+            let is_nala = apt.ends_with("nala");
 
-        if is_nala {
-            return Err(SkipStep(String::from(msg)).into());
+            if is_nala {
+                return Err(SkipStep(String::from(msg)).into());
+            }
         }
+        Distribution::Arch => {
+            // Possibly store the manager in the Distribution enum
+            // Would increase the size of the enum and break Copy
+            if let Some(manager) = get_arch_package_manager(ctx) {
+                if manager.package_installed("needrestart", ctx)? {
+                    return Err(SkipStep(String::from(msg)).into());
+                }
+            }
+        }
+        _ => {}
     }
 
     Ok(())
@@ -842,7 +861,7 @@ pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
     let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
     let needrestart = require("needrestart")?;
 
-    should_skip_needrestart()?;
+    should_skip_needrestart(ctx)?;
 
     print_separator(t!("Check for needed restarts"));
 
