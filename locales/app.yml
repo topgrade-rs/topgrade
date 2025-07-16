@@ -1117,7 +1117,7 @@ _version: 2
   fr: "Réessayer ? (y) Oui / (N) Non / (s) Shell / (q) Quitter"
   zh_CN: "再试一次？(y)是/(N)否/(s)Shell/(q)退出"
   zh_TW: "再試一次？ (y)是/(N)否/(s)殼層/(q)退出"
-  de: "Wiederholen? (y)a/(N)ein/(s)hell/(q)uit"
+  de: "Wiederholen? (y) Ja / (n) Nein / (s) Shell / (q) Beenden"
 
 # 'R', 'S', 'Q'  have to stay the same throughout all translations. Eg German would look like "\n(R) Neustarten\n(S) Konsole\n(Q) Beenden"
 '\n(R)eboot\n(S)hell\n(Q)uit':
@@ -1304,3 +1304,19 @@ _version: 2
   zh_CN: "<省略了 `deb-get clean` 的输出>"
   zh_TW: "<省略了 `deb-get clean` 的輸出>"
   de: "<Ausgabe von `deb-get clean` ausgelassen>"
+"You have a flake inside of $FLAKE. This is deprecated for nh.":
+  en: "You have a flake inside of $FLAKE. This is deprecated for nh."
+  lt: "Jūs turite flake viduje $FLAKE. Tai yra pasenę nh."
+  es: "Tienes un flake dentro de $FLAKE. Esto está en desuso para nh."
+  fr: "Vous avez un flake à l'intérieur de $FLAKE. Ça c'est obsolète pour nh."
+  zh_TW: "你在 $FLAKE 裡有一個 flake。這在 nh 中已被棄用。"
+  zh_CN: "你在 $FLAKE 里有一个 flake。这在 nh 中已被弃用。"
+  de: "Sie haben ein flake in $FLAKE. Dies ist für nh veraltet."
+"nh cannot find any configured flakes":
+  en: "nh cannot find any configured flakes"
+  lt: "nh nepavyksta rasti jokių sukonfigūruotų flake"
+  es: "nh no puede encontrar ningún flake configurado"
+  fr: "nh ne peut trouver aucun flake configuré"
+  zh_TW: "nh 找不到任何已設定的 flake"
+  zh_CN: "nh 无法找到任何已配置的 flake"
+  de: "nh kann keine konfigurierten flakes finden"
