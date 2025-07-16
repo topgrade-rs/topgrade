@@ -9,11 +9,12 @@ use tracing::{debug, warn};
 use crate::command::CommandExt;
 use crate::error::{SkipStep, TopgradeError};
 use crate::execution_context::ExecutionContext;
+use crate::step::Step;
 use crate::steps::generic::is_wsl;
 use crate::steps::os::archlinux;
 use crate::terminal::{print_separator, prompt_yesno};
 use crate::utils::{get_require_sudo_string, require, require_option, which, PathExt};
-use crate::{Step, HOME_DIR};
+use crate::HOME_DIR;
 
 static OS_RELEASE_PATH: &str = "/etc/os-release";
 
