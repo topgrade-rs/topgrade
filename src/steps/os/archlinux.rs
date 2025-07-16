@@ -10,9 +10,10 @@ use walkdir::WalkDir;
 use crate::command::CommandExt;
 use crate::error::TopgradeError;
 use crate::execution_context::ExecutionContext;
+use crate::step::Step;
 use crate::utils::require_option;
 use crate::utils::which;
-use crate::{config, output_changed_message, Step};
+use crate::{config, output_changed_message};
 
 fn get_execution_path() -> OsString {
     let mut path = OsString::from("/usr/bin:");
