@@ -22,6 +22,7 @@ jobs:
         env:
           TERM: xterm-256color
         run: |
+          rustup component add rustfmt
           cargo fmt --all -- --check
 
   step-enum-sorted:
@@ -34,15 +35,29 @@ jobs:
       - name: Check if `Step` enum is sorted
         run: |
           ENUM_NAME="Step"
-          FILE="src/config.rs"
+          FILE="src/step.rs"
           awk "/enum $ENUM_NAME/,/}/" "$FILE" | \
           grep -E '^\s*[A-Za-z_][A-Za-z0-9_]*\s*,?$' | \
           sed 's/[, ]//g' > original.txt
           sort original.txt > sorted.txt
           diff original.txt sorted.txt
 
+  step-match-sorted:
+    name: Step match sorted
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if `Step::run()`'s match is sorted
+        run: |
+          FILE="src/step.rs"
+          awk '/[[:alpha:]] =>/{print $1}' $FILE > original.txt
+          sort original.txt > sorted.txt
+          diff original.txt sorted.txt
+  
   main:
-    needs: [fmt, step-enum-sorted]
+    needs: [ fmt, step-enum-sorted, step-match-sorted ]
     name: ${{ matrix.target_name }} (check, clippy)
     runs-on: ${{ matrix.os }}
     strategy:
@@ -96,7 +111,9 @@ jobs:
         run: ${{ matrix.use_cross == true && 'cross' || 'cargo' }} check --locked --target ${{ matrix.target }}
 
       - name: Run cargo/cross clippy
-        run: ${{ matrix.use_cross == true && 'cross' || 'cargo' }} clippy --locked --target ${{ matrix.target }} --all-features -- -D warnings
+        run: |
+          rustup component add clippy
+          ${{ matrix.use_cross == true && 'cross' || 'cargo' }} clippy --locked --target ${{ matrix.target }} --all-features -- -D warnings
 
       - name: Run cargo test
         # ONLY run test with cargo

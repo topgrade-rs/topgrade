@@ -9,11 +9,12 @@ use tracing::{debug, warn};
 use crate::command::CommandExt;
 use crate::error::{SkipStep, TopgradeError};
 use crate::execution_context::ExecutionContext;
+use crate::step::Step;
 use crate::steps::generic::is_wsl;
 use crate::steps::os::archlinux;
 use crate::terminal::{print_separator, prompt_yesno};
 use crate::utils::{get_require_sudo_string, require, require_option, which, PathExt};
-use crate::{Step, HOME_DIR};
+use crate::HOME_DIR;
 
 static OS_RELEASE_PATH: &str = "/etc/os-release";
 
@@ -65,7 +66,7 @@ impl Distribution {
             Some("nobara") => Distribution::Nobara,
             Some("void") => Distribution::Void,
             Some("debian") | Some("pureos") | Some("Deepin") | Some("linuxmint") => Distribution::Debian,
-            Some("arch") | Some("manjaro-arm") | Some("garuda") | Some("artix") => Distribution::Arch,
+            Some("arch") | Some("manjaro-arm") | Some("garuda") | Some("artix") | Some("cachyos") => Distribution::Arch,
             Some("solus") => Distribution::Solus,
             Some("gentoo") | Some("funtoo") => Distribution::Gentoo,
             Some("exherbo") => Distribution::Exherbo,
@@ -1319,5 +1320,10 @@ mod tests {
     #[test]
     fn test_bazzite() {
         test_template(include_str!("os_release/bazzite"), Distribution::FedoraImmutable);
+    }
+
+    #[test]
+    fn test_cachyos() {
+        test_template(include_str!("os_release/cachyos"), Distribution::Arch);
     }
 }
