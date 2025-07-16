@@ -332,7 +332,11 @@ impl Step {
                 #[cfg(unix)]
                 runner.execute(*self, "home-manager", || unix::run_home_manager(ctx))?
             }
-            Hyperpm => runner.execute(*self, "hyperpm", || unix::run_hyprpm(ctx))?,
+            Hyperpm =>
+            {
+                #[cfg(unix)]
+                runner.execute(*self, "hyperpm", || unix::run_hyprpm(ctx))?
+            }
             JetbrainsAqua => runner.execute(*self, "JetBrains Aqua Plugins", || generic::run_jetbrains_aqua(ctx))?,
             JetbrainsClion => runner.execute(*self, "JetBrains CL", || generic::run_jetbrains_clion(ctx))?,
             JetbrainsDatagrip => {
