@@ -225,7 +225,7 @@ pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
-    let powershell = ctx.powershell();
+    let powershell = ctx.require_powershell()?;
 
     print_separator(t!("Windows Update"));
 
@@ -241,7 +241,7 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
-    let powershell = ctx.powershell();
+    let powershell = ctx.require_powershell()?;
 
     print_separator(t!("Microsoft Store"));
 
