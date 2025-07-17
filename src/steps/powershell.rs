@@ -10,23 +10,19 @@ use tracing::debug;
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
-use crate::terminal::{self, print_separator};
-use crate::utils::{require_option, which, PathExt};
+use crate::terminal;
+use crate::utils::{which, PathExt};
 
 pub struct Powershell {
-    path: Option<PathBuf>,
+    path: PathBuf,
     profile: Option<PathBuf>,
     is_pwsh: bool,
 }
 
 impl Powershell {
-    pub fn new() -> Self {
+    pub fn new() -> Option<Self> {
         if terminal::is_dumb() {
-            return Self {
-                path: None,
-                profile: None,
-                is_pwsh: false,
-            };
+            return None;
         }
 
         let (path, is_pwsh) = which("pwsh")
@@ -34,39 +30,42 @@ impl Powershell {
             .or_else(|| which("powershell").map(|p| (Some(p), false)))
             .unwrap_or((None, false));
 
-        let profile = path.as_ref().and_then(|path| Self::get_profile(path, is_pwsh));
-
-        Self { path, profile, is_pwsh }
-    }
-
-    pub fn is_available(&self) -> bool {
-        self.path.is_some()
+        path.map(|path| {
+            let mut ret = Self {
+                path,
+                profile: None,
+                is_pwsh,
+            };
+            ret.set_profile();
+            ret
+        })
     }
 
     pub fn profile(&self) -> Option<&PathBuf> {
         self.profile.as_ref()
     }
 
-    fn get_profile(path: &PathBuf, is_pwsh: bool) -> Option<PathBuf> {
-        let profile = Self::build_command_internal(path, is_pwsh, "Split-Path $PROFILE")
+    fn set_profile(&mut self) {
+        let profile = self
+            .build_command_internal("Split-Path $PROFILE")
             .output_checked_utf8()
             .map(|output| output.stdout.trim().to_string())
             .and_then(|s| PathBuf::from(s).require())
             .ok();
         debug!("Found PowerShell profile: {:?}", profile);
-        profile
+        self.profile = profile;
     }
 
     /// Builds an "internal" powershell command
-    fn build_command_internal(path: &PathBuf, is_pwsh: bool, cmd: &str) -> Command {
-        let mut command = Command::new(path);
+    fn build_command_internal(&self, cmd: &str) -> Command {
+        let mut command = Command::new(&self.path);
 
         command.args(["-NoProfile", "-Command"]);
         command.arg(cmd);
 
         // If topgrade was run from pwsh, but we are trying to run powershell, then
         // the inherited PSModulePath breaks module imports
-        if !is_pwsh {
+        if !self.is_pwsh {
             command.env_remove("PSModulePath");
         }
 
@@ -76,14 +75,13 @@ impl Powershell {
     /// Builds a "primary" powershell command (uses dry-run if required):
     /// {powershell} -NoProfile -Command {cmd}
     fn build_command<'a>(&self, ctx: &'a ExecutionContext, cmd: &str, use_sudo: bool) -> Result<impl CommandExt + 'a> {
-        let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
         let executor = &mut ctx.run_type();
         let mut command = if use_sudo && ctx.sudo().is_some() {
             let mut cmd = executor.execute(ctx.sudo().as_ref().unwrap());
-            cmd.arg(powershell);
+            cmd.arg(&self.path);
             cmd
         } else {
-            executor.execute(powershell)
+            executor.execute(&self.path)
         };
 
         #[cfg(windows)]
@@ -105,8 +103,6 @@ impl Powershell {
     }
 
     pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
-        print_separator(t!("Powershell Modules Update"));
-
         let mut cmd = "Update-Module".to_string();
 
         if ctx.config().verbose() {
@@ -146,48 +142,41 @@ impl Powershell {
 
     #[cfg(windows)]
     fn is_execution_policy_set(&self, policy: &str) -> bool {
-        if let Some(powershell) = &self.path {
-            // These policies are ordered from most restrictive to least restrictive
-            let valid_policies = ["Restricted", "AllSigned", "RemoteSigned", "Unrestricted", "Bypass"];
+        // These policies are ordered from most restrictive to least restrictive
+        let valid_policies = ["Restricted", "AllSigned", "RemoteSigned", "Unrestricted", "Bypass"];
 
-            // Find the index of our target policy
-            let target_idx = valid_policies.iter().position(|&p| p == policy);
+        // Find the index of our target policy
+        let target_idx = valid_policies.iter().position(|&p| p == policy);
 
-            let mut command = Self::build_command_internal(powershell, self.is_pwsh, "Get-ExecutionPolicy");
+        let current_policy = self
+            .build_command_internal("Get-ExecutionPolicy")
+            .output_checked_utf8()
+            .map(|output| output.stdout.trim().to_string());
 
-            let current_policy = command
-                .output_checked_utf8()
-                .map(|output| output.stdout.trim().to_string());
+        debug!("Found PowerShell ExecutionPolicy: {:?}", current_policy);
 
-            debug!("Found PowerShell ExecutionPolicy: {:?}", current_policy);
+        current_policy.is_ok_and(|current_policy| {
+            // Find the index of the current policy
+            let current_idx = valid_policies.iter().position(|&p| p == current_policy);
 
-            if let Ok(current_policy) = current_policy {
-                // Find the index of the current policy
-                let current_idx = valid_policies.iter().position(|&p| p == current_policy);
-
-                // Check if current policy exists and is at least as permissive as the target
-                return match (current_idx, target_idx) {
-                    (Some(current), Some(target)) => current >= target,
-                    _ => false,
-                };
+            // Check if current policy exists and is at least as permissive as the target
+            match (current_idx, target_idx) {
+                (Some(current), Some(target)) => current >= target,
+                _ => false,
             }
-        }
-        false
+        })
     }
 }
 
 #[cfg(windows)]
 impl Powershell {
     fn has_module(&self, module_name: &str) -> bool {
-        if let Some(powershell) = &self.path {
-            let cmd = format!("Get-Module -ListAvailable {}", module_name);
+        let cmd = format!("Get-Module -ListAvailable {}", module_name);
 
-            return Self::build_command_internal(powershell, self.is_pwsh, &cmd)
-                .output_checked()
-                .map(|output| !output.stdout.trim_ascii().is_empty())
-                .unwrap_or(false);
-        }
-        false
+        self.build_command_internal(&cmd)
+            .output_checked()
+            .map(|output| !output.stdout.trim_ascii().is_empty())
+            .unwrap_or(false)
     }
 
     pub fn supports_windows_update(&self) -> bool {

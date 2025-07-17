@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 use std::env::var;
 use std::path::Path;
 use std::sync::{LazyLock, Mutex};
@@ -24,7 +25,7 @@ pub struct ExecutionContext<'a> {
     under_ssh: bool,
     #[cfg(target_os = "linux")]
     distribution: &'a Result<Distribution>,
-    powershell: LazyLock<Powershell>,
+    powershell: LazyLock<Option<Powershell>>,
 }
 
 impl<'a> ExecutionContext<'a> {
@@ -81,7 +82,11 @@ impl<'a> ExecutionContext<'a> {
         self.distribution
     }
 
-    pub fn powershell(&self) -> &Powershell {
+    pub fn powershell(&self) -> &Option<Powershell> {
         &self.powershell
+    }
+
+    pub fn require_powershell(&self) -> Result<&Powershell> {
+        require_option(self.powershell.as_ref(), t!("Powershell is not installed").to_string())
     }
 }
