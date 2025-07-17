@@ -266,10 +266,11 @@ impl Step {
             Containers => runner.execute(*self, "Containers", || containers::run_containers(ctx))?,
             CustomCommands => {
                 if let Some(commands) = ctx.config().commands() {
-                    for (name, command) in commands {
-                        if ctx.config().should_run_custom_command(name) {
-                            runner.execute(*self, name, || generic::run_custom_command(name, command, ctx))?;
-                        }
+                    for (name, command) in commands
+                        .iter()
+                        .filter(|(n, _)| ctx.config().should_run_custom_command(n))
+                    {
+                        runner.execute(*self, name.clone(), || generic::run_custom_command(name, command, ctx))?;
                     }
                 }
             }
