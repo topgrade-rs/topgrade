@@ -24,7 +24,8 @@ use crate::output_changed_message;
 use crate::step::Step;
 use crate::terminal::{print_separator, shell};
 use crate::utils::{
-    check_is_python_2_or_shim, get_require_sudo_string, require, require_one, require_option, which, PathExt, run_with_shell,
+    check_is_python_2_or_shim, get_require_sudo_string, require, require_one, require_option, run_with_shell, which,
+    PathExt,
 };
 use crate::HOME_DIR;
 use crate::{
