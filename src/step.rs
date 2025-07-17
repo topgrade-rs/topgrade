@@ -850,10 +850,10 @@ pub(crate) fn default_steps() -> Vec<Step> {
         // JetBrains Space Desktop does not have a CLI
         JetbrainsWebstorm,
         Yazi,
+        Falconf,
         Powershell,
         CustomCommands,
         Vagrant,
-        Falconf,
     ]);
 
     steps.shrink_to_fit();
