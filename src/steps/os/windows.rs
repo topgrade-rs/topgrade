@@ -7,10 +7,11 @@ use tracing::debug;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
+use crate::powershell;
+use crate::step::Step;
 use crate::terminal::{print_separator, print_warning};
 use crate::utils::{require, which};
 use crate::{error::SkipStep, steps::git::RepoStep};
-use crate::{powershell, Step};
 use rust_i18n::t;
 
 pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
@@ -47,12 +48,26 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
         .args(["source", "update"])
         .status_checked()?;
 
+    let mut command = if ctx.config().winget_use_sudo() {
+        match ctx.sudo() {
+            Some(sudo) => {
+                let mut command = ctx.run_type().execute(sudo);
+                command.arg(winget);
+                command
+            }
+            None => ctx.run_type().execute(winget),
+        }
+    } else {
+        ctx.run_type().execute(winget)
+    };
+
     let mut args = vec!["upgrade", "--all"];
     if ctx.config().winget_silent_install() {
         args.push("--silent");
     }
 
-    ctx.run_type().execute(&winget).args(args).status_checked()?;
+    command.args(args).status_checked()?;
+
     Ok(())
 }
 
