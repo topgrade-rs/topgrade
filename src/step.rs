@@ -821,6 +821,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Lensfun,
         Poetry,
         Uv,
+        UvPython,
         Zvm,
         Aqua,
         Bun,
