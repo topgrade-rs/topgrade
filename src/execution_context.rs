@@ -1,14 +1,17 @@
 #![allow(dead_code)]
+use color_eyre::eyre::Result;
+use rust_i18n::t;
+use std::env::var;
+use std::path::Path;
+use std::sync::{LazyLock, Mutex};
+
 use crate::executor::RunType;
+use crate::powershell::Powershell;
 #[cfg(target_os = "linux")]
 use crate::steps::linux::Distribution;
 use crate::sudo::Sudo;
 use crate::utils::{get_require_sudo_string, require_option};
 use crate::{config::Config, executor::Executor};
-use color_eyre::eyre::Result;
-use std::env::var;
-use std::path::Path;
-use std::sync::Mutex;
 
 pub struct ExecutionContext<'a> {
     run_type: RunType,
@@ -22,6 +25,7 @@ pub struct ExecutionContext<'a> {
     under_ssh: bool,
     #[cfg(target_os = "linux")]
     distribution: &'a Result<Distribution>,
+    powershell: LazyLock<Option<Powershell>>,
 }
 
 impl<'a> ExecutionContext<'a> {
@@ -40,6 +44,7 @@ impl<'a> ExecutionContext<'a> {
             under_ssh,
             #[cfg(target_os = "linux")]
             distribution,
+            powershell: LazyLock::new(Powershell::new),
         }
     }
 
@@ -75,5 +80,13 @@ impl<'a> ExecutionContext<'a> {
     #[cfg(target_os = "linux")]
     pub fn distribution(&self) -> &Result<Distribution> {
         self.distribution
+    }
+
+    pub fn powershell(&self) -> &Option<Powershell> {
+        &self.powershell
+    }
+
+    pub fn require_powershell(&self) -> Result<&Powershell> {
+        require_option(self.powershell.as_ref(), t!("Powershell is not installed").to_string())
     }
 }

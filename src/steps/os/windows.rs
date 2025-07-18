@@ -7,7 +7,6 @@ use tracing::debug;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
-use crate::powershell;
 use crate::step::Step;
 use crate::terminal::{print_separator, print_warning};
 use crate::utils::{require, which};
@@ -226,25 +225,23 @@ pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
-    let powershell = powershell::Powershell::windows_powershell();
+    let powershell = ctx.require_powershell()?;
 
     print_separator(t!("Windows Update"));
 
     if powershell.supports_windows_update() {
-        println!("The installer will request to run as administrator, expect a prompt.");
-
         powershell.windows_update(ctx)
     } else {
         print_warning(t!(
-            "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."
+            "The PSWindowsUpdate PowerShell module isn't installed so Topgrade can't run Windows Update.\nInstall PSWindowsUpdate by running `Install-Module PSWindowsUpdate` in PowerShell."
         ));
 
-        Err(SkipStep(t!("USOClient not supported.").to_string()).into())
+        Err(SkipStep(t!("PSWindowsUpdate is not installed").to_string()).into())
     }
 }
 
 pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
-    let powershell = powershell::Powershell::windows_powershell();
+    let powershell = ctx.require_powershell()?;
 
     print_separator(t!("Microsoft Store"));
 

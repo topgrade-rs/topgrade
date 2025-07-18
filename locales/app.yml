@@ -80,14 +80,14 @@ _version: 2
   zh_CN: "Topgrade 已在新的 tmux 会话中启动"
   zh_TW: "Topgrade 已啟動新 tmux 程序"
   de: "Topgrade in einer neuen tmux-Sitzung gestartet"
-'Topgrade upgraded to {version}:\n':
-  en: 'Topgrade upgraded to %{version}:\n'
+"Topgrade upgraded to {version}:\n":
+  en: "Topgrade upgraded to %{version}:\n"
   lt: "Topgrade atnaujintas iki %{version}:\n"
-  es: 'Topgrade actualizado a %{version}:\n'
-  fr: 'Topgrade mis à jour vers %{version}:\n'
-  zh_CN: '已将 Topgrade 更新至 %{version}: \n'
-  zh_TW: '已將 Topgrade 更新至 %{version}：\n'
-  de: 'Topgrade auf Version %{version} aktualisiert:\n'
+  es: "Topgrade actualizado a %{version}:\n"
+  fr: "Topgrade mis à jour vers %{version}:\n"
+  zh_CN: "已将 Topgrade 更新至 %{version}: \n"
+  zh_TW: "已將 Topgrade 更新至 %{version}：\n"
+  de: "Topgrade auf Version %{version} aktualisiert:\n"
 "Topgrade is up-to-date":
   en: "Topgrade is up-to-date"
   lt: "Topgrade yra naujausia"
@@ -782,22 +782,22 @@ _version: 2
   zh_CN: "无法找到安装在 WSL 中的 Topgrade"
   zh_TW: "尚未在 WSL 內安裝 Topgrade"
   de: "Konnte Topgrade nicht in WSL finden"
-"Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported.":
-  en: "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."
-  lt: "Apsvarstykite PSWindowsUpdate įdiegimą, nes Windows Update per USOClient nepalaikomas."
-  es: "Considere instalar PSWindowsUpdate ya que no se admite el uso de Windows Update a través de USOClient."
-  fr: "Envisagez d'installer PSWindowsUpdate car l'utilisation de Windows Update via USOClient n'est pas prise en charge."
-  zh_CN: "目前不支持使用 USOClient 管理 Windows 更新。建议安装 PSWindowsUpdate。"
-  zh_TW: "目前不支援使用 USOClient 管理 Windows 更新。建議安裝 PSWindowsUpdate。"
-  de: "Erwägen Sie die Installation von PSWindowsUpdate, da die Verwendung von Windows Update über USOClient nicht unterstützt wird."
-"USOClient not supported.":
-  en: "USOClient not supported."
-  lt: "USOClient nepalaikomas."
-  es: "USOClient no es admitido."
-  fr: "USOClient n'est pas pris en charge."
-  zh_CN: "不支持 USOClient"
-  zh_TW: "不支援 USOClient。"
-  de: "USOClient wird nicht unterstützt."
+"The PSWindowsUpdate PowerShell module isn't installed so Topgrade can't run Windows Update.\nInstall PSWindowsUpdate by running `Install-Module PSWindowsUpdate` in PowerShell.":
+  en: "The PSWindowsUpdate PowerShell module isn't installed so Topgrade can't run Windows Update.\nInstall PSWindowsUpdate by running `Install-Module PSWindowsUpdate` in PowerShell."
+  lt: "PowerShell modulis PSWindowsUpdate nėra įdiegtas, todėl Topgrade negali paleisti „Windows Update“.\nĮdiekite PSWindowsUpdate paleisdami `Install-Module PSWindowsUpdate` PowerShell aplinkoje."
+  es: "El módulo de PowerShell PSWindowsUpdate no está instalado, por lo que Topgrade no puede ejecutar Windows Update.\nInstala PSWindowsUpdate ejecutando `Install-Module PSWindowsUpdate` en PowerShell."
+  fr: "Le module PowerShell PSWindowsUpdate n’est pas installé, donc Topgrade ne peut pas exécuter Windows Update.\nInstallez PSWindowsUpdate en exécutant `Install-Module PSWindowsUpdate` dans PowerShell."
+  zh_CN: "未安装 PowerShell 模块 PSWindowsUpdate，因此 Topgrade 无法运行 Windows 更新。\n请在 PowerShell 中运行 `Install-Module PSWindowsUpdate` 来安装 PSWindowsUpdate。"
+  zh_TW: "PowerShell 模組 PSWindowsUpdate 未安裝，因此 Topgrade 無法執行 Windows 更新。\n請在 PowerShell 中執行 `Install-Module PSWindowsUpdate` 來安裝 PSWindowsUpdate。"
+  de: "Das PowerShell-Modul PSWindowsUpdate ist nicht installiert, daher kann Topgrade Windows Update nicht ausführen.\nInstallieren Sie PSWindowsUpdate, indem Sie `Install-Module PSWindowsUpdate` in PowerShell ausführen."
+"PSWindowsUpdate is not installed":
+  en: "PSWindowsUpdate is not installed"
+  lt: "PSWindowsUpdate nėra įdiegtas"
+  es: "PSWindowsUpdate no está instalado"
+  fr: "PSWindowsUpdate n'est pas installé"
+  zh_CN: "未安装 PSWindowsUpdate"
+  zh_TW: "未安裝 PSWindowsUpdate"
+  de: "PSWindowsUpdate ist nicht installiert"
 "Connecting to {hostname}...":
   en: "Connecting to %{hostname}..."
   lt: "Jungiamasi prie %{hostname}..."
@@ -1120,14 +1120,14 @@ _version: 2
   de: "Wiederholen? (y) Ja / (n) Nein / (s) Shell / (q) Beenden"
 
 # 'R', 'S', 'Q'  have to stay the same throughout all translations. Eg German would look like "\n(R) Neustarten\n(S) Konsole\n(Q) Beenden"
-'\n(R)eboot\n(S)hell\n(Q)uit':
-  en: '\n(R)eboot\n(S)hell\n(Q)uit'
+"\n(R)eboot\n(S)hell\n(Q)uit":
+  en: "\n(R)eboot\n(S)hell\n(Q)uit"
   lt: "\n(R)perkrovimas\n(S)shell\n(Q)išeiti"
   es: "\n(R) Reiniciar\n(S) Shell\n(Q) Salir"
-  fr: '\n(R) Redémarrer\n(S) Shell\n(Q) Quitter'
-  zh_CN: '\n(R)重启\n(S)Shell\n(Q)退出'
-  zh_TW: '\n(R)重新啟動\n(S)殼層\n(Q)退出'
-  de: '\n(R) Neustarten\n(S)hell\n(Q)uit beenden'
+  fr: "\n(R) Redémarrer\n(S) Shell\n(Q) Quitter"
+  zh_CN: "\n(R)重启\n(S)Shell\n(Q)退出"
+  zh_TW: "\n(R)重新啟動\n(S)殼層\n(Q)退出"
+  de: "\n(R) Neustarten\n(S)hell\n(Q)uit beenden"
 "Require sudo or counterpart but not found, skip":
   en: "Require sudo or counterpart but not found, skip"
   lt: "Reikalingas sudo arba atitikmuo, bet nerasta, praleidžiama"
@@ -1256,14 +1256,6 @@ _version: 2
   zh_CN: "成功，Microsoft Store 应用正在后台更新"
   zh_TW: "成功，Microsoft Store 應用程式正在後台更新"
   de: "Erfolg, Microsoft Store-Apps werden im Hintergrund aktualisiert"
-"Unable to update Microsoft Store apps, manual intervention is required":
-  en: "Unable to update Microsoft Store apps, manual intervention is required"
-  lt: "Nepavyksta atnaujinti Microsoft Store programų, reikia rankinio įsikišimo"
-  es: "No se pueden actualizar las aplicaciones de Microsoft Store, se requiere intervención manual"
-  fr: "Impossible de mettre à jour les applications du Microsoft Store, une intervention manuelle est nécessaire"
-  zh_CN: "无法更新 Microsoft Store 应用，需手动干预"
-  zh_TW: "無法更新 Microsoft Store 應用，需手動幹預"
-  de: "Microsoft Store-Apps können nicht aktualisiert werden, manuelles Eingreifen erforderlich"
 "No JetBrains Toolbox installation found":
   en: "No JetBrains Toolbox installation found"
   lt: "Nerasta JetBrains Toolbox įdiegimo"

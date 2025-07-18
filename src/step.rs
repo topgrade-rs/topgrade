@@ -466,12 +466,7 @@ impl Step {
             PlatformioCore => runner.execute(*self, "PlatformIO Core", || generic::run_platform_io(ctx))?,
             Pnpm => runner.execute(*self, "pnpm", || node::run_pnpm_upgrade(ctx))?,
             Poetry => runner.execute(*self, "Poetry", || generic::run_poetry(ctx))?,
-            Powershell => {
-                let powershell = powershell::Powershell::new();
-                if powershell.profile().is_some() {
-                    runner.execute(*self, "Powershell Modules Update", || powershell.update_modules(ctx))?;
-                }
-            }
+            Powershell => runner.execute(*self, "Powershell Modules Update", || generic::run_powershell(ctx))?,
             Protonup =>
             {
                 #[cfg(target_os = "linux")]
