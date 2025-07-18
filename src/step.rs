@@ -265,9 +265,12 @@ impl Step {
             }
             Containers => runner.execute(*self, "Containers", || containers::run_containers(ctx))?,
             CustomCommands => {
-                if let Some(commands) = ctx.config().pre_commands() {
-                    for (name, command) in commands {
-                        generic::run_custom_command(name, command, ctx)?;
+                if let Some(commands) = ctx.config().commands() {
+                    for (name, command) in commands
+                        .iter()
+                        .filter(|(n, _)| ctx.config().should_run_custom_command(n))
+                    {
+                        runner.execute(*self, name.clone(), || generic::run_custom_command(name, command, ctx))?;
                     }
                 }
             }
@@ -463,7 +466,7 @@ impl Step {
             PlatformioCore => runner.execute(*self, "PlatformIO Core", || generic::run_platform_io(ctx))?,
             Pnpm => runner.execute(*self, "pnpm", || node::run_pnpm_upgrade(ctx))?,
             Poetry => runner.execute(*self, "Poetry", || generic::run_poetry(ctx))?,
-            Powershell => runner.execute(Powershell, "Powershell Modules Update", || generic::run_powershell(ctx))?,
+            Powershell => runner.execute(*self, "Powershell Modules Update", || generic::run_powershell(ctx))?,
             Protonup =>
             {
                 #[cfg(target_os = "linux")]
@@ -486,7 +489,7 @@ impl Step {
                         .iter()
                         .filter(|t| ctx.config().should_execute_remote(hostname(), t))
                     {
-                        runner.execute(Remotes, format!("Remote ({remote_topgrade})"), || {
+                        runner.execute(*self, format!("Remote ({remote_topgrade})"), || {
                             crate::ssh::ssh_step(ctx, remote_topgrade)
                         })?;
                     }
@@ -563,7 +566,7 @@ impl Step {
 
                     match ctx.distribution() {
                         Ok(distribution) => {
-                            runner.execute(System, "System update", || distribution.upgrade(ctx))?;
+                            runner.execute(*self, "System update", || distribution.upgrade(ctx))?;
                         }
                         Err(e) => {
                             println!("{}", t!("Error detecting current distribution: {error}", error = e));
@@ -601,13 +604,13 @@ impl Step {
                 if ctx.config().should_run(Vagrant) {
                     if let Ok(boxes) = vagrant::collect_boxes(ctx) {
                         for vagrant_box in boxes {
-                            runner.execute(Vagrant, format!("Vagrant ({})", vagrant_box.smart_name()), || {
+                            runner.execute(*self, format!("Vagrant ({})", vagrant_box.smart_name()), || {
                                 vagrant::topgrade_vagrant_box(ctx, &vagrant_box)
                             })?;
                         }
                     }
                 }
-                runner.execute(Vagrant, "Vagrant boxes", || vagrant::upgrade_vagrant_boxes(ctx))?;
+                runner.execute(*self, "Vagrant boxes", || vagrant::upgrade_vagrant_boxes(ctx))?;
             }
             Vcpkg => runner.execute(*self, "vcpkg", || generic::run_vcpkg_update(ctx))?,
             Vim => {
@@ -672,16 +675,20 @@ pub(crate) fn default_steps() -> Vec<Step> {
     // initial and shrink
     let mut steps = Vec::with_capacity(Step::COUNT);
 
+    // Not combined with other generic steps to preserve the order as it was in main.rs originally,
+    // but this can be changed in the future.
+    steps.push(Remotes);
+
     #[cfg(windows)]
     steps.extend_from_slice(&[Wsl, WslUpdate, Chocolatey, Scoop, Winget]);
 
     #[cfg(target_os = "macos")]
-    steps.extend_from_slice(&[BrewFormula, BrewCask, Macports, Xcodes, Sparkle, Mas]);
+    steps.extend_from_slice(&[BrewCask, Macports, Xcodes, Sparkle, Mas]);
 
-    #[cfg(target_os = "dragonfly")]
-    steps.extend_from_slice(&[Pkg, Audit]);
+    #[cfg(any(target_os = "freebsd", target_os = "dragonfly"))]
+    steps.push(Audit);
 
-    #[cfg(any(target_os = "freebsd", target_os = "openbsd"))]
+    #[cfg(any(target_os = "freebsd", target_os = "openbsd", target_os = "dragonfly"))]
     steps.push(Pkg);
 
     #[cfg(not(any(target_os = "dragonfly", target_os = "android")))]
@@ -706,20 +713,20 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Firmware,
         Restarts,
         Flatpak,
-        BrewFormula,
         Lure,
         Waydroid,
         AutoCpufreq,
         CinnamonSpices,
     ]);
 
-    #[cfg(target_os = "freebsd")]
-    steps.push(Audit);
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    steps.push(BrewFormula);
 
     #[cfg(unix)]
     steps.extend_from_slice(&[
         Yadm,
         Nix,
+        NixHelper,
         Guix,
         HomeManager,
         Asdf,
