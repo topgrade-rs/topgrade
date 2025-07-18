@@ -675,16 +675,20 @@ pub(crate) fn default_steps() -> Vec<Step> {
     // initial and shrink
     let mut steps = Vec::with_capacity(Step::COUNT);
 
+    // Not combined with other generic steps to preserve the order as it was in main.rs originally,
+    // but this can be changed in the future.
+    steps.push(Remotes);
+
     #[cfg(windows)]
     steps.extend_from_slice(&[Wsl, WslUpdate, Chocolatey, Scoop, Winget]);
 
     #[cfg(target_os = "macos")]
-    steps.extend_from_slice(&[BrewFormula, BrewCask, Macports, Xcodes, Sparkle, Mas]);
+    steps.extend_from_slice(&[BrewCask, Macports, Xcodes, Sparkle, Mas]);
 
-    #[cfg(target_os = "dragonfly")]
-    steps.extend_from_slice(&[Pkg, Audit]);
+    #[cfg(any(target_os = "freebsd", target_os = "dragonfly"))]
+    steps.push(Audit);
 
-    #[cfg(any(target_os = "freebsd", target_os = "openbsd"))]
+    #[cfg(any(target_os = "freebsd", target_os = "openbsd", target_os = "dragonfly"))]
     steps.push(Pkg);
 
     #[cfg(not(any(target_os = "dragonfly", target_os = "android")))]
@@ -709,20 +713,20 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Firmware,
         Restarts,
         Flatpak,
-        BrewFormula,
         Lure,
         Waydroid,
         AutoCpufreq,
         CinnamonSpices,
     ]);
 
-    #[cfg(target_os = "freebsd")]
-    steps.push(Audit);
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    steps.push(BrewFormula);
 
     #[cfg(unix)]
     steps.extend_from_slice(&[
         Yadm,
         Nix,
+        NixHelper,
         Guix,
         HomeManager,
         Asdf,
