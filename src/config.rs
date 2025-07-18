@@ -380,6 +380,14 @@ pub struct VscodeConfig {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct UvPythonConfig {
+    enable_uv_python_update: Option<bool>,
+    reinstall_tools: Option<bool>,
+    post_commands: Option<Vec<String>>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 /// Configuration file
 pub struct ConfigFile {
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
@@ -459,6 +467,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     vscode: Option<VscodeConfig>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    uv_python: Option<UvPythonConfig>,
 }
 
 fn config_directory() -> PathBuf {
@@ -1687,6 +1698,29 @@ impl Config {
         } else {
             Some(profile.as_str())
         }
+    }
+
+    pub fn enable_uv_python(&self) -> bool {
+        self.config_file
+            .uv_python
+            .as_ref()
+            .and_then(|uv_python| uv_python.enable_uv_python_update)
+            .unwrap_or(false)
+    }
+
+    pub fn uv_python_reinstall_tools(&self) -> bool {
+        self.config_file
+            .uv_python
+            .as_ref()
+            .and_then(|uv_python| uv_python.reinstall_tools)
+            .unwrap_or(true)
+    }
+
+    pub fn uv_python_post_commands(&self) -> Option<&[String]> {
+        self.config_file
+            .uv_python
+            .as_ref()
+            .and_then(|uv_python| uv_python.post_commands.as_deref())
     }
 }
 

@@ -17,6 +17,8 @@ use tracing_subscriber::{registry, EnvFilter};
 use crate::command::CommandExt;
 use crate::config::DEFAULT_LOG_LEVEL;
 use crate::error::SkipStep;
+use crate::execution_context::ExecutionContext;
+use crate::terminal::shell;
 
 pub trait PathExt
 where
@@ -304,6 +306,19 @@ pub fn install_color_eyre() -> Result<()> {
         //      src/steps.rs:92
         .display_location_section(true)
         .install()
+}
+
+/// Run a string as shell command
+pub fn run_with_shell(command: &str, ctx: &ExecutionContext) -> Result<()> {
+    let mut exec = ctx.run_type().execute(shell());
+    #[cfg(unix)]
+    let command = if let Some(command) = command.strip_prefix("-i ") {
+        exec.arg("-i");
+        command
+    } else {
+        command
+    };
+    exec.arg("-c").arg(command).status_checked()
 }
 
 /// Macro to construct an error message for when the output of a command is unexpected.
