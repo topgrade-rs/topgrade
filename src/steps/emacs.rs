@@ -65,7 +65,11 @@ impl Emacs {
             command.arg("--force");
         }
 
-        command.args(["upgrade"]);
+        command.arg("upgrade");
+
+        if ctx.config().doom_aot() {
+            command.arg("--aot");
+        }
 
         command.status_checked()
     }
