@@ -390,14 +390,6 @@ _version: 2
   zh_CN: "Topgrade %{version_str} 破坏性更改"
   zh_TW: "Topgrade %{version_str} 重大更改"
   de: "Topgrade %{version_str} Inkompatible Änderungen"
-"Path {path} expanded to {expanded}":
-  en: "Path %{path} expanded to %{expanded}"
-  lt: "Kelias %{path} išplėstas į %{expanded}"
-  es: "Ruta %{path} expandida a %{expanded}"
-  fr: "Le chemin %{path} a été transformé en %{expanded}"
-  zh_CN: "已扩展 %{path} 至 %{expanded}"
-  zh_TW: "已擴展 %{path} 至 %{expanded}"
-  de: "Pfad %{path} erweitert zu %{expanded}"
 "Path {path} doesn't exist":
   en: "Path %{path} doesn't exist"
   lt: "Kelias %{path} neegzistuoja"
