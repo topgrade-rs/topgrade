@@ -48,7 +48,7 @@ pub fn run_tpm(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("tmux plugins");
 
-    ctx.run_type().execute(tpm).arg("all").status_checked()
+    ctx.execute(tpm).arg("all").status_checked()
 }
 
 struct Tmux {

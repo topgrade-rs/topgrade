@@ -148,7 +148,7 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
             "--platform",
             container.platform.as_str(),
         ];
-        let mut exec = ctx.run_type().execute(&crt);
+        let mut exec = ctx.execute(&crt);
 
         if let Err(e) = exec.args(&args).status_checked() {
             error!("Pulling container '{}' failed: {}", container, e);
@@ -177,12 +177,7 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
     if ctx.config().cleanup() {
         // Remove dangling images
         debug!("Removing dangling images");
-        if let Err(e) = ctx
-            .run_type()
-            .execute(&crt)
-            .args(["image", "prune", "-f"])
-            .status_checked()
-        {
+        if let Err(e) = ctx.execute(&crt).args(["image", "prune", "-f"]).status_checked() {
             error!("Removing dangling images failed: {}", e);
             success = false;
         }

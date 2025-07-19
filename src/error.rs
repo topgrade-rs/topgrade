@@ -3,6 +3,8 @@ use std::{fmt::Display, process::ExitStatus};
 use rust_i18n::t;
 use thiserror::Error;
 
+use crate::sudo::SudoKind;
+
 #[derive(Error, Debug, PartialEq, Eq)]
 pub enum TopgradeError {
     ProcessFailed(String, ExitStatus),
@@ -65,6 +67,26 @@ pub struct StepFailed;
 impl Display for StepFailed {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", t!("A step failed"))
+    }
+}
+
+#[derive(Error, Debug)]
+pub struct UnsupportedSudo<'a> {
+    pub sudo_kind: SudoKind,
+    pub option: &'a str,
+}
+
+impl Display for UnsupportedSudo<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            t!(
+                "{sudo_kind} does not support the {option} option",
+                sudo_kind = self.sudo_kind,
+                option = self.option
+            )
+        )
     }
 }
 

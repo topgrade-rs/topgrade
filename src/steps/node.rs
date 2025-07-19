@@ -4,7 +4,6 @@ use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::utils::{get_require_sudo_string, require_option};
 use crate::HOME_DIR;
 use color_eyre::eyre::Result;
 #[cfg(target_os = "linux")]
@@ -93,14 +92,10 @@ impl NPM {
     fn upgrade(&self, ctx: &ExecutionContext, use_sudo: bool) -> Result<()> {
         let args = ["update", self.global_location_arg()];
         if use_sudo {
-            let sudo = require_option(ctx.sudo().clone(), get_require_sudo_string())?;
-            ctx.run_type()
-                .execute(sudo)
-                .arg(&self.command)
-                .args(args)
-                .status_checked()?;
+            let sudo = ctx.require_sudo()?;
+            sudo.execute(ctx, &self.command)?.args(args).status_checked()?;
         } else {
-            ctx.run_type().execute(&self.command).args(args).status_checked()?;
+            ctx.execute(&self.command).args(args).status_checked()?;
         }
 
         Ok(())
@@ -122,15 +117,11 @@ impl NPM {
 
 struct Yarn {
     command: PathBuf,
-    yarn: Option<PathBuf>,
 }
 
 impl Yarn {
     fn new(command: PathBuf) -> Self {
-        Self {
-            command,
-            yarn: require("yarn").ok(),
-        }
+        Self { command }
     }
 
     fn has_global_subcmd(&self) -> bool {
@@ -157,14 +148,10 @@ impl Yarn {
         let args = ["global", "upgrade"];
 
         if use_sudo {
-            let sudo = require_option(ctx.sudo().clone(), get_require_sudo_string())?;
-            ctx.run_type()
-                .execute(sudo)
-                .arg(self.yarn.as_ref().unwrap_or(&self.command))
-                .args(args)
-                .status_checked()?;
+            let sudo = ctx.require_sudo()?;
+            sudo.execute(ctx, &self.command)?.args(args).status_checked()?;
         } else {
-            ctx.run_type().execute(&self.command).args(args).status_checked()?;
+            ctx.execute(&self.command).args(args).status_checked()?;
         }
 
         Ok(())
@@ -245,11 +232,7 @@ impl Deno {
             }
         }
 
-        ctx.run_type()
-            .execute(&self.command)
-            .arg("upgrade")
-            .args(args)
-            .status_checked()?;
+        ctx.execute(&self.command).arg("upgrade").args(args).status_checked()?;
         Ok(())
     }
 
@@ -376,7 +359,6 @@ pub fn run_volta_packages_upgrade(ctx: &ExecutionContext) -> Result<()> {
     }
 
     let list_output = ctx
-        .run_type()
         .execute(&volta)
         .args(["list", "--format=plain"])
         .output_checked_utf8()?
@@ -400,10 +382,7 @@ pub fn run_volta_packages_upgrade(ctx: &ExecutionContext) -> Result<()> {
     }
 
     for package in &installed_packages {
-        ctx.run_type()
-            .execute(&volta)
-            .args(["install", package])
-            .status_checked()?;
+        ctx.execute(&volta).args(["install", package]).status_checked()?;
     }
 
     Ok(())
