@@ -1036,6 +1036,14 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+pub fn run_powershell(ctx: &ExecutionContext) -> Result<()> {
+    let powershell = ctx.require_powershell()?;
+
+    print_separator(t!("Powershell Modules Update"));
+
+    powershell.update_modules(ctx)
+}
+
 enum Hx {
     Helix(PathBuf),
     HxHexdump,
