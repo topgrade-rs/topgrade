@@ -694,8 +694,8 @@ pub(crate) fn default_steps() -> Vec<Step> {
     #[cfg(target_os = "openbsd")]
     steps.extend_from_slice(&[Pkg, System]);
 
-    #[cfg(target_os = "netbsd")]
-    steps.push(System);
+    #[cfg(target_os = "android")]
+    steps.push(Pkg);
 
     #[cfg(target_os = "linux")]
     steps.extend_from_slice(&[
