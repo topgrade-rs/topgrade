@@ -680,25 +680,26 @@ pub(crate) fn default_steps() -> Vec<Step> {
     steps.push(Remotes);
 
     #[cfg(windows)]
-    steps.extend_from_slice(&[Wsl, WslUpdate, Chocolatey, Scoop, Winget]);
+    steps.extend_from_slice(&[Wsl, WslUpdate, Chocolatey, Scoop, Winget, System, MicrosoftStore]);
 
     #[cfg(target_os = "macos")]
-    steps.extend_from_slice(&[BrewCask, Macports, Xcodes, Sparkle, Mas]);
+    steps.extend_from_slice(&[BrewFormula, BrewCask, Macports, Xcodes, Sparkle, Mas, System]);
 
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly"))]
-    steps.push(Audit);
+    #[cfg(target_os = "dragonfly")]
+    steps.extend_from_slice(&[Pkg, Audit]);
 
-    #[cfg(any(target_os = "freebsd", target_os = "openbsd", target_os = "dragonfly"))]
-    steps.push(Pkg);
+    #[cfg(target_os = "freebsd")]
+    steps.extend_from_slice(&[Pkg, System, Audit]);
 
-    #[cfg(not(any(target_os = "dragonfly", target_os = "android")))]
+    #[cfg(target_os = "openbsd")]
+    steps.extend_from_slice(&[Pkg, System]);
+
+    #[cfg(target_os = "netbsd")]
     steps.push(System);
-
-    #[cfg(windows)]
-    steps.push(MicrosoftStore);
 
     #[cfg(target_os = "linux")]
     steps.extend_from_slice(&[
+        System,
         ConfigUpdate,
         AM,
         AppMan,
@@ -713,14 +714,12 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Firmware,
         Restarts,
         Flatpak,
+        BrewFormula,
         Lure,
         Waydroid,
         AutoCpufreq,
         CinnamonSpices,
     ]);
-
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
-    steps.push(BrewFormula);
 
     #[cfg(unix)]
     steps.extend_from_slice(&[
