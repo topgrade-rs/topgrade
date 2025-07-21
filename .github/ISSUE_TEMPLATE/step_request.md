@@ -2,7 +2,7 @@
 name: New step request
 about: Suggest a new step/package manager to update
 title: ''
-labels: 'C-feature request', 'request step'
+labels: C-feature request, request step
 assignees: ''
 
 ---

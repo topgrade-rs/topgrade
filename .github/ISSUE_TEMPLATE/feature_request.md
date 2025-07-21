@@ -2,7 +2,7 @@
 name: General feature request
 about: Suggest a general feature, or feature within an already existing step
 title: ''
-labels: 'C-feature request'
+labels: C-feature request
 assignees: ''
 
 ---
