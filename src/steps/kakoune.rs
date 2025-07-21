@@ -12,7 +12,7 @@ pub fn upgrade_kak_plug(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Kakoune");
 
-    // TODO: Why supress output for this command?
+    // TODO: Why suppress output for this command?
     ctx.run_type()
         .execute(kak)
         .args(["-ui", "dummy", "-e", UPGRADE_KAK])
