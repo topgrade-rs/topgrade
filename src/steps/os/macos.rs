@@ -1,6 +1,5 @@
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
-use crate::executor::RunType;
 use crate::step::Step;
 use crate::terminal::{print_separator, prompt_yesno};
 use crate::utils::require;
