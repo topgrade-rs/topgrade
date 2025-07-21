@@ -369,15 +369,41 @@ pub fn run_gcloud_components_update(ctx: &ExecutionContext) -> Result<()> {
     let gcloud = require("gcloud")?;
 
     if gcloud.starts_with("/snap") {
-        Ok(())
-    } else {
-        print_separator("gcloud");
-
-        ctx.run_type()
-            .execute(gcloud)
-            .args(["components", "update", "--quiet"])
-            .status_checked()
+        return Ok(());
     }
+
+    print_separator("gcloud");
+
+    let output = ctx
+        .run_type()
+        .execute(&gcloud)
+        .args(["components", "update", "--quiet"])
+        .output()?;
+
+    let output = match output {
+        ExecutorOutput::Wet(wet) => wet,
+        ExecutorOutput::Dry => return Ok(()),
+    };
+
+    // When `gcloud` is installed via `apt`, the components update via `apt` as well
+    let stderr = String::from_utf8(output.stderr)?;
+    if stderr.contains("You cannot perform this action because the Google Cloud CLI component manager")
+        && stderr.contains("is disabled for this installation")
+    {
+        return Err(
+            SkipStep("The Google Cloud CLI component manager is disabled for this installation".to_string()).into(),
+        );
+    }
+
+    // Flush captured output
+    std::io::stdout().write_all(&output.stdout)?;
+    std::io::stderr().write_all(stderr.as_bytes())?;
+
+    if !output.status.success() {
+        return Err(eyre!("gcloud component update failed"));
+    }
+
+    Ok(())
 }
 
 pub fn run_jetpack(ctx: &ExecutionContext) -> Result<()> {
