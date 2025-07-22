@@ -8,7 +8,7 @@ use std::fmt::Debug;
 use std::iter;
 use std::path::Path;
 use std::process::{Child, Command, ExitStatus, Output};
-use tracing::debug;
+use tracing::{debug, enabled, Level};
 
 /// An enum providing a similar interface to `std::process::Command`.
 /// If the enum is set to `Wet`, execution will be performed with `std::process::Command`.
@@ -161,7 +161,7 @@ impl Executor {
             Executor::Wet(_) => (),
             Executor::Damp(c) => {
                 log_command(
-                    "Executing {program_name} {arguments}",
+                    "Executing: {program_name} {arguments}",
                     c.get_program(),
                     c.get_args(),
                     c.get_envs(),
@@ -169,7 +169,7 @@ impl Executor {
                 );
             }
             Executor::Dry(c) => log_command(
-                "Dry running {program_name} {arguments}",
+                "Dry running: {program_name} {arguments}",
                 &c.program,
                 &c.args,
                 iter::empty(),
@@ -276,7 +276,7 @@ fn log_command<
     );
 
     let env_iter = env.into_iter();
-    if env_iter.len() != 0 {
+    if env_iter.len() != 0 && enabled!(Level::DEBUG) {
         println!(
             "  {}",
             t!(
