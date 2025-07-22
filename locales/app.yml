@@ -1316,7 +1316,7 @@ _version: 2
   de: "Windows-Update"
 "Checking if /etc/motd contains -current or -beta":
   en: "Checking if /etc/motd contains -current or -beta"
-  lt: "Tikrinimas, jei /etc/motd yra -srovė arba -beta"
+  lt: "Tikrinimas, jei /etc/motd yra -current arba -beta"
   es: "Comprobación de si /etc/motd contiene -current o -beta"
   fr: "Vérification si /etc/motd contient -current ou -beta"
   zh_CN: "检查 /etc/motd 是否包含 -current 或 -beta"
