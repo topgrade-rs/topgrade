@@ -1,5 +1,6 @@
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
+use crate::executor::RunType;
 use crate::terminal::print_separator;
 use crate::utils::{get_require_sudo_string, require_option};
 use color_eyre::eyre::Result;
@@ -9,12 +10,13 @@ use std::fs;
 fn is_openbsd_current(ctx: &ExecutionContext) -> Result<bool> {
     let motd_content = fs::read_to_string("/etc/motd")?;
     let is_current = ["-current", "-beta"].iter().any(|&s| motd_content.contains(s));
-    if ctx.config().dry_run() {
-        println!("{}", t!("Would check if OpenBSD is -current"));
-        Ok(is_current)
-    } else {
-        Ok(is_current)
+    match ctx.config.run_type() {
+        RunType::Dry | RunType::Damp => {
+            println!("{}", t!("Checking if /etc/motd contains -current or -beta"));
+        }
+        RunType::Wet => {}
     }
+    Ok(is_current)
 }
 
 pub fn upgrade_openbsd(ctx: &ExecutionContext) -> Result<()> {
@@ -23,18 +25,14 @@ pub fn upgrade_openbsd(ctx: &ExecutionContext) -> Result<()> {
 
     let is_current = is_openbsd_current(ctx)?;
 
-    if ctx.config().dry_run() {
-        println!("{}", t!("Would upgrade the OpenBSD system"));
-        return Ok(());
-    }
-
-    let args = if is_current {
-        vec!["/usr/sbin/sysupgrade", "-sn"]
+    let mut cmd = ctx.run_type().execute(sudo);
+    if is_current {
+        cmd.args(["/usr/sbin/sysupgrade", "-sn"]);
     } else {
-        vec!["/usr/sbin/syspatch"]
+        cmd.arg("/usr/sbin/syspatch");
     };
 
-    ctx.run_type().execute(sudo).args(&args).status_checked()
+    cmd.status_checked()
 }
 
 pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
@@ -43,11 +41,6 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
 
     let is_current = is_openbsd_current(ctx)?;
 
-    if ctx.config().dry_run() {
-        println!("{}", t!("Would upgrade OpenBSD packages"));
-        return Ok(());
-    }
-
     if ctx.config().cleanup() {
         ctx.run_type()
             .execute(sudo)
@@ -55,12 +48,11 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
             .status_checked()?;
     }
 
-    let mut args = vec!["/usr/sbin/pkg_add", "-u"];
+    let mut cmd = ctx.run_type().execute(sudo);
+    cmd.args(["/usr/sbin/pkg_add", "-u"]);
     if is_current {
-        args.push("-Dsnap");
+        cmd.arg("-Dsnap");
     }
 
-    ctx.run_type().execute(sudo).args(&args).status_checked()?;
-
-    Ok(())
+    cmd.status_checked()?
 }
