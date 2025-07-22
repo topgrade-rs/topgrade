@@ -11,10 +11,10 @@ use std::iter;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, ExitStatus, Output};
 use strum::EnumString;
-use tracing::debug;
+use tracing::{debug, enabled, Level};
 
 /// An enum telling whether Topgrade should perform dry runs or actually perform the steps.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Default, EnumString, ValueEnum)]
+#[derive(Clone, Copy, Debug, Deserialize, Default, EnumString, ValueEnum)]
 pub enum RunType {
     /// Executing commands will just print the command with its argument.
     Dry,
@@ -201,7 +201,7 @@ impl Executor {
             Executor::Wet(_) => (),
             Executor::Damp(c) => {
                 log_command(
-                    "Executing {program_name} {arguments}",
+                    "Executing: {program_name} {arguments}",
                     c.get_program(),
                     c.get_args(),
                     c.get_envs(),
@@ -209,7 +209,7 @@ impl Executor {
                 );
             }
             Executor::Dry(c) => log_command(
-                "Dry running {program_name} {arguments}",
+                "Dry running: {program_name} {arguments}",
                 &c.program,
                 &c.args,
                 iter::empty(),
@@ -287,7 +287,7 @@ fn log_command<
     );
 
     let env_iter = env.into_iter();
-    if env_iter.len() != 0 {
+    if env_iter.len() != 0 && enabled!(Level::DEBUG) {
         println!(
             "  {}",
             t!(
