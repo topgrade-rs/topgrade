@@ -6,12 +6,20 @@ on:
 
 name: Check i18n
 
+permissions:
+  contents: read
+
 jobs:
   check_locale:
     runs-on: ubuntu-latest
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@v2.13.0
+        with:
+          egress-policy: audit
+
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Install checker
         # Build it with the dev profile as this is faster and the checker still works
