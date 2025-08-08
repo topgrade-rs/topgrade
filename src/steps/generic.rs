@@ -1178,7 +1178,7 @@ pub fn run_freshclam(ctx: &ExecutionContext) -> Result<()> {
     let freshclam = require("freshclam")?;
     print_separator(t!("Update ClamAV Database(FreshClam)"));
 
-    let output = ctx.run_type().execute(&freshclam).output()?;
+    let output = ctx.execute(&freshclam).output()?;
     let output = match output {
         ExecutorOutput::Wet(output) => output,
         ExecutorOutput::Dry => return Ok(()), // In a dry run, just exit after running without sudo
