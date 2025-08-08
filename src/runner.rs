@@ -3,11 +3,12 @@ use crate::error::{DryRun, SkipStep};
 use crate::execution_context::ExecutionContext;
 use crate::report::{Report, StepResult};
 use crate::step::Step;
-use crate::terminal::print_error;
 use crate::terminal::should_retry;
-use color_eyre::eyre::Result;
+use crate::terminal::{print_error, ShouldRetry};
+use color_eyre::eyre::{Context, Result};
 use std::borrow::Cow;
 use std::fmt::Debug;
+use std::io;
 use tracing::debug;
 
 pub struct Runner<'a> {
@@ -67,21 +68,28 @@ impl<'a> Runner<'a> {
                     let should_ask = interrupted || !(self.ctx.config().no_retry() || ignore_failure);
                     let should_retry = if should_ask {
                         print_error(&key, format!("{e:?}"));
-                        should_retry(interrupted, key.as_ref())?
+                        should_retry(key.as_ref())?
                     } else {
-                        false
+                        ShouldRetry::No
                     };
 
-                    if !should_retry {
-                        self.report.push_result(Some((
-                            key,
-                            if ignore_failure {
-                                StepResult::Ignored
-                            } else {
-                                StepResult::Failure
-                            },
-                        )));
-                        break;
+                    match should_retry {
+                        ShouldRetry::No | ShouldRetry::Quit => {
+                            self.report.push_result(Some((
+                                key,
+                                if ignore_failure {
+                                    StepResult::Ignored
+                                } else {
+                                    StepResult::Failure
+                                },
+                            )));
+                            if let ShouldRetry::Quit = should_retry {
+                                return Err(io::Error::from(io::ErrorKind::Interrupted))
+                                    .context("Quit from user input");
+                            }
+                            break;
+                        }
+                        ShouldRetry::Yes => (),
                     }
                 }
             }
