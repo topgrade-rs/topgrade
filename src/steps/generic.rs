@@ -1196,7 +1196,7 @@ pub fn run_freshclam(ctx: &ExecutionContext) -> Result<()> {
     debug!("`freshclam` (without sudo) resulted in error: {:?}", output);
     let sudo = ctx.require_sudo()?;
 
-    match sudo.execute(ctx, freshclam).status_checked() {
+    match sudo.execute(ctx, freshclam)?.status_checked() {
         Ok(()) => Ok(()), // Success! The output of only the sudo'ed process is written.
         Err(err) => {
             // Error! We add onto the error the output of running without sudo for more information.
