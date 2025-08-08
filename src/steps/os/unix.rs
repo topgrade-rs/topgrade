@@ -900,7 +900,7 @@ pub fn run_hyprpm(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("hyprpm");
 
-    ctx..execute(hyprpm).arg("update").status_checked()
+    ctx.execute(hyprpm).arg("update").status_checked()
 }
 
 pub fn reboot(ctx: &ExecutionContext) -> Result<()> {
