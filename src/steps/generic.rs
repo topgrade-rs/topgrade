@@ -1383,10 +1383,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<Vec<UpdatedComponent>> {
         let self_update_feature_enabled = ctx.execute(&uv_exec).args(["self", "--help"]).output_checked().is_ok();
 
         if self_update_feature_enabled {
-            let output = ctx
-                .execute(&uv_exec)
-                .args(["self", "update"])
-                .output_checked()?;
+            let output = ctx.execute(&uv_exec).args(["self", "update"]).output_checked()?;
 
             std::io::stdout().write_all(&output.stdout)?;
             std::io::stderr().write_all(&output.stderr)?;
