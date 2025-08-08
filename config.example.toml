@@ -111,6 +111,19 @@
 # poetry_force_self_update = true
 
 
+[conda]
+# Additional named conda environments to update (`conda env update -n env_name`)
+# env_names = [
+#     "Toolbox",
+#     "PyTorch"
+# ]
+# Additional conda environment paths to update (`conda env update -p env_path`)
+# env_paths = [
+#     "~/webserver/.conda/",
+#     "~/experiments/.conda/"
+# ]
+
+
 [composer]
 # self_update = true
 
@@ -231,6 +244,16 @@
 # to upgrade it. Use this only if you installed Topgrade by using a package
 # manager such as Scoop or Cargo
 # self_rename = true
+
+# Use sudo to elevate privileges for the Windows Package Manager (winget)
+# Only use this option if you want to run the Winget step in sudo-mode.
+# Running winget in sudo-mode is generally not recommended, as not every
+# package supports installing / upgrading in sudo-mode and it may cause issues
+# with some packages or may even cause the Winget-step to fail.
+# If any problems occur, please try running Topgrade without this option first
+# before reporting an issue.
+# (default: false)
+# winget_use_sudo = true
 
 
 [npm]

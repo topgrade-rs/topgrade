@@ -35,7 +35,7 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
         unreachable!("Tmux execution is only implemented in Unix");
     } else if ctx.config().open_remotes_in_new_terminal() && !ctx.run_type().dry() && cfg!(windows) {
         prepare_async_ssh_command(&mut args);
-        ctx.run_type().execute("wt").args(&args).spawn()?;
+        ctx.execute("wt").args(&args).spawn()?;
         Err(SkipStep(String::from(t!("Remote Topgrade launched in an external terminal"))).into())
     } else {
         let mut args = vec!["-t", hostname];
@@ -50,6 +50,6 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
         print_separator(format!("Remote ({hostname})"));
         println!("{}", t!("Connecting to {hostname}...", hostname = hostname));
 
-        ctx.run_type().execute(ssh).args(&args).status_checked()
+        ctx.execute(ssh).args(&args).status_checked()
     }
 }
