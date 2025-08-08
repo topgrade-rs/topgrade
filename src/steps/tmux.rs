@@ -5,34 +5,50 @@ use std::process::Command;
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use etcetera::base_strategy::BaseStrategy;
 
 use crate::command::CommandExt;
 use crate::config::TmuxConfig;
 use crate::config::TmuxSessionMode;
 use crate::terminal::print_separator;
-use crate::HOME_DIR;
 use crate::{
     execution_context::ExecutionContext,
     utils::{which, PathExt},
 };
+use crate::{HOME_DIR, XDG_DIRS};
 
 use rust_i18n::t;
 #[cfg(unix)]
 use std::os::unix::process::CommandExt as _;
 
+// update_plugins path is relative to the TPM path
+const UPDATE_PLUGINS: &str = "bin/update_plugins";
+// Default TPM path relative to the TMux config directory
+const TPM_PATH: &str = "plugins/tpm";
+
 pub fn run_tpm(ctx: &ExecutionContext) -> Result<()> {
     let tpm = match env::var("TMUX_PLUGIN_MANAGER_PATH") {
-        // If `TMUX_PLUGIN_MANAGER_PATH` is set, search for
-        // `$TMUX_PLUGIN_MANAGER_PATH/bin/install_plugins/tpm/bin/update_plugins`
-        Ok(var) => PathBuf::from(var).join("bin/install_plugins/tpm/bin/update_plugins"),
-        // Otherwise, use the default location `~/.tmux/plugins/tpm/bin/update_plugins`
-        Err(_) => HOME_DIR.join(".tmux/plugins/tpm/bin/update_plugins"),
+        // Use `$TMUX_PLUGIN_MANAGER_PATH` if set,
+        Ok(var) => PathBuf::from(var).join(UPDATE_PLUGINS),
+        Err(_) => {
+            // otherwise, use the default XDG location `~/.config/tmux`
+            #[cfg(unix)]
+            let xdg_path = XDG_DIRS.config_dir().join("tmux").join(TPM_PATH).join(UPDATE_PLUGINS);
+            #[cfg(windows)]
+            let xdg_path = HOME_DIR.join(".config/tmux").join(TPM_PATH).join(UPDATE_PLUGINS);
+            if xdg_path.exists() {
+                xdg_path
+            } else {
+                // or fallback on the standard default location `~/.tmux`.
+                HOME_DIR.join(".tmux").join(TPM_PATH).join(UPDATE_PLUGINS)
+            }
+        }
     }
     .require()?;
 
     print_separator("tmux plugins");
 
-    ctx.run_type().execute(tpm).arg("all").status_checked()
+    ctx.execute(tpm).arg("all").status_checked()
 }
 
 struct Tmux {

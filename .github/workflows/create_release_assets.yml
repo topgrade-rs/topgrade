@@ -22,6 +22,13 @@ on:
 jobs:
   # Publish release files for CD native environments
   native_build:
+    permissions:
+      # Use to sign the release artifacts
+      id-token: write
+      # Used to upload release artifacts
+      contents: write
+      # Used to generate artifact attestations
+      attestations: write
     strategy:
       fail-fast: false
       matrix:
@@ -119,8 +126,20 @@ jobs:
           tag_name: ${{ steps.determine_tag_name.outputs.tag_name }}
           files: assets/*
 
+      - name: Generate artifact attestations
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: assets/*
+
   # Publish release files for non-CD-native environments
   cross_build:
+    permissions:
+      # Use to sign the release artifacts
+      id-token: write
+      # Used to upload release artifacts
+      contents: write
+      # Used to generate artifact attestations
+      attestations: write
     strategy:
       fail-fast: false
       matrix:
@@ -223,3 +242,8 @@ jobs:
         with:
           tag_name: ${{ steps.determine_tag_name.outputs.tag_name }}
           files: assets/*
+
+      - name: Generate artifact attestations
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: assets/*
