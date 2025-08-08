@@ -14,7 +14,7 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
 
     let is_nala = pkg.ends_with("nala");
 
-    let mut command = ctx.run_type().execute(&pkg);
+    let mut command = ctx.execute(&pkg);
     command.arg("upgrade");
 
     if ctx.config().yes(Step::System) {
@@ -23,10 +23,10 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     command.status_checked()?;
 
     if !is_nala && ctx.config().cleanup() {
-        ctx.run_type().execute(&pkg).arg("clean").status_checked()?;
+        ctx.execute(&pkg).arg("clean").status_checked()?;
 
         let apt = require("apt")?;
-        let mut command = ctx.run_type().execute(apt);
+        let mut command = ctx.execute(apt);
         command.arg("autoremove");
         if ctx.config().yes(Step::System) {
             command.arg("-y");
