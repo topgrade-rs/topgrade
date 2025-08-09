@@ -18,11 +18,6 @@ jobs:
     name: Rustfmt
     runs-on: ubuntu-latest
     steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@v2.13.0
-        with:
-          egress-policy: audit
-
       - name: Checkout code
         uses: actions/checkout@v4.2.2
 
@@ -37,11 +32,6 @@ jobs:
     name: Step enum sorted
     runs-on: ubuntu-latest
     steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@v2.13.0
-        with:
-          egress-policy: audit
-
       - name: Checkout code
         uses: actions/checkout@v4.2.2
 
@@ -59,11 +49,6 @@ jobs:
     name: Step match sorted
     runs-on: ubuntu-latest
     steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@v2.13.0
-        with:
-          egress-policy: audit
-
       - name: Checkout code
         uses: actions/checkout@v4.2.2
 
@@ -113,11 +98,6 @@ jobs:
             target_name: Windows
             os: windows-latest
     steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@v2.13.0
-        with:
-          egress-policy: audit
-
       - name: Checkout code
         uses: actions/checkout@v4.2.2
 

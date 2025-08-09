@@ -10,15 +10,13 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: read
+
 jobs:
   homebrew-publish:
     runs-on: ubuntu-latest
     steps:
-    - name: Harden the runner (Audit all outbound calls)
-      uses: step-security/harden-runner@v2.13.0
-      with:
-        egress-policy: audit
-
     - name: Set up Homebrew
       id: set-up-homebrew
       uses: Homebrew/actions/setup-homebrew@24a0b15df658487e137fcd20fba32757d41a9411 # master

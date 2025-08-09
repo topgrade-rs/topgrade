@@ -41,11 +41,6 @@ jobs:
         platform: [ ubuntu-22.04, macos-latest, macos-13, windows-latest ]
     runs-on: ${{ matrix.platform }}
     steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@v2.13.0
-        with:
-          egress-policy: audit
-
       - uses: actions/checkout@v4.2.2
 
       - name: Install needed components
@@ -161,11 +156,6 @@ jobs:
           ]
     runs-on: ubuntu-latest
     steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@v2.13.0
-        with:
-          egress-policy: audit
-
       - uses: actions/checkout@v4.2.2
 
       - name: Install needed components

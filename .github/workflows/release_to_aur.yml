@@ -15,15 +15,13 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   aur-publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@v2.13.0
-        with:
-          egress-policy: audit
-
       - name: Determine version
         id: determine_version
         run: |

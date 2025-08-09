@@ -15,11 +15,6 @@ jobs:
       matrix:
         target: [x86_64, x86, aarch64]
     steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@v2.13.0
-        with:
-          egress-policy: audit
-
       - uses: actions/checkout@v4.2.2
       - name: Build wheels
         uses: PyO3/maturin-action@e10f6c464b90acceb5f640d31beda6d586ba7b4a # v1.49.3
@@ -40,11 +35,6 @@ jobs:
       matrix:
         target: [x64, x86]
     steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@v2.13.0
-        with:
-          egress-policy: audit
-
       - uses: actions/checkout@v4.2.2
       - name: Build wheels
         uses: PyO3/maturin-action@e10f6c464b90acceb5f640d31beda6d586ba7b4a # v1.49.3
@@ -64,11 +54,6 @@ jobs:
       matrix:
         target: [x86_64, aarch64]
     steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@v2.13.0
-        with:
-          egress-policy: audit
-
       - uses: actions/checkout@v4.2.2
       - name: Build wheels
         uses: PyO3/maturin-action@e10f6c464b90acceb5f640d31beda6d586ba7b4a # v1.49.3
@@ -85,11 +70,6 @@ jobs:
   sdist:
     runs-on: ubuntu-latest
     steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@v2.13.0
-        with:
-          egress-policy: audit
-
       - uses: actions/checkout@v4.2.2
       - name: Build sdist
         uses: PyO3/maturin-action@e10f6c464b90acceb5f640d31beda6d586ba7b4a # v1.49.3
@@ -114,11 +94,6 @@ jobs:
       # Used to generate artifact attestation
       attestations: write
     steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@v2.13.0
-        with:
-          egress-policy: audit
-
       - uses: actions/download-artifact@v4.3.0
 
       - name: Generate artifact attestation

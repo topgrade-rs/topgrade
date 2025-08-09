@@ -15,11 +15,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Harden the runner (Audit all outbound calls)
-      uses: step-security/harden-runner@v2.13.0
-      with:
-        egress-policy: audit
-
     - uses: actions/checkout@v4.2.2
     - run: |
           CONFIG_PATH=~/.config/topgrade.toml;

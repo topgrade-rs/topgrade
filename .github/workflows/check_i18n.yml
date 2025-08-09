@@ -13,11 +13,6 @@ jobs:
   check_locale:
     runs-on: ubuntu-latest
     steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@v2.13.0
-        with:
-          egress-policy: audit
-
       - name: Checkout code
         uses: actions/checkout@v4.2.2
 

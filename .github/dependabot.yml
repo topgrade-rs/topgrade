@@ -2,14 +2,38 @@
 
 version: 2
 updates:
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       # Check for updates to GitHub Actions every week
       interval: "weekly"
 
+    # Safer, frequent dependency refresh (no Cargo.toml changes)
   - package-ecosystem: cargo
-    directory: /
+    directory: "/"
     schedule:
-      interval: daily
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    versioning-strategy: lockfile-only
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "cargo", "safe-update"]
+    groups:
+      cargo-minor-patch:
+        update-types: ["minor", "patch"]
+  
+  # Less frequent manifest bumps (can include breaking changes)
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    versioning-strategy: increase
+    open-pull-requests-limit: 2
+    labels: ["dependencies", "cargo", "manifest-update"]
+    commit-message:
+      prefix: "deps(cargo)"
+      include: "scope"
