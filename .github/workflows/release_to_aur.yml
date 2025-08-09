@@ -15,6 +15,9 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   aur-publish:
     runs-on: ubuntu-latest

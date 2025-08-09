@@ -4,11 +4,14 @@ on:
     types: [released]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   publish:
     runs-on: windows-latest
     steps:
-      - uses: vedantmgoyal2009/winget-releaser@main
+      - uses: vedantmgoyal2009/winget-releaser@19e706d4c9121098010096f9c495a70a7518b30f # main
         with:
           identifier: topgrade-rs.topgrade
           max-versions-to-keep: 5 # keep only latest 5 versions
