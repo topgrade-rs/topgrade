@@ -2,14 +2,13 @@ use std::cmp::{max, min};
 use std::env;
 use std::io::{self, Write};
 use std::process::Command;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 
 use chrono::{Local, Timelike};
 use color_eyre::eyre;
 use color_eyre::eyre::Context;
 use console::{style, Key, Term};
-use lazy_static::lazy_static;
 use notify_rust::{Notification, Timeout};
 use rust_i18n::t;
 use tracing::{debug, error};
@@ -19,9 +18,7 @@ use which_crate::which;
 use crate::command::CommandExt;
 use crate::report::StepResult;
 
-lazy_static! {
-    static ref TERMINAL: Mutex<Terminal> = Mutex::new(Terminal::new());
-}
+static TERMINAL: LazyLock<Mutex<Terminal>> = LazyLock::new(|| Mutex::new(Terminal::new()));
 
 #[cfg(unix)]
 pub fn shell() -> String {

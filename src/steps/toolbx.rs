@@ -1,7 +1,7 @@
 use color_eyre::eyre::Result;
 
 use crate::command::CommandExt;
-use crate::config::Step;
+use crate::step::Step;
 use crate::terminal::print_separator;
 use crate::{execution_context::ExecutionContext, utils::require};
 use std::path::Path;
@@ -59,7 +59,7 @@ pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
             args.push("--yes");
         }
 
-        ctx.run_type().execute(&toolbx).args(&args).status_checked()?;
+        ctx.execute(&toolbx).args(&args).status_checked()?;
     }
 
     Ok(())

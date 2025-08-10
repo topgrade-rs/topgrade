@@ -1,31 +1,33 @@
-use std::ffi::OsString;
-use std::path::PathBuf;
-use std::process::Command;
-use std::{env, path::Path};
-use std::{fs, io::Write};
-
-use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use color_eyre::eyre::{eyre, OptionExt};
 use jetbrains_toolbox_updater::{find_jetbrains_toolbox, update_jetbrains_toolbox, FindError};
-use lazy_static::lazy_static;
 use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
+use std::ffi::OsString;
+use std::iter::once;
+use std::path::PathBuf;
+use std::process::Command;
+use std::sync::LazyLock;
+use std::{env, path::Path};
+use std::{fs, io::Write};
 use tempfile::tempfile_in;
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
+use crate::output_changed_message;
+use crate::step::Step;
+use crate::sudo::SudoExecuteOpts;
 use crate::terminal::{print_separator, shell};
-use crate::utils::{check_is_python_2_or_shim, get_require_sudo_string, require, require_option, which, PathExt};
+use crate::utils::{check_is_python_2_or_shim, require, require_one, require_option, which, PathExt};
 use crate::HOME_DIR;
 use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
     terminal::print_warning,
 };
-use crate::{output_changed_message, Step};
 
 #[cfg(target_os = "linux")]
 pub fn is_wsl() -> Result<bool> {
@@ -67,8 +69,7 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep(message).into());
     };
 
-    ctx.run_type()
-        .execute(cargo_update)
+    ctx.execute(cargo_update)
         .args(["install-update", "--git", "--all"])
         .status_checked()?;
 
@@ -77,7 +78,7 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
             .ok()
             .or_else(|| cargo_dir.join("bin/cargo-cache").if_exists());
         if let Some(e) = cargo_cache {
-            ctx.run_type().execute(e).args(["-a"]).status_checked()?;
+            ctx.execute(e).args(["-a"]).status_checked()?;
         } else {
             let message = String::from("cargo-cache isn't installed so Topgrade can't cleanup cargo packages.\nInstall cargo-cache by running `cargo install cargo-cache`");
             print_warning(message);
@@ -91,7 +92,7 @@ pub fn run_flutter_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let flutter = require("flutter")?;
 
     print_separator("Flutter");
-    ctx.run_type().execute(flutter).arg("upgrade").status_checked()
+    ctx.execute(flutter).arg("upgrade").status_checked()
 }
 
 pub fn run_gem(ctx: &ExecutionContext) -> Result<()> {
@@ -100,7 +101,7 @@ pub fn run_gem(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Gems");
 
-    let mut command = ctx.run_type().execute(gem);
+    let mut command = ctx.execute(gem);
     command.arg("update");
 
     if env::var_os("RBENV_SHELL").is_none() {
@@ -122,17 +123,11 @@ pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
         || gem_path_str.to_str().unwrap().contains(".rbenv")
         || gem_path_str.to_str().unwrap().contains(".rvm")
     {
-        ctx.run_type()
-            .execute(gem)
-            .args(["update", "--system"])
-            .status_checked()?;
+        ctx.execute(gem).args(["update", "--system"]).status_checked()?;
     } else {
-        let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
+        let sudo = ctx.require_sudo()?;
         if !Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
-            ctx.run_type()
-                .execute(sudo)
-                .arg("-EH")
-                .arg(gem)
+            sudo.execute_opts(ctx, &gem, SudoExecuteOpts::new().preserve_env().set_home())?
                 .args(["update", "--system"])
                 .status_checked()?;
         }
@@ -154,12 +149,10 @@ pub fn run_haxelib_update(ctx: &ExecutionContext) -> Result<()> {
     print_separator("haxelib");
 
     let mut command = if directory_writable {
-        ctx.run_type().execute(&haxelib)
+        ctx.execute(&haxelib)
     } else {
-        let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
-        let mut c = ctx.run_type().execute(sudo);
-        c.arg(&haxelib);
-        c
+        let sudo = ctx.require_sudo()?;
+        sudo.execute(ctx, &haxelib)?
     };
 
     command.arg("update").status_checked()
@@ -170,10 +163,7 @@ pub fn run_sheldon(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Sheldon");
 
-    ctx.run_type()
-        .execute(sheldon)
-        .args(["lock", "--update"])
-        .status_checked()
+    ctx.execute(sheldon).args(["lock", "--update"]).status_checked()
 }
 
 pub fn run_fossil(ctx: &ExecutionContext) -> Result<()> {
@@ -181,7 +171,7 @@ pub fn run_fossil(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Fossil");
 
-    ctx.run_type().execute(fossil).args(["all", "sync"]).status_checked()
+    ctx.execute(fossil).args(["all", "sync"]).status_checked()
 }
 
 pub fn run_micro(ctx: &ExecutionContext) -> Result<()> {
@@ -190,7 +180,6 @@ pub fn run_micro(ctx: &ExecutionContext) -> Result<()> {
     print_separator("micro");
 
     let stdout = ctx
-        .run_type()
         .execute(micro)
         .args(["-plugin", "update"])
         .output_checked_utf8()?
@@ -215,10 +204,7 @@ pub fn run_apm(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Atom Package Manager");
 
-    ctx.run_type()
-        .execute(apm)
-        .args(["upgrade", "--confirm=false"])
-        .status_checked()
+    ctx.execute(apm).args(["upgrade", "--confirm=false"]).status_checked()
 }
 
 enum Aqua {
@@ -248,7 +234,7 @@ fn get_aqua(ctx: &ExecutionContext) -> Result<Aqua> {
     let aqua = require("aqua")?;
 
     // Check if `aqua --help` mentions "aqua". JetBrains Aqua does not, Aqua CLI does.
-    let output = ctx.run_type().execute(&aqua).arg("--help").output_checked()?;
+    let output = ctx.execute(&aqua).arg("--help").output_checked()?;
 
     if String::from_utf8(output.stdout)?.contains("aqua") {
         debug!("Detected `aqua` as Aqua CLI");
@@ -268,8 +254,8 @@ pub fn run_aqua(ctx: &ExecutionContext) -> Result<()> {
         println!("{}", t!("Updating aqua installed cli tools ..."));
         Ok(())
     } else {
-        ctx.run_type().execute(&aqua).arg("update-aqua").status_checked()?;
-        ctx.run_type().execute(&aqua).arg("update").status_checked()
+        ctx.execute(&aqua).arg("update-aqua").status_checked()?;
+        ctx.execute(&aqua).arg("update").status_checked()
     }
 }
 
@@ -277,14 +263,14 @@ pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
     let rustup = require("rustup")?;
 
     print_separator("rustup");
-    ctx.run_type().execute(rustup).arg("update").status_checked()
+    ctx.execute(rustup).arg("update").status_checked()
 }
 
 pub fn run_rye(ctx: &ExecutionContext) -> Result<()> {
     let rye = require("rye")?;
 
     print_separator("Rye");
-    ctx.run_type().execute(rye).args(["self", "update"]).status_checked()
+    ctx.execute(rye).args(["self", "update"]).status_checked()
 }
 
 pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
@@ -293,7 +279,7 @@ pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
     print_separator("elan");
 
     let disabled_error_msg = "self-update is disabled";
-    let executor_output = ctx.run_type().execute(&elan).args(["self", "update"]).output()?;
+    let executor_output = ctx.execute(&elan).args(["self", "update"]).output()?;
     match executor_output {
         ExecutorOutput::Wet(command_output) => {
             if command_output.status.success() {
@@ -320,7 +306,7 @@ pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
         ExecutorOutput::Dry => { /* nothing needed because in a dry run */ }
     }
 
-    ctx.run_type().execute(&elan).arg("update").status_checked()
+    ctx.execute(&elan).arg("update").status_checked()
 }
 
 pub fn run_juliaup(ctx: &ExecutionContext) -> Result<()> {
@@ -329,16 +315,13 @@ pub fn run_juliaup(ctx: &ExecutionContext) -> Result<()> {
     print_separator("juliaup");
 
     if juliaup.canonicalize()?.is_descendant_of(&HOME_DIR) {
-        ctx.run_type()
-            .execute(&juliaup)
-            .args(["self", "update"])
-            .status_checked()?;
+        ctx.execute(&juliaup).args(["self", "update"]).status_checked()?;
     }
 
-    ctx.run_type().execute(&juliaup).arg("update").status_checked()?;
+    ctx.execute(&juliaup).arg("update").status_checked()?;
 
     if ctx.config().cleanup() {
-        ctx.run_type().execute(&juliaup).arg("gc").status_checked()?;
+        ctx.execute(&juliaup).arg("gc").status_checked()?;
     }
 
     Ok(())
@@ -348,10 +331,9 @@ pub fn run_choosenim(ctx: &ExecutionContext) -> Result<()> {
     let choosenim = require("choosenim")?;
 
     print_separator("choosenim");
-    let run_type = ctx.run_type();
 
-    run_type.execute(&choosenim).args(["update", "self"]).status_checked()?;
-    run_type.execute(&choosenim).args(["update", "stable"]).status_checked()
+    ctx.execute(&choosenim).args(["update", "self"]).status_checked()?;
+    ctx.execute(&choosenim).args(["update", "stable"]).status_checked()
 }
 
 pub fn run_krew_upgrade(ctx: &ExecutionContext) -> Result<()> {
@@ -359,22 +341,47 @@ pub fn run_krew_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Krew");
 
-    ctx.run_type().execute(krew).args(["upgrade"]).status_checked()
+    ctx.execute(krew).args(["upgrade"]).status_checked()
 }
 
 pub fn run_gcloud_components_update(ctx: &ExecutionContext) -> Result<()> {
     let gcloud = require("gcloud")?;
 
     if gcloud.starts_with("/snap") {
-        Ok(())
-    } else {
-        print_separator("gcloud");
-
-        ctx.run_type()
-            .execute(gcloud)
-            .args(["components", "update", "--quiet"])
-            .status_checked()
+        return Ok(());
     }
+
+    print_separator("gcloud");
+
+    let output = ctx
+        .execute(&gcloud)
+        .args(["components", "update", "--quiet"])
+        .output()?;
+
+    let output = match output {
+        ExecutorOutput::Wet(wet) => wet,
+        ExecutorOutput::Dry => return Ok(()),
+    };
+
+    // When `gcloud` is installed via `apt`, the components update via `apt` as well
+    let stderr = String::from_utf8(output.stderr)?;
+    if stderr.contains("You cannot perform this action because the Google Cloud CLI component manager")
+        && stderr.contains("is disabled for this installation")
+    {
+        return Err(
+            SkipStep("The Google Cloud CLI component manager is disabled for this installation".to_string()).into(),
+        );
+    }
+
+    // Flush captured output
+    std::io::stdout().write_all(&output.stdout)?;
+    std::io::stderr().write_all(stderr.as_bytes())?;
+
+    if !output.status.success() {
+        return Err(eyre!("gcloud component update failed"));
+    }
+
+    Ok(())
 }
 
 pub fn run_jetpack(ctx: &ExecutionContext) -> Result<()> {
@@ -382,10 +389,7 @@ pub fn run_jetpack(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Jetpack");
 
-    ctx.run_type()
-        .execute(jetpack)
-        .args(["global", "update"])
-        .status_checked()
+    ctx.execute(jetpack).args(["global", "update"]).status_checked()
 }
 
 pub fn run_rtcl(ctx: &ExecutionContext) -> Result<()> {
@@ -393,7 +397,7 @@ pub fn run_rtcl(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("rtcl");
 
-    ctx.run_type().execute(rupdate).status_checked()
+    ctx.execute(rupdate).status_checked()
 }
 
 pub fn run_opam_update(ctx: &ExecutionContext) -> Result<()> {
@@ -401,9 +405,9 @@ pub fn run_opam_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("OCaml Package Manager");
 
-    ctx.run_type().execute(&opam).arg("update").status_checked()?;
+    ctx.execute(&opam).arg("update").status_checked()?;
 
-    let mut command = ctx.run_type().execute(&opam);
+    let mut command = ctx.execute(&opam);
     command.arg("upgrade");
     if ctx.config().yes(Step::Opam) {
         command.arg("--yes");
@@ -411,7 +415,7 @@ pub fn run_opam_update(ctx: &ExecutionContext) -> Result<()> {
     command.status_checked()?;
 
     if ctx.config().cleanup() {
-        ctx.run_type().execute(&opam).arg("clean").status_checked()?;
+        ctx.execute(&opam).arg("clean").status_checked()?;
     }
 
     Ok(())
@@ -428,12 +432,10 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
     let is_root_install = false;
 
     let mut command = if is_root_install {
-        ctx.run_type().execute(&vcpkg)
+        ctx.execute(&vcpkg)
     } else {
-        let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
-        let mut c = ctx.run_type().execute(sudo);
-        c.arg(&vcpkg);
-        c
+        let sudo = ctx.require_sudo()?;
+        sudo.execute(ctx, &vcpkg)?
     };
 
     command.args(["upgrade", "--no-dry-run"]).status_checked()
@@ -496,7 +498,7 @@ fn run_vscode_compatible<const VSCODIUM: bool>(ctx: &ExecutionContext) -> Result
         "Visual Studio Code extensions"
     });
 
-    let mut cmd = ctx.run_type().execute(bin);
+    let mut cmd = ctx.execute(bin);
     // If its VSCode (not VSCodium)
     if !VSCODIUM {
         // And we have configured use of a profile
@@ -538,17 +540,14 @@ pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
         command_args.push("--quiet");
     }
 
-    ctx.run_type().execute(pipx).args(command_args).status_checked()
+    ctx.execute(pipx).args(command_args).status_checked()
 }
 
 pub fn run_pipxu_update(ctx: &ExecutionContext) -> Result<()> {
     let pipxu = require("pipxu")?;
     print_separator("pipxu");
 
-    ctx.run_type()
-        .execute(pipxu)
-        .args(["upgrade", "--all"])
-        .status_checked()
+    ctx.execute(pipxu).args(["upgrade", "--all"]).status_checked()
 }
 
 pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
@@ -564,15 +563,35 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Conda");
 
-    let mut command = ctx.run_type().execute(&conda);
-    command.args(["update", "--all", "-n", "base"]);
-    if ctx.config().yes(Step::Conda) {
-        command.arg("--yes");
-    }
-    command.status_checked()?;
+    // Update named environments, starting with the always-present "base"
+    let base_env_name = "base".to_string();
+    let addl_env_names = ctx.config().conda_env_names().into_iter().flatten();
+    let env_names = once(&base_env_name).chain(addl_env_names);
 
+    for env_name in env_names {
+        let mut command = ctx.execute(&conda);
+        command.args(["update", "--all", "-n", env_name]);
+        if ctx.config().yes(Step::Conda) {
+            command.arg("--yes");
+        }
+        command.status_checked()?;
+    }
+
+    // Update any environments given by path
+    if let Some(env_paths) = ctx.config().conda_env_paths() {
+        for env_path in env_paths.iter() {
+            let mut command = ctx.execute(&conda);
+            command.args(["update", "--all", "-p", env_path]);
+            if ctx.config().yes(Step::Conda) {
+                command.arg("--yes");
+            }
+            command.status_checked()?;
+        }
+    }
+
+    // Cleanup (conda clean) is global (not tied to a particular environment)
     if ctx.config().cleanup() {
-        let mut command = ctx.run_type().execute(conda);
+        let mut command = ctx.execute(conda);
         command.args(["clean", "--all"]);
         if ctx.config().yes(Step::Conda) {
             command.arg("--yes");
@@ -589,20 +608,23 @@ pub fn run_pixi_update(ctx: &ExecutionContext) -> Result<()> {
 
     // Check if `pixi --help` mentions self-update, if yes, self-update must be enabled.
     // pixi self-update --help works regardless of whether the feature is enabled.
-    let output = ctx.run_type().execute(&pixi).arg("--help").output_checked()?;
+    let top_level_help_output = ctx.execute(&pixi).arg("--help").output_checked_utf8()?;
 
-    if String::from_utf8(output.stdout)?.contains("self-update") {
-        ctx.run_type()
+    if top_level_help_output.stdout.contains("self-update") {
+        let self_update_help_output = ctx
             .execute(&pixi)
-            .args(["self-update"])
-            .status_checked()
-            .ok();
+            .args(["self-update", "--help"])
+            .output_checked_utf8()?;
+        let mut cmd = ctx.execute(&pixi);
+        cmd.arg("self-update");
+        // check if help mentions --no-release-note to check if it is supported
+        if self_update_help_output.stdout.contains("--no-release-note") && !ctx.config().show_pixi_release_notes() {
+            cmd.arg("--no-release-note");
+        }
+        cmd.status_checked()?;
     }
 
-    ctx.run_type()
-        .execute(&pixi)
-        .args(["global", "update"])
-        .status_checked()
+    ctx.execute(&pixi).args(["global", "update"]).status_checked()
 }
 
 pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
@@ -610,7 +632,7 @@ pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Mamba");
 
-    let mut command = ctx.run_type().execute(&mamba);
+    let mut command = ctx.execute(&mamba);
     command.args(["update", "--all", "-n", "base"]);
     if ctx.config().yes(Step::Mamba) {
         command.arg("--yes");
@@ -618,7 +640,7 @@ pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
     command.status_checked()?;
 
     if ctx.config().cleanup() {
-        let mut command = ctx.run_type().execute(&mamba);
+        let mut command = ctx.execute(&mamba);
         command.args(["clean", "--all"]);
         if ctx.config().yes(Step::Mamba) {
             command.arg("--yes");
@@ -633,10 +655,7 @@ pub fn run_miktex_packages_update(ctx: &ExecutionContext) -> Result<()> {
     let miktex = require("miktex")?;
     print_separator("miktex");
 
-    ctx.run_type()
-        .execute(miktex)
-        .args(["packages", "update"])
-        .status_checked()
+    ctx.execute(miktex).args(["packages", "update"]).status_checked()
 }
 
 pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
@@ -714,8 +733,7 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep("Does not run inside a virtual environment".to_string()).into());
     }
 
-    ctx.run_type()
-        .execute(&python3)
+    ctx.execute(&python3)
         .args(["-m", "pip", "install", "--upgrade", "--user", "pip"])
         .status_checked()
 }
@@ -731,10 +749,7 @@ pub fn run_pip_review_update(ctx: &ExecutionContext) -> Result<()> {
         );
         return Err(SkipStep(String::from("Pip-review is disabled by default")).into());
     }
-    ctx.run_type()
-        .execute(pip_review)
-        .arg("--auto")
-        .status_checked_with_codes(&[1])?;
+    ctx.execute(pip_review).arg("--auto").status_checked_with_codes(&[1])?;
 
     Ok(())
 }
@@ -750,8 +765,7 @@ pub fn run_pip_review_local_update(ctx: &ExecutionContext) -> Result<()> {
         );
         return Err(SkipStep(String::from("Pip-review (local) is disabled by default")).into());
     }
-    ctx.run_type()
-        .execute(pip_review)
+    ctx.execute(pip_review)
         .arg("--local")
         .arg("--auto")
         .status_checked_with_codes(&[1])?;
@@ -769,8 +783,7 @@ pub fn run_pipupgrade_update(ctx: &ExecutionContext) -> Result<()> {
         );
         return Err(SkipStep(String::from("Pipupgrade is disabled by default")).into());
     }
-    ctx.run_type()
-        .execute(pipupgrade)
+    ctx.execute(pipupgrade)
         .args(ctx.config().pipupgrade_arguments().split_whitespace())
         .status_checked()?;
 
@@ -788,14 +801,14 @@ pub fn run_stack_update(ctx: &ExecutionContext) -> Result<()> {
     let stack = require("stack")?;
     print_separator("stack");
 
-    ctx.run_type().execute(stack).arg("upgrade").status_checked()
+    ctx.execute(stack).arg("upgrade").status_checked()
 }
 
 pub fn run_ghcup_update(ctx: &ExecutionContext) -> Result<()> {
     let ghcup = require("ghcup")?;
     print_separator("ghcup");
 
-    ctx.run_type().execute(ghcup).arg("upgrade").status_checked()
+    ctx.execute(ghcup).arg("upgrade").status_checked()
 }
 
 pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
@@ -828,12 +841,10 @@ pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
     print_separator("TeX Live package manager");
 
     let mut command = if directory_writable {
-        ctx.run_type().execute(&tlmgr)
+        ctx.execute(&tlmgr)
     } else {
-        let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
-        let mut c = ctx.run_type().execute(sudo);
-        c.arg(&tlmgr);
-        c
+        let sudo = ctx.require_sudo()?;
+        sudo.execute(ctx, &tlmgr)?
     };
     command.args(["update", "--self", "--all"]);
 
@@ -846,7 +857,7 @@ pub fn run_chezmoi_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("chezmoi");
 
-    ctx.run_type().execute(chezmoi).arg("update").status_checked()
+    ctx.execute(chezmoi).arg("update").status_checked()
 }
 
 pub fn run_myrepos_update(ctx: &ExecutionContext) -> Result<()> {
@@ -855,14 +866,12 @@ pub fn run_myrepos_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("myrepos");
 
-    ctx.run_type()
-        .execute(&myrepos)
+    ctx.execute(&myrepos)
         .arg("--directory")
         .arg(&*HOME_DIR)
         .arg("checkout")
         .status_checked()?;
-    ctx.run_type()
-        .execute(&myrepos)
+    ctx.execute(&myrepos)
         .arg("--directory")
         .arg(&*HOME_DIR)
         .arg("update")
@@ -871,7 +880,7 @@ pub fn run_myrepos_update(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_custom_command(name: &str, command: &str, ctx: &ExecutionContext) -> Result<()> {
     print_separator(name);
-    let mut exec = ctx.run_type().execute(shell());
+    let mut exec = ctx.execute(shell());
     #[cfg(unix)]
     let command = if let Some(command) = command.strip_prefix("-i ") {
         exec.arg("-i");
@@ -908,32 +917,30 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
         cfg_if::cfg_if! {
             if #[cfg(unix)] {
                 // If self-update fails without sudo then there's probably an update
-                let has_update = match ctx.run_type().execute(&composer).arg("self-update").output()? {
+                let has_update = match ctx.execute(&composer).arg("self-update").output()? {
                     ExecutorOutput::Wet(output) => !output.status.success(),
                     _ => false
                 };
 
                 if has_update {
-                    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
-                    ctx.run_type()
-                        .execute(sudo)
-                        .arg(&composer)
-                        .arg("self-update")
-                        .status_checked()?;
+                    let sudo = ctx.require_sudo()?;
+                    sudo.execute(ctx, &composer)?
+                       .arg("self-update")
+                       .status_checked()?;
                 }
             } else {
-                ctx.run_type().execute(&composer).arg("self-update").status_checked()?;
+                ctx.execute(&composer).arg("self-update").status_checked()?;
             }
         }
     }
 
-    let output = ctx.run_type().execute(&composer).args(["global", "update"]).output()?;
+    let output = ctx.execute(&composer).args(["global", "update"]).output()?;
     if let ExecutorOutput::Wet(output) = output {
         let output: Utf8Output = output.try_into()?;
         print!("{}\n{}", output.stdout, output.stderr);
         if output.stdout.contains("valet") || output.stderr.contains("valet") {
             if let Some(valet) = which("valet") {
-                ctx.run_type().execute(valet).arg("install").status_checked()?;
+                ctx.execute(valet).arg("install").status_checked()?;
             }
         }
     }
@@ -947,7 +954,6 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
     // Skip when the `dotnet tool list` subcommand fails.
     // (This is expected when a dotnet runtime is installed but no SDK.)
     let output = match ctx
-        .run_type()
         .execute(&dotnet)
         .args(["tool", "list", "--global"])
         // dotnet will print a greeting message on its first run, from this question:
@@ -996,14 +1002,21 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     for package in packages {
         let package_name = package.split_whitespace().next().unwrap();
-        ctx.run_type()
-            .execute(&dotnet)
+        ctx.execute(&dotnet)
             .args(["tool", "update", package_name, "--global"])
             .status_checked()
             .with_context(|| format!("Failed to update .NET package {package_name:?}"))?;
     }
 
     Ok(())
+}
+
+pub fn run_powershell(ctx: &ExecutionContext) -> Result<()> {
+    let powershell = ctx.require_powershell()?;
+
+    print_separator(t!("Powershell Modules Update"));
+
+    powershell.update_modules(ctx)
 }
 
 enum Hx {
@@ -1026,7 +1039,7 @@ fn get_hx(ctx: &ExecutionContext) -> Result<Hx> {
     let hx = require("hx")?;
 
     // Check if `hx --help` mentions "helix". Helix does, hx (hexdump alternative) doesn't.
-    let output = ctx.run_type().execute(&hx).arg("--help").output_checked()?;
+    let output = ctx.execute(&hx).arg("--help").output_checked()?;
 
     if String::from_utf8(output.stdout)?.contains("helix") {
         debug!("Detected `hx` as Helix");
@@ -1042,14 +1055,12 @@ pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Helix");
 
-    ctx.run_type()
-        .execute(&helix)
+    ctx.execute(&helix)
         .args(["--grammar", "fetch"])
         .status_checked()
         .with_context(|| "Failed to download helix grammars!")?;
 
-    ctx.run_type()
-        .execute(&helix)
+    ctx.execute(&helix)
         .args(["--grammar", "build"])
         .status_checked()
         .with_context(|| "Failed to build helix grammars!")?;
@@ -1062,17 +1073,14 @@ pub fn run_raco_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Racket Package Manager"));
 
-    ctx.run_type()
-        .execute(raco)
-        .args(["pkg", "update", "--all"])
-        .status_checked()
+    ctx.execute(raco).args(["pkg", "update", "--all"]).status_checked()
 }
 
 pub fn bin_update(ctx: &ExecutionContext) -> Result<()> {
     let bin = require("bin")?;
 
     print_separator("Bin");
-    ctx.run_type().execute(bin).arg("update").status_checked()
+    ctx.execute(bin).arg("update").status_checked()
 }
 
 pub fn spicetify_upgrade(ctx: &ExecutionContext) -> Result<()> {
@@ -1080,7 +1088,7 @@ pub fn spicetify_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let spicetify = require("spicetify").or(require("spicetify-cli"))?;
 
     print_separator("Spicetify");
-    ctx.run_type().execute(spicetify).arg("upgrade").status_checked()
+    ctx.execute(spicetify).arg("upgrade").status_checked()
 }
 
 pub fn run_ghcli_extensions_upgrade(ctx: &ExecutionContext) -> Result<()> {
@@ -1092,8 +1100,7 @@ pub fn run_ghcli_extensions_upgrade(ctx: &ExecutionContext) -> Result<()> {
     }
 
     print_separator(t!("GitHub CLI Extensions"));
-    ctx.run_type()
-        .execute(&gh)
+    ctx.execute(&gh)
         .args(["extension", "upgrade", "--all"])
         .status_checked()
 }
@@ -1103,7 +1110,7 @@ pub fn update_julia_packages(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Julia Packages"));
 
-    let mut executor = ctx.run_type().execute(julia);
+    let mut executor = ctx.execute(julia);
 
     executor.arg(if ctx.config().julia_use_startup_file() {
         "--startup-file=yes"
@@ -1121,7 +1128,7 @@ pub fn run_helm_repo_update(ctx: &ExecutionContext) -> Result<()> {
 
     let no_repo = "no repositories found";
     let mut success = true;
-    let mut exec = ctx.run_type().execute(helm);
+    let mut exec = ctx.execute(helm);
     if let Err(e) = exec.arg("repo").arg("update").status_checked() {
         error!("Updating repositories failed: {e}");
         success = match exec.output_checked_utf8() {
@@ -1144,7 +1151,7 @@ pub fn run_stew(ctx: &ExecutionContext) -> Result<()> {
     let stew = require("stew")?;
 
     print_separator("stew");
-    ctx.run_type().execute(stew).args(["upgrade", "--all"]).status_checked()
+    ctx.execute(stew).args(["upgrade", "--all"]).status_checked()
 }
 
 pub fn run_bob(ctx: &ExecutionContext) -> Result<()> {
@@ -1152,20 +1159,16 @@ pub fn run_bob(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Bob");
 
-    ctx.run_type().execute(bob).args(["update", "--all"]).status_checked()
+    ctx.execute(bob).args(["update", "--all"]).status_checked()
 }
 
 pub fn run_certbot(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
+    let sudo = ctx.require_sudo()?;
     let certbot = require("certbot")?;
 
     print_separator("Certbot");
 
-    let mut cmd = ctx.run_type().execute(sudo);
-    cmd.arg(certbot);
-    cmd.arg("renew");
-
-    cmd.status_checked()
+    sudo.execute(ctx, &certbot)?.arg("renew").status_checked()
 }
 
 /// Run `$ freshclam` to update ClamAV signature database
@@ -1174,7 +1177,7 @@ pub fn run_certbot(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_freshclam(ctx: &ExecutionContext) -> Result<()> {
     let freshclam = require("freshclam")?;
     print_separator(t!("Update ClamAV Database(FreshClam)"));
-    ctx.run_type().execute(freshclam).status_checked()
+    ctx.execute(freshclam).status_checked()
 }
 
 /// Involve `pio upgrade` to update PlatformIO core.
@@ -1194,7 +1197,7 @@ pub fn run_platform_io(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("PlatformIO Core");
 
-    ctx.run_type().execute(bin_path).arg("upgrade").status_checked()
+    ctx.execute(bin_path).arg("upgrade").status_checked()
 }
 
 /// Run `lensfun-update-data` to update lensfun database.
@@ -1206,18 +1209,15 @@ pub fn run_lensfun_update_data(ctx: &ExecutionContext) -> Result<()> {
     const EXIT_CODE_WHEN_NO_UPDATE: i32 = 1;
 
     if ctx.config().lensfun_use_sudo() {
-        let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
+        let sudo = ctx.require_sudo()?;
         print_separator(SEPARATOR);
-        ctx.run_type()
-            .execute(sudo)
-            .arg(lensfun_update_data)
+        sudo.execute(ctx, &lensfun_update_data)?
             // `lensfun-update-data` returns 1 when there is no update available
             // which should be considered success
             .status_checked_with_codes(&[EXIT_CODE_WHEN_NO_UPDATE])
     } else {
         print_separator(SEPARATOR);
-        ctx.run_type()
-            .execute(lensfun_update_data)
+        ctx.execute(lensfun_update_data)
             .status_checked_with_codes(&[EXIT_CODE_WHEN_NO_UPDATE])
     }
 }
@@ -1233,9 +1233,8 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         use std::ffi::OsStr;
         use std::os::unix::ffi::OsStrExt;
 
-        lazy_static! {
-            static ref SHEBANG_REGEX: Regex = Regex::new(r"^#![ \t]*([^ \t\n]+)(?:[ \t]+([^\n]+)?)?").unwrap();
-        }
+        static SHEBANG_REGEX: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^#![ \t]*([^ \t\n]+)(?:[ \t]+([^\n]+)?)?").unwrap());
 
         let script = fs::read(poetry)?;
         if let Some(c) = SHEBANG_REGEX.captures(&script) {
@@ -1254,10 +1253,8 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
 
         use std::str;
 
-        lazy_static! {
-            static ref SHEBANG_REGEX: Regex =
-                Regex::new(r#"^#![ \t]*(?:"([^"\n]+)"|([^" \t\n]+))(?:[ \t]+([^\n]+)?)?"#).unwrap();
-        }
+        static SHEBANG_REGEX: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r#"^#![ \t]*(?:"([^"\n]+)"|([^" \t\n]+))(?:[ \t]+([^\n]+)?)?"#).unwrap());
 
         let data = fs::read(poetry)?;
 
@@ -1306,7 +1303,7 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         debug!("poetry interpreter: {:?}, args: {:?}", interp, interp_args);
 
         let check_official_install_script =
-        "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
+            "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
         let mut command = Command::new(&interp);
         if let Some(args) = interp_args {
             command.arg(args);
@@ -1329,10 +1326,7 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
     }
 
     print_separator("Poetry");
-    ctx.run_type()
-        .execute(&poetry)
-        .args(["self", "update"])
-        .status_checked()
+    ctx.execute(&poetry).args(["self", "update"]).status_checked()
 }
 
 pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
@@ -1345,11 +1339,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
     // To check if this feature is enabled or not, different version of `uv` need
     // different approaches, we need to know the version first and handle them
     // separately.
-    let uv_version_output = ctx
-        .run_type()
-        .execute(&uv_exec)
-        .arg("--version")
-        .output_checked_utf8()?;
+    let uv_version_output = ctx.execute(&uv_exec).arg("--version").output_checked_utf8()?;
     // Multiple possible output formats are possible according to uv source code
     //
     // https://github.com/astral-sh/uv/blob/6b7f60c1eaa840c2e933a0fb056ab46f99c991a5/crates/uv-cli/src/version.rs#L28-L42
@@ -1384,31 +1374,35 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         // For uv before version 0.4.25 (exclusive), the `self` sub-command only
         // exists under the `self-update` feature, we run `uv self --help` to check
         // the feature gate.
-        let self_update_feature_enabled = ctx
-            .run_type()
-            .execute(&uv_exec)
-            .args(["self", "--help"])
-            .output_checked()
-            .is_ok();
+        let self_update_feature_enabled = ctx.execute(&uv_exec).args(["self", "--help"]).output_checked().is_ok();
 
         if self_update_feature_enabled {
-            ctx.run_type()
-                .execute(&uv_exec)
-                .args(["self", "update"])
-                .status_checked()?;
+            ctx.execute(&uv_exec).args(["self", "update"]).status_checked()?;
         }
     } else {
         // After 0.4.25 (inclusive), running `uv self` succeeds regardless of the
         // feature gate, so the above approach won't work.
         //
-        // We run `uv self update` directly, if it outputs:
+        // We run `uv self update` directly, and ignore an error if it outputs:
         //
-        // "uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.\n"
+        // "error: uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.\n"
+        //
+        // or:
+        //
+        // "
+        // error: Self-update is only available for uv binaries installed via the standalone installation scripts.
+        //
+        // If you installed uv with pip, brew, or another package manager, update uv with `pip install --upgrade`, `brew upgrade`, or similar.
+        // "
+        //
+        // These two error messages can both occur, in different situations.
 
-        const ERROR_MSG: &str = "uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.";
+        const ERROR_MSGS: [&str; 2] = [
+            "uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.",
+            "Self-update is only available for uv binaries installed via the standalone installation scripts.",
+        ];
 
         let output = ctx
-            .run_type()
             .execute(&uv_exec)
             .args(["self", "update"])
             // `output()` captures the output so that users won't see it for now.
@@ -1420,7 +1414,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         };
         let stderr = std::str::from_utf8(&output.stderr).expect("output should be UTF-8 encoded");
 
-        if stderr.contains(ERROR_MSG) {
+        if ERROR_MSGS.iter().any(|&n| stderr.contains(n)) {
             // Feature `self-update` is disabled, nothing to do.
         } else {
             // Feature is enabled, flush the captured output so that users know we did the self-update.
@@ -1436,10 +1430,16 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
     };
 
     // 2. Update the installed tools
-    ctx.run_type()
-        .execute(&uv_exec)
+    ctx.execute(&uv_exec)
         .args(["tool", "upgrade", "--all"])
-        .status_checked()
+        .status_checked()?;
+
+    if ctx.config().cleanup() {
+        // 3. Prune cache
+        ctx.execute(&uv_exec).args(["cache", "prune"]).status_checked()?;
+    }
+
+    Ok(())
 }
 
 /// Involve `zvm upgrade` to update ZVM
@@ -1448,7 +1448,7 @@ pub fn run_zvm(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("ZVM");
 
-    ctx.run_type().execute(zvm).arg("upgrade").status_checked()
+    ctx.execute(zvm).arg("upgrade").status_checked()
 }
 
 pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
@@ -1456,7 +1456,7 @@ pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Bun");
 
-    ctx.run_type().execute(bun).arg("upgrade").status_checked()
+    ctx.execute(bun).arg("upgrade").status_checked()
 }
 
 pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
@@ -1476,16 +1476,14 @@ pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
     }
 
     for zig_version in config.zigup_target_versions() {
-        ctx.run_type()
-            .execute(&zigup)
+        ctx.execute(&zigup)
             .args(&path_args)
             .arg("fetch")
             .arg(&zig_version)
             .status_checked()?;
 
         if config.zigup_cleanup() {
-            ctx.run_type()
-                .execute(&zigup)
+            ctx.execute(&zigup)
                 .args(&path_args)
                 .arg("keep")
                 .arg(&zig_version)
@@ -1494,11 +1492,7 @@ pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
     }
 
     if config.zigup_cleanup() {
-        ctx.run_type()
-            .execute(zigup)
-            .args(&path_args)
-            .arg("clean")
-            .status_checked()?;
+        ctx.execute(zigup).args(&path_args).arg("clean").status_checked()?;
     }
 
     Ok(())
@@ -1543,21 +1537,61 @@ pub fn run_jetbrains_toolbox(_ctx: &ExecutionContext) -> Result<()> {
     }
 }
 
-fn run_jetbrains_ide(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result<()> {
-    print_separator(format!("JetBrains {name} plugins"));
+fn run_jetbrains_ide_generic<const IS_JETBRAINS: bool>(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result<()> {
+    let prefix = if IS_JETBRAINS { "JetBrains " } else { "" };
+    print_separator(format!("{prefix}{name} plugins"));
 
     // The `update` command is undocumented, but tested on all of the below.
-    ctx.run_type().execute(bin).arg("update").status_checked()
+    let output = ctx.execute(&bin).arg("update").output()?;
+    let output = match output {
+        ExecutorOutput::Dry => return Ok(()),
+        ExecutorOutput::Wet(output) => output,
+    };
+    // Write the output which we swallowed in all cases
+    std::io::stdout().lock().write_all(&output.stdout).unwrap();
+    std::io::stderr().lock().write_all(&output.stderr).unwrap();
+
+    let stdout = String::from_utf8(output.stdout.clone()).wrap_err("Expected valid UTF-8 output")?;
+
+    // "Only one instance of RustRover can be run at a time."
+    if stdout.contains("Only one instance of ") && stdout.contains(" can be run at a time.") {
+        // It's always paired with status code 1
+        let status_code = output
+            .status
+            .code()
+            .ok_or_eyre("Failed to get status code; was killed with signal")?;
+        if status_code != 1 {
+            return Err(eyre!("Expected status code 1 ('Only one instance of <IDE> can be run at a time.'), but found status code {}. Output: {output:?}", status_code));
+        }
+        // Don't crash, but don't be silent either
+        warn!("{name} is already running, can't update it now.");
+        Err(SkipStep(format!("{name} is already running, can't update it now.")).into())
+    } else if !output.status.success() {
+        // Unknown failure
+        Err(eyre!("Running `{bin:?} update` failed. Output: {output:?}"))
+    } else {
+        // Success. Output was already written above
+        Ok(())
+    }
+}
+
+fn run_jetbrains_ide(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result<()> {
+    run_jetbrains_ide_generic::<true>(ctx, bin, name)
 }
 
 pub fn run_android_studio(ctx: &ExecutionContext) -> Result<()> {
     // We don't use `run_jetbrains_ide` here because that would print "JetBrains Android Studio",
     //  which is incorrect as Android Studio is made by Google. Just "Android Studio" is fine.
-    let bin = require("studio")?;
-
-    print_separator("Android Studio plugins");
-
-    ctx.run_type().execute(bin).arg("update").status_checked()
+    run_jetbrains_ide_generic::<false>(
+        ctx,
+        require_one([
+            "studio",
+            "android-studio",
+            "android-studio-beta",
+            "android-studio-canary",
+        ])?,
+        "Android Studio",
+    )
 }
 
 pub fn run_jetbrains_aqua(ctx: &ExecutionContext) -> Result<()> {
@@ -1565,31 +1599,43 @@ pub fn run_jetbrains_aqua(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_jetbrains_clion(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("clion")?, "CLion")
+    run_jetbrains_ide(ctx, require_one(["clion", "clion-eap"])?, "CLion")
 }
 
 pub fn run_jetbrains_datagrip(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("datagrip")?, "DataGrip")
+    run_jetbrains_ide(ctx, require_one(["datagrip", "datagrip-eap"])?, "DataGrip")
 }
 
 pub fn run_jetbrains_dataspell(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("dataspell")?, "DataSpell")
+    run_jetbrains_ide(ctx, require_one(["dataspell", "dataspell-eap"])?, "DataSpell")
 }
 
 pub fn run_jetbrains_gateway(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("gateway")?, "Gateway")
+    run_jetbrains_ide(
+        ctx,
+        require_one(["gateway", "jetbrains-gateway", "jetbrains-gateway-eap"])?,
+        "Gateway",
+    )
 }
 
 pub fn run_jetbrains_goland(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("goland")?, "Goland")
+    run_jetbrains_ide(ctx, require_one(["goland", "goland-eap"])?, "Goland")
 }
 
 pub fn run_jetbrains_idea(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("idea")?, "IntelliJ IDEA")
+    run_jetbrains_ide(
+        ctx,
+        require_one([
+            "idea",
+            "intellij-idea-ultimate-edition",
+            "intellij-idea-community-edition",
+        ])?,
+        "IntelliJ IDEA",
+    )
 }
 
 pub fn run_jetbrains_mps(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("mps")?, "MPS")
+    run_jetbrains_ide(ctx, require_one(["mps", "jetbrains-mps"])?, "MPS")
 }
 
 pub fn run_jetbrains_phpstorm(ctx: &ExecutionContext) -> Result<()> {
@@ -1597,23 +1643,31 @@ pub fn run_jetbrains_phpstorm(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_jetbrains_pycharm(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("pycharm")?, "PyCharm")
+    run_jetbrains_ide(
+        ctx,
+        require_one(["pycharm", "pycharm-professional", "pycharm-eap"])?,
+        "PyCharm",
+    )
 }
 
 pub fn run_jetbrains_rider(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("rider")?, "Rider")
+    run_jetbrains_ide(ctx, require_one(["rider", "rider-eap"])?, "Rider")
 }
 
 pub fn run_jetbrains_rubymine(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("rubymine")?, "RubyMine")
+    run_jetbrains_ide(
+        ctx,
+        require_one(["rubymine", "jetbrains-rubymine", "rubymine-eap"])?,
+        "RubyMine",
+    )
 }
 
 pub fn run_jetbrains_rustrover(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("rustrover")?, "RustRover")
+    run_jetbrains_ide(ctx, require_one(["rustrover", "rustrover-eap"])?, "RustRover")
 }
 
 pub fn run_jetbrains_webstorm(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require("webstorm")?, "WebStorm")
+    run_jetbrains_ide(ctx, require_one(["webstorm", "webstorm-eap"])?, "WebStorm")
 }
 
 pub fn run_yazi(ctx: &ExecutionContext) -> Result<()> {
@@ -1621,5 +1675,5 @@ pub fn run_yazi(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Yazi packages");
 
-    ctx.run_type().execute(ya).args(["pack", "-u"]).status_checked()
+    ctx.execute(ya).args(["pkg", "upgrade"]).status_checked()
 }
