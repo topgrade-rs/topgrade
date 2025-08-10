@@ -1683,5 +1683,5 @@ pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("falconf sync");
 
-    ctx.run_type().execute(falconf).arg("sync").status_checked()
+    ctx.execute(falconf).arg("sync").status_checked()
 }
