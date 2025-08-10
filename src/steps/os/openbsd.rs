@@ -1,7 +1,6 @@
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::terminal::print_separator;
-use crate::utils::{get_require_sudo_string, require_option};
 use color_eyre::eyre::Result;
 use rust_i18n::t;
 use std::fs;
@@ -18,7 +17,7 @@ fn is_openbsd_current(ctx: &ExecutionContext) -> Result<bool> {
 }
 
 pub fn upgrade_openbsd(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
+    let sudo = ctx.require_sudo()?;
     print_separator(t!("OpenBSD Update"));
 
     let is_current = is_openbsd_current(ctx)?;
@@ -28,17 +27,15 @@ pub fn upgrade_openbsd(ctx: &ExecutionContext) -> Result<()> {
         return Ok(());
     }
 
-    let args = if is_current {
-        vec!["/usr/sbin/sysupgrade", "-sn"]
+    if is_current {
+        sudo.execute(ctx, "/usr/sbin/sysupgrade")?.arg("-sn").status_checked()
     } else {
-        vec!["/usr/sbin/syspatch"]
-    };
-
-    ctx.run_type().execute(sudo).args(&args).status_checked()
+        sudo.execute(ctx, "/usr/sbin/syspatch")?.status_checked()
+    }
 }
 
 pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
+    let sudo = ctx.require_sudo()?;
     print_separator(t!("OpenBSD Packages"));
 
     let is_current = is_openbsd_current(ctx)?;
@@ -49,18 +46,13 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     }
 
     if ctx.config().cleanup() {
-        ctx.run_type()
-            .execute(sudo)
-            .args(["/usr/sbin/pkg_delete", "-ac"])
-            .status_checked()?;
+        sudo.execute(ctx, "/usr/sbin/pkg_delete")?.arg("-ac").status_checked()?;
     }
 
-    let mut args = vec!["/usr/sbin/pkg_add", "-u"];
+    let mut command = sudo.execute(ctx, "/usr/sbin/pkg_add")?;
+    command.arg("-u");
     if is_current {
-        args.push("-Dsnap");
+        command.arg("-Dsnap");
     }
-
-    ctx.run_type().execute(sudo).args(&args).status_checked()?;
-
-    Ok(())
+    command.status_checked()
 }
