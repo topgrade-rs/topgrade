@@ -13,8 +13,8 @@ use tokio::runtime;
 use tracing::{debug, error};
 
 use crate::command::CommandExt;
-use crate::config::Step;
 use crate::execution_context::ExecutionContext;
+use crate::step::Step;
 use crate::steps::emacs::Emacs;
 use crate::terminal::print_separator;
 use crate::utils::{require, PathExt};
@@ -58,9 +58,10 @@ pub fn run_git_pull(ctx: &ExecutionContext) -> Result<()> {
                 repos.insert_if_repo(HOME_DIR.join(".dotfiles"));
             }
 
-            let powershell = crate::steps::powershell::Powershell::new();
-            if let Some(profile) = powershell.profile() {
-                repos.insert_if_repo(profile);
+            if let Some(powershell) = ctx.powershell() {
+                if let Some(profile) = powershell.profile() {
+                    repos.insert_if_repo(profile);
+                }
             }
         }
 

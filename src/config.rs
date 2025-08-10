@@ -16,11 +16,12 @@ use merge::Merge;
 use regex::Regex;
 use regex_split::RegexSplit;
 use serde::Deserialize;
-use strum::{EnumIter, EnumString, IntoEnumIterator, VariantNames};
+use strum::IntoEnumIterator;
 use which_crate::which;
 
 use super::utils::editor;
 use crate::command::CommandExt;
+use crate::step::Step;
 use crate::sudo::SudoKind;
 use crate::utils::string_prepend_str;
 use tracing::{debug, error};
@@ -44,156 +45,6 @@ macro_rules! str_value {
 }
 
 pub type Commands = IndexMap<String, String>;
-
-#[derive(ValueEnum, EnumString, VariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
-#[clap(rename_all = "snake_case")]
-#[serde(rename_all = "snake_case")]
-#[strum(serialize_all = "snake_case")]
-pub enum Step {
-    AM,
-    AndroidStudio,
-    AppMan,
-    Aqua,
-    Asdf,
-    Atom,
-    Audit,
-    AutoCpufreq,
-    Bin,
-    Bob,
-    BrewCask,
-    BrewFormula,
-    Bun,
-    BunPackages,
-    Cargo,
-    Certbot,
-    Chezmoi,
-    Chocolatey,
-    Choosenim,
-    CinnamonSpices,
-    ClamAvDb,
-    Composer,
-    Conda,
-    ConfigUpdate,
-    Containers,
-    CustomCommands,
-    DebGet,
-    Deno,
-    Distrobox,
-    DkpPacman,
-    Dotnet,
-    Elan,
-    Emacs,
-    Firmware,
-    Flatpak,
-    Flutter,
-    Fossil,
-    Gcloud,
-    Gem,
-    Ghcup,
-    GitRepos,
-    GithubCliExtensions,
-    GnomeShellExtensions,
-    Go,
-    Guix,
-    Haxelib,
-    Helix,
-    Helm,
-    HomeManager,
-    // These names are miscapitalized on purpose, so the CLI name is
-    //  `jetbrains_pycharm` instead of `jet_brains_py_charm`.
-    JetbrainsAqua,
-    JetbrainsClion,
-    JetbrainsDatagrip,
-    JetbrainsDataspell,
-    JetbrainsGateway,
-    JetbrainsGoland,
-    JetbrainsIdea,
-    JetbrainsMps,
-    JetbrainsPhpstorm,
-    JetbrainsPycharm,
-    JetbrainsRider,
-    JetbrainsRubymine,
-    JetbrainsRustrover,
-    JetbrainsToolbox,
-    JetbrainsWebstorm,
-    Jetpack,
-    Julia,
-    Juliaup,
-    Kakoune,
-    Krew,
-    Lensfun,
-    Lure,
-    Macports,
-    Mamba,
-    Mas,
-    Maza,
-    Micro,
-    MicrosoftStore,
-    Miktex,
-    Mise,
-    Myrepos,
-    Nix,
-    Node,
-    Opam,
-    Pacdef,
-    Pacstall,
-    Pearl,
-    Pip3,
-    PipReview,
-    PipReviewLocal,
-    Pipupgrade,
-    Pipx,
-    Pipxu,
-    Pixi,
-    Pkg,
-    Pkgin,
-    PlatformioCore,
-    Pnpm,
-    Poetry,
-    Powershell,
-    Protonup,
-    Pyenv,
-    Raco,
-    Rcm,
-    Remotes,
-    Restarts,
-    Rtcl,
-    RubyGems,
-    Rustup,
-    Rye,
-    Scoop,
-    Sdkman,
-    SelfUpdate,
-    Sheldon,
-    Shell,
-    Snap,
-    Sparkle,
-    Spicetify,
-    Stack,
-    Stew,
-    System,
-    Tldr,
-    Tlmgr,
-    Tmux,
-    Toolbx,
-    Uv,
-    Vagrant,
-    Vcpkg,
-    Vim,
-    VoltaPackages,
-    Vscode,
-    Vscodium,
-    Waydroid,
-    Winget,
-    Wsl,
-    WslUpdate,
-    Xcodes,
-    Yadm,
-    Yarn,
-    Yazi,
-    Zigup,
-    Zvm,
-}
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
@@ -234,15 +85,26 @@ pub struct Vagrant {
     always_suspend: Option<bool>,
 }
 
+#[derive(Deserialize, Default, Debug, Copy, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum UpdatesAutoReboot {
+    Yes,
+    #[default]
+    No,
+    Ask,
+}
+
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Windows {
     accept_all_updates: Option<bool>,
+    updates_auto_reboot: Option<UpdatesAutoReboot>,
     self_rename: Option<bool>,
     open_remotes_in_new_terminal: Option<bool>,
     wsl_update_pre_release: Option<bool>,
     wsl_update_use_web_download: Option<bool>,
     winget_silent_install: Option<bool>,
+    winget_use_sudo: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -253,6 +115,16 @@ pub struct Python {
     enable_pipupgrade: Option<bool>,
     pipupgrade_arguments: Option<String>,
     poetry_force_self_update: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct Conda {
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    env_names: Option<Vec<String>>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    env_paths: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -298,6 +170,13 @@ pub struct Firmware {
 #[allow(clippy::upper_case_acronyms)]
 pub struct Flatpak {
     use_sudo: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
+pub struct Pixi {
+    include_release_notes: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -518,6 +397,9 @@ pub struct ConfigFile {
     commands: Option<Commands>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    conda: Option<Conda>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     python: Option<Python>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
@@ -558,6 +440,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     flatpak: Option<Flatpak>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    pixi: Option<Pixi>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     distrobox: Option<Distrobox>,
@@ -968,6 +853,22 @@ impl Config {
         &self.config_file.commands
     }
 
+    /// The list of additional named conda environments.
+    pub fn conda_env_names(&self) -> Option<&Vec<String>> {
+        self.config_file
+            .conda
+            .as_ref()
+            .and_then(|conda| conda.env_names.as_ref())
+    }
+
+    /// The list of additional conda environment paths.
+    pub fn conda_env_paths(&self) -> Option<&Vec<String>> {
+        self.config_file
+            .conda
+            .as_ref()
+            .and_then(|conda| conda.env_paths.as_ref())
+    }
+
     /// The list of additional git repositories to pull.
     pub fn git_repos(&self) -> Option<&Vec<String>> {
         self.config_file.git.as_ref().and_then(|git| git.repos.as_ref())
@@ -1197,6 +1098,15 @@ impl Config {
             .unwrap_or(true)
     }
 
+    /// Whether to auto reboot for Windows updates that require it
+    pub fn windows_updates_auto_reboot(&self) -> UpdatesAutoReboot {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|windows| windows.updates_auto_reboot)
+            .unwrap_or_default()
+    }
+
     /// Whether to self rename the Topgrade executable during the run
     pub fn self_rename(&self) -> bool {
         self.config_file
@@ -1221,6 +1131,15 @@ impl Config {
             .windows
             .as_ref()
             .and_then(|w| w.wsl_update_use_web_download)
+            .unwrap_or(false)
+    }
+
+    /// Should use sudo for Winget
+    pub fn winget_use_sudo(&self) -> bool {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|w| w.winget_use_sudo)
             .unwrap_or(false)
     }
 
@@ -1331,6 +1250,15 @@ impl Config {
             .as_ref()
             .and_then(|s| s.pamac_arguments.as_deref())
             .unwrap_or("")
+    }
+
+    /// Show release notes of latest pixi release
+    pub fn show_pixi_release_notes(&self) -> bool {
+        self.config_file
+            .pixi
+            .as_ref()
+            .and_then(|s| s.include_release_notes)
+            .unwrap_or(false)
     }
 
     /// Show news on Arch Linux
