@@ -80,14 +80,14 @@ _version: 2
   zh_CN: "Topgrade 已在新的 tmux 会话中启动"
   zh_TW: "Topgrade 已啟動新 tmux 程序"
   de: "Topgrade in einer neuen tmux-Sitzung gestartet"
-'Topgrade upgraded to {version}:\n':
-  en: 'Topgrade upgraded to %{version}:\n'
+"Topgrade upgraded to {version}:\n":
+  en: "Topgrade upgraded to %{version}:\n"
   lt: "Topgrade atnaujintas iki %{version}:\n"
-  es: 'Topgrade actualizado a %{version}:\n'
-  fr: 'Topgrade mis à jour vers %{version}:\n'
-  zh_CN: '已将 Topgrade 更新至 %{version}: \n'
-  zh_TW: '已將 Topgrade 更新至 %{version}：\n'
-  de: 'Topgrade auf Version %{version} aktualisiert:\n'
+  es: "Topgrade actualizado a %{version}:\n"
+  fr: "Topgrade mis à jour vers %{version}:\n"
+  zh_CN: "已将 Topgrade 更新至 %{version}: \n"
+  zh_TW: "已將 Topgrade 更新至 %{version}：\n"
+  de: "Topgrade auf Version %{version} aktualisiert:\n"
 "Topgrade is up-to-date":
   en: "Topgrade is up-to-date"
   lt: "Topgrade yra naujausia"
@@ -214,14 +214,6 @@ _version: 2
   zh_CN: "正在跳过"
   zh_TW: "正在略過"
   de: "Überspringe"
-"Aura(<0.4.6) requires sudo installed to work with AUR packages":
-  en: "Aura(<0.4.6) requires sudo installed to work with AUR packages"
-  lt: "Aura (<0.4.6) reikalauja sudo įdiegimo, kad galėtų naudoti AUR paketus"
-  es: "Aura(<0.4.6) requiere tener sudo instalado para funcionar con paquetes AUR"
-  fr: "Aura(<0.4.6) nécessite sudo pour fonctionner avec les paquets AUR"
-  zh_CN: "Aura(<0.4.6) 依赖 sudo 安装 AUR 软件包。"
-  zh_TW: "Aura（<0.4.6）依賴 sudo 安裝 AUR 套件"
-  de: "Aura(<0.4.6) benötigt sudo zur Verwendung von AUR-Paketen"
 "Pacman backup configuration files found:":
   en: "Pacman backup configuration files found:"
   lt: "Rasti Pacman atsarginės konfigūracijos failai:"
@@ -418,7 +410,7 @@ _version: 2
   en: "Cannot find any of %{binary_names} in PATH"
   lt: "Nepavyksta rasti jokių %{binary_names} PATH sąraše"
   es: "No se puede encontrar ninguno de %{binary_names} en PATH"
-  fr: "Impossible de trouver %{binary_names} dans PATH"
+  fr: "Impossible de trouver l'un des %{binary_names} dans le PATH"
   zh_CH: "在 PATH 中找不到 %{binary_names}"
   zh_TW: "在 PATH 中找不到 %{binary_names}"
   de: "Kann keines von %{binary_names} im PATH finden"
@@ -782,22 +774,22 @@ _version: 2
   zh_CN: "无法找到安装在 WSL 中的 Topgrade"
   zh_TW: "尚未在 WSL 內安裝 Topgrade"
   de: "Konnte Topgrade nicht in WSL finden"
-"Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported.":
-  en: "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."
-  lt: "Apsvarstykite PSWindowsUpdate įdiegimą, nes Windows Update per USOClient nepalaikomas."
-  es: "Considere instalar PSWindowsUpdate ya que no se admite el uso de Windows Update a través de USOClient."
-  fr: "Envisagez d'installer PSWindowsUpdate car l'utilisation de Windows Update via USOClient n'est pas prise en charge."
-  zh_CN: "目前不支持使用 USOClient 管理 Windows 更新。建议安装 PSWindowsUpdate。"
-  zh_TW: "目前不支援使用 USOClient 管理 Windows 更新。建議安裝 PSWindowsUpdate。"
-  de: "Erwägen Sie die Installation von PSWindowsUpdate, da die Verwendung von Windows Update über USOClient nicht unterstützt wird."
-"USOClient not supported.":
-  en: "USOClient not supported."
-  lt: "USOClient nepalaikomas."
-  es: "USOClient no es admitido."
-  fr: "USOClient n'est pas pris en charge."
-  zh_CN: "不支持 USOClient"
-  zh_TW: "不支援 USOClient。"
-  de: "USOClient wird nicht unterstützt."
+"The PSWindowsUpdate PowerShell module isn't installed so Topgrade can't run Windows Update.\nInstall PSWindowsUpdate by running `Install-Module PSWindowsUpdate` in PowerShell.":
+  en: "The PSWindowsUpdate PowerShell module isn't installed so Topgrade can't run Windows Update.\nInstall PSWindowsUpdate by running `Install-Module PSWindowsUpdate` in PowerShell."
+  lt: "PowerShell modulis PSWindowsUpdate nėra įdiegtas, todėl Topgrade negali paleisti „Windows Update“.\nĮdiekite PSWindowsUpdate paleisdami `Install-Module PSWindowsUpdate` PowerShell aplinkoje."
+  es: "El módulo de PowerShell PSWindowsUpdate no está instalado, por lo que Topgrade no puede ejecutar Windows Update.\nInstala PSWindowsUpdate ejecutando `Install-Module PSWindowsUpdate` en PowerShell."
+  fr: "Le module PowerShell PSWindowsUpdate n’est pas installé, donc Topgrade ne peut pas exécuter Windows Update.\nInstallez PSWindowsUpdate en exécutant `Install-Module PSWindowsUpdate` dans PowerShell."
+  zh_CN: "未安装 PowerShell 模块 PSWindowsUpdate，因此 Topgrade 无法运行 Windows 更新。\n请在 PowerShell 中运行 `Install-Module PSWindowsUpdate` 来安装 PSWindowsUpdate。"
+  zh_TW: "PowerShell 模組 PSWindowsUpdate 未安裝，因此 Topgrade 無法執行 Windows 更新。\n請在 PowerShell 中執行 `Install-Module PSWindowsUpdate` 來安裝 PSWindowsUpdate。"
+  de: "Das PowerShell-Modul PSWindowsUpdate ist nicht installiert, daher kann Topgrade Windows Update nicht ausführen.\nInstallieren Sie PSWindowsUpdate, indem Sie `Install-Module PSWindowsUpdate` in PowerShell ausführen."
+"PSWindowsUpdate is not installed":
+  en: "PSWindowsUpdate is not installed"
+  lt: "PSWindowsUpdate nėra įdiegtas"
+  es: "PSWindowsUpdate no está instalado"
+  fr: "PSWindowsUpdate n'est pas installé"
+  zh_CN: "未安装 PSWindowsUpdate"
+  zh_TW: "未安裝 PSWindowsUpdate"
+  de: "PSWindowsUpdate ist nicht installiert"
 "Connecting to {hostname}...":
   en: "Connecting to %{hostname}..."
   lt: "Jungiamasi prie %{hostname}..."
@@ -1117,17 +1109,17 @@ _version: 2
   fr: "Réessayer ? (y) Oui / (N) Non / (s) Shell / (q) Quitter"
   zh_CN: "再试一次？(y)是/(N)否/(s)Shell/(q)退出"
   zh_TW: "再試一次？ (y)是/(N)否/(s)殼層/(q)退出"
-  de: "Wiederholen? (y)a/(N)ein/(s)hell/(q)uit"
+  de: "Wiederholen? (y) Ja / (n) Nein / (s) Shell / (q) Beenden"
 
 # 'R', 'S', 'Q'  have to stay the same throughout all translations. Eg German would look like "\n(R) Neustarten\n(S) Konsole\n(Q) Beenden"
-'\n(R)eboot\n(S)hell\n(Q)uit':
-  en: '\n(R)eboot\n(S)hell\n(Q)uit'
+"\n(R)eboot\n(S)hell\n(Q)uit":
+  en: "\n(R)eboot\n(S)hell\n(Q)uit"
   lt: "\n(R)perkrovimas\n(S)shell\n(Q)išeiti"
   es: "\n(R) Reiniciar\n(S) Shell\n(Q) Salir"
-  fr: '\n(R) Redémarrer\n(S) Shell\n(Q) Quitter'
-  zh_CN: '\n(R)重启\n(S)Shell\n(Q)退出'
-  zh_TW: '\n(R)重新啟動\n(S)殼層\n(Q)退出'
-  de: '\n(R) Neustarten\n(S)hell\n(Q)uit beenden'
+  fr: "\n(R) Redémarrer\n(S) Shell\n(Q) Quitter"
+  zh_CN: "\n(R)重启\n(S)Shell\n(Q)退出"
+  zh_TW: "\n(R)重新啟動\n(S)殼層\n(Q)退出"
+  de: "\n(R) Neustarten\n(S)hell\n(Q)uit beenden"
 "Require sudo or counterpart but not found, skip":
   en: "Require sudo or counterpart but not found, skip"
   lt: "Reikalingas sudo arba atitikmuo, bet nerasta, praleidžiama"
@@ -1136,6 +1128,14 @@ _version: 2
   zh_CN: "找不到权限管理程序（sudo 等），跳过"
   zh_TW: "找不到權限管理程式（sudo 等），略過"
   de: "Benötigt sudo oder Äquivalent, aber nicht gefunden, überspringe"
+"{sudo_kind} does not support the {option} option":
+  en: "%{sudo_kind} does not support the %{option} option"
+  lt: "%{sudo_kind} nepalaiko parinkties %{option}"
+  es: "%{sudo_kind} no admite la opción %{option}"
+  fr: "%{sudo_kind} ne prend pas en charge l’option %{option}"
+  zh_CN: "%{sudo_kind} 不支持 %{option} 选项"
+  zh_TW: "%{sudo_kind} 不支援 %{option} 選項"
+  de: "%{sudo_kind} unterstützt die Option %{option} nicht"
 "sudo as user '{user}'":
   en: "sudo as user '%{user}'"
   lt: "sudo kaip vartotojas '%{user}'"
@@ -1256,14 +1256,6 @@ _version: 2
   zh_CN: "成功，Microsoft Store 应用正在后台更新"
   zh_TW: "成功，Microsoft Store 應用程式正在後台更新"
   de: "Erfolg, Microsoft Store-Apps werden im Hintergrund aktualisiert"
-"Unable to update Microsoft Store apps, manual intervention is required":
-  en: "Unable to update Microsoft Store apps, manual intervention is required"
-  lt: "Nepavyksta atnaujinti Microsoft Store programų, reikia rankinio įsikišimo"
-  es: "No se pueden actualizar las aplicaciones de Microsoft Store, se requiere intervención manual"
-  fr: "Impossible de mettre à jour les applications du Microsoft Store, une intervention manuelle est nécessaire"
-  zh_CN: "无法更新 Microsoft Store 应用，需手动干预"
-  zh_TW: "無法更新 Microsoft Store 應用，需手動幹預"
-  de: "Microsoft Store-Apps können nicht aktualisiert werden, manuelles Eingreifen erforderlich"
 "No JetBrains Toolbox installation found":
   en: "No JetBrains Toolbox installation found"
   lt: "Nerasta JetBrains Toolbox įdiegimo"
@@ -1304,3 +1296,19 @@ _version: 2
   zh_CN: "<省略了 `deb-get clean` 的输出>"
   zh_TW: "<省略了 `deb-get clean` 的輸出>"
   de: "<Ausgabe von `deb-get clean` ausgelassen>"
+"You have a flake inside of $FLAKE. This is deprecated for nh.":
+  en: "You have a flake inside of $FLAKE. This is deprecated for nh."
+  lt: "Jūs turite flake viduje $FLAKE. Tai yra pasenę nh."
+  es: "Tienes un flake dentro de $FLAKE. Esto está en desuso para nh."
+  fr: "Vous avez un flake à l'intérieur de $FLAKE. Ceci est obsolète pour nh."
+  zh_TW: "你在 $FLAKE 裡有一個 flake。這在 nh 中已被棄用。"
+  zh_CN: "你在 $FLAKE 里有一个 flake。这在 nh 中已被弃用。"
+  de: "Sie haben ein flake in $FLAKE. Dies ist für nh veraltet."
+"nh cannot find any configured flakes":
+  en: "nh cannot find any configured flakes"
+  lt: "nh nepavyksta rasti jokių sukonfigūruotų flake"
+  es: "nh no puede encontrar ningún flake configurado"
+  fr: "nh ne peut trouver aucun flake configuré"
+  zh_TW: "nh 找不到任何已設定的 flake"
+  zh_CN: "nh 无法找到任何已配置的 flake"
+  de: "nh kann keine konfigurierten flakes finden"
