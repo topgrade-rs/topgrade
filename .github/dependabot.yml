@@ -22,4 +22,3 @@ updates:
     groups:
       cargo-minor-patch:
         update-types: ["minor", "patch"]
-        
