@@ -15,7 +15,7 @@ pub fn run_go_global_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("go-global-update");
 
-    ctx.run_type().execute(go_global_update).status_checked()
+    ctx.execute(go_global_update).status_checked()
 }
 
 /// <https://github.com/nao1215/gup>
@@ -24,7 +24,7 @@ pub fn run_go_gup(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("gup");
 
-    ctx.run_type().execute(gup).arg("update").status_checked()
+    ctx.execute(gup).arg("update").status_checked()
 }
 
 /// Get the path of a Go binary.
