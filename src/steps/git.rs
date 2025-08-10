@@ -58,9 +58,10 @@ pub fn run_git_pull(ctx: &ExecutionContext) -> Result<()> {
                 repos.insert_if_repo(HOME_DIR.join(".dotfiles"));
             }
 
-            let powershell = crate::steps::powershell::Powershell::new();
-            if let Some(profile) = powershell.profile() {
-                repos.insert_if_repo(profile);
+            if let Some(powershell) = ctx.powershell() {
+                if let Some(profile) = powershell.profile() {
+                    repos.insert_if_repo(profile);
+                }
             }
         }
 
