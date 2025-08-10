@@ -49,7 +49,7 @@ jobs:
           sort original.txt > sorted.txt
           diff original.txt sorted.txt
 
-      - name: Check if `default_steps` contains every step and no duplicates
+      - name: Check if `default_steps` contains every step
         run: |
           # Extract all variants from enum Step
           all_variants=$(sed -n '/^pub enum Step {/,/^}/p' src/step.rs | grep -Po '^\s*\K[A-Z][A-Za-z0-9_]*' | sort)
