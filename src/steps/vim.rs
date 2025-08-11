@@ -80,23 +80,19 @@ pub fn upgrade_ultimate_vimrc(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("The Ultimate vimrc"));
 
-    ctx.run_type()
-        .execute(&git)
+    ctx.execute(&git)
         .current_dir(&config_dir)
         .args(["reset", "--hard"])
         .status_checked()?;
-    ctx.run_type()
-        .execute(&git)
+    ctx.execute(&git)
         .current_dir(&config_dir)
         .args(["clean", "-d", "--force"])
         .status_checked()?;
-    ctx.run_type()
-        .execute(&git)
+    ctx.execute(&git)
         .current_dir(&config_dir)
         .args(["pull", "--rebase"])
         .status_checked()?;
-    ctx.run_type()
-        .execute(python)
+    ctx.execute(python)
         .current_dir(config_dir)
         .arg(update_plugins)
         .status_checked()?;
@@ -116,8 +112,7 @@ pub fn upgrade_vim(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Vim");
     upgrade(
-        ctx.run_type()
-            .execute(&vim)
+        ctx.execute(&vim)
             .args(["-u"])
             .arg(vimrc)
             .args(["-U", "NONE", "-V1", "-nNesS"])
@@ -132,8 +127,7 @@ pub fn upgrade_neovim(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Neovim");
     upgrade(
-        ctx.run_type()
-            .execute(nvim)
+        ctx.execute(nvim)
             .args(["-u"])
             .arg(nvimrc)
             .args(["--headless", "-V1", "-nS"])
@@ -147,5 +141,5 @@ pub fn run_voom(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("voom");
 
-    ctx.run_type().execute(voom).arg("update").status_checked()
+    ctx.execute(voom).arg("update").status_checked()
 }

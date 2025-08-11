@@ -7,10 +7,10 @@ use tracing::debug;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
+use crate::step::Step;
 use crate::terminal::{print_separator, print_warning};
 use crate::utils::{require, which};
 use crate::{error::SkipStep, steps::git::RepoStep};
-use crate::{powershell, Step};
 use rust_i18n::t;
 
 pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
@@ -20,12 +20,8 @@ pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Chocolatey");
 
     let mut command = match ctx.sudo() {
-        Some(sudo) => {
-            let mut command = ctx.run_type().execute(sudo);
-            command.arg(choco);
-            command
-        }
-        None => ctx.run_type().execute(choco),
+        Some(sudo) => sudo.execute(ctx, &choco)?,
+        None => ctx.execute(choco),
     };
 
     command.args(["upgrade", "all"]);
@@ -42,17 +38,24 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("winget");
 
-    ctx.run_type()
-        .execute(&winget)
-        .args(["source", "update"])
-        .status_checked()?;
+    ctx.execute(&winget).args(["source", "update"]).status_checked()?;
+
+    let mut command = if ctx.config().winget_use_sudo() {
+        match ctx.sudo() {
+            Some(sudo) => sudo.execute(ctx, &winget)?,
+            None => ctx.execute(winget),
+        }
+    } else {
+        ctx.execute(winget)
+    };
 
     let mut args = vec!["upgrade", "--all"];
     if ctx.config().winget_silent_install() {
         args.push("--silent");
     }
 
-    ctx.run_type().execute(&winget).args(args).status_checked()?;
+    command.args(args).status_checked()?;
+
     Ok(())
 }
 
@@ -61,15 +64,12 @@ pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Scoop");
 
-    ctx.run_type().execute(&scoop).args(["update"]).status_checked()?;
-    ctx.run_type().execute(&scoop).args(["update", "*"]).status_checked()?;
+    ctx.execute(&scoop).args(["update"]).status_checked()?;
+    ctx.execute(&scoop).args(["update", "*"]).status_checked()?;
 
     if ctx.config().cleanup() {
-        ctx.run_type().execute(&scoop).args(["cleanup", "*"]).status_checked()?;
-        ctx.run_type()
-            .execute(&scoop)
-            .args(["cache", "rm", "-a"])
-            .status_checked()?
+        ctx.execute(&scoop).args(["cleanup", "*"]).status_checked()?;
+        ctx.execute(&scoop).args(["cache", "rm", "-a"]).status_checked()?
     }
     Ok(())
 }
@@ -83,7 +83,7 @@ pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Update WSL"));
 
-    let mut wsl_command = ctx.run_type().execute(wsl);
+    let mut wsl_command = ctx.execute(wsl);
     wsl_command.args(["--update"]);
 
     if ctx.config().wsl_update_pre_release() {
@@ -139,7 +139,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
         .trim_end()
         .to_owned();
 
-    let mut command = ctx.run_type().execute(wsl);
+    let mut command = ctx.execute(wsl);
 
     // The `arg` method automatically quotes its arguments.
     // This means we can't append additional arguments to `topgrade` in WSL
@@ -211,35 +211,33 @@ pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
-    let powershell = powershell::Powershell::windows_powershell();
+    let powershell = ctx.require_powershell()?;
 
     print_separator(t!("Windows Update"));
 
     if powershell.supports_windows_update() {
-        println!("The installer will request to run as administrator, expect a prompt.");
-
         powershell.windows_update(ctx)
     } else {
         print_warning(t!(
-            "Consider installing PSWindowsUpdate as the use of Windows Update via USOClient is not supported."
+            "The PSWindowsUpdate PowerShell module isn't installed so Topgrade can't run Windows Update.\nInstall PSWindowsUpdate by running `Install-Module PSWindowsUpdate` in PowerShell."
         ));
 
-        Err(SkipStep(t!("USOClient not supported.").to_string()).into())
+        Err(SkipStep(t!("PSWindowsUpdate is not installed").to_string()).into())
     }
 }
 
 pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
-    let powershell = powershell::Powershell::windows_powershell();
+    let powershell = ctx.require_powershell()?;
 
     print_separator(t!("Microsoft Store"));
 
     powershell.microsoft_store(ctx)
 }
 
-pub fn reboot() -> Result<()> {
+pub fn reboot(ctx: &ExecutionContext) -> Result<()> {
     // If this works, it won't return, but if it doesn't work, it may return a useful error
     // message.
-    Command::new("shutdown").args(["/R", "/T", "0"]).status_checked()
+    ctx.execute("shutdown.exe").args(["/R", "/T", "0"]).status_checked()
 }
 
 pub fn insert_startup_scripts(git_repos: &mut RepoStep) -> Result<()> {

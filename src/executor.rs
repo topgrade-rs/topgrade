@@ -10,46 +10,6 @@ use tracing::debug;
 use crate::command::CommandExt;
 use crate::error::DryRun;
 
-/// An enum telling whether Topgrade should perform dry runs or actually perform the steps.
-#[derive(Clone, Copy, Debug)]
-pub enum RunType {
-    /// Executing commands will just print the command with its argument.
-    Dry,
-
-    /// Executing commands will perform actual execution.
-    Wet,
-}
-
-impl RunType {
-    /// Create a new instance from a boolean telling whether to dry run.
-    pub fn new(dry_run: bool) -> Self {
-        if dry_run {
-            RunType::Dry
-        } else {
-            RunType::Wet
-        }
-    }
-
-    /// Create an instance of `Executor` that should run `program`.
-    pub fn execute<S: AsRef<OsStr>>(self, program: S) -> Executor {
-        match self {
-            RunType::Dry => Executor::Dry(DryCommand {
-                program: program.as_ref().into(),
-                ..Default::default()
-            }),
-            RunType::Wet => Executor::Wet(Command::new(program)),
-        }
-    }
-
-    /// Tells whether we're performing a dry run.
-    pub fn dry(self) -> bool {
-        match self {
-            RunType::Dry => true,
-            RunType::Wet => false,
-        }
-    }
-}
-
 /// An enum providing a similar interface to `std::process::Command`.
 /// If the enum is set to `Wet`, execution will be performed with `std::process::Command`.
 /// If the enum is set to `Dry`, execution will just print the command with its arguments.
@@ -208,7 +168,6 @@ pub enum ExecutorOutput {
 }
 
 /// A struct representing a command. Trying to execute it will just print its arguments.
-#[derive(Default)]
 pub struct DryCommand {
     program: OsString,
     args: Vec<OsString>,
@@ -216,6 +175,14 @@ pub struct DryCommand {
 }
 
 impl DryCommand {
+    pub fn new<S: AsRef<OsStr>>(program: S) -> Self {
+        Self {
+            program: program.as_ref().to_os_string(),
+            args: Vec::new(),
+            directory: None,
+        }
+    }
+
     fn dry_run(&self) {
         print!(
             "{}",

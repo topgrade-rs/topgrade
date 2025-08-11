@@ -7,15 +7,18 @@ env:
   CARGO_TERM_COLOR: always
 
 
+permissions:
+  contents: read
+
 jobs:
   TestConfig:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4.2.2
     - run: |
           CONFIG_PATH=~/.config/topgrade.toml;
           if [ -f "$CONFIG_PATH" ]; then rm $CONFIG_PATH; fi
-          cargo build; 
+          cargo build;
           TOPGRADE_SKIP_BRKC_NOTIFY=true ./target/debug/topgrade --dry-run --only system;
           stat $CONFIG_PATH;
