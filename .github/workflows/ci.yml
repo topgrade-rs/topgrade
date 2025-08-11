@@ -58,7 +58,7 @@ jobs:
           awk '/[[:alpha:]] =>/{print $1}' $FILE > original.txt
           sort original.txt > sorted.txt
           diff original.txt sorted.txt
-  
+
   main:
     needs: [ fmt, step-enum-sorted, step-match-sorted ]
     name: ${{ matrix.target_name }} (check, clippy)

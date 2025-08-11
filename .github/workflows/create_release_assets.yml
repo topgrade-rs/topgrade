@@ -3,18 +3,18 @@ name: Publish release files for CD native and non-cd-native environments
 on:
   release:
     types: [ created ]
-  # When a release failed, and there is something you need to fix in this 
+  # When a release failed, and there is something you need to fix in this
   # YML file, you can manually re-run the job via this event to re-do the
   # release. (Simply re-run the job through GitHub UI won't work as it would use
   # the old YML file, which needs a fix.)
   workflow_dispatch:
     inputs:
-      # The GitHub Action (softprops/action-gh-release) used in this pipeline 
+      # The GitHub Action (softprops/action-gh-release) used in this pipeline
       # needs a tag, you specify it through this parameter.
-      # 
-      # In the case described above, it should be an existing tag. E.g., the 
+      #
+      # In the case described above, it should be an existing tag. E.g., the
       # release of v16.0.4 failed, you should specify "v16.0.4" here.
-      existing_tag: 
+      existing_tag:
         description: "The tag of the failed release that you wanna re-run and fix"
         required: true
         type: string
