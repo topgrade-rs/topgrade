@@ -94,7 +94,7 @@ jobs:
       # Used to generate artifact attestation
       attestations: write
     steps:
-      - uses: actions/download-artifact@v4.3.0
+      - uses: actions/download-artifact@v5.0.0
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2.4.0
