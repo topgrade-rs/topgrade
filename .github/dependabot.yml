@@ -2,9 +2,23 @@
 
 version: 2
 updates:
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      # Check for updates to GitHub Actions every week
       interval: "weekly"
+
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    versioning-strategy: increase
+    labels: ["dependencies", "cargo"]
+    commit-message:
+      prefix: "deps(cargo)"
+      include: "scope"
+    groups:
+      cargo-minor-patch:
+        update-types: ["minor", "patch"]
