@@ -12,19 +12,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5.0.0
-      - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af # v1.0.7
-        with:
-          toolchain: nightly-2022-08-03
-          override: true
-          components: rustfmt, clippy
 
   semver:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505 # v1.0.3
-        with:
-          command: install
-          args: --git https://github.com/rust-lang/rust-semverver
+      - run: cargo install --git https://github.com/rust-lang/rust-semverver
       - run: eval "current_version=$(grep -e '^version = .*$' Cargo.toml | cut -d ' ' -f 3)"
       - run: cargo semver | tee semver_out
       - run: (head -n 1 semver_out | grep "\-> $current_version") || (echo "versioning mismatch" && return 1)
