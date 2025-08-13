@@ -1,4 +1,9 @@
 #![allow(dead_code)]
+use std::env::var;
+use std::ffi::OsStr;
+use std::process::Command;
+use std::sync::{LazyLock, Mutex};
+
 use crate::executor::DryCommand;
 use crate::powershell::Powershell;
 #[cfg(target_os = "linux")]
@@ -10,14 +15,10 @@ use clap::ValueEnum;
 use color_eyre::eyre::Result;
 use rust_i18n::t;
 use serde::Deserialize;
-use std::env::var;
-use std::ffi::OsStr;
-use std::process::Command;
-use std::sync::{LazyLock, Mutex};
 use strum::EnumString;
 
 /// An enum telling whether Topgrade should perform dry runs or actually perform the steps.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Default, EnumString, ValueEnum)]
+#[derive(Clone, Copy, Debug, Deserialize, Default, EnumString, ValueEnum)]
 pub enum RunType {
     /// Executing commands will just print the command with its argument.
     Dry,

@@ -1,13 +1,14 @@
 //! Utilities for command execution
-use crate::command::CommandExt;
-use crate::error::DryRun;
-use color_eyre::eyre::Result;
-use rust_i18n::t;
 use std::ffi::{OsStr, OsString};
 use std::fmt::Debug;
 use std::iter;
 use std::path::Path;
 use std::process::{Child, Command, ExitStatus, Output};
+
+use crate::command::CommandExt;
+use crate::error::DryRun;
+use color_eyre::eyre::Result;
+use rust_i18n::t;
 use tracing::{debug, enabled, Level};
 
 /// An enum providing a similar interface to `std::process::Command`.

@@ -1,5 +1,11 @@
 #![allow(dead_code)]
 
+use std::fs::{write, File};
+use std::io::Write;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::{env, fmt, fs};
+
 use clap::{Parser, ValueEnum};
 use clap_complete::Shell;
 use color_eyre::eyre::Context;
@@ -11,12 +17,8 @@ use regex::Regex;
 use regex_split::RegexSplit;
 use rust_i18n::t;
 use serde::Deserialize;
-use std::fs::{write, File};
-use std::io::Write;
-use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::{env, fmt, fs};
 use strum::IntoEnumIterator;
+use tracing::{debug, error};
 use which_crate::which;
 
 use super::utils::editor;
@@ -25,7 +27,6 @@ use crate::execution_context::RunType;
 use crate::step::Step;
 use crate::sudo::SudoKind;
 use crate::utils::string_prepend_str;
-use tracing::{debug, error};
 
 // TODO: Add i18n to this. Tracking issue: https://github.com/topgrade-rs/topgrade/issues/859
 pub static EXAMPLE_CONFIG: &str = include_str!("../config.example.toml");
