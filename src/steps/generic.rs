@@ -1677,3 +1677,11 @@ pub fn run_yazi(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(ya).args(["pkg", "upgrade"]).status_checked()
 }
+
+pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
+    let falconf = require("falconf")?;
+
+    print_separator("falconf sync");
+
+    ctx.execute(falconf).arg("sync").status_checked()
+}
