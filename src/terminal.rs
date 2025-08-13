@@ -236,7 +236,7 @@ impl Terminal {
                     break Ok(false);
                 }
                 Ok(Key::Char('q' | 'Q')) => {
-                    return Err(io::Error::from(io::ErrorKind::Interrupted)).context("Quit from user input")
+                    return Err(io::Error::from(io::ErrorKind::Interrupted)).context("Quit from user input");
                 }
                 _ => (),
             }

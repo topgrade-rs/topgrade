@@ -5,7 +5,7 @@ categories = ["os"]
 keywords = ["upgrade", "update"]
 license = "GPL-3.0"
 repository = "https://github.com/topgrade-rs/topgrade"
-rust-version = "1.84.1"
+rust-version = "1.85.0"
 version = "16.0.4"
 authors = ["Roey Darwish Dror <roey.ghost@gmail.com>", "Thomas Schönauer <t.schoenauer@hgs-wt.at>"]
 exclude = ["doc/screenshot.gif", "BREAKINGCHANGES_dev.md"]
@@ -22,25 +22,25 @@ path = "src/main.rs"
 
 [dependencies]
 home = "~0.5"
-etcetera = "~0.8"
+etcetera = "~0.10"
 serde = { version = "~1.0", features = ["derive"] }
-toml = "0.8"
-which_crate = { version = "~6.0", package = "which" }
+toml = "0.9"
+which_crate = { version = "~8.0", package = "which" }
 shellexpand = "~3.1"
 clap = { version = "~4.5", features = ["cargo", "derive"] }
 clap_complete = "~4.5"
 clap_mangen = "~0.2"
 walkdir = "~2.5"
-console = "~0.15"
+console = "~0.16"
 chrono = "~0.4"
 glob = "~0.3"
-strum = { version = "~0.26", features = ["derive"] }
-thiserror = "~1.0"
-tempfile = "~3.10"
+strum = { version = "~0.27", features = ["derive"] }
+thiserror = "~2.0"
+tempfile = "~3.20"
 cfg-if = "~1.0"
 tokio = { version = "~1.47", features = ["process", "rt-multi-thread"] }
 futures = "~0.3"
-regex = "~1.10"
+regex = "~1.11"
 semver = "~1.0"
 shell-words = "~1.1"
 color-eyre = "~0.6"
@@ -49,11 +49,11 @@ tracing-subscriber = { version = "~0.3", features = ["env-filter", "time"] }
 merge = "~0.1"
 regex-split = "~0.1"
 notify-rust = "~4.11"
-wildmatch = "2.3.0"
-rust-i18n = "3.0.1"
-sys-locale = "0.3.1"
-jetbrains-toolbox-updater = "5.0.0"
-indexmap = { version = "2.9.0", features = ["serde"] }
+wildmatch = "2.4.0"
+rust-i18n = "3.1.5"
+sys-locale = "0.3.2"
+jetbrains-toolbox-updater = "5.4.2"
+indexmap = { version = "2.10.0", features = ["serde"] }
 
 [package.metadata.generate-rpm]
 assets = [{ source = "target/release/topgrade", dest = "/usr/bin/topgrade" }]
@@ -64,7 +64,7 @@ git = "*"
 [package.metadata.deb]
 name = "topgrade"
 maintainer = "Chris Gelatt <kreeblah@gmail.com>"
-copyright = "2024, Topgrade Team"
+copyright = "2025, Topgrade Team"
 license-file = ["LICENSE", "0"]
 depends = "$auto"
 extended-description = "Keeping your system up to date usually involves invoking multiple package managers. This results in big, non-portable shell one-liners saved in your shell. To remedy this, Topgrade detects which tools you use and runs the appropriate commands to update them."
@@ -73,12 +73,12 @@ priority = "optional"
 default-features = true
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "~0.29", features = ["hostname", "signal", "user"] }
+nix = { version = "~0.30", features = ["hostname", "signal", "user"] }
 rust-ini = "~0.21"
-self_update_crate = { version = "~0.40", default-features = false, optional = true, package = "self_update", features = ["archive-tar", "compression-flate2", "rustls"] }
+self_update_crate = { version = "~0.42", default-features = false, optional = true, package = "self_update", features = ["archive-tar", "compression-flate2", "rustls"] }
 
 [target.'cfg(windows)'.dependencies]
-self_update_crate = { version = "~0.40", default-features = false, optional = true, package = "self_update", features = ["archive-zip", "compression-zip-deflate", "rustls"] }
+self_update_crate = { version = "~0.42", default-features = false, optional = true, package = "self_update", features = ["archive-zip", "compression-zip-deflate", "rustls"] }
 winapi = "~0.3"
 parselnk = "~0.1"
 
