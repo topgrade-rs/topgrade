@@ -336,6 +336,8 @@ pub struct Misc {
     no_self_update: Option<bool>,
 
     log_filters: Option<Vec<String>>,
+
+    show_distribution_summary: Option<bool>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, ValueEnum)]
@@ -1517,6 +1519,14 @@ impl Config {
             .as_ref()
             .and_then(|misc| misc.pre_sudo)
             .unwrap_or(false)
+    }
+
+    pub fn show_distribution_summary(&self) -> bool {
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.show_distribution_summary)
+            .unwrap_or(true)
     }
 
     #[cfg(target_os = "linux")]
