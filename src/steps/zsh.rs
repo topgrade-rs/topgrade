@@ -162,7 +162,7 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
         if let Ok(output) = res_env_zsh {
             let env_zsh = output.stdout;
             debug!("Oh-my-zsh: under SSH, setting ZSH={}", env_zsh);
-            env::set_var("ZSH", env_zsh);
+            unsafe { env::set_var("ZSH", env_zsh) };
         }
     }
 

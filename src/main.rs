@@ -12,6 +12,7 @@ use clap::{crate_version, Parser};
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use console::Key;
+#[allow(unused_imports)]
 use etcetera::base_strategy::BaseStrategy;
 #[cfg(windows)]
 use etcetera::base_strategy::Windows;
@@ -100,7 +101,7 @@ fn run() -> Result<()> {
         let mut splitted = env.split('=');
         let var = splitted.next().unwrap();
         let value = splitted.next().unwrap();
-        env::set_var(var, value);
+        unsafe { env::set_var(var, value) };
     }
 
     if opt.edit_config() {

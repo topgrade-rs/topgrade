@@ -202,7 +202,7 @@ pub mod merge_strategies {
     where
         T: Merge,
     {
-        if let Some(ref mut left_inner) = left {
+        if let Some(left_inner) = left {
             if let Some(right_inner) = right {
                 left_inner.merge(right_inner);
             }
@@ -212,7 +212,7 @@ pub mod merge_strategies {
     }
 
     pub fn commands_merge_opt(left: &mut Option<Commands>, right: Option<Commands>) {
-        if let Some(ref mut left_inner) = left {
+        if let Some(left_inner) = left {
             if let Some(right_inner) = right {
                 left_inner.extend(right_inner);
             }
