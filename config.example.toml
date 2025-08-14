@@ -193,7 +193,7 @@
 # rpm_ostree = false
 
 # For Fedora/CentOS/RHEL Atomic variants, if `bootc` is available and this configuration entry is set to true, use
-# it to do the update - Will also supercede rpm-ostree if enabled
+# it to do the update - Will also supersede rpm-ostree if enabled
 # (default: false)
 # bootc = false
 
@@ -236,7 +236,7 @@
 
 # wsl_update_use_web_download = true
 
-# The default for winget_install_silently is true, 
+# The default for winget_install_silently is true,
 # this example turns off silent install.
 # winget_install_silently = false
 
@@ -308,7 +308,7 @@
 # runtime = "podman"
 
 [lensfun]
-# If disabled, Topgrade invokes `lensfun‑update‑data` without root priviledge,
+# If disabled, Topgrade invokes `lensfun‑update‑data` without root privilege,
 # then the update will be only available to you. Otherwise, `sudo` is required,
 # and the update will be installed system-wide, i.e., available to all users.
 # (default: false)

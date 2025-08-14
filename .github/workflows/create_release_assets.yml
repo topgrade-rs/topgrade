@@ -3,21 +3,24 @@ name: Publish release files for CD native and non-cd-native environments
 on:
   release:
     types: [ created ]
-  # When a release failed, and there is something you need to fix in this 
+  # When a release failed, and there is something you need to fix in this
   # YML file, you can manually re-run the job via this event to re-do the
   # release. (Simply re-run the job through GitHub UI won't work as it would use
   # the old YML file, which needs a fix.)
   workflow_dispatch:
     inputs:
-      # The GitHub Action (softprops/action-gh-release) used in this pipeline 
+      # The GitHub Action (softprops/action-gh-release) used in this pipeline
       # needs a tag, you specify it through this parameter.
-      # 
-      # In the case described above, it should be an existing tag. E.g., the 
+      #
+      # In the case described above, it should be an existing tag. E.g., the
       # release of v16.0.4 failed, you should specify "v16.0.4" here.
-      existing_tag: 
+      existing_tag:
         description: "The tag of the failed release that you wanna re-run and fix"
         required: true
         type: string
+
+permissions:
+  contents: read
 
 jobs:
   # Publish release files for CD native environments
@@ -38,7 +41,7 @@ jobs:
         platform: [ ubuntu-22.04, macos-latest, macos-13, windows-latest ]
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5.0.0
 
       - name: Install needed components
         run: |
@@ -121,13 +124,13 @@ jobs:
 
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
         with:
           tag_name: ${{ steps.determine_tag_name.outputs.tag_name }}
           files: assets/*
 
       - name: Generate artifact attestations
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v2.4.0
         with:
           subject-path: assets/*
 
@@ -153,7 +156,7 @@ jobs:
           ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5.0.0
 
       - name: Install needed components
         run: |
@@ -179,7 +182,7 @@ jobs:
         run: rustup target add ${{ matrix.target }}
 
       - name: install cross
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@2c73a741d1544cc346e9b0af11868feba03eb69d # v2.58.9
         with:
           tool: cross@0.2.5
 
@@ -238,12 +241,12 @@ jobs:
 
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
         with:
           tag_name: ${{ steps.determine_tag_name.outputs.tag_name }}
           files: assets/*
 
       - name: Generate artifact attestations
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v2.4.0
         with:
           subject-path: assets/*

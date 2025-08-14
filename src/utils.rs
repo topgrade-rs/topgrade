@@ -179,7 +179,7 @@ pub mod merge_strategies {
         if let Some(left_vec) = left {
             if let Some(mut right_vec) = right {
                 right_vec.append(left_vec);
-                let _ = std::mem::replace(left, Some(right_vec));
+                let _ = left.replace(right_vec);
             }
         } else {
             *left = right;
@@ -226,7 +226,7 @@ pub mod merge_strategies {
 ///
 /// # Shim
 /// On Windows, if you install `python` through `winget`, an actual `python`
-/// is installed as well as a `python3` shim. Shim is invokable, but when you
+/// is installed as well as a `python3` shim. Shim is invocable, but when you
 /// execute it, the Microsoft App Store will be launched instead of a Python
 /// shell.
 ///

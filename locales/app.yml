@@ -1192,8 +1192,8 @@ _version: 2
   zh_CN: "正在重新生成"
   zh_TW: "正在重新生成..."
   de: "Neustarten..."
-"Could not find Topgrade in any WSL disribution":
-  en: "Could not find Topgrade in any WSL disribution"
+"Could not find Topgrade in any WSL distribution":
+  en: "Could not find Topgrade in any WSL distribution"
   lt: "Nepavyko rasti Topgrade jokioje WSL distribucijoje"
   es: "No se pudo encontrar Topgrade en ninguna distribución WSL"
   fr: "Impossible de trouver Topgrade installé dans WSL"

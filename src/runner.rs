@@ -90,7 +90,7 @@ impl<'a> Runner<'a> {
         Ok(())
     }
 
-    pub fn report(&self) -> &Report {
+    pub fn report(&self) -> &Report<'_> {
         &self.report
     }
 }
