@@ -9,9 +9,9 @@ use crate::command::CommandExt;
 use crate::error::SkipStep;
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
+use crate::steps::git::RepoStep;
 use crate::terminal::{print_separator, print_warning};
 use crate::utils::{require, which};
-use crate::steps::git::RepoStep;
 use rust_i18n::t;
 
 pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
@@ -179,20 +179,17 @@ end
 
     // Write the script to temp directory
     let script_path = sdio_work_dir.join("topgrade_sdio_script.txt");
-    std::fs::write(&script_path, script_content).map_err(|e| {
-        SkipStep(format!("Failed to create SDIO script: {}", e))
-    })?;
+    std::fs::write(&script_path, script_content)
+        .map_err(|e| SkipStep(format!("Failed to create SDIO script: {}", e)))?;
 
     // Build script-based command arguments (non-deprecated)
-    let mut args = vec![
-        format!("-script:{}", script_path.display()),
-    ];
+    let mut args = vec![format!("-script:{}", script_path.display())];
 
     // Add additional non-deprecated options
     args.extend_from_slice(&[
-        "-nologfile".to_string(),    // We handle logging through the script
-        "-nostamp".to_string(),      // Clean log format
-        "-preservecfg".to_string(),  // Don't overwrite config
+        "-nologfile".to_string(),   // We handle logging through the script
+        "-nostamp".to_string(),     // Clean log format
+        "-preservecfg".to_string(), // Don't overwrite config
     ]);
 
     // Log the command being executed for transparency
