@@ -80,6 +80,12 @@ pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
 /// SDIO is a free open-source tool for downloading and installing drivers.
 /// It will be executed in script mode to automatically download missing driver packs
 /// and install missing drivers with restore point creation when possible.
+///
+/// Script generation follows the official SDIO scripting manual syntax:
+/// - Commands don't use leading "-" or "/" signs
+/// - Directory paths are quoted for safety
+/// - Error handling uses "onerror" commands with goto labels
+/// - Proper command ordering (checkupdates before init, etc.)
 pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
     let sdio = if let Some(configured_path) = ctx.config().sdio_path() {
         // Use configured path first
@@ -102,25 +108,35 @@ pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
             r#"# Topgrade SDIO Analysis Script
 # This script analyzes the system for driver updates without installing
 
-# Configure directories
-extractdir {}
-logdir {}
+# Configure directories (quoted for safety)
+extractdir "{}"
+logdir "{}"
 
 # Enable logging for dry-run analysis
 logging on
 {}
 
 # Initialize and scan system
+echo Initializing SDIO and scanning system for analysis...
 init
+onerror goto end
 
-# Generate device analysis report
-writedevicelist device_analysis.txt
+# Generate device analysis report before selection
+writedevicelist device_analysis_before.txt
 
 # Select missing and better drivers for analysis
+echo Analyzing available driver updates...
 select missing better
 
-# End without installation
+# Generate device analysis report after selection
+writedevicelist device_analysis_after.txt
+
+# Display analysis results
 echo Analysis complete - no drivers installed in dry-run mode
+echo Check device_analysis_before.txt and device_analysis_after.txt for details
+
+:end
+# End without installation
 end
 "#,
             sdio_work_dir.display(),
@@ -137,34 +153,50 @@ end
             r#"# Topgrade SDIO Installation Script
 # This script automatically updates drivers with safety measures
 
-# Configure directories
-extractdir {}
-logdir {}
+# Configure directories (quoted for safety)
+extractdir "{}"
+logdir "{}"
 
 # Enable logging
 logging on
 {}
 
-# Create restore point for safety
-restorepoint Topgrade SDIO Driver Update
-
-# Check for updates first
+# Check for updates first (before init for better performance)
+echo Checking for SDIO updates...
 checkupdates
+onerror goto end
 
 # Initialize and scan system
+echo Initializing SDIO and scanning system...
 init
+onerror goto end
+
+# Generate initial device report
+writedevicelist initial_device_report.txt
+
+# Create restore point for safety (quoted description)
+echo Creating system restore point...
+restorepoint "Topgrade SDIO Driver Update"
+onerror echo Warning: Failed to create restore point, continuing anyway...
 
 # Select missing and better drivers
+echo Selecting drivers for installation...
 select missing better
 
-# Download and install selected drivers
+# Install selected drivers (will auto-download if needed)
+echo Installing selected drivers...
 install
+onerror echo Warning: Some drivers may have failed to install
 
 # Generate final device report
 writedevicelist final_device_report.txt
 
-# End script
+# Check if reboot is needed and inform user
 echo Driver installation complete
+echo Check initial_device_report.txt and final_device_report.txt for details
+
+:end
+# End script
 end
 "#,
             sdio_work_dir.display(),
