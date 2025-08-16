@@ -117,8 +117,13 @@ pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
     // Log the command being executed
     debug!("SDIO command: {:?} {:?}", sdio, args);
 
+    // Create temp directory for SDIO working directory to avoid cluttering current directory
+    let sdio_work_dir = std::env::temp_dir().join("topgrade_sdio");
+    std::fs::create_dir_all(&sdio_work_dir).ok();
+
     let mut command = ctx.execute(&sdio);
     command.args(&args);
+    command.current_dir(&sdio_work_dir);
 
     let result = command.status_checked();
     
