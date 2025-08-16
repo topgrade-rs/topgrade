@@ -3,7 +3,7 @@ use std::{ffi::OsStr, process::Command};
 
 use color_eyre::eyre::Result;
 use etcetera::base_strategy::BaseStrategy;
-use tracing::debug;
+use tracing::{debug, info};
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
@@ -90,36 +90,58 @@ pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Snappy Driver Installer Origin"));
 
-    // Build command arguments for script mode
-    // -autoinstall: Install recommended drivers automatically
-    // -autoclose: Exit after completion
-    // -log: Write log to file for debugging
-    // -nogui: Run without GUI (script mode)
-    // -createdirs: Create directories if they don't exist
-    // -license: Auto-accept license agreements
-    // -restorepoint: Create restore point if possible
+    // Build optimized command arguments based on SDIO documentation
+    // Using direct command-line mode for better integration with Topgrade
     let mut args = vec![
-        "-autoinstall",
-        "-autoupdate",
-        "-autoclose",
-        "-nogui",
-        "-createdirs",
-        "-license",
-        "-restorepoint",
-        "-log", // Write log to file
+        "-nogui",     // Run without GUI interface (essential for automation)
+        "-nologfile", // Suppress log files to avoid clutter (we handle logging)
+        "-nostamp",   // Create logs without timestamps for cleaner output
     ];
 
-    // Add verbose flag if enabled for detailed driver name output
-    if ctx.config().verbose() {
-        args.push("-showdrpnames1");
+    // Configure installation behavior based on run mode
+    if ctx.run_type().dry() {
+        // Dry run mode - analyze but don't install
+        args.extend_from_slice(&[
+            "-disableinstall",                    // Disable actual driver installation
+            "-getdevicelist:device_analysis.txt", // Generate device report
+        ]);
+    } else {
+        // Real mode - perform actual installation with safety measures
+        args.extend_from_slice(&[
+            "-autoinstall",  // Automatically install recommended drivers
+            "-autoupdate",   // Download driver pack updates
+            "-autoclose",    // Close after completion
+            "-restorepoint", // Create restore point before installation
+            "-nostop",       // Don't stop if restore point creation fails
+            "-license",      // Auto-accept license agreements
+            "-createdirs",   // Create directories if needed
+        ]);
     }
 
-    // Log the command being executed
-    debug!("SDIO command: {:?} {:?}", sdio, args);
+    // Add verbose logging based on configuration
+    if ctx.config().verbose() {
+        args.extend_from_slice(&[
+            "-verbose:255",   // Maximum verbosity (all log categories)
+            "-showdrpnames1", // Show driver pack names on the right
+            "-showconsole",   // Show console output
+        ]);
+    } else {
+        args.push("-verbose:128"); // Only error messages in normal mode
+    }
 
-    // Create temp directory for SDIO working directory to avoid cluttering current directory
+    // Create dedicated temp directory for SDIO operations
+    // This prevents clutter in the current directory and provides isolation
     let sdio_work_dir = std::env::temp_dir().join("topgrade_sdio");
     std::fs::create_dir_all(&sdio_work_dir).ok();
+
+    // Set extract directory to our controlled temp location
+    let extract_dir = sdio_work_dir.to_string_lossy().to_string();
+    args.push("-extractdir");
+    args.push(&extract_dir);
+
+    // Log the command being executed for transparency
+    debug!("SDIO command: {:?} {:?}", sdio, args);
+    info!("Running SDIO in: {}", sdio_work_dir.display());
 
     let mut command = ctx.execute(&sdio);
     command.args(&args);
@@ -133,35 +155,35 @@ pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
     result
 }
 
-/// Detects SDIO installation using multiple strategies
+/// Detects SDIO installation using multiple strategies based on SDIO documentation
 fn detect_sdio() -> Result<std::path::PathBuf> {
     let is_64bit = std::env::consts::ARCH == "x86_64";
 
-    // Strategy 1: Try the automatic batch file first (recommended by SDIO)
-    if let Some(batch_file) = which("SDIO_auto.bat") {
-        return Ok(batch_file);
-    }
+    // Strategy 1: Try configured or PATH-based executables first
+    // Priority order based on SDIO documentation:
+    // 1. Architecture-specific versioned executables (SDIO_x64_R*.exe, SDIO_R*.exe)
+    // 2. Generic architecture executables (SDIO_x64.exe, SDIO.exe)
+    // 3. Batch files (SDIO_auto.bat) - less reliable for automation
 
-    // Strategy 2: Try common versioned executable names
     let executable_patterns = if is_64bit {
-        // On 64-bit systems, prefer 64-bit version
         vec![
-            "SDIO_x64_R*.exe", // Versioned 64-bit
-            "SDIO_x64.exe",    // Generic 64-bit
-            "SDIO_R*.exe",     // Versioned 32-bit
-            "SDIO.exe",        // Generic 32-bit
-            "sdio",            // Generic name
+            "SDIO_x64_R*.exe", // 64-bit versioned (highest priority)
+            "SDIO_x64.exe",    // 64-bit generic
+            "SDIO_R*.exe",     // 32-bit versioned (fallback)
+            "SDIO.exe",        // Generic executable
+            "SDIO_auto.bat",   // Batch file (lowest priority)
+            "sdio",            // Generic name for scoop/chocolatey
         ]
     } else {
-        // On 32-bit systems, use 32-bit version
         vec![
-            "SDIO_R*.exe", // Versioned 32-bit
-            "SDIO.exe",    // Generic 32-bit
-            "sdio",        // Generic name
+            "SDIO_R*.exe",   // 32-bit versioned (highest priority)
+            "SDIO.exe",      // Generic executable
+            "SDIO_auto.bat", // Batch file
+            "sdio",          // Generic name
         ]
     };
 
-    // Try each pattern in PATH
+    // Strategy 2: Try each pattern in PATH
     for pattern in &executable_patterns {
         if let Some(exe) = which(pattern) {
             return Ok(exe);
@@ -173,7 +195,7 @@ fn detect_sdio() -> Result<std::path::PathBuf> {
         return Ok(exe);
     }
 
-    // Strategy 4: Try to find any SDIO executable using glob patterns
+    // Strategy 4: Use glob patterns as final fallback
     if let Some(exe) = find_sdio_by_pattern(is_64bit) {
         return Ok(exe);
     }
