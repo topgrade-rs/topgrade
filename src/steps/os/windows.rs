@@ -6,11 +6,12 @@ use etcetera::base_strategy::BaseStrategy;
 use tracing::{debug, info};
 
 use crate::command::CommandExt;
+use crate::error::SkipStep;
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::terminal::{print_separator, print_warning};
 use crate::utils::{require, which};
-use crate::{error::SkipStep, steps::git::RepoStep};
+use crate::steps::git::RepoStep;
 use rust_i18n::t;
 
 pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
@@ -90,58 +91,114 @@ pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Snappy Driver Installer Origin"));
 
-    // Build optimized command arguments based on SDIO documentation
-    // Using direct command-line mode for better integration with Topgrade
-    let mut args = vec![
-        "-nogui",     // Run without GUI interface (essential for automation)
-        "-nologfile", // Suppress log files to avoid clutter (we handle logging)
-        "-nostamp",   // Create logs without timestamps for cleaner output
-    ];
-
-    // Configure installation behavior based on run mode
-    if ctx.run_type().dry() {
-        // Dry run mode - analyze but don't install
-        args.extend_from_slice(&[
-            "-disableinstall",                    // Disable actual driver installation
-            "-getdevicelist:device_analysis.txt", // Generate device report
-        ]);
-    } else {
-        // Real mode - perform actual installation with safety measures
-        args.extend_from_slice(&[
-            "-autoinstall",  // Automatically install recommended drivers
-            "-autoupdate",   // Download driver pack updates
-            "-autoclose",    // Close after completion
-            "-restorepoint", // Create restore point before installation
-            "-nostop",       // Don't stop if restore point creation fails
-            "-license",      // Auto-accept license agreements
-            "-createdirs",   // Create directories if needed
-        ]);
-    }
-
-    // Add verbose logging based on configuration
-    if ctx.config().verbose() {
-        args.extend_from_slice(&[
-            "-verbose:255",   // Maximum verbosity (all log categories)
-            "-showdrpnames1", // Show driver pack names on the right
-            "-showconsole",   // Show console output
-        ]);
-    } else {
-        args.push("-verbose:128"); // Only error messages in normal mode
-    }
-
     // Create dedicated temp directory for SDIO operations
-    // This prevents clutter in the current directory and provides isolation
     let sdio_work_dir = std::env::temp_dir().join("topgrade_sdio");
     std::fs::create_dir_all(&sdio_work_dir).ok();
 
-    // Set extract directory to our controlled temp location
-    let extract_dir = sdio_work_dir.to_string_lossy().to_string();
-    args.push("-extractdir");
-    args.push(&extract_dir);
+    // Create a dynamic SDIO script based on run mode
+    let script_content = if ctx.run_type().dry() {
+        // Dry-run script: analyze devices without installing
+        format!(
+            r#"# Topgrade SDIO Analysis Script
+# This script analyzes the system for driver updates without installing
+
+# Configure directories
+extractdir {}
+logdir {}
+
+# Enable logging for dry-run analysis
+logging on
+{}
+
+# Initialize and scan system
+init
+
+# Generate device analysis report
+writedevicelist device_analysis.txt
+
+# Select missing and better drivers for analysis
+select missing better
+
+# End without installation
+echo Analysis complete - no drivers installed in dry-run mode
+end
+"#,
+            sdio_work_dir.display(),
+            sdio_work_dir.join("logs").display(),
+            if ctx.config().verbose() {
+                "debug on\nverbose 255"
+            } else {
+                "verbose 128"
+            }
+        )
+    } else {
+        // Real installation script
+        format!(
+            r#"# Topgrade SDIO Installation Script
+# This script automatically updates drivers with safety measures
+
+# Configure directories
+extractdir {}
+logdir {}
+
+# Enable logging
+logging on
+{}
+
+# Create restore point for safety
+restorepoint Topgrade SDIO Driver Update
+
+# Check for updates first
+checkupdates
+
+# Initialize and scan system
+init
+
+# Select missing and better drivers
+select missing better
+
+# Download and install selected drivers
+install
+
+# Generate final device report
+writedevicelist final_device_report.txt
+
+# End script
+echo Driver installation complete
+end
+"#,
+            sdio_work_dir.display(),
+            sdio_work_dir.join("logs").display(),
+            if ctx.config().verbose() {
+                "debug on\nverbose 255"
+            } else {
+                "verbose 128"
+            }
+        )
+    };
+
+    // Write the script to temp directory
+    let script_path = sdio_work_dir.join("topgrade_sdio_script.txt");
+    std::fs::write(&script_path, script_content).map_err(|e| {
+        SkipStep(format!("Failed to create SDIO script: {}", e))
+    })?;
+
+    // Build script-based command arguments (non-deprecated)
+    let mut args = vec![
+        format!("-script:{}", script_path.display()),
+    ];
+
+    // Add additional non-deprecated options
+    args.extend_from_slice(&[
+        "-nologfile".to_string(),    // We handle logging through the script
+        "-nostamp".to_string(),      // Clean log format
+        "-preservecfg".to_string(),  // Don't overwrite config
+    ]);
 
     // Log the command being executed for transparency
     debug!("SDIO command: {:?} {:?}", sdio, args);
-    info!("Running SDIO in: {}", sdio_work_dir.display());
+    info!("Running SDIO script: {}", script_path.display());
+    info!("SDIO working directory: {}", sdio_work_dir.display());
 
     let mut command = ctx.execute(&sdio);
     command.args(&args);
