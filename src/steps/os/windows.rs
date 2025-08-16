@@ -106,7 +106,7 @@ pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
         "-createdirs",
         "-license",
         "-restorepoint",
-        "-log",  // Write log to file
+        "-log", // Write log to file
     ];
 
     // Add verbose flag if enabled for detailed driver name output
@@ -126,7 +126,7 @@ pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
     command.current_dir(&sdio_work_dir);
 
     let result = command.status_checked();
-    
+
     // Print separator after execution for clean output formatting
     print_separator("");
 
