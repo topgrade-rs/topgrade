@@ -256,8 +256,14 @@
 # winget_use_sudo = true
 
 # Path to Snappy Driver Installer Origin (SDIO) executable
-# If not specified, Topgrade will try to find SDIO_x64.exe or SDIO.exe in PATH
-# sdio_path = "C:\\Program Files\\SDIO_1.12.15\\SDIO_x64.exe"
+# If not specified, Topgrade will try to find SDIO automatically by checking:
+# 1. SDIO_auto.bat (recommended) - automatically detects correct architecture
+# 2. Versioned executables (SDIO_x64_Rxxx.exe, SDIO_Rxxx.exe)
+# 3. Common installation locations (Scoop, Program Files, portable installs)
+# Examples:
+# sdio_path = "C:\\Users\\%USERNAME%\\scoop\\apps\\snappy-driver-installer-origin\\current\\SDIO_auto.bat"
+# sdio_path = "C:\\Program Files\\SDIO\\SDIO_x64_R1515.exe"
+# sdio_path = "C:\\SDIO\\SDIO_auto.bat"
 
 
 [npm]
