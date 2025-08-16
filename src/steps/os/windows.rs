@@ -91,9 +91,9 @@ pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
     print_separator(t!("Snappy Driver Installer Origin"));
 
     // Build command arguments for script mode
-    // -autoinstall: Install missing drivers automatically
-    // -autoupdate: Update drivers automatically
-    // -autoclose: Close application when finished
+    // -autoinstall: Install recommended drivers automatically
+    // -autoclose: Exit after completion
+    // -log: Write log to file for debugging
     // -nogui: Run without GUI (script mode)
     // -createdirs: Create directories if they don't exist
     // -license: Auto-accept license agreements
@@ -106,19 +106,26 @@ pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
         "-createdirs",
         "-license",
         "-restorepoint",
+        "-log",  // Write log to file
     ];
 
-    // Add verbose flag if enabled
+    // Add verbose flag if enabled for detailed driver name output
     if ctx.config().verbose() {
         args.push("-showdrpnames1");
     }
 
+    // Log the command being executed
     debug!("SDIO command: {:?} {:?}", sdio, args);
 
     let mut command = ctx.execute(&sdio);
     command.args(&args);
 
-    command.status_checked()
+    let result = command.status_checked();
+    
+    // Print separator after execution for clean output formatting
+    print_separator("");
+
+    result
 }
 
 /// Detects SDIO installation using multiple strategies
