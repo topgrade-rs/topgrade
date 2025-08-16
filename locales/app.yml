@@ -1200,6 +1200,22 @@ _version: 2
   zh_CN: "无法在任何 WSL 发行版中找到 Topgrade"
   zh_TW: "在所有 WSL 中找不到 Topgrade"
   de: "Konnte Topgrade in keiner WSL-Distribution finden"
+"SDIO (Snappy Driver Installer Origin) not found":
+  en: "SDIO (Snappy Driver Installer Origin) not found"
+  lt: "SDIO (Snappy Driver Installer Origin) nerastas"
+  es: "SDIO (Snappy Driver Installer Origin) no encontrado"
+  fr: "SDIO (Snappy Driver Installer Origin) introuvable"
+  zh_CN: "未找到 SDIO (Snappy Driver Installer Origin)"
+  zh_TW: "找不到 SDIO (Snappy Driver Installer Origin)"
+  de: "SDIO (Snappy Driver Installer Origin) nicht gefunden"
+"Snappy Driver Installer Origin":
+  en: "Snappy Driver Installer Origin"
+  lt: "Snappy Driver Installer Origin"
+  es: "Snappy Driver Installer Origin"
+  fr: "Snappy Driver Installer Origin"
+  zh_CN: "Snappy Driver Installer Origin"
+  zh_TW: "Snappy Driver Installer Origin"
+  de: "Snappy Driver Installer Origin"
 "Windows Update":
   en: "Windows Update"
   lt: "Windows atnaujinimas"

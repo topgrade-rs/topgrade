@@ -255,6 +255,10 @@
 # (default: false)
 # winget_use_sudo = true
 
+# Path to Snappy Driver Installer Origin (SDIO) executable
+# If not specified, Topgrade will try to find SDIO_x64.exe or SDIO.exe in PATH
+# sdio_path = "C:\\Program Files\\SDIO_1.12.15\\SDIO_x64.exe"
+
 
 [npm]
 # Use sudo if the NPM directory isn't owned by the current user

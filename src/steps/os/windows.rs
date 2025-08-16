@@ -74,6 +74,65 @@ pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+/// Updates drivers using Snappy Driver Installer Origin (SDIO).
+///
+/// SDIO is a free open-source tool for downloading and installing drivers.
+/// It will be executed in script mode to automatically download missing driver packs
+/// and install missing drivers with restore point creation when possible.
+pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
+    let sdio = if let Some(configured_path) = ctx.config().sdio_path() {
+        // Use configured path first
+        require(configured_path)?
+    } else {
+        // Try to detect SDIO automatically - prefer 64-bit version on x64 systems
+        let is_64bit = std::env::consts::ARCH == "x86_64";
+        
+        if is_64bit {
+            // Try 64-bit version first
+            which("SDIO_x64.exe")
+                .or_else(|| which("SDIO.exe"))
+                .or_else(|| which("sdio"))
+        } else {
+            // Try 32-bit version first
+            which("SDIO.exe")
+                .or_else(|| which("sdio"))
+        }
+        .ok_or_else(|| SkipStep(t!("SDIO (Snappy Driver Installer Origin) not found").to_string()))?
+    };
+
+    print_separator(t!("Snappy Driver Installer Origin"));
+
+    // Build command arguments for script mode
+    // -autoinstall: Install missing drivers automatically
+    // -autoupdate: Update drivers automatically  
+    // -autoclose: Close application when finished
+    // -nogui: Run without GUI (script mode)
+    // -createdirs: Create directories if they don't exist
+    // -license: Auto-accept license agreements
+    // -restorepoint: Create restore point if possible
+    let mut args = vec![
+        "-autoinstall",
+        "-autoupdate", 
+        "-autoclose",
+        "-nogui",
+        "-createdirs",
+        "-license",
+        "-restorepoint"
+    ];
+
+    // Add verbose flag if enabled
+    if ctx.config().verbose() {
+        args.push("-showdrpnames1");
+    }
+
+    debug!("SDIO command: {:?} {:?}", sdio, args);
+
+    let mut command = ctx.execute(&sdio);
+    command.args(&args);
+
+    command.status_checked()
+}
+
 pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
     if !is_wsl_installed()? {
         return Err(SkipStep(t!("WSL not installed").to_string()).into());
