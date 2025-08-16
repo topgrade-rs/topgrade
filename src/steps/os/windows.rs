@@ -92,7 +92,7 @@ pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
 
     // Build command arguments for script mode
     // -autoinstall: Install missing drivers automatically
-    // -autoupdate: Update drivers automatically  
+    // -autoupdate: Update drivers automatically
     // -autoclose: Close application when finished
     // -nogui: Run without GUI (script mode)
     // -createdirs: Create directories if they don't exist
@@ -100,12 +100,12 @@ pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
     // -restorepoint: Create restore point if possible
     let mut args = vec![
         "-autoinstall",
-        "-autoupdate", 
+        "-autoupdate",
         "-autoclose",
         "-nogui",
         "-createdirs",
         "-license",
-        "-restorepoint"
+        "-restorepoint",
     ];
 
     // Add verbose flag if enabled
@@ -124,18 +124,18 @@ pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
 /// Detects SDIO installation using multiple strategies
 fn detect_sdio() -> Result<std::path::PathBuf> {
     let is_64bit = std::env::consts::ARCH == "x86_64";
-    
+
     // Strategy 1: Try the automatic batch file first (recommended by SDIO)
     if let Some(batch_file) = which("SDIO_auto.bat") {
         return Ok(batch_file);
     }
-    
+
     // Strategy 2: Try common versioned executable names
     let executable_patterns = if is_64bit {
         // On 64-bit systems, prefer 64-bit version
         vec![
             "SDIO_x64_R*.exe", // Versioned 64-bit
-            "SDIO_x64.exe",    // Generic 64-bit  
+            "SDIO_x64.exe",    // Generic 64-bit
             "SDIO_R*.exe",     // Versioned 32-bit
             "SDIO.exe",        // Generic 32-bit
             "sdio",            // Generic name
@@ -143,40 +143,42 @@ fn detect_sdio() -> Result<std::path::PathBuf> {
     } else {
         // On 32-bit systems, use 32-bit version
         vec![
-            "SDIO_R*.exe",     // Versioned 32-bit
-            "SDIO.exe",        // Generic 32-bit
-            "sdio",            // Generic name
+            "SDIO_R*.exe", // Versioned 32-bit
+            "SDIO.exe",    // Generic 32-bit
+            "sdio",        // Generic name
         ]
     };
-    
+
     // Try each pattern in PATH
     for pattern in &executable_patterns {
         if let Some(exe) = which(pattern) {
             return Ok(exe);
         }
     }
-    
+
     // Strategy 3: Check common installation locations
     if let Some(exe) = check_common_locations(is_64bit) {
         return Ok(exe);
     }
-    
+
     // Strategy 4: Try to find any SDIO executable using glob patterns
     if let Some(exe) = find_sdio_by_pattern(is_64bit) {
         return Ok(exe);
     }
-    
+
     Err(SkipStep(t!("SDIO (Snappy Driver Installer Origin) not found").to_string()).into())
 }
 
 /// Checks common SDIO installation locations
 fn check_common_locations(is_64bit: bool) -> Option<std::path::PathBuf> {
     use std::path::PathBuf;
-    
+
     let possible_locations = [
         // Scoop installation in user profile
-        format!("{}\\scoop\\apps\\snappy-driver-installer-origin\\current", 
-                std::env::var("USERPROFILE").unwrap_or_default()),
+        format!(
+            "{}\\scoop\\apps\\snappy-driver-installer-origin\\current",
+            std::env::var("USERPROFILE").unwrap_or_default()
+        ),
         // Common program files locations
         "C:\\Program Files\\SDIO".to_string(),
         "C:\\Program Files (x86)\\SDIO".to_string(),
@@ -184,46 +186,46 @@ fn check_common_locations(is_64bit: bool) -> Option<std::path::PathBuf> {
         "C:\\SDIO".to_string(),
         format!("{}\\SDIO", std::env::var("USERPROFILE").unwrap_or_default()),
     ];
-    
+
     for location in &possible_locations {
         let base_path = PathBuf::from(location);
         if !base_path.exists() {
             continue;
         }
-        
+
         // Try SDIO_auto.bat first
         let auto_bat = base_path.join("SDIO_auto.bat");
         if auto_bat.exists() {
             return Some(auto_bat);
         }
-        
+
         // Try versioned executables
         if let Some(exe) = find_versioned_executable(&base_path, is_64bit) {
             return Some(exe);
         }
     }
-    
+
     None
 }
 
 /// Finds versioned SDIO executables in a directory
 fn find_versioned_executable(dir: &std::path::Path, is_64bit: bool) -> Option<std::path::PathBuf> {
     use std::fs;
-    
+
     let Ok(entries) = fs::read_dir(dir) else {
         return None;
     };
-    
+
     let mut candidates = Vec::new();
-    
+
     for entry in entries.flatten() {
         let file_name = entry.file_name();
         let name = file_name.to_string_lossy();
-        
+
         // Look for SDIO executables
         if name.starts_with("SDIO") && name.ends_with(".exe") {
             let path = entry.path();
-            
+
             if is_64bit && name.contains("x64") {
                 // Prefer 64-bit on 64-bit systems
                 candidates.insert(0, path);
@@ -233,7 +235,7 @@ fn find_versioned_executable(dir: &std::path::Path, is_64bit: bool) -> Option<st
             }
         }
     }
-    
+
     candidates.into_iter().next()
 }
 
@@ -246,13 +248,13 @@ fn find_sdio_by_pattern(is_64bit: bool) -> Option<std::path::PathBuf> {
     } else {
         vec!["SDIO_R*.exe", "SDIO.exe"]
     };
-    
+
     for pattern in patterns {
         if let Some(exe) = which(pattern) {
             return Some(exe);
         }
     }
-    
+
     None
 }
 
