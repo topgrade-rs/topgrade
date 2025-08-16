@@ -86,7 +86,15 @@ pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
 /// - Directory paths are quoted for safety
 /// - Error handling uses "onerror" commands with goto labels
 /// - Proper command ordering (checkupdates before init, etc.)
+/// 
+/// **Important**: This step requires explicit opt-in via the `enable_sdio = true` 
+/// configuration setting due to the critical nature of driver updates.
 pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
+    // Check if SDIO is explicitly enabled by the user
+    if !ctx.config().enable_sdio() {
+        return Err(SkipStep(t!("SDIO driver updates are disabled. Enable with 'enable_sdio = true' in [windows] section").to_string()).into());
+    }
+
     let sdio = if let Some(configured_path) = ctx.config().sdio_path() {
         // Use configured path first
         require(configured_path)?

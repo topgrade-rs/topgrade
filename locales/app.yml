@@ -1208,6 +1208,14 @@ _version: 2
   zh_CN: "未找到 SDIO (Snappy Driver Installer Origin)"
   zh_TW: "找不到 SDIO (Snappy Driver Installer Origin)"
   de: "SDIO (Snappy Driver Installer Origin) nicht gefunden"
+"SDIO driver updates are disabled. Enable with 'enable_sdio = true' in [windows] section":
+  en: "SDIO driver updates are disabled. Enable with 'enable_sdio = true' in [windows] section"
+  lt: "SDIO tvarkyklių atnaujinimai išjungti. Įjunkite su 'enable_sdio = true' [windows] sekcijoje"
+  es: "Las actualizaciones de controladores SDIO están deshabilitadas. Habilite con 'enable_sdio = true' en la sección [windows]"
+  fr: "Les mises à jour des pilotes SDIO sont désactivées. Activez avec 'enable_sdio = true' dans la section [windows]"
+  zh_CN: "SDIO 驱动程序更新已禁用。在 [windows] 部分使用 'enable_sdio = true' 启用"
+  zh_TW: "SDIO 驅動程式更新已停用。在 [windows] 部分使用 'enable_sdio = true' 啟用"
+  de: "SDIO-Treiberupdates sind deaktiviert. Mit 'enable_sdio = true' im Abschnitt [windows] aktivieren"
 "Snappy Driver Installer Origin":
   en: "Snappy Driver Installer Origin"
   lt: "Snappy Driver Installer Origin"

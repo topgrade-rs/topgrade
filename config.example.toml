@@ -255,6 +255,13 @@
 # (default: false)
 # winget_use_sudo = true
 
+# Enable SDIO (Snappy Driver Installer Origin) driver updates
+# WARNING: Driver updates can potentially cause system instability if incompatible
+# drivers are installed. Only enable this if you understand the risks and have
+# system backups. SDIO will create restore points when possible for safety.
+# (default: false - requires explicit opt-in)
+# enable_sdio = true
+
 # Path to Snappy Driver Installer Origin (SDIO) executable
 # If not specified, Topgrade will try to find SDIO automatically by checking:
 # 1. SDIO_auto.bat (recommended) - automatically detects correct architecture

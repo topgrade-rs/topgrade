@@ -106,6 +106,7 @@ pub struct Windows {
     wsl_update_use_web_download: Option<bool>,
     winget_silent_install: Option<bool>,
     winget_use_sudo: Option<bool>,
+    enable_sdio: Option<bool>,
     sdio_path: Option<String>,
 }
 
@@ -1511,6 +1512,14 @@ impl Config {
             .windows
             .as_ref()
             .and_then(|windows| windows.sdio_path.as_deref())
+    }
+
+    pub fn enable_sdio(&self) -> bool {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|windows| windows.enable_sdio)
+            .unwrap_or(false)
     }
 
     pub fn sudo_command(&self) -> Option<SudoKind> {
