@@ -3,14 +3,15 @@ use std::{ffi::OsStr, process::Command};
 
 use color_eyre::eyre::Result;
 use etcetera::base_strategy::BaseStrategy;
-use tracing::debug;
+use tracing::{debug, info};
 
 use crate::command::CommandExt;
+use crate::error::SkipStep;
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
+use crate::steps::git::RepoStep;
 use crate::terminal::{print_separator, print_warning};
 use crate::utils::{require, which};
-use crate::{error::SkipStep, steps::git::RepoStep};
 use rust_i18n::t;
 
 pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
@@ -72,6 +73,320 @@ pub fn run_scoop(ctx: &ExecutionContext) -> Result<()> {
         ctx.execute(&scoop).args(["cache", "rm", "-a"]).status_checked()?
     }
     Ok(())
+}
+
+/// Updates drivers using Snappy Driver Installer Origin (SDIO).
+///
+/// SDIO is a free open-source tool for downloading and installing drivers.
+/// It will be executed in script mode to automatically download missing driver packs
+/// and install missing drivers with restore point creation when possible.
+///
+/// Script generation follows the official SDIO scripting manual syntax:
+/// - Commands don't use leading "-" or "/" signs
+/// - Directory paths are quoted for safety
+/// - Error handling uses "onerror" commands with goto labels
+/// - Proper command ordering (checkupdates before init, etc.)
+///
+/// **Important**: This step requires explicit opt-in via the `enable_sdio = true`
+/// configuration setting due to the critical nature of driver updates.
+pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
+    // Check if SDIO is explicitly enabled by the user
+    if !ctx.config().enable_sdio() {
+        return Err(SkipStep(
+            t!("SDIO driver updates are disabled. Enable with 'enable_sdio = true' in [windows] section").to_string(),
+        )
+        .into());
+    }
+
+    let sdio = if let Some(configured_path) = ctx.config().sdio_path() {
+        // Use configured path first
+        require(configured_path)?
+    } else {
+        // Try to detect SDIO automatically using various methods
+        detect_sdio()?
+    };
+
+    print_separator(t!("Snappy Driver Installer Origin"));
+
+    // Create dedicated temp directory for SDIO operations
+    let sdio_work_dir = std::env::temp_dir().join("topgrade_sdio");
+    std::fs::create_dir_all(&sdio_work_dir).ok();
+
+    // Create a dynamic SDIO script based on run mode
+    let script_content = if ctx.run_type().dry() {
+        // Dry-run script: analyze devices without installing
+        format!(
+            r#"# Topgrade SDIO Analysis Script
+# This script analyzes the system for driver updates without installing
+
+# Configure directories (quoted for safety)
+extractdir "{}"
+logdir "{}"
+
+# Enable logging for dry-run analysis
+logging on
+{}
+
+# Initialize and scan system
+echo Initializing SDIO and scanning system for analysis...
+init
+onerror goto end
+
+# Generate device analysis report before selection
+writedevicelist device_analysis_before.txt
+
+# Select missing and better drivers for analysis
+echo Analyzing available driver updates...
+select missing better
+
+# Generate device analysis report after selection
+writedevicelist device_analysis_after.txt
+
+# Display analysis results
+echo Analysis complete - no drivers installed in dry-run mode
+echo Check device_analysis_before.txt and device_analysis_after.txt for details
+
+:end
+# End without installation
+end
+"#,
+            sdio_work_dir.display(),
+            sdio_work_dir.join("logs").display(),
+            if ctx.config().verbose() {
+                "debug on\nverbose 255"
+            } else {
+                "verbose 128"
+            }
+        )
+    } else {
+        // Real installation script
+        format!(
+            r#"# Topgrade SDIO Installation Script
+# This script automatically updates drivers with safety measures
+
+# Configure directories (quoted for safety)
+extractdir "{}"
+logdir "{}"
+
+# Enable logging
+logging on
+{}
+
+# Check for updates first (before init for better performance)
+echo Checking for SDIO updates...
+checkupdates
+onerror goto end
+
+# Initialize and scan system
+echo Initializing SDIO and scanning system...
+init
+onerror goto end
+
+# Generate initial device report
+writedevicelist initial_device_report.txt
+
+# Create restore point for safety (quoted description)
+echo Creating system restore point...
+restorepoint "Topgrade SDIO Driver Update"
+onerror echo Warning: Failed to create restore point, continuing anyway...
+
+# Select missing and better drivers
+echo Selecting drivers for installation...
+select missing better
+
+# Install selected drivers (will auto-download if needed)
+echo Installing selected drivers...
+install
+onerror echo Warning: Some drivers may have failed to install
+
+# Generate final device report
+writedevicelist final_device_report.txt
+
+# Check if reboot is needed and inform user
+echo Driver installation complete
+echo Check initial_device_report.txt and final_device_report.txt for details
+
+:end
+# End script
+end
+"#,
+            sdio_work_dir.display(),
+            sdio_work_dir.join("logs").display(),
+            if ctx.config().verbose() {
+                "debug on\nverbose 255"
+            } else {
+                "verbose 128"
+            }
+        )
+    };
+
+    // Write the script to temp directory
+    let script_path = sdio_work_dir.join("topgrade_sdio_script.txt");
+    std::fs::write(&script_path, script_content)
+        .map_err(|e| SkipStep(format!("Failed to create SDIO script: {}", e)))?;
+
+    // Build script-based command arguments (non-deprecated)
+    let mut args = vec![format!("-script:{}", script_path.display())];
+
+    // Add additional non-deprecated options
+    args.extend_from_slice(&[
+        "-nologfile".to_string(),   // We handle logging through the script
+        "-nostamp".to_string(),     // Clean log format
+        "-preservecfg".to_string(), // Don't overwrite config
+    ]);
+
+    // Log the command being executed for transparency
+    debug!("SDIO command: {:?} {:?}", sdio, args);
+    info!("Running SDIO script: {}", script_path.display());
+    info!("SDIO working directory: {}", sdio_work_dir.display());
+
+    let mut command = ctx.execute(&sdio);
+    command.args(&args);
+    command.current_dir(&sdio_work_dir);
+
+    let result = command.status_checked();
+
+    // Print separator after execution for clean output formatting
+    print_separator("");
+
+    result
+}
+
+/// Detects SDIO installation using multiple strategies based on SDIO documentation
+fn detect_sdio() -> Result<std::path::PathBuf> {
+    let is_64bit = std::env::consts::ARCH == "x86_64";
+
+    // Strategy 1: Try configured or PATH-based executables first
+    // Priority order based on SDIO documentation:
+    // 1. Architecture-specific versioned executables (SDIO_x64_R*.exe, SDIO_R*.exe)
+    // 2. Generic architecture executables (SDIO_x64.exe, SDIO.exe)
+    // 3. Batch files (SDIO_auto.bat) - less reliable for automation
+
+    let executable_patterns = if is_64bit {
+        vec![
+            "SDIO_x64_R*.exe", // 64-bit versioned (highest priority)
+            "SDIO_x64.exe",    // 64-bit generic
+            "SDIO_R*.exe",     // 32-bit versioned (fallback)
+            "SDIO.exe",        // Generic executable
+            "SDIO_auto.bat",   // Batch file (lowest priority)
+            "sdio",            // Generic name for scoop/chocolatey
+        ]
+    } else {
+        vec![
+            "SDIO_R*.exe",   // 32-bit versioned (highest priority)
+            "SDIO.exe",      // Generic executable
+            "SDIO_auto.bat", // Batch file
+            "sdio",          // Generic name
+        ]
+    };
+
+    // Strategy 2: Try each pattern in PATH
+    for pattern in &executable_patterns {
+        if let Some(exe) = which(pattern) {
+            return Ok(exe);
+        }
+    }
+
+    // Strategy 3: Check common installation locations
+    if let Some(exe) = check_common_locations(is_64bit) {
+        return Ok(exe);
+    }
+
+    // Strategy 4: Use glob patterns as final fallback
+    if let Some(exe) = find_sdio_by_pattern(is_64bit) {
+        return Ok(exe);
+    }
+
+    Err(SkipStep(t!("SDIO (Snappy Driver Installer Origin) not found").to_string()).into())
+}
+
+/// Checks common SDIO installation locations
+fn check_common_locations(is_64bit: bool) -> Option<std::path::PathBuf> {
+    use std::path::PathBuf;
+
+    let possible_locations = [
+        // Scoop installation in user profile
+        format!(
+            "{}\\scoop\\apps\\snappy-driver-installer-origin\\current",
+            std::env::var("USERPROFILE").unwrap_or_default()
+        ),
+        // Common program files locations
+        "C:\\Program Files\\SDIO".to_string(),
+        "C:\\Program Files (x86)\\SDIO".to_string(),
+        // Portable installations
+        "C:\\SDIO".to_string(),
+        format!("{}\\SDIO", std::env::var("USERPROFILE").unwrap_or_default()),
+    ];
+
+    for location in &possible_locations {
+        let base_path = PathBuf::from(location);
+        if !base_path.exists() {
+            continue;
+        }
+
+        // Try SDIO_auto.bat first
+        let auto_bat = base_path.join("SDIO_auto.bat");
+        if auto_bat.exists() {
+            return Some(auto_bat);
+        }
+
+        // Try versioned executables
+        if let Some(exe) = find_versioned_executable(&base_path, is_64bit) {
+            return Some(exe);
+        }
+    }
+
+    None
+}
+
+/// Finds versioned SDIO executables in a directory
+fn find_versioned_executable(dir: &std::path::Path, is_64bit: bool) -> Option<std::path::PathBuf> {
+    use std::fs;
+
+    let Ok(entries) = fs::read_dir(dir) else {
+        return None;
+    };
+
+    let mut candidates = Vec::new();
+
+    for entry in entries.flatten() {
+        let file_name = entry.file_name();
+        let name = file_name.to_string_lossy();
+
+        // Look for SDIO executables
+        if name.starts_with("SDIO") && name.ends_with(".exe") {
+            let path = entry.path();
+
+            if is_64bit && name.contains("x64") {
+                // Prefer 64-bit on 64-bit systems
+                candidates.insert(0, path);
+            } else if name.starts_with("SDIO_R") || name == "SDIO.exe" {
+                // Add other versions
+                candidates.push(path);
+            }
+        }
+    }
+
+    candidates.into_iter().next()
+}
+
+/// Uses glob patterns to find SDIO executables
+fn find_sdio_by_pattern(is_64bit: bool) -> Option<std::path::PathBuf> {
+    // This is a fallback - in practice, the other methods should find SDIO
+    // But we keep this as a safety net
+    let patterns = if is_64bit {
+        vec!["SDIO_x64*.exe", "SDIO*.exe"]
+    } else {
+        vec!["SDIO_R*.exe", "SDIO.exe"]
+    };
+
+    for pattern in patterns {
+        if let Some(exe) = which(pattern) {
+            return Some(exe);
+        }
+    }
+
+    None
 }
 
 pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {

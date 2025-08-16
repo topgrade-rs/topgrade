@@ -40,6 +40,16 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 Other systems users can either use `cargo install` or the compiled binaries from the release page.
 The compiled binaries contain a self-upgrading feature.
 
+### Windows Features
+
+On Windows, Topgrade supports updating:
+- **Package Managers**: Chocolatey, Scoop, Winget
+- **System Updates**: Windows Update, Microsoft Store apps
+- **Driver Updates**: SDIO (Snappy Driver Installer Origin) - *requires explicit opt-in*
+- **Development Tools**: Various language package managers and development environments
+
+*Note: Driver updates via SDIO require setting `enable_sdio = true` in your configuration file due to the critical nature of driver installations.*
+
 ## Usage
 
 Just run `topgrade`.
