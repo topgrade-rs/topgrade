@@ -228,8 +228,13 @@ end
 
     // Write the script to temp directory
     let script_path = sdio_work_dir.join("topgrade_sdio_script.txt");
-    std::fs::write(&script_path, script_content)
-        .map_err(|e| SkipStep(format!("Failed to create SDIO script at {}: {}", script_path.display(), e)))?;
+    std::fs::write(&script_path, script_content).map_err(|e| {
+        SkipStep(format!(
+            "Failed to create SDIO script at {}: {}",
+            script_path.display(),
+            e
+        ))
+    })?;
 
     // Build script-based command arguments (non-deprecated)
     let mut args = vec![format!("-script:{}", script_path.display())];
@@ -279,7 +284,7 @@ fn detect_sdio() -> Result<std::path::PathBuf> {
 /// Detects SDIO executables in PATH with architecture-aware priority
 fn detect_sdio_in_path(is_64bit: bool) -> Option<std::path::PathBuf> {
     let executable_patterns = get_sdio_executable_patterns(is_64bit);
-    
+
     for pattern in &executable_patterns {
         if let Some(exe) = which(pattern) {
             return Some(exe);
@@ -312,7 +317,7 @@ fn get_sdio_executable_patterns(is_64bit: bool) -> Vec<&'static str> {
 /// Detects SDIO in common installation locations
 fn detect_sdio_in_common_locations(is_64bit: bool) -> Option<std::path::PathBuf> {
     let locations = get_common_sdio_locations();
-    
+
     for location in locations {
         let base_path = std::path::PathBuf::from(location);
         if !base_path.exists() {
@@ -380,10 +385,10 @@ fn find_best_executable_in_dir(dir: &Path, is_64bit: bool) -> Option<std::path::
 fn get_executable_priority(name: &str, is_64bit: bool) -> u32 {
     match (name, is_64bit) {
         (name, true) if name.contains("x64") && name.starts_with("SDIO_x64_R") => 1, // 64-bit versioned
-        (name, true) if name.contains("x64") => 2,                                     // 64-bit generic
-        (name, _) if name.starts_with("SDIO_R") => 3,                                 // Versioned
-        ("SDIO.exe", _) => 4,                                                          // Generic
-        _ => 5,                                                                        // Others
+        (name, true) if name.contains("x64") => 2,                                   // 64-bit generic
+        (name, _) if name.starts_with("SDIO_R") => 3,                                // Versioned
+        ("SDIO.exe", _) => 4,                                                        // Generic
+        _ => 5,                                                                      // Others
     }
 }
 
@@ -394,16 +399,12 @@ mod tests {
     #[test]
     fn test_sdio_detection_methods() {
         // Test that SDIO detection doesn't panic with various inputs - using PATH detection
-        let _ = std::panic::catch_unwind(|| {
-            detect_sdio_in_path(true)
-        });
-        
-        let _ = std::panic::catch_unwind(|| {
-            detect_sdio_in_path(false)
-        });
+        let _ = std::panic::catch_unwind(|| detect_sdio_in_path(true));
+
+        let _ = std::panic::catch_unwind(|| detect_sdio_in_path(false));
     }
 
-    #[test] 
+    #[test]
     fn test_sdio_detection_error_handling() {
         // Test that PATH detection handles missing executables gracefully
         let result = detect_sdio_in_path(true);
@@ -425,10 +426,13 @@ mod tests {
     fn test_common_sdio_locations_format() {
         // Verify common SDIO locations are reasonable
         let common_locations = get_common_sdio_locations();
-        
+
         // Should have at least a few common locations
-        assert!(!common_locations.is_empty(), "Should have common SDIO locations defined");
-        
+        assert!(
+            !common_locations.is_empty(),
+            "Should have common SDIO locations defined"
+        );
+
         // All locations should be reasonable Windows paths
         for location in &common_locations {
             assert!(!location.is_empty(), "Location should not be empty: {:?}", location);
