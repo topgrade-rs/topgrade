@@ -17,7 +17,7 @@ use rust_i18n::t;
 // Windows submodules
 pub mod sdio;
 
-// Re-export for compatibility  
+// Re-export for compatibility
 pub use self::sdio::run_sdio;
 
 pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
