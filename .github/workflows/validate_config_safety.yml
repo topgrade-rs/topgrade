@@ -19,6 +19,11 @@ jobs:
     steps:
     - uses: actions/checkout@v5.0.0
     
+    - name: Setup Rust Cache
+      uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+      with:
+        prefix-key: config-safety
+    
     - name: Setup Rust
       uses: actions-rs/toolchain@v1
       with:
@@ -30,16 +35,46 @@ jobs:
     
     - name: Validate safe defaults in example config
       run: |
+        set -euo pipefail  # Exit on any error, undefined variable, or pipe failure
+        
+        # Function to test SDIO detection with timeout
+        test_sdio_detection() {
+          local config_file="$1"
+          local should_detect="$2"
+          local description="$3"
+          
+          echo "Testing $description..."
+          
+          if timeout 10 cargo run -- --config "$config_file" --dry-run --only sdio 2>&1 | grep -q "Snappy Driver Installer Origin"; then
+            if [[ "$should_detect" == "true" ]]; then
+              echo "✓ $description properly detected SDIO"
+              return 0
+            else
+              echo "❌ UNSAFE: $description enables dangerous features!"
+              return 1
+            fi
+          else
+            if [[ "$should_detect" == "false" ]]; then
+              echo "✓ $description properly disables dangerous features"
+              return 0
+            else
+              echo "❌ FAILURE: $description should have detected SDIO"
+              return 1
+            fi
+          fi
+        }
+        
         # Create config with dangerous options uncommented
-        echo "[misc]" > test_dangerous.toml
-        echo "assume_yes = true" >> test_dangerous.toml
-        echo "[windows]" >> test_dangerous.toml  
-        echo "enable_sdio = true" >> test_dangerous.toml
-        echo "winget_use_sudo = true" >> test_dangerous.toml
+        cat > test_dangerous.toml << 'EOF'
+        [misc]
+        assume_yes = true
+        [windows]
+        enable_sdio = true
+        winget_use_sudo = true
+        EOF
         
         # Test that dangerous config would actually run SDIO (we expect this)
-        echo "Testing that dangerous config enables SDIO..."
-        TOPGRADE_SKIP_BRKC_NOTIFY=true timeout 10 cargo run -- --config test_dangerous.toml --dry-run --only sdio | grep -q "Snappy Driver Installer Origin" && echo "✓ Dangerous config properly detected"
+        test_sdio_detection "test_dangerous.toml" "true" "dangerous config"
         
         # Create config by uncommenting safe defaults from example
         sed 's/^# \(enable_sdio = false\)/\1/' config.example.toml > test_safe.toml
@@ -47,7 +82,9 @@ jobs:
         sed -i 's/^# \(winget_use_sudo = false\)/\1/' test_safe.toml
         
         # Test that safe config doesn't run SDIO
-        echo "Testing that safe uncommented config disables SDIO..."
-        TOPGRADE_SKIP_BRKC_NOTIFY=true timeout 10 cargo run -- --config test_safe.toml --dry-run --only sdio 2>&1 | grep -q "Snappy Driver Installer Origin" && echo "❌ UNSAFE: Example config enables dangerous features!" && exit 1 || echo "✓ Safe config properly disables dangerous features"
+        test_sdio_detection "test_safe.toml" "false" "safe uncommented config"
+        
+        # Clean up temporary files
+        rm -f test_dangerous.toml test_safe.toml
         
         echo "✅ Configuration safety validation passed!"

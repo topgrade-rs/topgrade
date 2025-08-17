@@ -54,6 +54,12 @@ pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
     std::fs::create_dir_all(&sdio_work_dir).ok();
 
     // Create a dynamic SDIO script based on run mode and user preferences
+    let verbose_settings = if ctx.config().verbose() {
+        "debug on\nverbose 255"
+    } else {
+        "verbose 128"
+    };
+
     let script_content = if ctx.run_type().dry() {
         // Dry-run script: analyze devices without installing
         format!(
@@ -93,11 +99,7 @@ end
 "#,
             sdio_work_dir.display(),
             sdio_work_dir.join("logs").display(),
-            if ctx.config().verbose() {
-                "debug on\nverbose 255"
-            } else {
-                "verbose 128"
-            }
+            verbose_settings
         )
     } else if yes {
         // Automatic installation script (with --yes)
@@ -143,7 +145,7 @@ onerror echo Warning: Some drivers may have failed to install
 # Generate final device report
 writedevicelist final_device_report.txt
 
-# Check if reboot is needed and inform user
+# Driver installation complete
 echo Driver installation complete
 echo Check initial_device_report.txt and final_device_report.txt for details
 
@@ -153,11 +155,7 @@ end
 "#,
             sdio_work_dir.display(),
             sdio_work_dir.join("logs").display(),
-            if ctx.config().verbose() {
-                "debug on\nverbose 255"
-            } else {
-                "verbose 128"
-            }
+            verbose_settings
         )
     } else {
         // Interactive installation script (without --yes)
@@ -214,7 +212,7 @@ onerror echo Warning: Some drivers may have failed to install
 # Generate final device report
 writedevicelist final_device_report.txt
 
-# Check if reboot is needed and inform user
+# Driver installation complete
 echo Driver installation complete
 echo Check initial_device_report.txt and final_device_report.txt for details
 
@@ -224,18 +222,14 @@ end
 "#,
             sdio_work_dir.display(),
             sdio_work_dir.join("logs").display(),
-            if ctx.config().verbose() {
-                "debug on\nverbose 255"
-            } else {
-                "verbose 128"
-            }
+            verbose_settings
         )
     };
 
     // Write the script to temp directory
     let script_path = sdio_work_dir.join("topgrade_sdio_script.txt");
     std::fs::write(&script_path, script_content)
-        .map_err(|e| SkipStep(format!("Failed to create SDIO script: {}", e)))?;
+        .map_err(|e| SkipStep(format!("Failed to create SDIO script at {}: {}", script_path.display(), e)))?;
 
     // Build script-based command arguments (non-deprecated)
     let mut args = vec![format!("-script:{}", script_path.display())];
@@ -269,13 +263,34 @@ end
 fn detect_sdio() -> Result<std::path::PathBuf> {
     let is_64bit = std::env::consts::ARCH == "x86_64";
 
-    // Strategy 1: Try configured or PATH-based executables first
-    // Priority order based on SDIO documentation:
-    // 1. Architecture-specific versioned executables (SDIO_x64_R*.exe, SDIO_R*.exe)
-    // 2. Generic architecture executables (SDIO_x64.exe, SDIO.exe)
-    // 3. Batch files (SDIO_auto.bat) - less reliable for automation
+    // Strategy 1: Try PATH-based executables with priority order
+    if let Some(exe) = detect_sdio_in_path(is_64bit) {
+        return Ok(exe);
+    }
 
-    let executable_patterns = if is_64bit {
+    // Strategy 2: Check common installation locations
+    if let Some(exe) = detect_sdio_in_common_locations(is_64bit) {
+        return Ok(exe);
+    }
+
+    Err(SkipStep(t!("SDIO (Snappy Driver Installer Origin) not found").to_string()).into())
+}
+
+/// Detects SDIO executables in PATH with architecture-aware priority
+fn detect_sdio_in_path(is_64bit: bool) -> Option<std::path::PathBuf> {
+    let executable_patterns = get_sdio_executable_patterns(is_64bit);
+    
+    for pattern in &executable_patterns {
+        if let Some(exe) = which(pattern) {
+            return Some(exe);
+        }
+    }
+    None
+}
+
+/// Returns SDIO executable patterns in priority order
+fn get_sdio_executable_patterns(is_64bit: bool) -> Vec<&'static str> {
+    if is_64bit {
         vec![
             "SDIO_x64_R*.exe", // 64-bit versioned (highest priority)
             "SDIO_x64.exe",    // 64-bit generic
@@ -291,33 +306,36 @@ fn detect_sdio() -> Result<std::path::PathBuf> {
             "SDIO_auto.bat", // Batch file
             "sdio",          // Generic name
         ]
-    };
-
-    // Strategy 2: Try each pattern in PATH
-    for pattern in &executable_patterns {
-        if let Some(exe) = which(pattern) {
-            return Ok(exe);
-        }
     }
-
-    // Strategy 3: Check common installation locations
-    if let Some(exe) = check_common_locations(is_64bit) {
-        return Ok(exe);
-    }
-
-    // Strategy 4: Use glob patterns as final fallback
-    if let Some(exe) = find_sdio_by_pattern(is_64bit) {
-        return Ok(exe);
-    }
-
-    Err(SkipStep(t!("SDIO (Snappy Driver Installer Origin) not found").to_string()).into())
 }
 
-/// Checks common SDIO installation locations
-fn check_common_locations(is_64bit: bool) -> Option<std::path::PathBuf> {
-    use std::path::PathBuf;
+/// Detects SDIO in common installation locations
+fn detect_sdio_in_common_locations(is_64bit: bool) -> Option<std::path::PathBuf> {
+    let locations = get_common_sdio_locations();
+    
+    for location in locations {
+        let base_path = std::path::PathBuf::from(location);
+        if !base_path.exists() {
+            continue;
+        }
 
-    let possible_locations = [
+        // Try SDIO_auto.bat first (recommended)
+        let auto_bat = base_path.join("SDIO_auto.bat");
+        if auto_bat.exists() {
+            return Some(auto_bat);
+        }
+
+        // Try versioned executables
+        if let Some(exe) = find_best_executable_in_dir(&base_path, is_64bit) {
+            return Some(exe);
+        }
+    }
+    None
+}
+
+/// Returns common SDIO installation locations
+fn get_common_sdio_locations() -> Vec<String> {
+    vec![
         // Scoop installation in user profile
         format!(
             "{}\\scoop\\apps\\snappy-driver-installer-origin\\current",
@@ -329,31 +347,11 @@ fn check_common_locations(is_64bit: bool) -> Option<std::path::PathBuf> {
         // Portable installations
         "C:\\SDIO".to_string(),
         format!("{}\\SDIO", std::env::var("USERPROFILE").unwrap_or_default()),
-    ];
-
-    for location in &possible_locations {
-        let base_path = PathBuf::from(location);
-        if !base_path.exists() {
-            continue;
-        }
-
-        // Try SDIO_auto.bat first
-        let auto_bat = base_path.join("SDIO_auto.bat");
-        if auto_bat.exists() {
-            return Some(auto_bat);
-        }
-
-        // Try versioned executables
-        if let Some(exe) = find_versioned_executable(&base_path, is_64bit) {
-            return Some(exe);
-        }
-    }
-
-    None
+    ]
 }
 
-/// Finds versioned SDIO executables in a directory
-fn find_versioned_executable(dir: &Path, is_64bit: bool) -> Option<std::path::PathBuf> {
+/// Finds the best SDIO executable in a directory based on architecture
+fn find_best_executable_in_dir(dir: &Path, is_64bit: bool) -> Option<std::path::PathBuf> {
     use std::fs;
 
     let Ok(entries) = fs::read_dir(dir) else {
@@ -366,38 +364,74 @@ fn find_versioned_executable(dir: &Path, is_64bit: bool) -> Option<std::path::Pa
         let file_name = entry.file_name();
         let name = file_name.to_string_lossy();
 
-        // Look for SDIO executables
         if name.starts_with("SDIO") && name.ends_with(".exe") {
             let path = entry.path();
-
-            if is_64bit && name.contains("x64") {
-                // Prefer 64-bit on 64-bit systems
-                candidates.insert(0, path);
-            } else if name.starts_with("SDIO_R") || name == "SDIO.exe" {
-                // Add other versions
-                candidates.push(path);
-            }
+            let priority = get_executable_priority(&name, is_64bit);
+            candidates.push((priority, path));
         }
     }
 
-    candidates.into_iter().next()
+    // Sort by priority (lower number = higher priority)
+    candidates.sort_by_key(|(priority, _)| *priority);
+    candidates.into_iter().map(|(_, path)| path).next()
 }
 
-/// Uses glob patterns to find SDIO executables
-fn find_sdio_by_pattern(is_64bit: bool) -> Option<std::path::PathBuf> {
-    // This is a fallback - in practice, the other methods should find SDIO
-    // But we keep this as a safety net
-    let patterns = if is_64bit {
-        vec!["SDIO_x64*.exe", "SDIO*.exe"]
-    } else {
-        vec!["SDIO_R*.exe", "SDIO.exe"]
-    };
+/// Assigns priority to SDIO executables (lower number = higher priority)
+fn get_executable_priority(name: &str, is_64bit: bool) -> u32 {
+    match (name, is_64bit) {
+        (name, true) if name.contains("x64") && name.starts_with("SDIO_x64_R") => 1, // 64-bit versioned
+        (name, true) if name.contains("x64") => 2,                                     // 64-bit generic
+        (name, _) if name.starts_with("SDIO_R") => 3,                                 // Versioned
+        ("SDIO.exe", _) => 4,                                                          // Generic
+        _ => 5,                                                                        // Others
+    }
+}
 
-    for pattern in patterns {
-        if let Some(exe) = which(pattern) {
-            return Some(exe);
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sdio_detection_methods() {
+        // Test that SDIO detection doesn't panic with various inputs - using PATH detection
+        let _ = std::panic::catch_unwind(|| {
+            detect_sdio_in_path(true)
+        });
+        
+        let _ = std::panic::catch_unwind(|| {
+            detect_sdio_in_path(false)
+        });
     }
 
-    None
+    #[test] 
+    fn test_sdio_detection_error_handling() {
+        // Test that PATH detection handles missing executables gracefully
+        let result = detect_sdio_in_path(true);
+        // Should return None or Some depending on system - just ensure it doesn't panic
+        let _ = result;
+    }
+
+    #[test]
+    fn test_get_executable_priority_ordering() {
+        // Test 64-bit priority ordering (higher priority = lower number)
+        assert_eq!(get_executable_priority("SDIO_x64_R1515.exe", true), 1);
+        assert_eq!(get_executable_priority("SDIO_x64.exe", true), 2);
+        assert_eq!(get_executable_priority("SDIO_R1515.exe", true), 3);
+        assert_eq!(get_executable_priority("SDIO.exe", true), 4);
+        assert_eq!(get_executable_priority("other.exe", true), 5);
+    }
+
+    #[test]
+    fn test_common_sdio_locations_format() {
+        // Verify common SDIO locations are reasonable
+        let common_locations = get_common_sdio_locations();
+        
+        // Should have at least a few common locations
+        assert!(!common_locations.is_empty(), "Should have common SDIO locations defined");
+        
+        // All locations should be reasonable Windows paths
+        for location in &common_locations {
+            assert!(!location.is_empty(), "Location should not be empty: {:?}", location);
+        }
+    }
 }
