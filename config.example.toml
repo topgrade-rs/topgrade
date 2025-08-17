@@ -1,10 +1,38 @@
+# ============================================================================
+# TOPGRADE CONFIGURATION
+# ============================================================================
+# This is an example configuration file for Topgrade.
+# Copy this to your config directory and uncomment/modify the options you need.
+# 
+# Configuration path: $CONFIG_DIR/topgrade.toml
+# - Windows: %APPDATA%\topgrade\topgrade.toml  
+# - macOS/Linux: ~/.config/topgrade/topgrade.toml
+#
+# TABLE OF CONTENTS:
+# - Includes: Configuration file inclusion
+# - General Settings: Core behavior and preferences  
+# - Command Hooks: Pre/post commands and custom commands
+# - Language & Runtime Environments: Python, Conda, Julia, Zigup, etc.
+# - Package Managers: Homebrew, Linux distros, Composer
+# - Version Control: Git repository settings
+# - Platform-Specific: Windows, Linux-specific configurations
+# - Editors & Development Tools: npm, yarn, deno, vim, vscode
+# - System & Hardware: Firmware, Vagrant
+# - Containerization: Flatpak, Distrobox, Containers  
+# - Specialized Tools: Lensfun, Pixi, etc.
+
+# ============================================================================
+# INCLUDES
+# ============================================================================
 # Include any additional configuration file(s)
 # [include] sections are processed in the order you write them
 # Files in $CONFIG_DIR/topgrade.d/ are automatically included before this file
 [include]
 # paths = ["/etc/topgrade.toml"]
 
-
+# ============================================================================
+# GENERAL SETTINGS
+# ============================================================================
 [misc]
 # Run `sudo -v` to cache credentials at the start of the run
 # This avoids a blocking password prompt in the middle of an unattended run
@@ -38,8 +66,9 @@
 # Display the time in step titles (default: true)
 # display_time = true
 
-# Don't ask for confirmations (no default value)
-# assume_yes = true
+# Don't ask for confirmations (WARNING: This skips all safety prompts!)
+# Only enable this for fully automated environments where you understand the risks
+# assume_yes = false
 
 # Do not ask to retry failed steps (default: false)
 # no_retry = true
@@ -53,8 +82,8 @@
 # (default: "attach_if_not_in_session", allowed values: "attach_if_not_in_session", "attach_always")
 # tmux_session_mode = "attach_if_not_in_session"
 
-# Cleanup temporary or old files (default: false)
-# cleanup = true
+# Cleanup temporary or old files (may remove files you want to keep!)
+# cleanup = false
 
 # Send a notification for every step (default: false)
 # notify_each_step = false
@@ -80,7 +109,9 @@
 # See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
 # log_filters = ["topgrade::command=debug", "warn"]
 
-
+# ============================================================================
+# COMMAND HOOKS
+# ============================================================================
 # Commands to run before anything
 [pre_commands]
 # "Emacs Snapshot" = "rm -rf ~/.emacs.d/elpa.bak && cp -rl ~/.emacs.d/elpa ~/.emacs.d/elpa.bak"
@@ -96,7 +127,9 @@
 # "Python Environment" = "~/dev/.env/bin/pip install -i https://pypi.python.org/simple -U --upgrade-strategy eager jupyter"
 # "Custom command using interactive shell (unix)" = "-i vim_upgrade"
 
-
+# ============================================================================
+# LANGUAGE & RUNTIME ENVIRONMENTS
+# ============================================================================
 [python]
 # enable_pip_review = true                         ###disabled by default
 # enable_pip_review_local = true                   ###disabled by default
@@ -127,7 +160,10 @@
 [composer]
 # self_update = true
 
-
+# ============================================================================
+# PACKAGE MANAGERS
+# ============================================================================
+# macOS Homebrew package manager configurations
 [brew]
 # For the BrewCask step
 # If `Repo Cask Upgrade` exists, then use the `-a` option.
@@ -147,14 +183,14 @@
 # greedy_auto_updates = true
 
 # For the BrewFormula step
-# Execute `brew autoremove` after the step.
-# autoremove = true
+# Execute `brew autoremove` after the step (removes unused dependencies)
+# autoremove = false
 
 # For the BrewFormula step
 # Upgrade formulae built from the HEAD branch; `brew upgrade --fetch-HEAD`
 # fetch_head = true
 
-
+# Linux distribution package managers and system tools
 [linux]
 # Arch Package Manager to use.
 # Allowed values:
@@ -204,7 +240,9 @@
 # Extra Home Manager arguments
 # home_manager_arguments = ["--flake", "file"]
 
-
+# ============================================================================
+# VERSION CONTROL
+# ============================================================================
 [git]
 # How many repos to pull at max in parallel
 # max_concurrency = 5
@@ -221,7 +259,11 @@
 # Arguments to pass Git when pulling Repositories
 # arguments = "--rebase --autostash"
 
-
+# ============================================================================
+# PLATFORM-SPECIFIC SETTINGS
+# ============================================================================
+# Windows-specific update configurations
+# IMPORTANT: Driver updates (SDIO) require explicit opt-in for safety
 [windows]
 # Manually select Windows updates
 # accept_all_updates = false
@@ -253,14 +295,14 @@
 # If any problems occur, please try running Topgrade without this option first
 # before reporting an issue.
 # (default: false)
-# winget_use_sudo = true
+# winget_use_sudo = false
 
 # Enable SDIO (Snappy Driver Installer Origin) driver updates
 # WARNING: Driver updates can potentially cause system instability if incompatible
 # drivers are installed. Only enable this if you understand the risks and have
 # system backups. SDIO will create restore points when possible for safety.
 # (default: false - requires explicit opt-in)
-# enable_sdio = true
+# enable_sdio = false
 
 # Path to Snappy Driver Installer Origin (SDIO) executable
 # If not specified, Topgrade will try to find SDIO automatically by checking:
@@ -272,7 +314,9 @@
 # sdio_path = "C:\\Program Files\\SDIO\\SDIO_x64_R1515.exe"
 # sdio_path = "C:\\SDIO\\SDIO_auto.bat"
 
-
+# ============================================================================
+# EDITORS & DEVELOPMENT TOOLS  
+# ============================================================================
 [npm]
 # Use sudo if the NPM directory isn't owned by the current user
 # use_sudo = true
@@ -292,7 +336,9 @@
 # For `vim-plug`, execute `PlugUpdate!` instead of `PlugUpdate`
 # force_plug_update = true
 
-
+# ============================================================================
+# SYSTEM & HARDWARE
+# ============================================================================
 [firmware]
 # Offer to update firmware; if false just check for and display available updates
 # upgrade = true
@@ -308,7 +354,9 @@
 # Always suspend vagrant boxes instead of powering off
 # always_suspend = true
 
-
+# ============================================================================
+# CONTAINERIZATION & VIRTUALIZATION
+# ============================================================================
 [flatpak]
 # Use sudo for updating the system-wide installation
 # use_sudo = true
@@ -324,6 +372,9 @@
 # Specify the runtime to use for containers (default: "docker", allowed values: "docker", "podman")
 # runtime = "podman"
 
+# ============================================================================
+# SPECIALIZED TOOLS
+# ============================================================================
 [lensfun]
 # If disabled, Topgrade invokes `lensfun‑update‑data` without root privilege,
 # then the update will be only available to you. Otherwise, `sudo` is required,

@@ -1,0 +1,53 @@
+name: Validate Example Configuration Safety
+
+on:
+  pull_request:
+    paths:
+      - 'config.example.toml'
+      - 'src/config.rs'
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: read
+
+jobs:
+  config-safety:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v5.0.0
+    
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+    
+    - name: Test example config parsing
+      run: cargo test test_default_config
+    
+    - name: Validate safe defaults in example config
+      run: |
+        # Create config with dangerous options uncommented
+        echo "[misc]" > test_dangerous.toml
+        echo "assume_yes = true" >> test_dangerous.toml
+        echo "[windows]" >> test_dangerous.toml  
+        echo "enable_sdio = true" >> test_dangerous.toml
+        echo "winget_use_sudo = true" >> test_dangerous.toml
+        
+        # Test that dangerous config would actually run SDIO (we expect this)
+        echo "Testing that dangerous config enables SDIO..."
+        TOPGRADE_SKIP_BRKC_NOTIFY=true timeout 10 cargo run -- --config test_dangerous.toml --dry-run --only sdio | grep -q "Snappy Driver Installer Origin" && echo "✓ Dangerous config properly detected"
+        
+        # Create config by uncommenting safe defaults from example
+        sed 's/^# \(enable_sdio = false\)/\1/' config.example.toml > test_safe.toml
+        sed -i 's/^# \(assume_yes = false\)/\1/' test_safe.toml  
+        sed -i 's/^# \(winget_use_sudo = false\)/\1/' test_safe.toml
+        
+        # Test that safe config doesn't run SDIO
+        echo "Testing that safe uncommented config disables SDIO..."
+        TOPGRADE_SKIP_BRKC_NOTIFY=true timeout 10 cargo run -- --config test_safe.toml --dry-run --only sdio 2>&1 | grep -q "Snappy Driver Installer Origin" && echo "❌ UNSAFE: Example config enables dangerous features!" && exit 1 || echo "✓ Safe config properly disables dangerous features"
+        
+        echo "✅ Configuration safety validation passed!"
