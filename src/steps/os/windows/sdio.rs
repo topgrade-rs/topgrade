@@ -6,6 +6,7 @@ use tracing::{debug, info};
 use crate::command::CommandExt;
 use crate::error::SkipStep;
 use crate::execution_context::ExecutionContext;
+use crate::step::Step;
 use crate::terminal::print_separator;
 use crate::utils::{require, which};
 use rust_i18n::t;
@@ -24,6 +25,9 @@ use rust_i18n::t;
 ///
 /// **Important**: This step requires explicit opt-in via the `enable_sdio = true`
 /// configuration setting due to the critical nature of driver updates.
+///
+/// **Interactive Mode** (without --yes): Shows available driver updates and asks for user confirmation
+/// **Automatic Mode** (with --yes): Installs drivers automatically without user interaction
 pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
     // Check if SDIO is explicitly enabled by the user
     if !ctx.config().enable_sdio() {
@@ -41,13 +45,15 @@ pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
         detect_sdio()?
     };
 
+    let yes = ctx.config().yes(Step::Sdio);
+
     print_separator(t!("Snappy Driver Installer Origin"));
 
     // Create dedicated temp directory for SDIO operations
     let sdio_work_dir = std::env::temp_dir().join("topgrade_sdio");
     std::fs::create_dir_all(&sdio_work_dir).ok();
 
-    // Create a dynamic SDIO script based on run mode
+    // Create a dynamic SDIO script based on run mode and user preferences
     let script_content = if ctx.run_type().dry() {
         // Dry-run script: analyze devices without installing
         format!(
@@ -93,11 +99,11 @@ end
                 "verbose 128"
             }
         )
-    } else {
-        // Real installation script
+    } else if yes {
+        // Automatic installation script (with --yes)
         format!(
-            r#"# Topgrade SDIO Installation Script
-# This script automatically updates drivers with safety measures
+            r#"# Topgrade SDIO Automatic Installation Script
+# This script automatically updates drivers with safety measures (--yes mode)
 
 # Configure directories (quoted for safety)
 extractdir "{}"
@@ -129,7 +135,78 @@ onerror echo Warning: Failed to create restore point, continuing anyway...
 echo Selecting drivers for installation...
 select missing better
 
-# Install selected drivers (will auto-download if needed)
+# Install selected drivers automatically (will auto-download if needed)
+echo Installing selected drivers automatically...
+install
+onerror echo Warning: Some drivers may have failed to install
+
+# Generate final device report
+writedevicelist final_device_report.txt
+
+# Check if reboot is needed and inform user
+echo Driver installation complete
+echo Check initial_device_report.txt and final_device_report.txt for details
+
+:end
+# End script
+end
+"#,
+            sdio_work_dir.display(),
+            sdio_work_dir.join("logs").display(),
+            if ctx.config().verbose() {
+                "debug on\nverbose 255"
+            } else {
+                "verbose 128"
+            }
+        )
+    } else {
+        // Interactive installation script (without --yes)
+        format!(
+            r#"# Topgrade SDIO Interactive Installation Script
+# This script shows available driver updates and asks for user confirmation
+
+# Configure directories (quoted for safety)
+extractdir "{}"
+logdir "{}"
+
+# Enable logging
+logging on
+{}
+
+# Check for updates first (before init for better performance)
+echo Checking for SDIO updates...
+checkupdates
+onerror goto end
+
+# Initialize and scan system
+echo Initializing SDIO and scanning system...
+init
+onerror goto end
+
+# Generate initial device report
+writedevicelist initial_device_report.txt
+
+# Select missing and better drivers for analysis
+echo Analyzing available driver updates...
+select missing better
+
+# Show what would be updated and ask for confirmation
+echo.
+echo === Driver Update Analysis ===
+echo The following drivers can be updated:
+showselected
+
+# Ask user for confirmation (SDIO will pause and wait for user input)
+echo.
+echo Press any key to continue with driver installation, or Ctrl+C to cancel...
+pause
+
+# Create restore point for safety (quoted description)
+echo Creating system restore point...
+restorepoint "Topgrade SDIO Driver Update"
+onerror echo Warning: Failed to create restore point, continuing anyway...
+
+# Install selected drivers after user confirmation
 echo Installing selected drivers...
 install
 onerror echo Warning: Some drivers may have failed to install
