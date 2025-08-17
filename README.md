@@ -54,7 +54,7 @@ Just run `topgrade`.
 
 ## Configuration
 
-See `config.example.toml` for an example configuration file.
+See [config.example.toml](config.example.toml) for an example configuration file.
 
 ## Migration and Breaking Changes
 
@@ -112,7 +112,7 @@ Just fork the repository and start coding.
 
 ### Contribution Guidelines
 
-See [CONTRIBUTING.md](https://github.com/topgrade-rs/topgrade/blob/master/CONTRIBUTING.md)
+See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Roadmap
 
