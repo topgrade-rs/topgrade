@@ -247,10 +247,11 @@ end
         "-preservecfg".to_string(), // Don't overwrite config
     ]);
 
-    // Log the command being executed for transparency
+    // Log the command being executed for transparency and security auditing
     debug!("SDIO command: {:?} {:?}", sdio, args);
     info!("Running SDIO script: {}", script_path.display());
     info!("SDIO working directory: {}", sdio_work_dir.display());
+    info!("SDIO binary location: {}", sdio.display());
 
     let mut command = ctx.execute(&sdio);
     command.args(&args);
