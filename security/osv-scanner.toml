@@ -2,4 +2,6 @@
 # proc-macro-error is compile-time only dependency with no runtime security risk
 # Used via merge crate which would require major code refactoring to replace
 
-IgnoredVulns = ["RUSTSEC-2024-0370"]
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0370"
+reason = "Compile-time only dependency via proc-macro, no runtime security risk"
