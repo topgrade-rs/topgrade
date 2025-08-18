@@ -1,0 +1,5 @@
+# OSV-Scanner configuration file
+# proc-macro-error is compile-time only dependency with no runtime security risk
+# Used via merge crate which would require major code refactoring to replace
+
+IgnoredVulns = ["RUSTSEC-2024-0370"]
