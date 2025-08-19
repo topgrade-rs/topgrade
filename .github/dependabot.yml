@@ -22,3 +22,15 @@ updates:
     groups:
       cargo-minor-patch:
         update-types: ["minor", "patch"]
+
+  - package-ecosystem: "rust-toolchain"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "06:00"
+      timezone: "UTC"
+    labels: ["dependencies", "rust-toolchain"]
+    commit-message:
+      prefix: "deps(rust)"
+      include: "scope"
