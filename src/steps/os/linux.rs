@@ -841,6 +841,7 @@ pub fn run_fwupdmgr(ctx: &ExecutionContext) -> Result<()> {
         updmgr.arg("update");
         if ctx.config().yes(Step::System) {
             updmgr.arg("-y");
+            updmgr.arg("--no-reboot-check");
         }
     } else {
         updmgr.arg("get-updates");
