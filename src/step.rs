@@ -154,6 +154,7 @@ pub enum Step {
     Vscode,
     VscodeInsiders,
     Vscodium,
+    VscodiumInsiders,
     Waydroid,
     Winget,
     Wsl,
@@ -627,6 +628,9 @@ impl Step {
             Vscodium => runner.execute(*self, "VSCodium extensions", || {
                 generic::run_vscodium_extensions_update(ctx)
             })?,
+            VscodiumInsiders => runner.execute(*self, "VSCodium Insiders extensions", || {
+                generic::run_vscodium_insiders_extensions_update(ctx)
+            })?,
             Waydroid =>
             {
                 #[cfg(target_os = "linux")]
@@ -770,6 +774,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Vscode,
         VscodeInsiders,
         Vscodium,
+        VscodiumInsiders,
         Conda,
         Mamba,
         Pixi,
