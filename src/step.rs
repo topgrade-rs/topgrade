@@ -152,6 +152,7 @@ pub enum Step {
     Vim,
     VoltaPackages,
     Vscode,
+    VscodeInsiders,
     Vscodium,
     Waydroid,
     Winget,
@@ -620,6 +621,9 @@ impl Step {
             Vscode => runner.execute(*self, "Visual Studio Code extensions", || {
                 generic::run_vscode_extensions_update(ctx)
             })?,
+            VscodeInsiders => runner.execute(*self, "Visual Studio Code Insiders extensions", || {
+                generic::run_vscode_insiders_extensions_update(ctx)
+            })?,
             Vscodium => runner.execute(*self, "VSCodium extensions", || {
                 generic::run_vscodium_extensions_update(ctx)
             })?,
@@ -764,6 +768,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Pipx,
         Pipxu,
         Vscode,
+        VscodeInsiders,
         Vscodium,
         Conda,
         Mamba,
