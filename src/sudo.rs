@@ -252,7 +252,7 @@ impl Sudo {
             },
             SudoPreserveEnv::Some(vars) => match self.kind {
                 SudoKind::Sudo => {
-                    cmd.arg(format!("--preserve_env={}", vars.join(",")));
+                    cmd.arg(format!("--preserve-env={}", vars.join(",")));
                 }
                 SudoKind::Run0 => {
                     for env in vars {
