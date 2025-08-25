@@ -441,15 +441,58 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
     command.args(["upgrade", "--no-dry-run"]).status_checked()
 }
 
-/// This functions runs for both VSCode and VSCodium, as most of the process is the same for both.
-fn run_vscode_compatible<const VSCODIUM: bool>(ctx: &ExecutionContext) -> Result<()> {
+enum VSCodeVariant {
+    Code,
+    CodeInsiders,
+    Codium,
+    CodiumInsiders,
+}
+
+impl VSCodeVariant {
+    fn name(&self) -> &'static str {
+        match self {
+            VSCodeVariant::Code => "VSCode",
+            VSCodeVariant::CodeInsiders => "VSCode Insiders",
+            VSCodeVariant::Codium => "VSCodium",
+            VSCodeVariant::CodiumInsiders => "VSCodium Insiders",
+        }
+    }
+
+    fn bin_name(&self) -> &'static str {
+        match self {
+            VSCodeVariant::Code => "code",
+            VSCodeVariant::CodeInsiders => "code-insiders",
+            VSCodeVariant::Codium => "codium",
+            VSCodeVariant::CodiumInsiders => "codium-insiders",
+        }
+    }
+
+    fn display_name(&self) -> &'static str {
+        match self {
+            VSCodeVariant::Code => "Visual Studio Code extensions",
+            VSCodeVariant::CodeInsiders => "Visual Studio Code Insiders extensions",
+            VSCodeVariant::Codium => "VSCodium extensions",
+            VSCodeVariant::CodiumInsiders => "VSCodium Insiders extensions",
+        }
+    }
+
+    fn supports_profiles(&self) -> bool {
+        match self {
+            VSCodeVariant::Code | VSCodeVariant::CodeInsiders => true,
+            VSCodeVariant::Codium | VSCodeVariant::CodiumInsiders => false,
+        }
+    }
+}
+
+/// This functions runs for VSCode, VSCode Insiders, VSCodium, and VSCodium Insiders, as most of the process is the same for all.
+fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Result<()> {
     // Calling VSCode/VSCodium in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
     if is_wsl()? {
         return Err(SkipStep(String::from("Should not run in WSL")).into());
     }
 
-    let name = if VSCODIUM { "VSCodium" } else { "VSCode" };
-    let bin_name = if VSCODIUM { "codium" } else { "code" };
+    let name = variant.name();
+    let bin_name = variant.bin_name();
     let bin = require(bin_name)?;
 
     // VSCode has update command only since 1.86 version ("january 2024" update), disable the update for prior versions
@@ -464,6 +507,8 @@ fn run_vscode_compatible<const VSCODIUM: bool>(ctx: &ExecutionContext) -> Result
         .next()
     {
         Some(item) => {
+            // Insiders versions have "-insider" suffix which we can simply ignore.
+            let item = item.trim_end_matches("-insider");
             // Strip leading zeroes because `semver` does not allow them, but VSCodium uses them sometimes.
             //  This is not the case for VSCode, but just in case, and it can't really cause any issues.
             let item = item
@@ -492,15 +537,11 @@ fn run_vscode_compatible<const VSCODIUM: bool>(ctx: &ExecutionContext) -> Result
         return Err(SkipStep(format!("Too old {name} version to have update extensions command")).into());
     }
 
-    print_separator(if VSCODIUM {
-        "VSCodium extensions"
-    } else {
-        "Visual Studio Code extensions"
-    });
+    print_separator(variant.display_name());
 
     let mut cmd = ctx.execute(bin);
-    // If its VSCode (not VSCodium)
-    if !VSCODIUM {
+    // If the variant supports profiles
+    if variant.supports_profiles() {
         // And we have configured use of a profile
         if let Some(profile) = ctx.config().vscode_profile() {
             // Add the profile argument
@@ -516,11 +557,19 @@ fn run_vscode_compatible<const VSCODIUM: bool>(ctx: &ExecutionContext) -> Result
 /// 1. Users could use both VSCode and VSCodium
 /// 2. Just in case, VSCodium could have incompatible changes with VSCode
 pub fn run_vscodium_extensions_update(ctx: &ExecutionContext) -> Result<()> {
-    run_vscode_compatible::<true>(ctx)
+    run_vscode_compatible(VSCodeVariant::Codium, ctx)
 }
 
 pub fn run_vscode_extensions_update(ctx: &ExecutionContext) -> Result<()> {
-    run_vscode_compatible::<false>(ctx)
+    run_vscode_compatible(VSCodeVariant::Code, ctx)
+}
+
+pub fn run_vscode_insiders_extensions_update(ctx: &ExecutionContext) -> Result<()> {
+    run_vscode_compatible(VSCodeVariant::CodeInsiders, ctx)
+}
+
+pub fn run_vscodium_insiders_extensions_update(ctx: &ExecutionContext) -> Result<()> {
+    run_vscode_compatible(VSCodeVariant::CodiumInsiders, ctx)
 }
 
 pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
