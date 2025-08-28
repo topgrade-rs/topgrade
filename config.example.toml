@@ -44,8 +44,8 @@
 # Do not ask to retry failed steps (default: false)
 # no_retry = true
 
-# Show all skipped steps at the end of a run (default: false)
-# Ignored if the "only" option is specified
+# Show the reason for skipped steps (default: false)
+# This has no effect if the "only" option is specified
 # show_skipped = true
 
 # Run inside tmux (default: false)
