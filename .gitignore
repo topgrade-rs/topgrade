@@ -25,3 +25,6 @@ sdio.cfg
 /drivers/
 /indexes/
 /tools/
+
+# Project documents not tracked in Git
+SDIO Reference Manual.pdf
