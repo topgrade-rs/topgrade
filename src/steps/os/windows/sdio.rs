@@ -296,14 +296,8 @@ end
                 ))
             })?;
 
-            debug!(
-                "SDIO command (install): {:?} -script {:?}",
-                sdio, install_script_path
-            );
-            info!(
-                "Running SDIO install script: {}",
-                install_script_path.display()
-            );
+            debug!("SDIO command (install): {:?} -script {:?}", sdio, install_script_path);
+            info!("Running SDIO install script: {}", install_script_path.display());
             let mut install_cmd = ctx.execute(&sdio);
             install_cmd.arg("-script").arg(&install_script_path);
             install_cmd.current_dir(&sdio_work_dir);
@@ -368,11 +362,7 @@ fn get_sdio_executable_names(is_64bit: bool) -> Vec<&'static str> {
             "sdio",
         ]
     } else {
-        vec![
-            "SDIO_auto.bat",
-            "SDIO.exe",
-            "sdio",
-        ]
+        vec!["SDIO_auto.bat", "SDIO.exe", "sdio"]
     }
 }
 
