@@ -1,0 +1,79 @@
+name: Validate Example Configuration Safety
+
+on:
+  pull_request:
+    paths:
+      - 'config.example.toml'
+      - 'src/config.rs'
+      - 'src/steps/os/windows/sdio.rs'
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: read
+
+jobs:
+  config-safety:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v5.0.0
+    
+    - name: Setup Rust Cache
+      uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+      with:
+        prefix-key: config-safety
+    
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+    
+    - name: Test example config parsing
+      run: cargo test test_default_config
+    
+    - name: Validate safe defaults in example config
+      run: |
+        set -euo pipefail  # Exit on any error, undefined variable, or pipe failure
+        
+        echo "Testing configuration safety by validating default values..."
+        
+        # Test 1: Verify that dangerous options are commented out or set to safe values
+        echo "✓ Checking that dangerous options are safely configured in example config..."
+        
+        # Check that enable_sdio is either commented out or set to false
+        if grep -E "^[[:space:]]*enable_sdio[[:space:]]*=[[:space:]]*true" config.example.toml; then
+          echo "❌ UNSAFE: enable_sdio is set to true by default!"
+          exit 1
+        else
+          echo "✓ enable_sdio is safely configured (commented out or set to false)"
+        fi
+        
+        # Check that assume_yes is either commented out or set to false
+        if grep -E "^[[:space:]]*assume_yes[[:space:]]*=[[:space:]]*true" config.example.toml; then
+          echo "❌ UNSAFE: assume_yes is set to true by default!"
+          exit 1
+        else
+          echo "✓ assume_yes is safely configured (commented out or set to false)"
+        fi
+        
+        # Check that winget_use_sudo is either commented out or set to false
+        if grep -E "^[[:space:]]*winget_use_sudo[[:space:]]*=[[:space:]]*true" config.example.toml; then
+          echo "❌ UNSAFE: winget_use_sudo is set to true by default!"
+          exit 1
+        else
+          echo "✓ winget_use_sudo is safely configured (commented out or set to false)"
+        fi
+        
+        # Test 2: Verify that the config file can be parsed without errors
+        echo "✓ Testing that example config can be parsed..."
+        if cargo run -- --config config.example.toml --help > /dev/null 2>&1; then
+          echo "✓ Example configuration parses successfully"
+        else
+          echo "❌ FAILURE: Example configuration has parsing errors!"
+          exit 1
+        fi
+        
+        echo "✅ Configuration safety validation passed!"
