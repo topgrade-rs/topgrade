@@ -262,6 +262,11 @@ pub fn check_is_python_2_or_shim(python: PathBuf) -> Result<PathBuf> {
 /// # Return value
 /// A reload handle will be returned so that we can change the log level at
 /// runtime.
+///
+/// Security note:
+/// To mitigate CVE-2025-58160 (ANSI escape sequence injection via logs),
+/// this project pins `tracing-subscriber` to 0.3.20. Do not downgrade.
+/// See: https://github.com/advisories/GHSA-xwfj-jgwm-7wp5
 pub fn install_tracing(filter_directives: &str) -> Result<Handle<EnvFilter, Registry>> {
     let env_filter = EnvFilter::try_new(filter_directives)
         .or_else(|_| EnvFilter::try_from_default_env())
