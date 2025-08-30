@@ -7,7 +7,7 @@ use crate::command::CommandExt;
 use crate::error::SkipStep;
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
-use crate::terminal::print_separator;
+use crate::terminal::{print_separator, prompt_yesno};
 use crate::utils::{require, which};
 use rust_i18n::t;
 
@@ -38,14 +38,16 @@ pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
     }
 
     let sdio = if let Some(configured_path) = ctx.config().sdio_path() {
-        // Use configured path first
-        require(configured_path)?
+        // Use configured path first (expand Windows env vars like %USERPROFILE%)
+        let expanded = expand_env_vars_windows(configured_path);
+        require(&expanded)?
     } else {
         // Try to detect SDIO automatically using various methods
         detect_sdio()?
     };
 
     let yes = ctx.config().yes(Step::Sdio);
+    let interactive = !ctx.run_type().dry() && !yes;
 
     print_separator(t!("Snappy Driver Installer Origin"));
 
@@ -158,10 +160,10 @@ end
             verbose_settings
         )
     } else {
-        // Interactive installation script (without --yes)
+        // Interactive analysis script (without --yes): analyze and exit without installing
         format!(
-            r#"# Topgrade SDIO Interactive Installation Script
-# This script shows available driver updates and asks for user confirmation
+            r#"# Topgrade SDIO Interactive Analysis Script
+# This script analyzes available driver updates and exits without installing
 
 # Configure directories (quoted for safety)
 extractdir "{}"
@@ -188,33 +190,13 @@ writedevicelist initial_device_report.txt
 echo Analyzing available driver updates...
 select missing better
 
-# Show what would be updated and ask for confirmation
+# Generate selected devices report (what would be changed)
+writedevicelist selected_device_report.txt
+
 echo.
-echo === Driver Update Analysis ===
-echo The following drivers can be updated:
-showselected
-
-# Ask user for confirmation (SDIO will pause and wait for user input)
-echo.
-echo Press any key to continue with driver installation, or Ctrl+C to cancel...
-pause
-
-# Create restore point for safety (quoted description)
-echo Creating system restore point...
-restorepoint "Topgrade SDIO Driver Update"
-onerror echo Warning: Failed to create restore point, continuing anyway...
-
-# Install selected drivers after user confirmation
-echo Installing selected drivers...
-install
-onerror echo Warning: Some drivers may have failed to install
-
-# Generate final device report
-writedevicelist final_device_report.txt
-
-# Driver installation complete
-echo Driver installation complete
-echo Check initial_device_report.txt and final_device_report.txt for details
+echo Analysis complete. This is an analysis-only run.
+echo Review initial_device_report.txt and selected_device_report.txt for details.
+echo Re-run Topgrade with --yes to install selected drivers.
 
 :end
 # End script
@@ -236,30 +218,108 @@ end
         ))
     })?;
 
-    // Build script-based command arguments (non-deprecated)
-    let mut args = vec![format!("-script:{}", script_path.display())];
-
-    // Add additional non-deprecated options
-    args.extend_from_slice(&[
-        "-nologfile".to_string(),   // We handle logging through the script
-        "-nostamp".to_string(),     // Clean log format
-        "-preservecfg".to_string(), // Don't overwrite config
-    ]);
-
     // Log the command being executed for transparency and security auditing
-    debug!("SDIO command: {:?} {:?}", sdio, args);
+    debug!("SDIO command: {:?} -script {:?}", sdio, script_path);
     info!("Running SDIO script: {}", script_path.display());
     info!("SDIO working directory: {}", sdio_work_dir.display());
     info!("SDIO binary location: {}", sdio.display());
 
     let mut command = ctx.execute(&sdio);
-    command.args(&args);
+    // Pass -script and script path as separate args to handle spaces safely
+    command.arg("-script").arg(&script_path);
     command.current_dir(&sdio_work_dir);
 
-    let result = command.status_checked();
+    let mut result = command.status_checked();
+
+    // If interactive: ask the user whether to proceed with installation and run a second script
+    if interactive && result.is_ok() {
+        // Print separator for readability between analysis and prompt
+        print_separator("");
+        if let Ok(true) = prompt_yesno(&t!(
+            "Proceed to install selected drivers now? This will create a restore point first. (y/N)"
+        )) {
+            // Build an installation script similar to --yes flow
+            let install_script = format!(
+                r#"# Topgrade SDIO Installation Script (interactive-confirmed)
+# Configure directories (quoted for safety)
+extractdir "{}"
+logdir "{}"
+
+# Enable logging
+logging on
+{}
+
+# Check for updates first (before init for better performance)
+echo Checking for SDIO updates...
+checkupdates
+onerror goto end
+
+# Initialize and scan system
+echo Initializing SDIO and scanning system...
+init
+onerror goto end
+
+# Generate initial device report
+writedevicelist initial_device_report.txt
+
+# Create restore point for safety (quoted description)
+echo Creating system restore point...
+restorepoint "Topgrade SDIO Driver Update"
+onerror echo Warning: Failed to create restore point, continuing anyway...
+
+# Select missing and better drivers
+echo Selecting drivers for installation...
+select missing better
+
+# Install selected drivers automatically
+echo Installing selected drivers...
+install
+onerror echo Warning: Some drivers may have failed to install
+
+# Generate final device report
+writedevicelist final_device_report.txt
+
+:end
+end
+"#,
+                sdio_work_dir.display(),
+                sdio_work_dir.join("logs").display(),
+                verbose_settings
+            );
+
+            let install_script_path = sdio_work_dir.join("topgrade_sdio_install_script.txt");
+            std::fs::write(&install_script_path, install_script).map_err(|e| {
+                SkipStep(format!(
+                    "Failed to create SDIO install script at {}: {}",
+                    install_script_path.display(),
+                    e
+                ))
+            })?;
+
+            debug!(
+                "SDIO command (install): {:?} -script {:?}",
+                sdio, install_script_path
+            );
+            info!(
+                "Running SDIO install script: {}",
+                install_script_path.display()
+            );
+            let mut install_cmd = ctx.execute(&sdio);
+            install_cmd.arg("-script").arg(&install_script_path);
+            install_cmd.current_dir(&sdio_work_dir);
+            result = install_cmd.status_checked();
+        } else {
+            info!("User declined SDIO installation; analysis-only run completed.");
+        }
+    }
 
     // Print separator after execution for clean output formatting
     print_separator("");
+
+    // Best-effort cleanup of the temporary workdir on success
+    if result.is_ok() {
+        let _ = std::fs::remove_dir_all(&sdio_work_dir);
+    }
 
     result
 }
@@ -283,10 +343,11 @@ fn detect_sdio() -> Result<std::path::PathBuf> {
 
 /// Detects SDIO executables in PATH with architecture-aware priority
 fn detect_sdio_in_path(is_64bit: bool) -> Option<std::path::PathBuf> {
-    let executable_patterns = get_sdio_executable_patterns(is_64bit);
+    // Only probe exact executable names; PATH lookups don't support globs
+    let executable_names = get_sdio_executable_names(is_64bit);
 
-    for pattern in &executable_patterns {
-        if let Some(exe) = which(pattern) {
+    for name in &executable_names {
+        if let Some(exe) = which(name) {
             return Some(exe);
         }
     }
@@ -294,22 +355,23 @@ fn detect_sdio_in_path(is_64bit: bool) -> Option<std::path::PathBuf> {
 }
 
 /// Returns SDIO executable patterns in priority order
-fn get_sdio_executable_patterns(is_64bit: bool) -> Vec<&'static str> {
+fn get_sdio_executable_names(is_64bit: bool) -> Vec<&'static str> {
     if is_64bit {
         vec![
-            "SDIO_x64_R*.exe", // 64-bit versioned (highest priority)
-            "SDIO_x64.exe",    // 64-bit generic
-            "SDIO_R*.exe",     // 32-bit versioned (fallback)
-            "SDIO.exe",        // Generic executable
-            "SDIO_auto.bat",   // Batch file (lowest priority)
-            "sdio",            // Generic name for scoop/chocolatey
+            // Prefer auto launcher if present
+            "SDIO_auto.bat",
+            // 64-bit generic executable
+            "SDIO_x64.exe",
+            // Generic executable
+            "SDIO.exe",
+            // Scoop alias or similar
+            "sdio",
         ]
     } else {
         vec![
-            "SDIO_R*.exe",   // 32-bit versioned (highest priority)
-            "SDIO.exe",      // Generic executable
-            "SDIO_auto.bat", // Batch file
-            "sdio",          // Generic name
+            "SDIO_auto.bat",
+            "SDIO.exe",
+            "sdio",
         ]
     }
 }
@@ -336,6 +398,37 @@ fn detect_sdio_in_common_locations(is_64bit: bool) -> Option<std::path::PathBuf>
         }
     }
     None
+}
+
+/// Expand Windows-style environment variables (e.g., %USERPROFILE%) in a path string.
+/// Unknown variables are replaced with an empty string (matching common shell behavior).
+fn expand_env_vars_windows(input: &str) -> String {
+    let mut result = String::with_capacity(input.len());
+    let mut i = 0usize;
+    let bytes = input.as_bytes();
+    while i < bytes.len() {
+        if bytes[i] == b'%' {
+            // find the next '%'
+            if let Some(end) = input[i + 1..].find('%') {
+                let var_name = &input[i + 1..i + 1 + end];
+                // Move index past the closing '%'
+                i += end + 2;
+                if !var_name.is_empty() {
+                    if let Ok(val) = std::env::var(var_name) {
+                        result.push_str(&val);
+                    }
+                    continue;
+                } else {
+                    // Handle literal '%%'
+                    result.push('%');
+                    continue;
+                }
+            }
+        }
+        result.push(bytes[i] as char);
+        i += 1;
+    }
+    result
 }
 
 /// Returns common SDIO installation locations
