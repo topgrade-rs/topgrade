@@ -320,6 +320,8 @@ pub struct Misc {
 
     no_retry: Option<bool>,
 
+    show_skipped: Option<bool>,
+
     run_in_tmux: Option<bool>,
 
     tmux_session_mode: Option<TmuxSessionMode>,
@@ -1489,6 +1491,12 @@ impl Config {
 
     pub fn show_skipped(&self) -> bool {
         self.opt.show_skipped
+            || self
+                .config_file
+                .misc
+                .as_ref()
+                .and_then(|misc| misc.show_skipped)
+                .unwrap_or(false)
     }
 
     pub fn open_remotes_in_new_terminal(&self) -> bool {
