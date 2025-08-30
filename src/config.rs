@@ -1721,6 +1721,41 @@ mod test {
         assert!(toml::from_str::<ConfigFile>(str).is_ok());
     }
 
+    /// Validate that potentially dangerous options in the example config are
+    /// either commented out (unset) or explicitly set to safe values.
+    ///
+    /// This parses the TOML instead of relying on regex/grep so it cannot be
+    /// bypassed by inline comments or whitespace variations.
+    #[test]
+    fn test_example_config_has_safe_defaults() {
+        let str = include_str!("../config.example.toml");
+        let cfg: ConfigFile = toml::from_str(str).expect("example config should parse");
+
+        // [misc] assume_yes must not be true by default
+        let misc_assume_yes = cfg.misc.as_ref().and_then(|m| m.assume_yes);
+        assert_ne!(
+            misc_assume_yes,
+            Some(true),
+            "unsafe default: [misc].assume_yes must not be true in the example config"
+        );
+
+        // [windows] winget_use_sudo must not be true by default
+        let windows_winget_use_sudo = cfg.windows.as_ref().and_then(|w| w.winget_use_sudo);
+        assert_ne!(
+            windows_winget_use_sudo,
+            Some(true),
+            "unsafe default: [windows].winget_use_sudo must not be true in the example config"
+        );
+
+        // [windows] enable_sdio must not be true by default
+        let windows_enable_sdio = cfg.windows.as_ref().and_then(|w| w.enable_sdio);
+        assert_ne!(
+            windows_enable_sdio,
+            Some(true),
+            "unsafe default: [windows].enable_sdio must not be true in the example config"
+        );
+    }
+
     fn config() -> Config {
         Config {
             opt: CommandLineArgs::parse_from::<_, String>([]),

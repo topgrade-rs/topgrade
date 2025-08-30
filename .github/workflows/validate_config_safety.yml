@@ -33,47 +33,27 @@ jobs:
     
     - name: Test example config parsing
       run: cargo test test_default_config
-    
-    - name: Validate safe defaults in example config
+
+    - name: Quick text guard for dangerous defaults (comment-stripped)
       run: |
-        set -euo pipefail  # Exit on any error, undefined variable, or pipe failure
-        
-        echo "Testing configuration safety by validating default values..."
-        
-        # Test 1: Verify that dangerous options are commented out or set to safe values
-        echo "✓ Checking that dangerous options are safely configured in example config..."
-        
-        # Check that enable_sdio is either commented out or set to false
-        if grep -E "^[[:space:]]*enable_sdio[[:space:]]*=[[:space:]]*true" config.example.toml; then
-          echo "❌ UNSAFE: enable_sdio is set to true by default!"
-          exit 1
-        else
-          echo "✓ enable_sdio is safely configured (commented out or set to false)"
+        set -euo pipefail
+        echo "Checking for dangerous defaults in comment-stripped file..."
+        sanitized="$(sed -E 's/#.*$//' config.example.toml)"
+        if echo "$sanitized" | grep -Eq '^[[:space:]]*assume_yes[[:space:]]*=[[:space:]]*true'; then
+          echo '❌ UNSAFE: [misc].assume_yes must not be true by default';
+          exit 1;
         fi
-        
-        # Check that assume_yes is either commented out or set to false
-        if grep -E "^[[:space:]]*assume_yes[[:space:]]*=[[:space:]]*true" config.example.toml; then
-          echo "❌ UNSAFE: assume_yes is set to true by default!"
-          exit 1
-        else
-          echo "✓ assume_yes is safely configured (commented out or set to false)"
+        if echo "$sanitized" | grep -Eq '^[[:space:]]*winget_use_sudo[[:space:]]*=[[:space:]]*true'; then
+          echo '❌ UNSAFE: [windows].winget_use_sudo must not be true by default';
+          exit 1;
         fi
-        
-        # Check that winget_use_sudo is either commented out or set to false
-        if grep -E "^[[:space:]]*winget_use_sudo[[:space:]]*=[[:space:]]*true" config.example.toml; then
-          echo "❌ UNSAFE: winget_use_sudo is set to true by default!"
-          exit 1
-        else
-          echo "✓ winget_use_sudo is safely configured (commented out or set to false)"
+        if echo "$sanitized" | grep -Eq '^[[:space:]]*enable_sdio[[:space:]]*=[[:space:]]*true'; then
+          echo '❌ UNSAFE: [windows].enable_sdio must not be true by default';
+          exit 1;
         fi
-        
-        # Test 2: Verify that the config file can be parsed without errors
-        echo "✓ Testing that example config can be parsed..."
-        if cargo run -- --config config.example.toml --help > /dev/null 2>&1; then
-          echo "✓ Example configuration parses successfully"
-        else
-          echo "❌ FAILURE: Example configuration has parsing errors!"
-          exit 1
-        fi
-        
-        echo "✅ Configuration safety validation passed!"
+    
+    - name: Validate safe defaults using TOML parser
+      run: |
+        set -euo pipefail
+        echo "Running TOML-based safety tests..."
+        cargo test test_example_config_has_safe_defaults -- --nocapture
