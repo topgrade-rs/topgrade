@@ -1113,6 +1113,12 @@ _version: 2
 
 "Awaiting user":
   en: "Awaiting user"
+  lt: "Laukiama naudotojo"
+  es: "Esperando al usuario"
+  fr: "En attente de l'utilisateur"
+  zh_CN: "等待用户操作"
+  zh_TW: "等待使用者操作"
+  de: "Warte auf Benutzereingabe"
 
 # 'R', 'S', 'Q'  have to stay the same throughout all translations. Eg German would look like "\n(R) Neustarten\n(S) Konsole\n(Q) Beenden"
 "\n(R)eboot\n(S)hell\n(Q)uit":
@@ -1135,10 +1141,20 @@ _version: 2
 # Generic messages with formatting placeholders used in output and errors
 "Command failed: `{command}`":
   en: "Command failed: `%{command}`"
+  lt: "Komanda nepavyko: `%{command}`"
+  es: "El comando falló: `%{command}`"
+  fr: "La commande a échoué : `%{command}`"
+  zh_CN: "命令失败：`%{command}`"
+  zh_TW: "指令失敗：`%{command}`"
+  de: "Befehl fehlgeschlagen: `%{command}`"
 "Failed to execute `{command}`":
   en: "Failed to execute `%{command}`"
-"Topgrade - {}":
-  en: "Topgrade - {}"
+  lt: "Nepavyko įvykdyti `%{command}`"
+  es: "No se pudo ejecutar `%{command}`"
+  fr: "Échec de l'exécution de `%{command}`"
+  zh_CN: "无法执行：`%{command}`"
+  zh_TW: "無法執行：`%{command}`"
+  de: "Ausführung fehlgeschlagen: `%{command}`"
 "{sudo_kind} does not support the {option} option":
   en: "%{sudo_kind} does not support the %{option} option"
   lt: "%{sudo_kind} nepalaiko parinkties %{option}"
