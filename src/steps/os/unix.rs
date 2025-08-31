@@ -407,17 +407,12 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
 pub fn run_guix(ctx: &ExecutionContext) -> Result<()> {
     let guix = require("guix")?;
 
-    let output = Command::new(&guix).arg("pull").output_checked_utf8();
-    debug!("guix pull output: {:?}", output);
-    let should_upgrade = output.is_ok();
-    debug!("Can Upgrade Guix: {:?}", should_upgrade);
-
     print_separator("Guix");
 
-    if should_upgrade {
-        return ctx.execute(&guix).args(["package", "-u"]).status_checked();
-    }
-    Err(SkipStep(t!("Guix Pull Failed, Skipping").to_string()).into())
+    ctx.execute(&guix).arg("pull").status_checked()?;
+    ctx.execute(&guix).args(["package", "-u"]).status_checked()?;
+
+    Ok(())
 }
 
 pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
