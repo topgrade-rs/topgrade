@@ -1,16 +1,13 @@
-<div align="center">
-  <h1>
-    <img alt="Topgrade" src="doc/topgrade_transparent.png" width="850px">
-  </h1>
+# Topgrade
 
-  <a href="https://github.com/topgrade-rs/topgrade/releases"><img alt="GitHub Release" src="https://img.shields.io/github/release/topgrade-rs/topgrade.svg"></a>
-  <a href="https://crates.io/crates/topgrade"><img alt="crates.io" src="https://img.shields.io/crates/v/topgrade.svg"></a>
-  <a href="https://aur.archlinux.org/packages/topgrade"><img alt="AUR" src="https://img.shields.io/aur/version/topgrade.svg"></a>
-  <a href="https://formulae.brew.sh/formula/topgrade"><img alt="Homebrew" src="https://img.shields.io/homebrew/v/topgrade.svg"></a>
+![Topgrade](doc/topgrade_transparent.png)
 
-  <img alt="Demo" src="doc/topgrade_demo.gif">
-</div>
+[![GitHub Release](https://img.shields.io/github/release/topgrade-rs/topgrade.svg)](https://github.com/topgrade-rs/topgrade/releases)
+[![crates.io](https://img.shields.io/crates/v/topgrade.svg)](https://crates.io/crates/topgrade)
+[![AUR](https://img.shields.io/aur/version/topgrade.svg)](https://aur.archlinux.org/packages/topgrade)
+[![Homebrew](https://img.shields.io/homebrew/v/topgrade.svg)](https://formulae.brew.sh/formula/topgrade)
 
+![Demo](doc/topgrade_demo.gif)
 
 ## Introduction
 
@@ -40,13 +37,24 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 Other systems users can either use `cargo install` or the compiled binaries from the release page.
 The compiled binaries contain a self-upgrading feature.
 
+### Windows Features
+
+On Windows, Topgrade supports updating:
+
+- **Package Managers**: Chocolatey, Scoop, Winget
+- **System Updates**: Windows Update, Microsoft Store apps
+- **Driver Updates**: SDIO (Snappy Driver Installer Origin) - *requires explicit opt-in*
+- **Development Tools**: Various language package managers and development environments
+
+*Note: Driver updates via SDIO require setting `enable_sdio = true` in your configuration file due to the critical nature of driver installations.*
+
 ## Usage
 
 Just run `topgrade`.
 
 ## Configuration
 
-See `config.example.toml` for an example configuration file.
+See [config.example.toml](config.example.toml) for an example configuration file.
 
 ## Migration and Breaking Changes
 
@@ -59,6 +67,7 @@ it when updated to a major release.
 ### Configuration Path
 
 #### `CONFIG_DIR` on each platform
+
 - **Windows**: `%APPDATA%`
 - **macOS** and **other Unix systems**: `${XDG_CONFIG_HOME:-~/.config}`
 
@@ -103,7 +112,7 @@ Just fork the repository and start coding.
 
 ### Contribution Guidelines
 
-See [CONTRIBUTING.md](https://github.com/topgrade-rs/topgrade/blob/master/CONTRIBUTING.md)
+See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Roadmap
 
