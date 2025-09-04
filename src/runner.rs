@@ -1,7 +1,7 @@
 use crate::ctrlc;
 use crate::error::{DryRun, SkipStep};
 use crate::execution_context::ExecutionContext;
-use crate::report::{Report, StepResult};
+use crate::report::{Report, StepResult, UpdatedComponent, UpdatedComponents};
 use crate::step::Step;
 use crate::terminal::print_error;
 use crate::terminal::should_retry;
@@ -28,6 +28,22 @@ impl<'a> Runner<'a> {
         F: Fn() -> Result<()>,
         M: Into<Cow<'a, str>> + Debug,
     {
+        self._execute(step, key, || func().map(|()| None))
+    }
+
+    pub fn execute_with_updated<F, M>(&mut self, step: Step, key: M, func: F) -> Result<()>
+    where
+        F: Fn() -> Result<Vec<UpdatedComponent>>,
+        M: Into<Cow<'a, str>> + Debug,
+    {
+        self._execute(step, key, || func().map(Some))
+    }
+
+    fn _execute<F, M>(&mut self, step: Step, key: M, func: F) -> Result<()>
+    where
+        F: Fn() -> Result<Option<Vec<UpdatedComponent>>>,
+        M: Into<Cow<'a, str>> + Debug,
+    {
         if !self.ctx.config().should_run(step) {
             return Ok(());
         }
@@ -45,8 +61,9 @@ impl<'a> Runner<'a> {
 
         loop {
             match func() {
-                Ok(()) => {
-                    self.report.push_result(Some((key, StepResult::Success)));
+                Ok(updated) => {
+                    self.report
+                        .push_result(Some((key, StepResult::Success(updated.map(UpdatedComponents::new)))));
                     break;
                 }
                 Err(e) if e.downcast_ref::<DryRun>().is_some() => break,
