@@ -97,7 +97,7 @@ jobs:
       - uses: actions/download-artifact@v5.0.0
 
       - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v2.4.0
+        uses: actions/attest-build-provenance@v3.0.0
         with:
           subject-path: 'wheels-*/*'
 
