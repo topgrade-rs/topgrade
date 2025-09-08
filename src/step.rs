@@ -165,6 +165,7 @@ pub enum Step {
     Yazi,
     Zigup,
     Zvm,
+    Pkgfile,
 }
 
 impl Step {
@@ -173,6 +174,11 @@ impl Step {
         use Step::*;
 
         match *self {
+            Pkgfile =>
+            {
+                #[cfg(target_os = "linux")]
+                runner.execute(*self, "pkgfile", || linux::run_pkgfile(ctx))?
+            }
             AM =>
             {
                 #[cfg(target_os = "linux")]
@@ -719,6 +725,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Waydroid,
         AutoCpufreq,
         CinnamonSpices,
+        Pkgfile,
     ]);
 
     #[cfg(target_os = "freebsd")]
