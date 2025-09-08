@@ -284,6 +284,11 @@
 # Offer to update firmware; if false just check for and display available updates
 # upgrade = true
 
+[pkgfile]
+# Enable the pkgfile step. PKGFILE is updated in the background by a service that is disabled by default
+# (default: false)
+# enable = true
+
 
 [vagrant]
 # Vagrant directories
