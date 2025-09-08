@@ -116,6 +116,7 @@ pub enum Step {
     Pipxu,
     Pixi,
     Pkg,
+    Pkgfile,
     Pkgin,
     PlatformioCore,
     Pnpm,
@@ -165,7 +166,6 @@ pub enum Step {
     Yazi,
     Zigup,
     Zvm,
-    Pkgfile,
 }
 
 impl Step {
@@ -174,11 +174,6 @@ impl Step {
         use Step::*;
 
         match *self {
-            Pkgfile =>
-            {
-                #[cfg(target_os = "linux")]
-                runner.execute(*self, "pkgfile", || linux::run_pkgfile(ctx))?
-            }
             AM =>
             {
                 #[cfg(target_os = "linux")]
@@ -462,6 +457,11 @@ impl Step {
                 runner.execute(*self, "OpenBSD Packages", || openbsd::upgrade_packages(ctx))?;
                 #[cfg(target_os = "android")]
                 runner.execute(*self, "Termux Packages", || android::upgrade_packages(ctx))?
+            }
+            Pkgfile =>
+            {
+                #[cfg(target_os = "linux")]
+                runner.execute(*self, "pkgfile", || linux::run_pkgfile(ctx))?
             }
             Pkgin =>
             {
