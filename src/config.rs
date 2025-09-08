@@ -64,6 +64,12 @@ pub struct Containers {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct Pkgfile {
+    enable: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 pub struct Git {
     max_concurrency: Option<usize>,
 
@@ -413,6 +419,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     linux: Option<Linux>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    pkgfile: Option<Pkgfile>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     git: Option<Git>,
@@ -1495,6 +1504,14 @@ impl Config {
                 .as_ref()
                 .and_then(|misc| misc.show_skipped)
                 .unwrap_or(false)
+    }
+
+    pub fn enable_pkgfile(&self) -> bool {
+        self.config_file
+            .pkgfile
+            .as_ref()
+            .and_then(|pkgfile| pkgfile.enable)
+            .unwrap_or(false)
     }
 
     pub fn open_remotes_in_new_terminal(&self) -> bool {
