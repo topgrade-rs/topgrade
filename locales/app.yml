@@ -1018,9 +1018,9 @@ _version: 2
   en: 'File "/etc/os-release" does not exist or is empty'
   lt: 'Failas "/etc/os-release" neegzistuoja arba yra tuščias'
   es: 'El archivo "/etc/os-release" no existe o está vacío'
-  fr: 'Le fichier "/etc/os-release" n''existe pas ou est vide'
+  fr: "Le fichier \"/etc/os-release\" n'existe pas ou est vide"
   zh_CN: "文件 “/etc/os-release” 不存在或为空"
-  zh_TW: "「/etc/os-release」不存在或為空"
+  zh_TW: '「/etc/os-release」不存在或為空'
   de: 'Datei "/etc/os-release" existiert nicht oder ist leer'
 "Failed getting the system package manager":
   en: "Failed getting the system package manager"
