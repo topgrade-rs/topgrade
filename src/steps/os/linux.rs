@@ -687,10 +687,6 @@ pub fn run_pkgfile(ctx: &ExecutionContext) -> Result<()> {
     let sudo = ctx.require_sudo()?;
     let pkgfile = require("pkgfile")?;
 
-    if !ctx.config().enable_pkgfile() {
-        return Err(SkipStep(t!("Pkgfile isn't enabled").to_string()).into());
-    }
-
     let mut cmd = sudo.execute(ctx, pkgfile)?;
     print_separator("pkgfile");
 
