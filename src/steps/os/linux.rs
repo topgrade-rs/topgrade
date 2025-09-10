@@ -683,6 +683,15 @@ pub fn run_pacstall(ctx: &ExecutionContext) -> Result<()> {
     upgrade_cmd.arg("-Up").status_checked()
 }
 
+pub fn run_pkgfile(ctx: &ExecutionContext) -> Result<()> {
+    let sudo = ctx.require_sudo()?;
+    let pkgfile = require("pkgfile")?;
+
+    print_separator("pkgfile");
+
+    sudo.execute(ctx, pkgfile)?.arg("--update").status_checked()
+}
+
 pub fn run_packer_nu(ctx: &ExecutionContext) -> Result<()> {
     let nu = require("nu")?;
     let packer_home = HOME_DIR.join(".local/share/nushell/packer");
