@@ -284,6 +284,7 @@
 # Offer to update firmware; if false just check for and display available updates
 # upgrade = true
 
+
 [vagrant]
 # Vagrant directories
 # directories = []

@@ -687,10 +687,9 @@ pub fn run_pkgfile(ctx: &ExecutionContext) -> Result<()> {
     let sudo = ctx.require_sudo()?;
     let pkgfile = require("pkgfile")?;
 
-    let mut cmd = sudo.execute(ctx, pkgfile)?;
     print_separator("pkgfile");
 
-    cmd.arg("--update").status_checked()
+    sudo.execute(ctx, pkgfile)?.arg("--update").status_checked()
 }
 
 pub fn run_packer_nu(ctx: &ExecutionContext) -> Result<()> {
