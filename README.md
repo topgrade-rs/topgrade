@@ -7,6 +7,9 @@
 [![AUR](https://img.shields.io/aur/version/topgrade.svg)](https://aur.archlinux.org/packages/topgrade)
 [![Homebrew](https://img.shields.io/homebrew/v/topgrade.svg)](https://formulae.brew.sh/formula/topgrade)
 
+[![CI](https://github.com/topgrade-rs/topgrade/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/topgrade-rs/topgrade/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/topgrade-rs/topgrade/badge)](https://securityscorecards.dev/viewer/?uri=github.com/topgrade-rs/topgrade)
+
 ![Demo](doc/topgrade_demo.gif)
 
 ## Introduction
@@ -173,6 +176,13 @@ See `RELEASE_PROCEDURE.md` for more details.
   ```
 
 For more viewers and tooling, see the [CycloneDX Tool Center](https://cyclonedx.org/tool-center/).
+
+## Security & supply chain
+
+- OSV Scanner: [![OSV](https://github.com/topgrade-rs/topgrade/actions/workflows/osv-scan.yml/badge.svg?branch=main)](https://github.com/topgrade-rs/topgrade/actions/workflows/osv-scan.yml)
+- Trivy FS: [![Trivy FS](https://github.com/topgrade-rs/topgrade/actions/workflows/trivy-fs.yml/badge.svg?branch=main)](https://github.com/topgrade-rs/topgrade/actions/workflows/trivy-fs.yml)
+- DevSkim: [![DevSkim](https://github.com/topgrade-rs/topgrade/actions/workflows/check_security_vulnerability.yml/badge.svg?branch=main)](https://github.com/topgrade-rs/topgrade/actions/workflows/check_security_vulnerability.yml)
+- SBOM (Syft): [![SBOM](https://github.com/topgrade-rs/topgrade/actions/workflows/sbom.yml/badge.svg?branch=main)](https://github.com/topgrade-rs/topgrade/actions/workflows/sbom.yml)
 
 ## Usage
 
