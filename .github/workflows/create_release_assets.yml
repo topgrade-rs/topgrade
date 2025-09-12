@@ -40,8 +40,12 @@ jobs:
         # https://github.com/topgrade-rs/topgrade/issues/1095
         platform: [ ubuntu-22.04, macos-latest, macos-13, windows-latest ]
     runs-on: ${{ matrix.platform }}
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
 
       - name: Install needed components
         run: |
@@ -155,8 +159,12 @@ jobs:
             "x86_64-unknown-freebsd",
           ]
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
 
       - name: Install needed components
         run: |
