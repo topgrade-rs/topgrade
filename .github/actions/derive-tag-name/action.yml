@@ -1,0 +1,24 @@
+name: derive-tag-name
+description: Derive the tag name from release event or workflow_dispatch input
+inputs:
+  fallback_input:
+    description: Name of the workflow_dispatch input that carries an existing tag
+    required: false
+    default: existing_tag
+outputs:
+  tag_name:
+    description: Resolved tag name
+    value: ${{ steps.derive.outputs.tag_name }}
+runs:
+  using: composite
+  steps:
+    - id: derive
+      name: Determine tag name
+      shell: bash
+      run: |
+        if [ -n "${{ github.event.release.tag_name }}" ]; then
+          echo "tag_name=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+        else
+          # shellcheck disable=SC2086
+          echo "tag_name=${{ github.event.inputs[inputs.fallback_input] }}" >> $GITHUB_OUTPUT
+        fi

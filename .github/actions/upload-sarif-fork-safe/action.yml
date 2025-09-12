@@ -1,0 +1,17 @@
+name: upload-sarif-fork-safe
+description: Upload SARIF conditionally to avoid fork permission errors
+inputs:
+  sarif_file:
+    description: Path to SARIF file
+    required: true
+  token:
+    description: Token for upload (not used directly; provided by runner)
+    required: false
+runs:
+  using: composite
+  steps:
+    - name: Upload SARIF
+      if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ inputs.sarif_file }}

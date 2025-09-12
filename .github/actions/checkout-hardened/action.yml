@@ -1,0 +1,15 @@
+name: checkout-hardened
+description: Hardened checkout with shallow fetch and no persisted credentials
+inputs:
+  fetch-depth:
+    description: Depth for shallow fetch
+    required: false
+    default: '1'
+runs:
+  using: composite
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v5
+      with:
+        persist-credentials: false
+        fetch-depth: ${{ inputs.fetch-depth }}
