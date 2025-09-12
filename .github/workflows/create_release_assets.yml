@@ -22,6 +22,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # Publish release files for CD native environments
   native_build:
@@ -149,35 +153,6 @@ jobs:
               --output-signature "${f}.sig" \
               --output-certificate "${f}.crt"
           done
-
-      - name: Generate checksum manifest (SHA256SUMS)
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd assets
-          : > SHA256SUMS
-          for f in *; do
-            [ -f "$f" ] || continue
-            case "$f" in
-              *.sig|*.crt|SHA256SUMS|SHA256SUMS.sig|SHA256SUMS.crt) continue;;
-            esac
-            if command -v sha256sum >/dev/null 2>&1; then
-              sha256sum "$f" >> SHA256SUMS
-            else
-              shasum -a 256 "$f" >> SHA256SUMS
-            fi
-          done
-          echo "Generated SHA256SUMS:" && cat SHA256SUMS
-
-      - name: Sign checksum manifest with Cosign
-        env:
-          COSIGN_EXPERIMENTAL: "true"
-        shell: bash
-        run: |
-          set -euo pipefail
-          cosign sign-blob --yes assets/SHA256SUMS \
-            --output-signature assets/SHA256SUMS.sig \
-            --output-certificate assets/SHA256SUMS.crt
 
       - name: Generate checksum manifest (SHA256SUMS)
         shell: bash
