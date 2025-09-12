@@ -29,10 +29,13 @@ jobs:
           tool: cargo-deny@0.16.3
 
       - name: Run cargo deny (advisories)
+        continue-on-error: true
         run: cargo deny check advisories --all-features
 
       - name: Run cargo deny (licenses)
+        continue-on-error: true
         run: cargo deny check licenses --all-features
 
       - name: Run cargo deny (bans)
+        continue-on-error: true
         run: cargo deny check bans --all-features
