@@ -11,7 +11,7 @@
 
       > If there are breaking changes, the major version number should be increased.
 
-   2. If the major versioin number gets bumped, update [SECURITY.md][SECURITY_file_link].
+   2. If the major version number gets bumped, update [SECURITY.md][SECURITY_file_link].
 
       [SECURITY_file_link]: https://github.com/topgrade-rs/topgrade/blob/main/SECURITY.md
 
@@ -62,8 +62,8 @@
    4. If step 3 works, then do the final release `cargo publish`.
 
    > You can also take a look at the official tutorial [Publishing on crates.io][doc]
-   >
-   > [doc]: https://doc.rust-lang.org/cargo/reference/publishing.html
+
+   [doc]: https://doc.rust-lang.org/cargo/reference/publishing.html
 
 ---
 
@@ -133,4 +133,3 @@ cosign verify-blob \
 ### 3. Inspect the SBOM
 
 The `sbom.cdx.json` file lists components and licenses in CycloneDX format. You can view it with any CycloneDX viewer or a JSON viewer.
-

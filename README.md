@@ -1,16 +1,13 @@
-<div align="center">
-  <h1>
-    <img alt="Topgrade" src="doc/topgrade_transparent.png" width="850px">
-  </h1>
+# Topgrade
 
-  <a href="https://github.com/topgrade-rs/topgrade/releases"><img alt="GitHub Release" src="https://img.shields.io/github/release/topgrade-rs/topgrade.svg"></a>
-  <a href="https://crates.io/crates/topgrade"><img alt="crates.io" src="https://img.shields.io/crates/v/topgrade.svg"></a>
-  <a href="https://aur.archlinux.org/packages/topgrade"><img alt="AUR" src="https://img.shields.io/aur/version/topgrade.svg"></a>
-  <a href="https://formulae.brew.sh/formula/topgrade"><img alt="Homebrew" src="https://img.shields.io/homebrew/v/topgrade.svg"></a>
+![Topgrade](doc/topgrade_transparent.png)
 
-  <img alt="Demo" src="doc/topgrade_demo.gif">
-</div>
+[![GitHub Release](https://img.shields.io/github/release/topgrade-rs/topgrade.svg)](https://github.com/topgrade-rs/topgrade/releases)
+[![crates.io](https://img.shields.io/crates/v/topgrade.svg)](https://crates.io/crates/topgrade)
+[![AUR](https://img.shields.io/aur/version/topgrade.svg)](https://aur.archlinux.org/packages/topgrade)
+[![Homebrew](https://img.shields.io/homebrew/v/topgrade.svg)](https://formulae.brew.sh/formula/topgrade)
 
+![Demo](doc/topgrade_demo.gif)
 
 ## Introduction
 
@@ -232,7 +229,7 @@ Open a new issue describing your problem and if possible provide a solution.
 
 ### Missing a feature or found an unsupported tool/distro?
 
-Just let us now what you are missing by opening an issue.
+Just let us know what you are missing by opening an issue.
 For tools, please open an issue describing the tool, which platforms it supports and if possible, give us an example of its usage.
 
 ### Want to contribute to the code?
