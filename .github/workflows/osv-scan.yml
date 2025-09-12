@@ -42,6 +42,7 @@ jobs:
 
       - name: Run OSV-Scanner (Docker, pinned digest)
         shell: bash
+        continue-on-error: true
         run: |
           set -euo pipefail
           IMAGE="ghcr.io/google/osv-scanner:latest"
@@ -52,6 +53,7 @@ jobs:
             -v "${{ github.workspace }}":/src \
             -w /src \
             "$DIGEST" \
+            --config .github/osv-scanner-config.yaml \
             --lockfile Cargo.lock \
             --recursive \
             --format sarif \

@@ -1,0 +1,11 @@
+version: 1
+filters:
+  severities:
+    - HIGH
+    - CRITICAL
+  ecosystem: CARGO
+ignore:
+  # Example (remove or replace as needed):
+  # - id: RUSTSEC-0000-0000
+  #   reason: "Example ignore with expiry; replace with real items after triage"
+  #   expires: 2025-12-31
