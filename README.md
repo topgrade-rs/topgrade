@@ -1,4 +1,3 @@
-<!-- markdownlint-disable MD033 MD041 -->
 <div align="center">
   <h1>
     <img alt="Topgrade" src="doc/topgrade_transparent.png" width="850px">
