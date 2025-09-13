@@ -9,6 +9,7 @@
 [![Docs & Scripts CI](https://github.com/topgrade-rs/topgrade/actions/workflows/docs_and_scripts.yml/badge.svg)](https://github.com/topgrade-rs/topgrade/actions/workflows/docs_and_scripts.yml)
 
 ![Demo](doc/topgrade_demo.gif)
+
 ## Introduction
 
 > [!NOTE] This is a fork of [topgrade by r-darwish](https://github.com/r-darwish/topgrade) to keep it maintained.
@@ -61,7 +62,7 @@ release notes. Please review them when updating to a major release.
 Topgrade will look for the configuration file in the following places, in order of priority:
 
 1. `CONFIG_DIR/topgrade.toml`
-2. `CONFIG_DIR/topgrade/topgrade.toml`
+1. `CONFIG_DIR/topgrade/topgrade.toml`
 
 If the file with higher priority is present—regardless of whether it is valid—the other configuration files will be
 ignored.
