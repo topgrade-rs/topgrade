@@ -1,26 +1,37 @@
+minimum_pre_commit_version: "3.6.0"
+ci:
+  skip: [dprint]
+
 repos:
-- repo: https://github.com/gitleaks/gitleaks
-  rev: v8.16.3
+# gitleaks secret scanning (manual only; use system binary for portability)
+- repo: local
   hooks:
   - id: gitleaks
+    name: gitleaks (protect staged)
+    entry: gitleaks protect --staged --redact
+    language: system
+    pass_filenames: false
+    stages: [manual]
+
+# shellcheck for shell scripts (upstream portable wrapper)
 - repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: v0.10.0.1
+  rev: v0.11.0.1
   hooks:
   - id: shellcheck
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.4.0
-  hooks:
-  - id: end-of-file-fixer
-  - id: trailing-whitespace
 
-# dprint for Markdown and JSON formatting (no Rust; rustfmt remains source of truth)
-- repo: https://github.com/dprint/formatter
-  rev: 0.2.1
+# basic whitespace fixers
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v6.0.0
+  hooks:
+  - id: trailing-whitespace
+  - id: end-of-file-fixer
+
+# dprint for Markdown and JSON formatting (rustfmt handles Rust)
+- repo: local
   hooks:
   - id: dprint
-    args:
-      - fmt
-      - --config=./dprint.json
-    types_or:
-      - markdown
-      - json
+    name: dprint fmt (Markdown/JSON)
+    entry: dprint fmt --config=./dprint.json
+    language: system
+    pass_filenames: true
+    types_or: [markdown, json]

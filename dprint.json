@@ -15,9 +15,5 @@
   "markdown": {
     "textWrap": "maintain",
     "lineWidth": 100
-  },
-  "json": {
-    "indentWidth": 2,
-    "trailingCommas": "never"
   }
 }
