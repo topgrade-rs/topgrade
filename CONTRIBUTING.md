@@ -60,9 +60,9 @@ To add a new `step` to `topgrade`:
    [here](https://github.com/topgrade-rs/topgrade/blob/7e48c5dedcfd5d0124bb9f39079a03e27ed23886/src/main.rs#L201-L219)).
 
    Update function would usually do 3 things:
-    1. Check if the step is installed
-    2. Output the Separator
-    3. Invoke the step
+   1. Check if the step is installed
+   2. Output the Separator
+   3. Invoke the step
 
    Still, this is sufficient for most tools, but you may need some extra stuff
    with complicated `step`.
@@ -134,13 +134,62 @@ $ cargo test
 
 Don't worry about other platforms, we have most of them covered in our CI.
 
+### Tooling and pre-commit (WSL recommended)
+
+We use pre-commit to run a small set of checks/fixers locally:
+
+- Shell scripts: shellcheck
+- Whitespace/EOF fixers
+- Markdown/JSON formatting: dprint
+- Optional/Manual: gitleaks (secret scan)
+
+Tips:
+
+- Linux/WSL is the most reliable environment to run pre-commit.
+- Use pre-commit 4.x or newer.
+
+Quick start on Debian/WSL (one-time):
+
+```bash
+sudo apt-get update -y
+sudo apt-get install -y pipx unzip curl git
+pipx install pre-commit==4.3.0
+curl -fsSL https://dprint.dev/install.sh | sh -s 0.50.1
+```
+
+Run the hooks in the repo:
+
+```bash
+pre-commit clean
+pre-commit run --all-files
+```
+
+Formatting only (dprint):
+
+```bash
+~/.dprint/bin/dprint fmt
+```
+
+Secret scan (manual stage only):
+
+```bash
+gitleaks protect --staged --redact
+# or via pre-commit’s manual stage
+pre-commit run --hook-stage manual gitleaks
+```
+
+Notes:
+
+- On Windows, upstream hooks may fail due to MSYS “fork” issues. Prefer WSL.
+- Our CI runs pre-commit via pre-commit-ci. dprint is intentionally skipped in pre-commit-ci; if CI enforcement is desired later, we can add the dprint/check GitHub Action (Linux-only).
+
 ## I18n
 
 If your PR introduces user-facing messages, we need to ensure they are translated.
 Please add the translations to [`locales/app.yml`][app_yml]. For simple messages
 without arguments (e.g., "hello world"), we can simply translate them according
 (Tip: ChatGPT or similar LLMs is good at translation). If a message contains
-arguments, e.g., "hello <NAME>", please follow this convention:
+arguments, e.g., "hello `NAME`", please follow this convention:
 
 ```yml
 "hello {name}": # key

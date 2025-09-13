@@ -60,5 +60,3 @@
    4. If step 3 works, then do the final release `cargo publish`.
 
    > You can also take a look at the official tutorial [Publishing on crates.io][doc]
-   >
-   > [doc]: https://doc.rust-lang.org/cargo/reference/publishing.html
