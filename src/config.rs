@@ -914,16 +914,21 @@ impl Config {
     }
 
     fn allowed_steps(opt: &CommandLineArgs, config_file: &ConfigFile) -> Vec<Step> {
+        // The enabled steps are
         let mut enabled_steps: Vec<Step> = Vec::new();
+        // Any steps that are passed with `--only`
         enabled_steps.extend(&opt.only);
 
+        // Plus any steps in the config file's `misc.only`
         if let Some(misc) = config_file.misc.as_ref() {
             if let Some(only) = misc.only.as_ref() {
                 enabled_steps.extend(only);
             }
         }
 
+        // If neither of those contain anything
         if enabled_steps.is_empty() {
+            // All steps are enabled
             enabled_steps.extend(Step::iter());
         }
 
@@ -935,6 +940,7 @@ impl Config {
             }
         }
 
+        // All steps that are disabled are not enabled, except ones that are passed to `--only`
         enabled_steps.retain(|e| !disabled_steps.contains(e) || opt.only.contains(e));
         enabled_steps
     }
