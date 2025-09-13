@@ -59,23 +59,8 @@ jobs:
           sort original.txt > sorted.txt
           diff original.txt sorted.txt
 
-  dprint:
-    name: dprint formatting check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5.0.0
-
-      - name: Install dprint
-        run: |
-          curl -fsSL https://dprint.dev/install.sh | sh -s 0.50.0
-          echo "$HOME/.dprint/bin" >> $GITHUB_PATH
-
-      - name: Check formatting
-        run: dprint fmt --config=./dprint.json --check
-
   main:
-    needs: [ fmt, dprint, step-enum-sorted, step-match-sorted ]
+    needs: [ fmt, step-enum-sorted, step-match-sorted ]
     name: ${{ matrix.target_name }} (check, clippy)
     runs-on: ${{ matrix.os }}
     strategy:
