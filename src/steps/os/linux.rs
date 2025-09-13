@@ -475,7 +475,7 @@ fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
 
     println!("{}", t!("Syncing portage"));
     if let Some(ego) = which("ego") {
-        // The Funtoo team doesn't reccomend running both ego sync and emerge --sync
+        // The Funtoo team doesn't recommend running both ego sync and emerge --sync
         sudo.execute(ctx, &ego)?.arg("sync").status_checked()?;
     } else {
         sudo.execute(ctx, &emerge)?
@@ -681,6 +681,15 @@ pub fn run_pacstall(ctx: &ExecutionContext) -> Result<()> {
 
     update_cmd.arg("-U").status_checked()?;
     upgrade_cmd.arg("-Up").status_checked()
+}
+
+pub fn run_pkgfile(ctx: &ExecutionContext) -> Result<()> {
+    let sudo = ctx.require_sudo()?;
+    let pkgfile = require("pkgfile")?;
+
+    print_separator("pkgfile");
+
+    sudo.execute(ctx, pkgfile)?.arg("--update").status_checked()
 }
 
 pub fn run_packer_nu(ctx: &ExecutionContext) -> Result<()> {

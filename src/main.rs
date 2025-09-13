@@ -17,8 +17,8 @@ use etcetera::base_strategy::BaseStrategy;
 use etcetera::base_strategy::Windows;
 #[cfg(unix)]
 use etcetera::base_strategy::Xdg;
-use once_cell::sync::Lazy;
 use rust_i18n::{i18n, t};
+use std::sync::LazyLock;
 use tracing::debug;
 
 use self::config::{CommandLineArgs, Config};
@@ -50,12 +50,12 @@ mod sudo;
 mod terminal;
 mod utils;
 
-pub(crate) static HOME_DIR: Lazy<PathBuf> = Lazy::new(|| home::home_dir().expect("No home directory"));
+pub(crate) static HOME_DIR: LazyLock<PathBuf> = LazyLock::new(|| home::home_dir().expect("No home directory"));
 #[cfg(unix)]
-pub(crate) static XDG_DIRS: Lazy<Xdg> = Lazy::new(|| Xdg::new().expect("No home directory"));
+pub(crate) static XDG_DIRS: LazyLock<Xdg> = LazyLock::new(|| Xdg::new().expect("No home directory"));
 
 #[cfg(windows)]
-pub(crate) static WINDOWS_DIRS: Lazy<Windows> = Lazy::new(|| Windows::new().expect("No home directory"));
+pub(crate) static WINDOWS_DIRS: LazyLock<Windows> = LazyLock::new(|| Windows::new().expect("No home directory"));
 
 // Init and load the i18n files
 i18n!("locales", fallback = "en");
@@ -151,7 +151,7 @@ fn run() -> Result<()> {
 
     // If
     //
-    // 1. the breaking changes notification shouldnot be skipped
+    // 1. the breaking changes notification shouldn't be skipped
     // 2. this is the first execution of a major release
     //
     // inform user of breaking changes
