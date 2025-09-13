@@ -1,0 +1,8 @@
+# Lychee link checker configuration
+accept = [200, 429]
+max_concurrency = 4
+timeout = 20
+exclude_path = ["target", ".git"]
+follow_location = true
+insecure = false
+scheme = ["http", "https"]

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://dprint.dev/schemas/v0.json",
+  "incremental": true,
+  "useTabs": false,
+  "lineWidth": 120,
+  "newLineKind": "lf",
+  "plugins": [
+    "https://plugins.dprint.dev/markdown-0.16.4.wasm",
+    "https://plugins.dprint.dev/json-0.19.4.wasm",
+    "https://plugins.dprint.dev/toml-0.6.3.wasm"
+  ],
+  "markdown": {
+    "lineWidth": 120,
+    "textWrap": "maintain"
+  },
+  "includes": ["**/*.{md,json,toml}"],
+  "excludes": ["target/**", ".git/**"]
+}

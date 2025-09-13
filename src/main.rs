@@ -97,9 +97,9 @@ fn run() -> Result<()> {
     }
 
     for env in opt.env_variables() {
-        let mut splitted = env.split('=');
-        let var = splitted.next().unwrap();
-        let value = splitted.next().unwrap();
+        let mut split = env.split('=');
+        let var = split.next().unwrap();
+        let value = split.next().unwrap();
         env::set_var(var, value);
     }
 

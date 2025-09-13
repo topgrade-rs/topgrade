@@ -9,7 +9,6 @@
 [![Docs & Scripts CI](https://github.com/topgrade-rs/topgrade/actions/workflows/docs_and_scripts.yml/badge.svg)](https://github.com/topgrade-rs/topgrade/actions/workflows/docs_and_scripts.yml)
 
 ![Demo](doc/topgrade_demo.gif)
-
 ## Introduction
 
 > [!NOTE] This is a fork of [topgrade by r-darwish](https://github.com/r-darwish/topgrade) to keep it maintained.

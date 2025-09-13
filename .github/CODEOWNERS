@@ -1,0 +1,13 @@
+# Code owners for automatic review requests
+
+# Default owners for everything
+*       @topgrade-rs/maintainers
+
+# Workflows and CI
+.github/workflows/*  @topgrade-rs/maintainers
+
+# Docs tooling configs
+.markdownlint.json    @topgrade-rs/maintainers
+dprint.json           @topgrade-rs/maintainers
+.lychee.toml          @topgrade-rs/maintainers
+.typos.toml           @topgrade-rs/maintainers

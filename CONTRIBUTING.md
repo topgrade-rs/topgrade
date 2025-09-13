@@ -152,7 +152,7 @@ cargo make docs-fix
 Notes
 
 - These commands assume the tools are installed and on your PATH. They’re all Rust-based and installable via Cargo
-   (for example: `cargo install dprint typos-cli lychee`).
+  (for example: `cargo install dprint typos-cli lychee`).
 - Our CI will also run these checks, so running them locally just saves you a round trip.
 
 ## I18n

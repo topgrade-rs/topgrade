@@ -54,7 +54,7 @@ jobs:
         run: typos --format long
 
       - name: lychee (links)
-        uses: lycheeverse/lychee-action@v1.10.0
+        uses: lycheeverse/lychee-action@v2.6.1
         with:
           args: --config .lychee.toml --quiet .
         env:

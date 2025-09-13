@@ -1,0 +1,25 @@
+# Normalize all text files to LF in the repository
+* text=auto eol=lf
+
+# Enforce LF for common text types explicitly
+*.md text eol=lf
+*.toml text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sh text eol=lf
+*.rs text eol=lf
+*.el text eol=lf
+
+# Treat binaries as binary to avoid line-ending normalization
+*.png binary
+*.gif binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.zip binary
+*.gz binary
+*.xz binary
+*.7z binary
+*.pdf binary
+*.wasm binary
