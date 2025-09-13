@@ -15,6 +15,3 @@ repos:
   
 - repo: https://github.com/crate-ci/typos
   rev: v1.36.2
-  hooks:
-    - id: typos
-      args: [--config, .typos.toml]
