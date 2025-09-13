@@ -1,0 +1,15 @@
+[config]
+skip_core_tasks = true
+
+[tasks.docs-fix]
+description = "Auto-format Markdown with dprint"
+command = "dprint"
+args = ["fmt"]
+
+[tasks.docs-check]
+description = "Run dprint, typos, and lychee checks"
+script = [
+  "dprint check",
+  "typos --format long",
+  "lychee --config .lychee.toml --quiet .",
+]
