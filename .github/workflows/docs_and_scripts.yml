@@ -1,0 +1,91 @@
+name: Docs and scripts checks
+
+on:
+  pull_request:
+    paths:
+      - '**/*.md'
+      - '**/*.toml'
+      - '**/*.json'
+      - '**/*.sh'
+      - '.lychee.toml'
+      - 'dprint.json'
+  push:
+    paths:
+      - '**/*.md'
+      - '**/*.toml'
+      - '**/*.json'
+      - '**/*.sh'
+      - '.lychee.toml'
+      - 'dprint.json'
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 1' # Weekly link check (Mondays 03:00 UTC)
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-and-scripts-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    name: Docs (dprint, typos, lychee)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install tools
+        run: |
+          cargo install dprint --locked
+          cargo install typos-cli --locked
+
+      - name: dprint check
+        run: dprint check
+
+      - name: typos
+        run: typos --format long
+
+      - name: lychee (links)
+        uses: lycheeverse/lychee-action@v1.10.0
+        with:
+          args: --config .lychee.toml --quiet .
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  shell:
+    name: ShellCheck
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Find shell scripts
+        id: files
+        shell: bash
+        run: |
+          mapfile -t files < <(git ls-files '*.sh')
+          printf 'count=%d\n' "${#files[@]}" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "${files[@]}" > sh_files.txt
+
+      - name: Run ShellCheck
+        if: steps.files.outputs.count != '0'
+        run: |
+          xargs -a sh_files.txt -r shellcheck --severity=style --format=gcc
+
+      - name: No shell scripts to check
+        if: steps.files.outputs.count == '0'
+        run: echo "No .sh files found. Skipping ShellCheck."

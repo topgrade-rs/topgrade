@@ -1,0 +1,13 @@
+name: Disabled (replaced by docs_and_scripts)
+
+on:
+  push:
+    branches: []
+  pull_request:
+    branches: []
+
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "This workflow is disabled. Use docs_and_scripts.yml."
