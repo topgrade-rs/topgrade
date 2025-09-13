@@ -1,15 +1,17 @@
 # Typos configuration (minimal, conservative)
-# Exclude non-English content and OS fingerprint data to avoid false positives
+# Exclude locales and OS fingerprint data to avoid false positives
 # - Recognize a few project-specific proper nouns
 
 [files]
 extend-exclude = [
   "locales/**",
-  #"!locales/en/**"  # Include only English locale files - TODO: Split English into a Separate File
+  # Include only English locale files - TODO: Split English into a Separate File
+  #"!locales/en/**"
 ]
 
 [default]
 extend-ignore-words = [
   # Project/tooling names
-  "Pengwin"
+  "Pengwin",
+  "PENGWIN",
 ]
