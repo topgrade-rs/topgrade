@@ -1,0 +1,23 @@
+# Typos configuration (minimal, conservative)
+# - Avoid scanning locales and OS release fingerprints
+# - Recognize a few project-specific proper nouns
+
+[files]
+extend-exclude = [
+  "src/**",
+  "locales/**",
+  "src/steps/os/os_release/**",
+  "target/**",
+  ".git/**",
+  # Common binary or large assets are typically skipped by typos, but be explicit
+  "**/*.png", "**/*.gif", "**/*.jpg", "**/*.jpeg", "**/*.svg", "**/*.ico",
+  "**/*.pdf", "**/*.bin", "**/*.exe", "**/*.dll",
+]
+
+[default]
+extend-ignore-words = [
+  # Project/tooling names
+  "Topgrade", "Pengwin", "WSL", "CodeQL", "OSV", "SBOM", "Trivy",
+  "cargo-deny", "rustfmt", "Homebrew", "winget", "AUR",
+  "lychee", "dprint", "markdownlint", "pre-commit",
+]
