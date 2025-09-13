@@ -1,0 +1,18 @@
+[default]
+# Accept common developer terms
+[default.extend-words]
+NH = "NH"
+PSWindowsUpdate = "PSWindowsUpdate"
+OpenBSD = "OpenBSD"
+jetbrains = "jetbrains"
+flake = "flake"
+NixOS = "NixOS"
+PyPi = "PyPi"
+Winget = "Winget"
+Homebrew = "Homebrew"
+AUR = "AUR"
+
+[files]
+extend-exclude = [
+  "locales/app.yml",
+]
