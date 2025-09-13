@@ -677,7 +677,7 @@ pub fn run_nix_helper(ctx: &ExecutionContext) -> Result<()> {
     };
 
     // We assume that if the user has set these variables, we can throw an error if nh cannot find
-    // a flake there. So we do not anymore perform an eval check to find out wether we should skip
+    // a flake there. So we do not anymore perform an eval check to find out whether we should skip
     // or not.
     #[cfg(target_os = "macos")]
     if darwin_flake_path.is_some() || fallback_flake_path.is_some() {
