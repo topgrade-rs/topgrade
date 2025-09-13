@@ -124,13 +124,13 @@ jobs:
 
 
       - name: Release
-        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
+        uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836 # v2.3.3
         with:
           tag_name: ${{ steps.determine_tag_name.outputs.tag_name }}
           files: assets/*
 
       - name: Generate artifact attestations
-        uses: actions/attest-build-provenance@v2.4.0
+        uses: actions/attest-build-provenance@v3.0.0
         with:
           subject-path: assets/*
 
@@ -182,7 +182,7 @@ jobs:
         run: rustup target add ${{ matrix.target }}
 
       - name: install cross
-        uses: taiki-e/install-action@f63c33fd96cc1e69a29bafd06541cf28588b43a4 # v2.58.21
+        uses: taiki-e/install-action@0c5db7f7f897c03b771660e91d065338615679f4 # v2.60.0
         with:
           tool: cross@0.2.5
 
@@ -241,12 +241,12 @@ jobs:
 
 
       - name: Release
-        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
+        uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836 # v2.3.3
         with:
           tag_name: ${{ steps.determine_tag_name.outputs.tag_name }}
           files: assets/*
 
       - name: Generate artifact attestations
-        uses: actions/attest-build-provenance@v2.4.0
+        uses: actions/attest-build-provenance@v3.0.0
         with:
           subject-path: assets/*
