@@ -116,6 +116,7 @@ pub enum Step {
     Pipxu,
     Pixi,
     Pkg,
+    Pkgfile,
     Pkgin,
     PlatformioCore,
     Pnpm,
@@ -457,6 +458,11 @@ impl Step {
                 #[cfg(target_os = "android")]
                 runner.execute(*self, "Termux Packages", || android::upgrade_packages(ctx))?
             }
+            Pkgfile =>
+            {
+                #[cfg(target_os = "linux")]
+                runner.execute(*self, "pkgfile", || linux::run_pkgfile(ctx))?
+            }
             Pkgin =>
             {
                 #[cfg(unix)]
@@ -719,6 +725,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Waydroid,
         AutoCpufreq,
         CinnamonSpices,
+        Pkgfile,
     ]);
 
     #[cfg(target_os = "freebsd")]
