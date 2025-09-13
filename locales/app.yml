@@ -1328,3 +1328,11 @@ _version: 2
   zh_CN: "用户手册"
   zh_TW: "使用者手冊"
   de: "Benutzerhandbücher"
+"ManDB isn't enabled":
+  en: "ManDB isn't enabled"
+  lt: "ManDB nėra įjungtas"
+  es: "ManDB no está habilitado"
+  fr: "ManDB n'est pas activé"
+  zh_CN: "ManDB 未启用"
+  zh_TW: "ManDB 未啟用"
+  de: "ManDB ist nicht aktiviert"
