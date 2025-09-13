@@ -1,17 +1,15 @@
 # Typos configuration (minimal, conservative)
-# - Avoid scanning locales and OS release fingerprints
+# Exclude non-English content and OS fingerprint data to avoid false positives
 # - Recognize a few project-specific proper nouns
 
 [files]
 extend-exclude = [
   "locales/**",
-  "src/steps/os/os_release/**",
+  #"!locales/en/**"  # Include only English locale files - TODO: Split English into a Separate File
 ]
 
 [default]
 extend-ignore-words = [
   # Project/tooling names
-  "Topgrade", "Pengwin", "WSL", "CodeQL", "OSV", "SBOM", "Trivy",
-  "cargo-deny", "rustfmt", "Homebrew", "winget", "AUR",
-  "lychee", "dprint", "markdownlint", "pre-commit",
+  "Pengwin"
 ]
