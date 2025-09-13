@@ -209,6 +209,13 @@
 # home_manager_arguments = ["--flake", "file"]
 
 
+[mandb]
+# Enable the mandb step (to update manual entries).
+# Mandb is updated in the background by a service on most systems by default.
+# (default: false)
+# enable = true
+
+
 [git]
 # How many repos to pull at max in parallel
 # max_concurrency = 5
