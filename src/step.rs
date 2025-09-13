@@ -68,7 +68,7 @@ pub enum Step {
     Helix,
     Helm,
     HomeManager,
-    Hyperpm,
+    Hyprpm,
     // These names are miscapitalized on purpose, so the CLI name is
     //  `jetbrains_pycharm` instead of `jet_brains_py_charm`.
     JetbrainsAqua,
@@ -335,10 +335,10 @@ impl Step {
                 #[cfg(unix)]
                 runner.execute(*self, "home-manager", || unix::run_home_manager(ctx))?
             }
-            Hyperpm =>
+            Hyprpm =>
             {
                 #[cfg(unix)]
-                runner.execute(*self, "hyperpm", || unix::run_hyprpm(ctx))?
+                runner.execute(*self, "hyprpm", || unix::run_hyprpm(ctx))?
             }
             JetbrainsAqua => runner.execute(*self, "JetBrains Aqua Plugins", || generic::run_jetbrains_aqua(ctx))?,
             JetbrainsClion => runner.execute(*self, "JetBrains CL", || generic::run_jetbrains_clion(ctx))?,
@@ -757,7 +757,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Sdkman,
         Rcm,
         Maza,
-        Hyperpm,
+        Hyprpm,
     ]);
 
     #[cfg(not(any(
