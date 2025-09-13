@@ -94,6 +94,7 @@ pub enum Step {
     Lure,
     Macports,
     Mamba,
+    Mandb,
     Mas,
     Maza,
     Micro,
@@ -388,6 +389,11 @@ impl Step {
                 runner.execute(*self, "MacPorts", || macos::run_macports(ctx))?
             }
             Mamba => runner.execute(*self, "mamba", || generic::run_mamba_update(ctx))?,
+            Mandb =>
+            {
+                #[cfg(target_os = "linux")]
+                runner.execute(*self, "Manual Entries", || linux::run_mandb(ctx))?
+            }
             Mas =>
             {
                 #[cfg(target_os = "macos")]
@@ -725,6 +731,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Waydroid,
         AutoCpufreq,
         CinnamonSpices,
+        Mandb,
         Pkgfile,
     ]);
 

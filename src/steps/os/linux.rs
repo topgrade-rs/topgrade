@@ -692,6 +692,19 @@ pub fn run_pkgfile(ctx: &ExecutionContext) -> Result<()> {
     sudo.execute(ctx, pkgfile)?.arg("--update").status_checked()
 }
 
+pub fn run_mandb(ctx: &ExecutionContext) -> Result<()> {
+    let sudo = ctx.require_sudo()?;
+    let mandb = require("mandb")?;
+
+    print_separator(t!("System Manuals"));
+
+    sudo.execute(ctx, &mandb)?.status_checked()?;
+
+    print_separator(t!("User Manuals"));
+
+    ctx.execute(&mandb).arg("--user-db").status_checked()
+}
+
 pub fn run_packer_nu(ctx: &ExecutionContext) -> Result<()> {
     let nu = require("nu")?;
     let packer_home = HOME_DIR.join(".local/share/nushell/packer");
