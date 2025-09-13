@@ -1,15 +1,15 @@
 [package]
 name = "topgrade"
-description = "Upgrade all the things"
+version = "16.0.4"
+authors = ["Roey Darwish Dror <roey.ghost@gmail.com>", "Thomas Schönauer <t.schoenauer@hgs-wt.at>"]
 categories = ["os"]
+edition = "2021"
+exclude = ["doc/screenshot.gif", "BREAKINGCHANGES_dev.md"]
 keywords = ["upgrade", "update"]
 license = "GPL-3.0"
 repository = "https://github.com/topgrade-rs/topgrade"
 rust-version = "1.84.1"
-version = "16.0.4"
-authors = ["Roey Darwish Dror <roey.ghost@gmail.com>", "Thomas Schönauer <t.schoenauer@hgs-wt.at>"]
-exclude = ["doc/screenshot.gif", "BREAKINGCHANGES_dev.md"]
-edition = "2021"
+description = "Upgrade all the things"
 
 readme = "README.md"
 
@@ -17,43 +17,43 @@ readme = "README.md"
 name = "topgrade"
 path = "src/main.rs"
 
-##[lib]
-##name = "topgrade_lib"
+## [lib]
+## name = "topgrade_lib"
 
 [dependencies]
-home = "~0.5"
-etcetera = "~0.8"
-serde = { version = "~1.0", features = ["derive"] }
-toml = "0.8"
-which_crate = { version = "~6.0", package = "which" }
-shellexpand = "~3.1"
+cfg-if = "~1.0"
+chrono = "~0.4"
 clap = { version = "~4.5", features = ["cargo", "derive"] }
 clap_complete = "~4.5"
 clap_mangen = "~0.2"
-walkdir = "~2.5"
-console = "~0.15"
-chrono = "~0.4"
-glob = "~0.3"
-strum = { version = "~0.26", features = ["derive"] }
-thiserror = "~1.0"
-tempfile = "~3.10"
-cfg-if = "~1.0"
-tokio = { version = "~1.47", features = ["process", "rt-multi-thread"] }
-futures = "~0.3"
-regex = "~1.10"
-semver = "~1.0"
-shell-words = "~1.1"
 color-eyre = "~0.6"
+console = "~0.15"
+etcetera = "~0.8"
+futures = "~0.3"
+glob = "~0.3"
+home = "~0.5"
+indexmap = { version = "2.9.0", features = ["serde"] }
+jetbrains-toolbox-updater = "5.0.0"
+merge = "~0.1"
+notify-rust = "~4.11"
+regex = "~1.10"
+regex-split = "~0.1"
+rust-i18n = "3.0.1"
+semver = "~1.0"
+serde = { version = "~1.0", features = ["derive"] }
+shell-words = "~1.1"
+shellexpand = "~3.1"
+strum = { version = "~0.26", features = ["derive"] }
+sys-locale = "0.3.1"
+tempfile = "~3.10"
+thiserror = "~1.0"
+tokio = { version = "~1.47", features = ["process", "rt-multi-thread"] }
+toml = "0.8"
 tracing = { version = "~0.1", features = ["attributes", "log"] }
 tracing-subscriber = { version = "~0.3.20", features = ["env-filter", "time"] }
-merge = "~0.1"
-regex-split = "~0.1"
-notify-rust = "~4.11"
+walkdir = "~2.5"
+which_crate = { version = "~6.0", package = "which" }
 wildmatch = "2.3.0"
-rust-i18n = "3.0.1"
-sys-locale = "0.3.1"
-jetbrains-toolbox-updater = "5.0.0"
-indexmap = { version = "2.9.0", features = ["serde"] }
 
 [package.metadata.generate-rpm]
 assets = [{ source = "target/release/topgrade", dest = "/usr/bin/topgrade" }]

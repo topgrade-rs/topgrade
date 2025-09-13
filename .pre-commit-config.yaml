@@ -3,12 +3,23 @@ repos:
   rev: v8.16.3
   hooks:
   - id: gitleaks
-- repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: v0.10.0.1
+
+- repo: local
   hooks:
-  - id: shellcheck
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.4.0
-  hooks:
-  - id: end-of-file-fixer
-  - id: trailing-whitespace
+    # Rust-based Markdown/TOML/JSON formatting via dprint
+    - id: dprint-fmt
+      name: dprint fmt
+      entry: dprint
+      args: ["fmt", "--config", "dprint.json"]
+      language: system
+      pass_filenames: true
+      types_or: [markdown, toml, json]
+
+    # Rust-based shell linter/formatter (not a complete replacement for ShellCheck)
+    - id: shellharden-check
+      name: shellharden (lint)
+      entry: shellharden
+      args: ["--check"]
+      language: system
+      pass_filenames: true
+      types: [shell]

@@ -17,77 +17,82 @@ Questions labeled with `Optional` can be skipped.
 -->
 
 <!--
-If you're here to report about a "No asset found" error, please make sure that
-an hour has been passed since the last release was made.
+If you're here to report a "No asset found" error, please make sure that
+at least one hour has passed since the last release was made.
 -->
 
-## Erroneous Behavior
+## Actual behavior
+
 <!--
 What actually happened?
 -->
 
-## Expected Behavior
+## Expected behavior
+
 <!--
 Describe the expected behavior
 -->
 
 ## Steps to reproduce
+
 <!--
 A minimal example to reproduce the issue
 -->
 
-## Possible Cause (Optional)
+## Possible cause (optional)
+
 <!--
 If you know the possible cause of the issue, please tell us.
 -->
 
-## Problem persists without calling from topgrade
+## Does the problem reproduce outside of Topgrade?
+
 <!--
 Execute the erroneous command directly to see if the problem persists
 -->
-- [ ] Yes
-- [ ] No
-
-## Did you run topgrade through `Remote Execution`
 
 - [ ] Yes
 - [ ] No
 
-If yes, does the issue still occur when you run topgrade directlly in your
-remote host
+## Did you run Topgrade through `Remote Execution`?
+
+- [ ] Yes
+- [ ] No
+
+If yes, does the issue still occur when you run Topgrade directly on the remote host?
 
 - [ ] Yes
 - [ ] No
 
 ## Configuration file (Optional)
+
 <!--
 Paste your configuration file inside the code block if you think this issue is
 related to configuration.
 -->
 
 ```toml
-
 ```
 
 ## Additional Details
-- Operation System/Version
-  <!-- For example, Fedora Linux 38 -->
+
+- Operating system and version
+  <!-- For example, Fedora Linux 38, Windows 11 24H2, macOS 15 -->
 
 - Installation
   <!--
-  How did you install topgrade: build from repo / crates.io (cargo install topgrade)
+  How did you install Topgrade: built from repo / crates.io (`cargo install topgrade`)
   / package manager (which one) / other (describe)
   -->
 
 - Topgrade version (`topgrade -V`)
 
 ## Verbose Output (`topgrade -v`)
+
 <!--
-Paste the verbose output into the pre-tags
+Paste the verbose output into the code block below
 -->
 
-<details>
-<pre>
-
-</pre>
-</details>
+```text
+# Paste the verbose output here (redact secrets)
+```

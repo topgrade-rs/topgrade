@@ -1,5 +1,5 @@
-PRETTY_NAME="Pengwin"
-NAME="Pengwin"
+PRETTY_NAME="Penguin"
+NAME="Penguin"
 VERSION_ID="11"
 VERSION="11 (bullseye)"
 ID=debian
@@ -8,4 +8,4 @@ HOME_URL="https://github.com/whitewaterfoundry/Pengwin"
 SUPPORT_URL="https://github.com/WhitewaterFoundry/Pengwin/issues"
 BUG_REPORT_URL="https://github.com/WhitewaterFoundry/Pengwin/issues"
 VERSION_CODENAME=bullseye
-PENGWIN_VERSION="20.6.3"
+PENGUIN_VERSION="20.6.3"

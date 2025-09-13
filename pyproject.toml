@@ -6,11 +6,10 @@ build-backend = "maturin"
 name = "topgrade"
 requires-python = ">=3.7"
 classifiers = [
-    "Programming Language :: Rust",
-    "Programming Language :: Python :: Implementation :: CPython",
-    "Programming Language :: Python :: Implementation :: PyPy",
+  "Programming Language :: Rust",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
 ]
-
 
 [tool.maturin]
 bindings = "bin"
