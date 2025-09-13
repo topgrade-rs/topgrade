@@ -4,14 +4,11 @@
 
 [files]
 extend-exclude = [
-  "locales/**",
-  # Include only English locale files - TODO: Split English into a Separate File
-  #"!locales/en/**"
+  "locales/**"
+  # Include only English locale files - TODO: Split locales/app.yml into a Separate english File
+  # "!locales/en/**"
 ]
 
 [default]
-extend-ignore-words = [
-  # Project/tooling names
-  "Pengwin",
-  "PENGWIN",
-]
+# Mark specific words as always valid by mapping them to themselves
+extend-words = { Pengwin = "Pengwin", PENGWIN = "PENGWIN" }
