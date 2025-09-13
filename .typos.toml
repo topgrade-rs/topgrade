@@ -4,11 +4,17 @@
 
 [files]
 extend-exclude = [
-  "locales/**"
+  "src/steps/os/os_release/**",
+  "locales/**",
   # Include only English locale files - TODO: Split locales/app.yml into a Separate english File
   # "!locales/en/**"
 ]
 
 [default]
 # Mark specific words as always valid by mapping them to themselves
-extend-words = { Pengwin = "Pengwin", PENGWIN = "PENGWIN" }
+check-file = true
+check-filename = true
+
+[default.extend-words]
+# Add project-specific terms that should not be flagged as typos
+# Example: topgrade = "topgrade"
