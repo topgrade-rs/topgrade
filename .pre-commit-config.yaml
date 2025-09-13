@@ -13,8 +13,6 @@ repos:
   - id: end-of-file-fixer
   - id: trailing-whitespace
   
-  # Spelling/typo checks via pre-commit (preferred over GHA). Use conservative excludes
-  # to avoid localized strings and OS release fingerprints.
 - repo: https://github.com/crate-ci/typos
   rev: v1.20.8
   hooks:
