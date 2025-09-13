@@ -18,3 +18,11 @@
 
 # Backup files for any .rs files in the project
 **/*.rs.bk
+
+# pre-commit cache artifacts only (keep this narrow)
+# Standard location if created within repo structure
+**/.cache/pre-commit/**
+# Odd Windows path leakage we saw (e.g., C…Users…\.cache\pre-commit\ under repo root)
+C*/**/.cache/pre-commit/**
+# Backup created by some editors/tools while editing hook config
+**/.pre-commit-config.yaml.bak
