@@ -6,12 +6,19 @@ use etcetera::base_strategy::BaseStrategy;
 use tracing::debug;
 
 use crate::command::CommandExt;
+use crate::error::SkipStep;
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
+use crate::steps::git::RepoStep;
 use crate::terminal::{print_separator, print_warning};
 use crate::utils::{require, which};
-use crate::{error::SkipStep, steps::git::RepoStep};
 use rust_i18n::t;
+
+// Windows submodules
+pub mod sdio;
+
+// Re-export for compatibility
+pub use self::sdio::run_sdio;
 
 pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
     let choco = require("choco")?;

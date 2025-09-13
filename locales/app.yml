@@ -1111,6 +1111,15 @@ _version: 2
   zh_TW: "再試一次？ (y)是/(N)否/(s)殼層/(q)退出"
   de: "Wiederholen? (y) Ja / (n) Nein / (s) Shell / (q) Beenden"
 
+"Awaiting user":
+  en: "Awaiting user"
+  lt: "Laukiama naudotojo"
+  es: "Esperando al usuario"
+  fr: "En attente de l'utilisateur"
+  zh_CN: "等待用户操作"
+  zh_TW: "等待使用者操作"
+  de: "Warte auf Benutzereingabe"
+
 # 'R', 'S', 'Q'  have to stay the same throughout all translations. Eg German would look like "\n(R) Neustarten\n(S) Konsole\n(Q) Beenden"
 "\n(R)eboot\n(S)hell\n(Q)uit":
   en: "\n(R)eboot\n(S)hell\n(Q)uit"
@@ -1128,6 +1137,24 @@ _version: 2
   zh_CN: "找不到权限管理程序（sudo 等），跳过"
   zh_TW: "找不到權限管理程式（sudo 等），略過"
   de: "Benötigt sudo oder Äquivalent, aber nicht gefunden, überspringe"
+
+# Generic messages with formatting placeholders used in output and errors
+"Command failed: `{command}`":
+  en: "Command failed: `%{command}`"
+  lt: "Komanda nepavyko: `%{command}`"
+  es: "El comando falló: `%{command}`"
+  fr: "La commande a échoué : `%{command}`"
+  zh_CN: "命令失败：`%{command}`"
+  zh_TW: "指令失敗：`%{command}`"
+  de: "Befehl fehlgeschlagen: `%{command}`"
+"Failed to execute `{command}`":
+  en: "Failed to execute `%{command}`"
+  lt: "Nepavyko įvykdyti `%{command}`"
+  es: "No se pudo ejecutar `%{command}`"
+  fr: "Échec de l'exécution de `%{command}`"
+  zh_CN: "无法执行：`%{command}`"
+  zh_TW: "無法執行：`%{command}`"
+  de: "Ausführung fehlgeschlagen: `%{command}`"
 "{sudo_kind} does not support the {option} option":
   en: "%{sudo_kind} does not support the %{option} option"
   lt: "%{sudo_kind} nepalaiko parinkties %{option}"
@@ -1200,6 +1227,38 @@ _version: 2
   zh_CN: "无法在任何 WSL 发行版中找到 Topgrade"
   zh_TW: "在所有 WSL 中找不到 Topgrade"
   de: "Konnte Topgrade in keiner WSL-Distribution finden"
+"SDIO (Snappy Driver Installer Origin) not found":
+  en: "SDIO (Snappy Driver Installer Origin) not found"
+  lt: "SDIO (Snappy Driver Installer Origin) nerastas"
+  es: "SDIO (Snappy Driver Installer Origin) no encontrado"
+  fr: "SDIO (Snappy Driver Installer Origin) introuvable"
+  zh_CN: "未找到 SDIO (Snappy Driver Installer Origin)"
+  zh_TW: "找不到 SDIO (Snappy Driver Installer Origin)"
+  de: "SDIO (Snappy Driver Installer Origin) nicht gefunden"
+"SDIO driver updates are disabled. Enable with 'enable_sdio = true' in [windows] section":
+  en: "SDIO driver updates are disabled. Enable with 'enable_sdio = true' in [windows] section"
+  lt: "SDIO tvarkyklių atnaujinimai išjungti. Įjunkite su 'enable_sdio = true' [windows] sekcijoje"
+  es: "Las actualizaciones de controladores SDIO están deshabilitadas. Habilite con 'enable_sdio = true' en la sección [windows]"
+  fr: "Les mises à jour des pilotes SDIO sont désactivées. Activez avec 'enable_sdio = true' dans la section [windows]"
+  zh_CN: "SDIO 驱动程序更新已禁用。在 [windows] 部分使用 'enable_sdio = true' 启用"
+  zh_TW: "SDIO 驅動程式更新已停用。在 [windows] 部分使用 'enable_sdio = true' 啟用"
+  de: "SDIO-Treiberupdates sind deaktiviert. Mit 'enable_sdio = true' im Abschnitt [windows] aktivieren"
+"Snappy Driver Installer Origin":
+  en: "Snappy Driver Installer Origin"
+  lt: "Snappy Driver Installer Origin"
+  es: "Snappy Driver Installer Origin"
+  fr: "Snappy Driver Installer Origin"
+  zh_CN: "Snappy Driver Installer Origin"
+  zh_TW: "Snappy Driver Installer Origin"
+  de: "Snappy Driver Installer Origin"
+"Proceed to install selected drivers now? This will create a restore point first. (y/N)":
+  en: "Proceed to install selected drivers now? This will create a restore point first. (y/N)"
+  lt: "Ar norite dabar įdiegti pasirinktus tvarkykles? Pirmiausia bus sukurta atkūrimo taškas. (y/N)"
+  es: "¿Desea instalar los controladores seleccionados ahora? Primero se creará un punto de restauración. (y/N)"
+  fr: "Procéder à l'installation des pilotes sélectionnés maintenant ? Un point de restauration sera créé d'abord. (y/N)"
+  zh_CN: "现在安装所选驱动程序吗？将首先创建一个还原点。(y/N)"
+  zh_TW: "現在要安裝所選的驅動程式嗎？將先建立還原點。(y/N)"
+  de: "Ausgewählte Treiber jetzt installieren? Zuerst wird ein Wiederherstellungspunkt erstellt. (y/N)"
 "Windows Update":
   en: "Windows Update"
   lt: "Windows atnaujinimas"
