@@ -16,13 +16,5 @@ repos:
 - repo: https://github.com/crate-ci/typos
   rev: v1.36.2
   hooks:
-  - id: typos
-    # Keep defaults; just exclude problematic paths and binary-like extensions
-    exclude: >-
-      (?x)(
-        ^locales/ |                                # translations
-        ^src/steps/os/os_release/ |                # OS release files
-        ^target/ |                                 # build artifacts
-        \.git/ |                                   # VCS
-        \.(png|gif|jpg|jpeg|svg|ico|pdf|bin|exe|dll)$
-      )
+    - id: typos
+      args: [--config, .typos.toml]
