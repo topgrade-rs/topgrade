@@ -742,6 +742,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Sdkman,
         Rcm,
         Maza,
+        Hyperpm,
     ]);
 
     #[cfg(not(any(
