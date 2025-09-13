@@ -310,7 +310,7 @@ impl Step {
             Gem => runner.execute(*self, "gem", || generic::run_gem(ctx))?,
             Ghcup => runner.execute(*self, "ghcup", || generic::run_ghcup_update(ctx))?,
             GitRepos => runner.execute(*self, "Git Repositories", || git::run_git_pull(ctx))?,
-            GithubCliExtensions => runner.execute(*self, "GitHub CLI Extenstions", || {
+            GithubCliExtensions => runner.execute(*self, "GitHub CLI Extensions", || {
                 generic::run_ghcli_extensions_upgrade(ctx)
             })?,
             GnomeShellExtensions =>
