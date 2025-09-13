@@ -1,0 +1,60 @@
+name: Trivy FS Scan
+
+on:
+  pull_request:
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'src/**'
+      - '.github/workflows/trivy-fs.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'src/**'
+      - '.github/workflows/trivy-fs.yml'
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trivy-fs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Run Trivy filesystem scan (repo, pinned digest)
+        shell: bash
+        run: |
+          set -euo pipefail
+          IMAGE="aquasec/trivy:latest"
+          docker pull "$IMAGE" > /dev/null
+          DIGEST="$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE")"
+          echo "Using image digest: $DIGEST"
+          docker run --rm \
+            -v "${{ github.workspace }}":/src \
+            -w /src \
+            "$DIGEST" \
+            fs \
+            --format sarif \
+            --output trivy-repo.sarif \
+            --severity CRITICAL,HIGH \
+            --ignore-unfixed \
+            --vuln-type os,library \
+            .
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        with:
+          sarif_file: trivy-repo.sarif
