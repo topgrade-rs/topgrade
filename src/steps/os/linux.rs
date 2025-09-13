@@ -696,6 +696,10 @@ pub fn run_mandb(ctx: &ExecutionContext) -> Result<()> {
     let sudo = ctx.require_sudo()?;
     let mandb = require("mandb")?;
 
+    if !ctx.config().enable_mandb() {
+        return Err(SkipStep(t!("ManDB isn't enabled").to_string()).into());
+    }
+
     print_separator(t!("System Manuals"));
 
     sudo.execute(ctx, &mandb)?.status_checked()?;
