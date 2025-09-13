@@ -7,11 +7,6 @@ extend-exclude = [
   "src/**",
   "locales/**",
   "src/steps/os/os_release/**",
-  "target/**",
-  ".git/**",
-  # Common binary or large assets are typically skipped by typos, but be explicit
-  "**/*.png", "**/*.gif", "**/*.jpg", "**/*.jpeg", "**/*.svg", "**/*.ico",
-  "**/*.pdf", "**/*.bin", "**/*.exe", "**/*.dll",
 ]
 
 [default]
