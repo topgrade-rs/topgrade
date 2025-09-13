@@ -12,3 +12,15 @@ repos:
   hooks:
   - id: end-of-file-fixer
   - id: trailing-whitespace
+
+# dprint for Markdown and JSON formatting (no Rust; rustfmt remains source of truth)
+- repo: https://github.com/dprint/formatter
+  rev: 0.2.1
+  hooks:
+  - id: dprint
+    args:
+      - fmt
+      - --config=./dprint.json
+    types_or:
+      - markdown
+      - json
