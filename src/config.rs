@@ -697,6 +697,10 @@ pub struct CommandLineArgs {
     #[arg(short = 't', long = "tmux")]
     run_in_tmux: bool,
 
+    /// Don't run inside tmux
+    #[arg(long = "no-tmux")]
+    no_tmux: bool,
+
     /// Cleanup temporary or old files
     #[arg(short = 'c', long = "cleanup")]
     cleanup: bool,
@@ -961,13 +965,14 @@ impl Config {
 
     /// Tell whether we should run in tmux.
     pub fn run_in_tmux(&self) -> bool {
-        self.opt.run_in_tmux
-            || self
-                .config_file
-                .misc
-                .as_ref()
-                .and_then(|misc| misc.run_in_tmux)
-                .unwrap_or(false)
+        !self.opt.no_tmux
+            && (self.opt.run_in_tmux
+                || self
+                    .config_file
+                    .misc
+                    .as_ref()
+                    .and_then(|misc| misc.run_in_tmux)
+                    .unwrap_or(false))
     }
 
     /// The preferred way to run the new tmux session.
