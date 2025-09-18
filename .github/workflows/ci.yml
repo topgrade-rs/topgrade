@@ -59,8 +59,34 @@ jobs:
           sort original.txt > sorted.txt
           diff original.txt sorted.txt
 
+  dprint:
+    name: dprint formatting check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5.0.0
+
+      - name: Check if dprint.json exists
+        id: cfg
+        run: |
+          if [ -f dprint.json ]; then
+            echo "present=true" >> $GITHUB_OUTPUT
+          else
+            echo "present=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install dprint
+        if: steps.cfg.outputs.present == 'true'
+        run: |
+          curl -fsSL https://dprint.dev/install.sh | sh -s 0.50.0
+          echo "$HOME/.dprint/bin" >> $GITHUB_PATH
+
+      - name: Check formatting
+        if: steps.cfg.outputs.present == 'true'
+        run: dprint fmt --config=./dprint.json --check
+
   main:
-    needs: [ fmt, step-enum-sorted, step-match-sorted ]
+    needs: [ fmt, dprint, step-enum-sorted, step-match-sorted ]
     name: ${{ matrix.target_name }} (check, clippy)
     runs-on: ${{ matrix.os }}
     strategy:
