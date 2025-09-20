@@ -44,6 +44,10 @@
 # Do not ask to retry failed steps (default: false)
 # no_retry = true
 
+# Show the reason for skipped steps (default: false)
+# This has no effect if the "only" option is specified
+# show_skipped = true
+
 # Run inside tmux (default: false)
 # run_in_tmux = true
 
@@ -203,6 +207,13 @@
 
 # Extra Home Manager arguments
 # home_manager_arguments = ["--flake", "file"]
+
+
+[mandb]
+# Enable the mandb step (to update manual entries).
+# Mandb is updated in the background by a service on most systems by default.
+# (default: false)
+# enable = true
 
 
 [git]

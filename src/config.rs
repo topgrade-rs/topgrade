@@ -64,6 +64,12 @@ pub struct Containers {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct Mandb {
+    enable: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 pub struct Git {
     max_concurrency: Option<usize>,
 
@@ -318,6 +324,8 @@ pub struct Misc {
 
     no_retry: Option<bool>,
 
+    show_skipped: Option<bool>,
+
     run_in_tmux: Option<bool>,
 
     tmux_session_mode: Option<TmuxSessionMode>,
@@ -411,6 +419,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     linux: Option<Linux>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    mandb: Option<Mandb>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     git: Option<Git>,
@@ -686,6 +697,10 @@ pub struct CommandLineArgs {
     #[arg(short = 't', long = "tmux")]
     run_in_tmux: bool,
 
+    /// Don't run inside tmux
+    #[arg(long = "no-tmux")]
+    no_tmux: bool,
+
     /// Cleanup temporary or old files
     #[arg(short = 'c', long = "cleanup")]
     cleanup: bool,
@@ -950,13 +965,14 @@ impl Config {
 
     /// Tell whether we should run in tmux.
     pub fn run_in_tmux(&self) -> bool {
-        self.opt.run_in_tmux
-            || self
-                .config_file
-                .misc
-                .as_ref()
-                .and_then(|misc| misc.run_in_tmux)
-                .unwrap_or(false)
+        !self.opt.no_tmux
+            && (self.opt.run_in_tmux
+                || self
+                    .config_file
+                    .misc
+                    .as_ref()
+                    .and_then(|misc| misc.run_in_tmux)
+                    .unwrap_or(false))
     }
 
     /// The preferred way to run the new tmux session.
@@ -1487,6 +1503,20 @@ impl Config {
 
     pub fn show_skipped(&self) -> bool {
         self.opt.show_skipped
+            || self
+                .config_file
+                .misc
+                .as_ref()
+                .and_then(|misc| misc.show_skipped)
+                .unwrap_or(false)
+    }
+
+    pub fn enable_mandb(&self) -> bool {
+        self.config_file
+            .mandb
+            .as_ref()
+            .and_then(|mandb| mandb.enable)
+            .unwrap_or(false)
     }
 
     pub fn open_remotes_in_new_terminal(&self) -> bool {

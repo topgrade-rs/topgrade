@@ -94,6 +94,7 @@ pub enum Step {
     Lure,
     Macports,
     Mamba,
+    Mandb,
     Mas,
     Maza,
     Micro,
@@ -116,6 +117,7 @@ pub enum Step {
     Pipxu,
     Pixi,
     Pkg,
+    Pkgfile,
     Pkgin,
     PlatformioCore,
     Pnpm,
@@ -152,7 +154,9 @@ pub enum Step {
     Vim,
     VoltaPackages,
     Vscode,
+    VscodeInsiders,
     Vscodium,
+    VscodiumInsiders,
     Waydroid,
     Winget,
     Wsl,
@@ -309,7 +313,7 @@ impl Step {
             Gem => runner.execute(*self, "gem", || generic::run_gem(ctx))?,
             Ghcup => runner.execute(*self, "ghcup", || generic::run_ghcup_update(ctx))?,
             GitRepos => runner.execute(*self, "Git Repositories", || git::run_git_pull(ctx))?,
-            GithubCliExtensions => runner.execute(*self, "GitHub CLI Extenstions", || {
+            GithubCliExtensions => runner.execute(*self, "GitHub CLI Extensions", || {
                 generic::run_ghcli_extensions_upgrade(ctx)
             })?,
             GnomeShellExtensions =>
@@ -388,6 +392,11 @@ impl Step {
                 runner.execute(*self, "MacPorts", || macos::run_macports(ctx))?
             }
             Mamba => runner.execute(*self, "mamba", || generic::run_mamba_update(ctx))?,
+            Mandb =>
+            {
+                #[cfg(target_os = "linux")]
+                runner.execute(*self, "Manual Entries", || linux::run_mandb(ctx))?
+            }
             Mas =>
             {
                 #[cfg(target_os = "macos")]
@@ -457,6 +466,11 @@ impl Step {
                 runner.execute(*self, "OpenBSD Packages", || openbsd::upgrade_packages(ctx))?;
                 #[cfg(target_os = "android")]
                 runner.execute(*self, "Termux Packages", || android::upgrade_packages(ctx))?
+            }
+            Pkgfile =>
+            {
+                #[cfg(target_os = "linux")]
+                runner.execute(*self, "pkgfile", || linux::run_pkgfile(ctx))?
             }
             Pkgin =>
             {
@@ -623,8 +637,14 @@ impl Step {
             Vscode => runner.execute(*self, "Visual Studio Code extensions", || {
                 generic::run_vscode_extensions_update(ctx)
             })?,
+            VscodeInsiders => runner.execute(*self, "Visual Studio Code Insiders extensions", || {
+                generic::run_vscode_insiders_extensions_update(ctx)
+            })?,
             Vscodium => runner.execute(*self, "VSCodium extensions", || {
                 generic::run_vscodium_extensions_update(ctx)
+            })?,
+            VscodiumInsiders => runner.execute(*self, "VSCodium Insiders extensions", || {
+                generic::run_vscodium_insiders_extensions_update(ctx)
             })?,
             Waydroid =>
             {
@@ -719,6 +739,8 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Waydroid,
         AutoCpufreq,
         CinnamonSpices,
+        Mandb,
+        Pkgfile,
     ]);
 
     #[cfg(unix)]
@@ -770,7 +792,9 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Pipx,
         Pipxu,
         Vscode,
+        VscodeInsiders,
         Vscodium,
+        VscodiumInsiders,
         Conda,
         Mamba,
         Pixi,
