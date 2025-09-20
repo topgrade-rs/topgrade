@@ -1547,7 +1547,7 @@ pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-pub fn run_jetbrains_toolbox(_ctx: &ExecutionContext) -> Result<()> {
+pub fn run_jetbrains_toolbox(ctx: &ExecutionContext) -> Result<()> {
     let installation = find_jetbrains_toolbox();
     match installation {
         Err(FindError::NotFound) => {
@@ -1569,6 +1569,11 @@ pub fn run_jetbrains_toolbox(_ctx: &ExecutionContext) -> Result<()> {
         }
         Ok(installation) => {
             print_separator("JetBrains Toolbox");
+
+            if ctx.run_type().dry() {
+                println!("Dry running jetbrains-toolbox-updater");
+                return Ok(());
+            }
 
             match update_jetbrains_toolbox(installation) {
                 Err(e) => {
