@@ -1,6 +1,5 @@
 ## What does this PR do
 
-
 ## Standards checklist
 
 - [ ] The PR title is descriptive
