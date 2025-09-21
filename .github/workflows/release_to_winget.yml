@@ -1,8 +1,8 @@
 name: Publish to WinGet
+
 on:
-  release:
-    types: [released]
-  workflow_dispatch:
+  repository_dispatch:
+    types: [ release-created ]
 
 permissions:
   contents: read
