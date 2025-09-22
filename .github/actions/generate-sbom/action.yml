@@ -1,0 +1,22 @@
+name: generate-sbom
+description: Generate CycloneDX SBOM using anchore/sbom-action
+inputs:
+  path:
+    description: Path to analyze
+    required: true
+  output:
+    description: Output file path
+    required: true
+  format:
+    description: SBOM format
+    required: false
+    default: cyclonedx-json
+runs:
+  using: composite
+  steps:
+    - name: Generate SBOM
+      uses: anchore/sbom-action@v0
+      with:
+        path: ${{ inputs.path }}
+        format: ${{ inputs.format }}
+        output-file: ${{ inputs.output }}
