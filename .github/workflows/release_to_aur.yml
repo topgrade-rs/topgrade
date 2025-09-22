@@ -1,19 +1,8 @@
 name: Publish to AUR
 
 on:
-  # Step "Publish binary AUR package" needs the binaries built by the following
-  # workflow, so we wait for it to complete.
-  workflow_run:
-    workflows: ["Publish release files for CD native and non-cd-native environments"]
-    types:
-      - completed
-  workflow_dispatch:
-    inputs:
-      # Example: 16.0.4
-      version:
-        description: "The version of this manual release, e.g., 16.0.4"
-        required: false
-        type: string
+  repository_dispatch:
+    types: [ release-assets-built ]
 
 permissions:
   contents: read
@@ -25,12 +14,9 @@ jobs:
       - name: Determine version
         id: determine_version
         run: |
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            # GITHUB_REF should be something like "v16.0.4", remove the prefix v here
-            echo "version=${GITHUB_REF#v}" >> $GITHUB_OUTPUT
-          fi
+          # tag should be something like "v16.0.4", remove the prefix v here
+          tag="${{ github.event.client_payload.tag }}"
+          echo "version=${tag#v}" >> $GITHUB_OUTPUT
 
       - name: Publish source AUR package
         uses: varabyte/update-aur-package@572e31b1972fa289a27b1926c06a489eb89c7fd7
