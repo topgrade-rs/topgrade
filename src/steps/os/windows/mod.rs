@@ -132,8 +132,8 @@ fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
     let output = Command::new(wsl).args(["--list", "-q"]).output_checked_utf8()?.stdout;
     Ok(output
         .lines()
+        .map(|x| x.replace(['\u{0}', '\r'], "").trim().to_owned())
         .filter(|s| !s.is_empty())
-        .map(|x| x.replace(['\u{0}', '\r'], ""))
         .collect())
 }
 
@@ -156,12 +156,12 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     //
     // ```rust
     // command
-    //  .args(["-d", dist, "bash", "-c"])
+    //  .args(["-d", dist, "bash", "-lc"])
     //  .arg(format!("TOPGRADE_PREFIX={dist} exec {topgrade}"));
     // ```
     //
     // creates a command string like:
-    // > `C:\WINDOWS\system32\wsl.EXE -d Ubuntu bash -c 'TOPGRADE_PREFIX=Ubuntu exec /bin/topgrade'`
+    // > `C:\WINDOWS\system32\wsl.EXE -d Ubuntu bash -lc 'TOPGRADE_PREFIX=Ubuntu exec /bin/topgrade'`
     //
     // Adding the following:
     //
@@ -170,7 +170,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     // ```
     //
     // appends the next argument like so:
-    // > `C:\WINDOWS\system32\wsl.EXE -d Ubuntu bash -c 'TOPGRADE_PREFIX=Ubuntu exec /bin/topgrade' -v`
+    // > `C:\WINDOWS\system32\wsl.EXE -d Ubuntu bash -lc 'TOPGRADE_PREFIX=Ubuntu exec /bin/topgrade' -v`
     // which means `-v` isn't passed to `topgrade`.
     let mut args = String::new();
     if ctx.config().verbose() {
@@ -178,7 +178,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     }
 
     command
-        .args(["-d", dist, "bash", "-c"])
+        .args(["-d", dist, "bash", "-lc"])
         .arg(format!("TOPGRADE_PREFIX={dist} exec {topgrade} {args}"));
 
     if ctx.config().yes(Step::Wsl) {

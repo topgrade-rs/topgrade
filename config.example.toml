@@ -3,14 +3,14 @@
 # ============================================================================
 # This is an example configuration file for Topgrade.
 # Copy this to your config directory and uncomment/modify the options you need.
-# 
+#
 # Configuration path: $CONFIG_DIR/topgrade.toml
-# - Windows: %APPDATA%\topgrade\topgrade.toml  
+# - Windows: %APPDATA%\topgrade\topgrade.toml
 # - macOS/Linux: ~/.config/topgrade/topgrade.toml
 #
 # TABLE OF CONTENTS:
 # - Includes: Configuration file inclusion
-# - General Settings: Core behavior and preferences  
+# - General Settings: Core behavior and preferences
 # - Command Hooks: Pre/post commands and custom commands
 # - Language & Runtime Environments: Python, Conda, Julia, Zigup, etc.
 # - Package Managers: Homebrew, Linux distros, Composer
@@ -18,7 +18,7 @@
 # - Platform-Specific: Windows, Linux-specific configurations
 # - Editors & Development Tools: npm, yarn, deno, vim, vscode
 # - System & Hardware: Firmware, Vagrant
-# - Containerization: Flatpak, Distrobox, Containers  
+# - Containerization: Flatpak, Distrobox, Containers
 # - Specialized Tools: Lensfun, Pixi, etc.
 
 # ============================================================================
@@ -247,6 +247,13 @@
 # ============================================================================
 # VERSION CONTROL
 # ============================================================================
+
+[mandb]
+# Enable the mandb step (to update manual entries).
+# Mandb is updated in the background by a service on most systems by default.
+# (default: false)
+# enable = true
+
 [git]
 # How many repos to pull at max in parallel
 # max_concurrency = 5
@@ -319,7 +326,7 @@
 # sdio_path = "C:\\SDIO\\SDIO_auto.bat"
 
 # ============================================================================
-# EDITORS & DEVELOPMENT TOOLS  
+# EDITORS & DEVELOPMENT TOOLS
 # ============================================================================
 [npm]
 # Use sudo if the NPM directory isn't owned by the current user
