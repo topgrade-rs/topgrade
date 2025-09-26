@@ -20,11 +20,9 @@ pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Chocolatey");
 
-    let mut command = match ctx.sudo() {
-        Some(sudo) => sudo.execute(ctx, &choco)?,
-        None => ctx.execute(choco),
-    };
+    let sudo = ctx.require_sudo()?;
 
+    let mut command = sudo.execute(ctx, &choco)?;
     command.args(["upgrade", "all"]);
 
     if yes {
@@ -42,10 +40,8 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(&winget).args(["source", "update"]).status_checked()?;
 
     let mut command = if ctx.config().winget_use_sudo() {
-        match ctx.sudo() {
-            Some(sudo) => sudo.execute(ctx, &winget)?,
-            None => ctx.execute(winget),
-        }
+        let sudo = ctx.require_sudo()?;
+        sudo.execute(ctx, &winget)?
     } else {
         ctx.execute(winget)
     };

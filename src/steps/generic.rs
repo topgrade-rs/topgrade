@@ -1081,7 +1081,7 @@ pub fn run_powershell(ctx: &ExecutionContext) -> Result<()> {
         // and Update-Module updates all modules regardless of their original installation scope
         powershell.build_command(ctx, &cmd, false)?.status_checked()
     } else {
-        // For (Windows) PowerShell, use sudo if available since it defaults to AllUsers scope
+        // For (Windows) PowerShell, use sudo since it defaults to AllUsers scope
         // and may need administrator privileges
         powershell.build_command(ctx, &cmd, true)?.status_checked()
     }
