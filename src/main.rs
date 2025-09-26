@@ -28,7 +28,7 @@ use self::error::Upgraded;
 use self::runner::StepResult;
 #[allow(clippy::wildcard_imports)]
 use self::steps::{remote::*, *};
-use self::sudo::{Sudo, SudoKind};
+use self::sudo::{Sudo, SudoCreateError, SudoKind};
 #[allow(clippy::wildcard_imports)]
 use self::terminal::*;
 use self::utils::{install_color_eyre, install_tracing, is_elevated, update_tracing};
@@ -155,6 +155,11 @@ fn run() -> Result<()> {
     };
     debug!("Sudo: {:?}", sudo);
 
+    let (sudo, sudo_err) = match sudo {
+        Ok(sudo) => (Some(sudo), None),
+        Err(e) => (None, Some(e)),
+    };
+
     #[cfg(target_os = "linux")]
     let distribution = linux::Distribution::detect();
 
@@ -241,13 +246,32 @@ fn run() -> Result<()> {
             print_warning(t!(
                 "\nSome steps were skipped as sudo or equivalent could not be found."
             ));
+            // Steps can only fail with SkippedMissingSudo if sudo is None,
+            // therefore we must have a sudo_err
+            match sudo_err.unwrap() {
+                SudoCreateError::CannotFindBinary => {
+                    #[cfg(unix)]
+                    print_warning(t!(
+                        "Install one of `sudo`, `doas`, `pkexec`, `run0` or `please` to run these steps."
+                    ));
 
-            #[cfg(unix)]
-            print_warning(t!(
-                "Install one of `sudo`, `doas`, `pkexec`, `run0` or `please` to run these steps."
-            ));
-            #[cfg(windows)]
-            print_warning(t!("Install gsudo or enable Windows Sudo to run these steps."));
+                    // if this windows version supported Windows Sudo, the error would have been WinSudoDisabled
+                    #[cfg(windows)]
+                    print_warning(t!("Install gsudo to run these steps."));
+                }
+                #[cfg(windows)]
+                SudoCreateError::WinSudoDisabled => {
+                    print_warning(t!(
+                        "Install gsudo or enable Windows Sudo to run these steps.\nFor Windows Sudo, the default 'In a new window' mode is not supported as it prevents Topgrade from waiting for commands to finish. Please configure it to use 'Inline' mode instead.\nGo to https://go.microsoft.com/fwlink/?linkid=2257346 to learn more."
+                    ));
+                }
+                #[cfg(windows)]
+                SudoCreateError::WinSudoNewWindowMode => {
+                    print_warning(t!(
+                        "Windows Sudo was found, but it is set to 'In a new window' mode, which prevents Topgrade from waiting for commands to finish. Please configure it to use 'Inline' mode instead.\nGo to https://go.microsoft.com/fwlink/?linkid=2257346 to learn more."
+                    ));
+                }
+            }
         }
     }
 

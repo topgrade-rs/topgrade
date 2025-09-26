@@ -2,10 +2,20 @@ use std::ffi::OsStr;
 use std::path::Path;
 use std::path::PathBuf;
 
+#[cfg(windows)]
+use color_eyre::eyre;
+#[cfg(windows)]
+use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 use serde::Deserialize;
 use strum::Display;
+use thiserror::Error;
+#[cfg(windows)]
+use tracing::{debug, warn};
+#[cfg(windows)]
+use windows::Win32::Foundation::ERROR_FILE_NOT_FOUND;
 
 use crate::command::CommandExt;
 use crate::error::UnsupportedSudo;
@@ -20,6 +30,37 @@ pub struct Sudo {
     path: Option<PathBuf>,
     /// The type of program being used as `sudo`.
     kind: SudoKind,
+}
+
+#[derive(Error, Debug)]
+pub enum SudoCreateError {
+    CannotFindBinary,
+    #[cfg(windows)]
+    WinSudoDisabled,
+    #[cfg(windows)]
+    WinSudoNewWindowMode,
+}
+
+impl std::fmt::Display for SudoCreateError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SudoCreateError::CannotFindBinary => {
+                write!(f, "{}", t!("Cannot find sudo binary"))
+            }
+            #[cfg(windows)]
+            SudoCreateError::WinSudoDisabled => {
+                write!(f, "{}", t!("Found Windows Sudo, but it is disabled"))
+            }
+            #[cfg(windows)]
+            SudoCreateError::WinSudoNewWindowMode => {
+                write!(
+                    f,
+                    "{}",
+                    t!("Found Windows Sudo, but it is using 'In a new window' mode")
+                )
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -89,7 +130,7 @@ impl<'a> SudoExecuteOpts<'a> {
     }
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(windows))]
 const DETECT_ORDER: [SudoKind; 5] = [
     SudoKind::Doas,
     SudoKind::Sudo,
@@ -98,28 +139,119 @@ const DETECT_ORDER: [SudoKind; 5] = [
     SudoKind::Please,
 ];
 
-#[cfg(target_os = "windows")]
+// NOTE: keep WinSudo last, allows short-circuit error return in Sudo::detect() to work
+#[cfg(windows)]
 const DETECT_ORDER: [SudoKind; 2] = [SudoKind::Gsudo, SudoKind::WinSudo];
 
 impl Sudo {
     /// Get the `sudo` binary for this platform.
-    pub fn detect() -> Option<Self> {
+    pub fn detect() -> Result<Self, SudoCreateError> {
+        use SudoCreateError::*;
+
         for kind in DETECT_ORDER {
-            if let Some(sudo) = Self::new(kind) {
-                return Some(sudo);
+            match Self::new(kind) {
+                Ok(sudo) => return Ok(sudo),
+                Err(CannotFindBinary) => continue,
+                #[cfg(windows)]
+                Err(e @ (WinSudoDisabled | WinSudoNewWindowMode)) => {
+                    // we can return directly here since WinSudo is detected last
+                    return Err(e);
+                }
             }
         }
-        None
+        Err(CannotFindBinary)
     }
 
     /// Create Sudo from SudoKind, if found in the system
-    pub fn new(kind: SudoKind) -> Option<Self> {
-        match kind {
-            SudoKind::Null => Some(Self {
-                path: None, // no actual binary for null sudo
-                kind,
-            }),
-            _ => kind.which().map(|path| Self { path: Some(path), kind }),
+    pub fn new(kind: SudoKind) -> Result<Self, SudoCreateError> {
+        // no actual binary for null sudo
+        if let SudoKind::Null = kind {
+            return Ok(Self { path: None, kind });
+        }
+
+        match kind.which() {
+            Some(path) => {
+                let sudo = Self { path: Some(path), kind };
+
+                #[cfg(windows)]
+                if let SudoKind::WinSudo = kind {
+                    // Windows Sudo might be disabled, causing it to error on use.
+                    //
+                    // It checks two registry keys to determine its mode:
+                    // a "policy" (HLKM\SOFTWARE\Policies\Microsoft\Windows\Sudo\Enabled)
+                    // and a "setting" (HLKM\SOFTWARE\Microsoft\Windows\CurrentVersion\Sudo\Enabled).
+                    //
+                    // Both keys are u32's, with these meanings:
+                    // 0 - Disabled
+                    // 1 - ForceNewWindow
+                    // 2 - DisableInput
+                    // 3 - Normal
+                    //
+                    // Setting the sudo option in Settings changes the setting key, the policy key
+                    // sets an upper limit on the setting key: mode = min(policy, setting).
+                    // The default for the policy key is 3 (all modes allowed), and the default for
+                    // the setting key is 0 (disabled).
+                    //
+                    // See https://github.com/microsoft/sudo/blob/9f50d79704a9d4d468bc59f725993714762981ca/sudo/src/helpers.rs#L442
+
+                    #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
+                    enum SudoMode {
+                        Disabled = 0,
+                        ForceNewWindow = 1,
+                        DisableInput = 2,
+                        Normal = 3,
+                    }
+
+                    impl TryFrom<u32> for SudoMode {
+                        type Error = eyre::Error;
+
+                        fn try_from(value: u32) -> Result<Self> {
+                            match value {
+                                0 => Ok(SudoMode::Disabled),
+                                1 => Ok(SudoMode::ForceNewWindow),
+                                2 => Ok(SudoMode::DisableInput),
+                                3 => Ok(SudoMode::Normal),
+                                _ => Err(eyre!("invalid integer SudoMode: {value}")),
+                            }
+                        }
+                    }
+
+                    fn get_mode(key: &str, on_missing: SudoMode) -> SudoMode {
+                        match windows_registry::LOCAL_MACHINE
+                            .open(key)
+                            .and_then(|k| k.get_u32("Enabled"))
+                        {
+                            Ok(v) => v.min(3).try_into().unwrap(),
+                            Err(e) if e.code() == ERROR_FILE_NOT_FOUND.to_hresult() => on_missing,
+                            Err(e) => {
+                                // warn, but treat as normal (using sudo should error)
+                                warn!(r"Error reading registry key HKLM\{key}\Enabled: {e}");
+                                SudoMode::Normal
+                            }
+                        }
+                    }
+
+                    // default to normal if key missing
+                    let policy_mode = get_mode(r"SOFTWARE\Policies\Microsoft\Windows\Sudo", SudoMode::Normal);
+                    debug!("Windows Sudo policy mode: {policy_mode:?}");
+                    // default to disabled if key missing
+                    let setting_mode = get_mode(r"SOFTWARE\Microsoft\Windows\CurrentVersion\Sudo", SudoMode::Disabled);
+                    debug!("Windows Sudo setting mode: {setting_mode:?}");
+
+                    let sudo_mode = policy_mode.min(setting_mode);
+                    debug!("Windows Sudo mode: {sudo_mode:?}");
+
+                    if sudo_mode == SudoMode::Disabled {
+                        return Err(SudoCreateError::WinSudoDisabled);
+                    } else if sudo_mode == SudoMode::ForceNewWindow {
+                        return Err(SudoCreateError::WinSudoNewWindowMode);
+                    }
+                    // Normal mode is best, but DisableInput doesn't seem to cause issues
+                }
+
+                Ok(sudo)
+            }
+            None => Err(SudoCreateError::CannotFindBinary),
         }
     }
 
