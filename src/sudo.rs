@@ -17,7 +17,7 @@ use crate::utils::which;
 #[derive(Clone, Debug)]
 pub struct Sudo {
     /// The path to the `sudo` binary.
-    path: PathBuf,
+    path: Option<PathBuf>,
     /// The type of program being used as `sudo`.
     kind: SudoKind,
 }
@@ -105,8 +105,8 @@ impl Sudo {
     /// Get the `sudo` binary for this platform.
     pub fn detect() -> Option<Self> {
         for kind in DETECT_ORDER {
-            if let Some(path) = kind.which() {
-                return Some(Self { path, kind });
+            if let Some(sudo) = Self::new(kind) {
+                return Some(sudo);
             }
         }
         None
@@ -114,7 +114,13 @@ impl Sudo {
 
     /// Create Sudo from SudoKind, if found in the system
     pub fn new(kind: SudoKind) -> Option<Self> {
-        kind.which().map(|path| Self { path, kind })
+        match kind {
+            SudoKind::Null => Some(Self {
+                path: None, // no actual binary for null sudo
+                kind,
+            }),
+            _ => kind.which().map(|path| Self { path: Some(path), kind }),
+        }
     }
 
     /// Gets the path to the `sudo` binary. Do not use this to execute `sudo` directly - either use
@@ -122,8 +128,8 @@ impl Sudo {
     /// This way, sudo options can be specified generically and the actual arguments customized
     /// depending on the sudo kind.
     #[allow(unused)]
-    pub fn path(&self) -> &Path {
-        self.path.as_ref()
+    pub fn path(&self) -> Option<&Path> {
+        self.path.as_deref()
     }
 
     /// Elevate permissions with `sudo`.
@@ -133,8 +139,15 @@ impl Sudo {
     ///
     /// See: https://github.com/topgrade-rs/topgrade/issues/205
     pub fn elevate(&self, ctx: &ExecutionContext) -> Result<()> {
+        // skip if using null sudo
+        if let SudoKind::Null = self.kind {
+            return Ok(());
+        }
+
         print_separator("Sudo");
-        let mut cmd = ctx.execute(&self.path);
+
+        // self.path is only None for null sudo, which we've handled above
+        let mut cmd = ctx.execute(self.path.as_deref().unwrap());
         match self.kind {
             SudoKind::Doas => {
                 // `doas` doesn't have anything like `sudo -v` to cache credentials,
@@ -189,6 +202,7 @@ impl Sudo {
                 //   Warm the access token and exit.
                 cmd.arg("-w");
             }
+            SudoKind::Null => unreachable!(),
         }
         cmd.status_checked().wrap_err("Failed to elevate permissions")
     }
@@ -205,7 +219,34 @@ impl Sudo {
         command: S,
         opts: SudoExecuteOpts,
     ) -> Result<Executor> {
-        let mut cmd = ctx.execute(&self.path);
+        // null sudo is very different, do separately
+        if let SudoKind::Null = self.kind {
+            if opts.interactive {
+                // TODO: emulate running in a login shell with su/runuser
+                return Err(UnsupportedSudo {
+                    sudo_kind: self.kind,
+                    option: "interactive",
+                }
+                .into());
+            }
+            if opts.user.is_some() {
+                // TODO: emulate running as a different user with su/runuser
+                return Err(UnsupportedSudo {
+                    sudo_kind: self.kind,
+                    option: "user",
+                }
+                .into());
+            }
+
+            // NOTE: we ignore preserve_env and set_home, using
+            // no sudo effectively preserves these by default
+
+            // run command directly
+            return Ok(ctx.execute(command));
+        }
+
+        // self.path is only None for null sudo, which we've handled above
+        let mut cmd = ctx.execute(self.path.as_ref().unwrap());
 
         if opts.interactive {
             match self.kind {
@@ -224,6 +265,7 @@ impl Sudo {
                     }
                     .into());
                 }
+                SudoKind::Null => unreachable!(),
             }
         } else if let SudoKind::Gsudo = self.kind {
             // The `-d` (direct) flag disables shell detection, running the command directly
@@ -249,6 +291,7 @@ impl Sudo {
                     }
                     .into());
                 }
+                SudoKind::Null => unreachable!(),
             },
             SudoPreserveEnv::Some(vars) => match self.kind {
                 SudoKind::Sudo => {
@@ -270,6 +313,7 @@ impl Sudo {
                     }
                     .into());
                 }
+                SudoKind::Null => unreachable!(),
             },
             SudoPreserveEnv::None => {}
         }
@@ -291,6 +335,7 @@ impl Sudo {
                     }
                     .into());
                 }
+                SudoKind::Null => unreachable!(),
             }
         }
 
@@ -313,6 +358,7 @@ impl Sudo {
                     }
                     .into());
                 }
+                SudoKind::Null => unreachable!(),
             }
         }
 
@@ -322,61 +368,68 @@ impl Sudo {
     }
 }
 
-// We need separate `SudoKind` definitions for windows and unix,
-// so that we can have serde instantiate `WinSudo` on windows and
-// `Sudo` on unix when reading "sudo" from the config file.
-// NOTE: when adding a new variant or otherwise changing `SudoKind`,
-// make sure to keep both definitions in sync.
+// On unix we use `SudoKind::Sudo`, and on windows `SudoKind::WinSudo`.
+// We always define both though, so that we don't have to put
+// #[cfg(...)] everywhere.
 
 #[derive(Clone, Copy, Debug, Display, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
-#[cfg(target_os = "windows")]
 pub enum SudoKind {
-    Doas,
-    #[expect(unused, reason = "Sudo is unix-only")]
-    #[serde(skip)]
+    // On unix, "sudo" in the config file means Sudo
+    #[cfg(not(windows))]
     Sudo,
-    #[serde(rename = "sudo")]
-    WinSudo,
-    Gsudo,
-    Pkexec,
-    Run0,
-    Please,
-}
-
-#[derive(Clone, Copy, Debug, Display, Deserialize)]
-#[serde(rename_all = "lowercase")]
-#[strum(serialize_all = "lowercase")]
-#[cfg(not(target_os = "windows"))]
-pub enum SudoKind {
-    Doas,
-    Sudo,
+    // and WinSudo is skipped, making it unused.
+    #[cfg(not(windows))]
     #[expect(unused, reason = "WinSudo is windows-only")]
     #[serde(skip)]
     WinSudo,
+
+    // On unix, Sudo is skipped and unused
+    #[cfg(windows)]
+    #[expect(unused, reason = "Sudo is unix-only")]
+    #[serde(skip)]
+    Sudo,
+    // and "sudo" in the config file means WinSudo.
+    #[cfg(windows)]
+    #[serde(rename = "sudo")]
+    WinSudo,
+
+    Doas,
     Gsudo,
     Pkexec,
     Run0,
     Please,
+    /// A "no-op" sudo, used when topgrade itself is running as root
+    Null,
 }
 
 impl SudoKind {
-    fn binary_name(self) -> &'static str {
+    /// Get the name of the "sudo" binary.
+    ///
+    /// For `SudoKind::WinSudo`, returns the full hardcoded path
+    /// instead to ensure we find Windows Sudo rather than gsudo
+    /// masquerading as sudo.
+    ///
+    /// Only returns `None` for `SudoKind::Null`.
+    fn binary_name(self) -> Option<&'static str> {
         match self {
-            SudoKind::Doas => "doas",
-            SudoKind::Sudo => "sudo",
-            // hardcode the path to ensure we find Windows Sudo
-            // rather than gsudo masquerading as sudo
-            SudoKind::WinSudo => r"C:\Windows\System32\sudo.exe",
-            SudoKind::Gsudo => "gsudo",
-            SudoKind::Pkexec => "pkexec",
-            SudoKind::Run0 => "run0",
-            SudoKind::Please => "please",
+            SudoKind::Doas => Some("doas"),
+            SudoKind::Sudo => Some("sudo"),
+            SudoKind::WinSudo => Some(r"C:\Windows\System32\sudo.exe"),
+            SudoKind::Gsudo => Some("gsudo"),
+            SudoKind::Pkexec => Some("pkexec"),
+            SudoKind::Run0 => Some("run0"),
+            SudoKind::Please => Some("please"),
+            SudoKind::Null => None,
         }
     }
 
+    /// Find the full path to the "sudo" binary, if it exists on the system.
     fn which(self) -> Option<PathBuf> {
-        which(self.binary_name())
+        match self.binary_name() {
+            Some(name) => which(name),
+            None => None,
+        }
     }
 }

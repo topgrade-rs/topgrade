@@ -27,6 +27,7 @@ use self::error::StepFailed;
 use self::error::Upgraded;
 #[allow(clippy::wildcard_imports)]
 use self::steps::{remote::*, *};
+use self::sudo::{Sudo, SudoKind};
 #[allow(clippy::wildcard_imports)]
 use self::terminal::*;
 use self::utils::{install_color_eyre, install_tracing, is_elevated, update_tracing};
@@ -146,10 +147,16 @@ fn run() -> Result<()> {
         }
     }
 
+    let sudo = match config.sudo_command() {
+        Some(kind) => Sudo::new(kind),
+        None if elevated => Sudo::new(SudoKind::Null),
+        None => Sudo::detect(),
+    };
+    debug!("Sudo: {:?}", sudo);
+
     #[cfg(target_os = "linux")]
     let distribution = linux::Distribution::detect();
 
-    let sudo = config.sudo_command().map_or_else(sudo::Sudo::detect, sudo::Sudo::new);
     let run_type = execution_context::RunType::new(config.dry_run());
     let ctx = execution_context::ExecutionContext::new(
         run_type,
