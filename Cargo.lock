@@ -2919,6 +2919,7 @@ dependencies = [
  "which",
  "wildmatch",
  "windows 0.62.0",
+ "windows-registry",
 ]
 
 [[package]]
@@ -3426,6 +3427,17 @@ checksum = "2ce3498fe0aba81e62e477408383196b4b0363db5e0c27646f932676283b43d8"
 dependencies = [
  "windows-core 0.62.0",
  "windows-link",
+]
+
+[[package]]
+name = "windows-registry"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f91f87ce112ffb7275000ea98eb1940912c21c1567c9312fde20261f3eadd29"
+dependencies = [
+ "windows-link",
+ "windows-result 0.4.0",
+ "windows-strings",
 ]
 
 [[package]]

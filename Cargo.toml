@@ -82,6 +82,7 @@ is_elevated = "~0.1"
 parselnk = "~0.1"
 self_update_crate = { version = "~0.40", default-features = false, optional = true, package = "self_update", features = ["archive-zip", "compression-zip-deflate", "rustls"] }
 windows = { version = "~0.62", features = ["Win32_System_Console"] }
+windows-registry = "~0.6"
 
 [profile.release]
 lto = true
