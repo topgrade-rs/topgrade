@@ -1,0 +1,59 @@
+name: Validate Example Configuration Safety
+
+on:
+  pull_request:
+    paths:
+      - 'config.example.toml'
+      - 'src/config.rs'
+      - 'src/steps/os/windows/sdio.rs'
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: read
+
+jobs:
+  config-safety:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v5.0.0
+
+    - name: Setup Rust Cache
+      uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+      with:
+        prefix-key: config-safety
+
+    - name: Setup Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+
+    - name: Test example config parsing
+      run: cargo test test_default_config
+
+    - name: Quick text guard for dangerous defaults (comment-stripped)
+      run: |
+        set -euo pipefail
+        echo "Checking for dangerous defaults in comment-stripped file..."
+        sanitized="$(sed -E 's/#.*$//' config.example.toml)"
+        if echo "$sanitized" | grep -Eq '^[[:space:]]*assume_yes[[:space:]]*=[[:space:]]*true'; then
+          echo '❌ UNSAFE: [misc].assume_yes must not be true by default';
+          exit 1;
+        fi
+        if echo "$sanitized" | grep -Eq '^[[:space:]]*winget_use_sudo[[:space:]]*=[[:space:]]*true'; then
+          echo '❌ UNSAFE: [windows].winget_use_sudo must not be true by default';
+          exit 1;
+        fi
+        if echo "$sanitized" | grep -Eq '^[[:space:]]*enable_sdio[[:space:]]*=[[:space:]]*true'; then
+          echo '❌ UNSAFE: [windows].enable_sdio must not be true by default';
+          exit 1;
+        fi
+
+    - name: Validate safe defaults using TOML parser
+      run: |
+        set -euo pipefail
+        echo "Running TOML-based safety tests..."
+        cargo test test_example_config_has_safe_defaults -- --nocapture

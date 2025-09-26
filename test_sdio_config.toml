@@ -1,0 +1,7 @@
+# Test configuration for SDIO driver updates
+[misc]
+# assume_yes = false  # Commented out to let command line --yes flag work
+
+[windows]
+enable_sdio = true
+# Let Topgrade auto-detect the SDIO executable (should find the Scoop installation)
