@@ -1,3 +1,4 @@
+use std::fmt::Write as _;
 use std::path::Path;
 
 use color_eyre::eyre::Result;
@@ -7,7 +8,7 @@ use crate::command::CommandExt;
 use crate::error::SkipStep;
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
-use crate::terminal::{print_separator, prompt_yesno};
+use crate::terminal::{print_info, print_separator, prompt_yesno};
 use crate::utils::{require, which};
 use rust_i18n::t;
 
@@ -56,157 +57,22 @@ pub fn run_sdio(ctx: &ExecutionContext) -> Result<()> {
     std::fs::create_dir_all(&sdio_work_dir).ok();
 
     // Create a dynamic SDIO script based on run mode and user preferences
-    let verbose_settings = if ctx.config().verbose() {
+    let verbose_output = ctx.config().verbose();
+    let verbose_settings = if verbose_output {
         "debug on\nverbose 255"
     } else {
         "verbose 128"
     };
 
-    let script_content = if ctx.run_type().dry() {
-        // Dry-run script: analyze devices without installing
-        format!(
-            r#"# Topgrade SDIO Analysis Script
-# This script analyzes the system for driver updates without installing
-
-# Configure directories (quoted for safety)
-extractdir "{}"
-logdir "{}"
-
-# Enable logging for dry-run analysis
-logging on
-{}
-
-# Initialize and scan system
-echo Initializing SDIO and scanning system for analysis...
-init
-onerror goto end
-
-# Generate device analysis report before selection
-writedevicelist device_analysis_before.txt
-
-# Select missing and better drivers for analysis
-echo Analyzing available driver updates...
-select missing better
-
-# Generate device analysis report after selection
-writedevicelist device_analysis_after.txt
-
-# Display analysis results
-echo Analysis complete - no drivers installed in dry-run mode
-echo Check device_analysis_before.txt and device_analysis_after.txt for details
-
-:end
-# End without installation
-end
-"#,
-            sdio_work_dir.display(),
-            sdio_work_dir.join("logs").display(),
-            verbose_settings
-        )
+    let primary_mode = if ctx.run_type().dry() {
+        ScriptMode::DryAnalysis
     } else if yes {
-        // Automatic installation script (with --yes)
-        format!(
-            r#"# Topgrade SDIO Automatic Installation Script
-# This script automatically updates drivers with safety measures (--yes mode)
-
-# Configure directories (quoted for safety)
-extractdir "{}"
-logdir "{}"
-
-# Enable logging
-logging on
-{}
-
-# Check for updates first (before init for better performance)
-echo Checking for SDIO updates...
-checkupdates
-onerror goto end
-
-# Initialize and scan system
-echo Initializing SDIO and scanning system...
-init
-onerror goto end
-
-# Generate initial device report
-writedevicelist initial_device_report.txt
-
-# Create restore point for safety (quoted description)
-echo Creating system restore point...
-restorepoint "Topgrade SDIO Driver Update"
-onerror echo Warning: Failed to create restore point, continuing anyway...
-
-# Select missing and better drivers
-echo Selecting drivers for installation...
-select missing better
-
-# Install selected drivers automatically (will auto-download if needed)
-echo Installing selected drivers automatically...
-install
-onerror echo Warning: Some drivers may have failed to install
-
-# Generate final device report
-writedevicelist final_device_report.txt
-
-# Driver installation complete
-echo Driver installation complete
-echo Check initial_device_report.txt and final_device_report.txt for details
-
-:end
-# End script
-end
-"#,
-            sdio_work_dir.display(),
-            sdio_work_dir.join("logs").display(),
-            verbose_settings
-        )
+        ScriptMode::AutomaticInstall
     } else {
-        // Interactive analysis script (without --yes): analyze and exit without installing
-        format!(
-            r#"# Topgrade SDIO Interactive Analysis Script
-# This script analyzes available driver updates and exits without installing
-
-# Configure directories (quoted for safety)
-extractdir "{}"
-logdir "{}"
-
-# Enable logging
-logging on
-{}
-
-# Check for updates first (before init for better performance)
-echo Checking for SDIO updates...
-checkupdates
-onerror goto end
-
-# Initialize and scan system
-echo Initializing SDIO and scanning system...
-init
-onerror goto end
-
-# Generate initial device report
-writedevicelist initial_device_report.txt
-
-# Select missing and better drivers for analysis
-echo Analyzing available driver updates...
-select missing better
-
-# Generate selected devices report (what would be changed)
-writedevicelist selected_device_report.txt
-
-echo.
-echo Analysis complete. This is an analysis-only run.
-echo Review initial_device_report.txt and selected_device_report.txt for details.
-echo Re-run Topgrade with --yes to install selected drivers.
-
-:end
-# End script
-end
-"#,
-            sdio_work_dir.display(),
-            sdio_work_dir.join("logs").display(),
-            verbose_settings
-        )
+        ScriptMode::InteractiveAnalysis
     };
+
+    let script_content = build_sdio_script(&sdio_work_dir, verbose_settings, verbose_output, primary_mode);
 
     // Write the script to temp directory
     let script_path = sdio_work_dir.join("topgrade_sdio_script.txt");
@@ -224,91 +90,79 @@ end
     info!("SDIO working directory: {}", sdio_work_dir.display());
     info!("SDIO binary location: {}", sdio.display());
 
-    let mut command = ctx.execute(&sdio);
+    let mut command = match ctx.sudo() {
+        Some(sudo) => sudo.execute(ctx, &sdio)?,
+        None => ctx.execute(&sdio),
+    };
     // Pass -script and script path as separate args to handle spaces safely
     command.arg("-script").arg(&script_path);
     command.current_dir(&sdio_work_dir);
 
+    announce_script_start(primary_mode, verbose_output);
     let mut result = command.status_checked();
+    announce_script_finish(primary_mode, verbose_output, result.is_ok());
 
     // If interactive: ask the user whether to proceed with installation and run a second script
     if interactive && result.is_ok() {
-        // Print separator for readability between analysis and prompt
-        print_separator("");
-        if let Ok(true) = prompt_yesno(&t!(
-            "Proceed to install selected drivers now? This will create a restore point first. (y/N)"
-        )) {
-            // Build an installation script similar to --yes flow
-            let install_script = format!(
-                r#"# Topgrade SDIO Installation Script (interactive-confirmed)
-# Configure directories (quoted for safety)
-extractdir "{}"
-logdir "{}"
+        let report_path = sdio_work_dir.join("selected_device_report.txt");
+        let mut should_prompt = true;
 
-# Enable logging
-logging on
-{}
+        match count_selected_drivers(&report_path) {
+            Ok(0) => {
+                print_info(t!(
+                    "SDIO analysis found no drivers to install; keeping this run in analysis mode."
+                ));
+                info!(
+                    "{}",
+                    t!("SDIO analysis found no drivers to install; keeping this run in analysis mode.")
+                );
+                should_prompt = false;
+            }
+            Ok(count) => {
+                debug!("SDIO analysis selected {} driver(s) for installation", count);
+            }
+            Err(err) => {
+                debug!(
+                    "Unable to inspect SDIO selection report at {}: {}",
+                    report_path.display(),
+                    err
+                );
+            }
+        }
 
-# Check for updates first (before init for better performance)
-echo Checking for SDIO updates...
-checkupdates
-onerror goto end
+        if should_prompt {
+            if let Ok(true) = prompt_yesno(&t!(
+                "Proceed to install selected drivers now? This will create a restore point first. (y/N)"
+            )) {
+                // Build an installation script similar to --yes flow
+                let install_mode = ScriptMode::InteractiveInstall;
+                let install_script = build_sdio_script(&sdio_work_dir, verbose_settings, verbose_output, install_mode);
 
-# Initialize and scan system
-echo Initializing SDIO and scanning system...
-init
-onerror goto end
+                let install_script_path = sdio_work_dir.join("topgrade_sdio_install_script.txt");
+                std::fs::write(&install_script_path, install_script).map_err(|e| {
+                    SkipStep(format!(
+                        "Failed to create SDIO install script at {}: {}",
+                        install_script_path.display(),
+                        e
+                    ))
+                })?;
 
-# Generate initial device report
-writedevicelist initial_device_report.txt
-
-# Create restore point for safety (quoted description)
-echo Creating system restore point...
-restorepoint "Topgrade SDIO Driver Update"
-onerror echo Warning: Failed to create restore point, continuing anyway...
-
-# Select missing and better drivers
-echo Selecting drivers for installation...
-select missing better
-
-# Install selected drivers automatically
-echo Installing selected drivers...
-install
-onerror echo Warning: Some drivers may have failed to install
-
-# Generate final device report
-writedevicelist final_device_report.txt
-
-:end
-end
-"#,
-                sdio_work_dir.display(),
-                sdio_work_dir.join("logs").display(),
-                verbose_settings
-            );
-
-            let install_script_path = sdio_work_dir.join("topgrade_sdio_install_script.txt");
-            std::fs::write(&install_script_path, install_script).map_err(|e| {
-                SkipStep(format!(
-                    "Failed to create SDIO install script at {}: {}",
-                    install_script_path.display(),
-                    e
-                ))
-            })?;
-
-            debug!("SDIO command (install): {:?} -script {:?}", sdio, install_script_path);
-            info!("Running SDIO install script: {}", install_script_path.display());
-            let mut install_cmd = ctx.execute(&sdio);
-            install_cmd.arg("-script").arg(&install_script_path);
-            install_cmd.current_dir(&sdio_work_dir);
-            result = install_cmd.status_checked();
-        } else {
-            info!("User declined SDIO installation; analysis-only run completed.");
+                debug!("SDIO command (install): {:?} -script {:?}", sdio, install_script_path);
+                info!("Running SDIO install script: {}", install_script_path.display());
+                let mut install_cmd = match ctx.sudo() {
+                    Some(sudo) => sudo.execute(ctx, &sdio)?,
+                    None => ctx.execute(&sdio),
+                };
+                install_cmd.arg("-script").arg(&install_script_path);
+                install_cmd.current_dir(&sdio_work_dir);
+                announce_script_start(install_mode, verbose_output);
+                result = install_cmd.status_checked();
+                announce_script_finish(install_mode, verbose_output, result.is_ok());
+            } else {
+                info!("User declined SDIO installation; analysis-only run completed.");
+            }
         }
     }
-
-    // Print separator after execution for clean output formatting
-    print_separator("");
 
     // Best-effort cleanup of the temporary workdir on success
     if result.is_ok() {
@@ -371,9 +225,13 @@ fn detect_sdio_in_common_locations(is_64bit: bool) -> Option<std::path::PathBuf>
     let locations = get_common_sdio_locations();
 
     for location in locations {
-        let base_path = std::path::PathBuf::from(location);
+        let base_path = std::path::PathBuf::from(&location);
         if !base_path.exists() {
             continue;
+        }
+
+        if base_path.is_file() {
+            return Some(base_path);
         }
 
         // Try SDIO_auto.bat first (recommended)
@@ -388,6 +246,255 @@ fn detect_sdio_in_common_locations(is_64bit: bool) -> Option<std::path::PathBuf>
         }
     }
     None
+}
+
+fn count_selected_drivers(report_path: &Path) -> std::io::Result<usize> {
+    let data = std::fs::read(report_path)?;
+    let content = String::from_utf8_lossy(&data);
+
+    Ok(content.lines().filter(|line| is_marked_selected(line)).count())
+}
+
+fn is_marked_selected(line: &str) -> bool {
+    let mut parts = line.split(|c| matches!(c, ':' | '='));
+    let key = match parts.next() {
+        Some(key) => key.trim(),
+        None => return false,
+    };
+
+    if !key.eq_ignore_ascii_case("selected") {
+        return false;
+    }
+
+    let value = parts.next().map(|value| value.trim()).unwrap_or_default();
+    let token = value.split_whitespace().next().unwrap_or("");
+
+    if let Ok(num) = token.parse::<i32>() {
+        return num > 0;
+    }
+
+    matches!(token.to_ascii_lowercase().as_str(), "true" | "yes")
+}
+
+#[derive(Clone, Copy)]
+enum ScriptMode {
+    DryAnalysis,
+    InteractiveAnalysis,
+    AutomaticInstall,
+    InteractiveInstall,
+}
+
+fn build_sdio_script(work_dir: &Path, verbose_settings: &str, emit_echo: bool, mode: ScriptMode) -> String {
+    let mut script = String::new();
+
+    match mode {
+        ScriptMode::DryAnalysis => {
+            append_script_header(
+                &mut script,
+                "Topgrade SDIO Analysis Script",
+                "This script analyzes the system for driver updates without installing",
+                work_dir,
+                verbose_settings,
+            );
+
+            push_echo_line(&mut script, emit_echo, "Topgrade: starting SDIO dry-run analysis...");
+            script.push_str("init\n");
+            script.push_str("onerror goto end\n\n");
+
+            script.push_str("# Generate device analysis report before selection\n");
+            script.push_str("writedevicelist device_analysis_before.txt\n\n");
+
+            script.push_str("select missing better\n\n");
+
+            script.push_str("# Generate device analysis report after selection\n");
+            script.push_str("writedevicelist device_analysis_after.txt\n\n");
+
+            push_echo_line(
+                &mut script,
+                emit_echo,
+                "Topgrade: SDIO dry-run analysis complete; no drivers installed.",
+            );
+
+            append_script_footer(&mut script, "End without installation");
+        }
+        ScriptMode::InteractiveAnalysis => {
+            append_script_header(
+                &mut script,
+                "Topgrade SDIO Interactive Analysis Script",
+                "This script analyzes available driver updates and exits without installing",
+                work_dir,
+                verbose_settings,
+            );
+
+            push_echo_line(&mut script, emit_echo, "Topgrade: running SDIO analysis...");
+            script.push_str("checkupdates\n");
+            script.push_str("onerror goto end\n\n");
+
+            script.push_str("init\n");
+            script.push_str("onerror goto end\n\n");
+
+            script.push_str("# Generate initial device report\n");
+            script.push_str("writedevicelist initial_device_report.txt\n\n");
+
+            script.push_str("select missing better\n\n");
+
+            script.push_str("# Generate selected devices report (what would be changed)\n");
+            script.push_str("writedevicelist selected_device_report.txt\n\n");
+
+            push_echo_line(
+                &mut script,
+                emit_echo,
+                "Topgrade: SDIO analysis complete; review reports for details.",
+            );
+
+            append_script_footer(&mut script, "End script");
+        }
+        ScriptMode::AutomaticInstall => {
+            append_script_header(
+                &mut script,
+                "Topgrade SDIO Automatic Installation Script",
+                "This script automatically updates drivers with safety measures (--yes mode)",
+                work_dir,
+                verbose_settings,
+            );
+
+            push_echo_line(
+                &mut script,
+                emit_echo,
+                "Topgrade: starting SDIO automatic installation...",
+            );
+            script.push_str("checkupdates\n");
+            script.push_str("onerror goto end\n\n");
+
+            script.push_str("init\n");
+            script.push_str("onerror goto end\n\n");
+
+            script.push_str("# Generate initial device report\n");
+            script.push_str("writedevicelist initial_device_report.txt\n\n");
+
+            script.push_str("restorepoint \"Topgrade SDIO Driver Update\"\n");
+            script.push_str("onerror echo Warning: Failed to create restore point, continuing anyway...\n\n");
+
+            script.push_str("select missing better\n\n");
+
+            script.push_str("install\n");
+            script.push_str("onerror echo Warning: Some drivers may have failed to install\n\n");
+
+            script.push_str("# Generate final device report\n");
+            script.push_str("writedevicelist final_device_report.txt\n\n");
+
+            push_echo_line(
+                &mut script,
+                emit_echo,
+                "Topgrade: SDIO installation finished; review reports for details.",
+            );
+
+            append_script_footer(&mut script, "End script");
+        }
+        ScriptMode::InteractiveInstall => {
+            append_script_header(
+                &mut script,
+                "Topgrade SDIO Installation Script (interactive-confirmed)",
+                "",
+                work_dir,
+                verbose_settings,
+            );
+
+            push_echo_line(&mut script, emit_echo, "Topgrade: starting SDIO installation...");
+            script.push_str("checkupdates\n");
+            script.push_str("onerror goto end\n\n");
+
+            script.push_str("init\n");
+            script.push_str("onerror goto end\n\n");
+
+            script.push_str("# Generate initial device report\n");
+            script.push_str("writedevicelist initial_device_report.txt\n\n");
+
+            script.push_str("restorepoint \"Topgrade SDIO Driver Update\"\n");
+            script.push_str("onerror echo Warning: Failed to create restore point, continuing anyway...\n\n");
+
+            script.push_str("select missing better\n\n");
+
+            script.push_str("install\n");
+            script.push_str("onerror echo Warning: Some drivers may have failed to install\n\n");
+
+            script.push_str("# Generate final device report\n");
+            script.push_str("writedevicelist final_device_report.txt\n\n");
+
+            push_echo_line(
+                &mut script,
+                emit_echo,
+                "Topgrade: SDIO installation complete; review reports for details.",
+            );
+
+            append_script_footer(&mut script, "End script");
+        }
+    }
+
+    script
+}
+
+fn append_script_header(script: &mut String, title: &str, description: &str, work_dir: &Path, verbose_settings: &str) {
+    let _ = writeln!(script, "# {title}");
+    if !description.is_empty() {
+        let _ = writeln!(script, "# {description}");
+    }
+    script.push('\n');
+    script.push_str("# Configure directories (quoted for safety)\n");
+    let _ = writeln!(script, "extractdir \"{}\"", work_dir.display());
+    let _ = writeln!(script, "logdir \"{}\"", work_dir.join("logs").display());
+    script.push('\n');
+    script.push_str("# Enable logging\n");
+    script.push_str("logging on\n");
+    script.push_str(verbose_settings);
+    script.push('\n');
+    script.push('\n');
+}
+
+fn append_script_footer(script: &mut String, end_comment: &str) {
+    script.push_str(":end\n");
+    let _ = writeln!(script, "# {end_comment}");
+    script.push_str("end\n");
+}
+
+fn push_echo_line(script: &mut String, emit: bool, message: &str) {
+    if emit {
+        let _ = writeln!(script, "echo {}", message);
+    }
+}
+
+fn announce_script_start(mode: ScriptMode, verbose: bool) {
+    let message = match mode {
+        ScriptMode::DryAnalysis => t!("Running SDIO dry-run analysis..."),
+        ScriptMode::InteractiveAnalysis => t!("Running SDIO analysis..."),
+        ScriptMode::AutomaticInstall => t!("Running SDIO automatic installation..."),
+        ScriptMode::InteractiveInstall => t!("Running SDIO installation..."),
+    };
+
+    if verbose {
+        debug!("{message}");
+    } else {
+        print_info(message);
+    }
+}
+
+fn announce_script_finish(mode: ScriptMode, verbose: bool, succeeded: bool) {
+    if !succeeded {
+        return;
+    }
+
+    let message = match mode {
+        ScriptMode::DryAnalysis => t!("SDIO dry-run analysis complete."),
+        ScriptMode::InteractiveAnalysis => t!("SDIO analysis complete."),
+        ScriptMode::AutomaticInstall => t!("SDIO automatic installation complete."),
+        ScriptMode::InteractiveInstall => t!("SDIO installation complete."),
+    };
+
+    if verbose {
+        debug!("{message}");
+    } else {
+        print_info(message);
+    }
 }
 
 /// Expand Windows-style environment variables (e.g., %USERPROFILE%) in a path string.
@@ -423,19 +530,35 @@ fn expand_env_vars_windows(input: &str) -> String {
 
 /// Returns common SDIO installation locations
 fn get_common_sdio_locations() -> Vec<String> {
-    vec![
+    let user_profile = std::env::var("USERPROFILE").unwrap_or_default();
+
+    let mut locations = vec![
         // Scoop installation in user profile
-        format!(
-            "{}\\scoop\\apps\\snappy-driver-installer-origin\\current",
-            std::env::var("USERPROFILE").unwrap_or_default()
-        ),
+        format!("{user_profile}\\scoop\\apps\\snappy-driver-installer-origin\\current"),
         // Common program files locations
         "C:\\Program Files\\SDIO".to_string(),
         "C:\\Program Files (x86)\\SDIO".to_string(),
         // Portable installations
         "C:\\SDIO".to_string(),
-        format!("{}\\SDIO", std::env::var("USERPROFILE").unwrap_or_default()),
-    ]
+        format!("{user_profile}\\SDIO"),
+    ];
+
+    if !user_profile.is_empty() {
+        // Executables dropped directly in the user profile or common user folders
+        locations.push(user_profile.clone());
+        locations.push(format!("{user_profile}\\Desktop"));
+        locations.push(format!("{user_profile}\\Downloads"));
+    }
+
+    let program_data = std::env::var("ProgramData").unwrap_or_else(|_| "C:\\ProgramData".to_string());
+    locations.push(format!(
+        "{program_data}\\chocolatey\\lib\\snappy-driver-installer-origin\\tools"
+    ));
+    locations.push(format!(
+        "{program_data}\\chocolatey\\lib\\snappy-driver-installer-origin\\tools\\SDIO"
+    ));
+
+    locations
 }
 
 /// Finds the best SDIO executable in a directory based on architecture
@@ -478,6 +601,9 @@ fn get_executable_priority(name: &str, is_64bit: bool) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Write;
+
+    use tempfile::NamedTempFile;
 
     #[test]
     fn test_sdio_detection_methods() {
@@ -520,5 +646,29 @@ mod tests {
         for location in &common_locations {
             assert!(!location.is_empty(), "Location should not be empty: {:?}", location);
         }
+    }
+
+    #[test]
+    fn test_count_selected_drivers_detects_selection() -> std::io::Result<()> {
+        let mut file = NamedTempFile::new()?;
+        writeln!(
+            file,
+            "[Device]\nName: Example\nSelected: 1\n---\n[Device]\nName: Other\nSelected = 0"
+        )?;
+
+        assert_eq!(count_selected_drivers(file.path())?, 1);
+        Ok(())
+    }
+
+    #[test]
+    fn test_count_selected_drivers_zero_when_none_selected() -> std::io::Result<()> {
+        let mut file = NamedTempFile::new()?;
+        writeln!(
+            file,
+            "[Device]\nName: Example\nSelected: 0\n[Device]\nName: Another\nSelected = 0"
+        )?;
+
+        assert_eq!(count_selected_drivers(file.path())?, 0);
+        Ok(())
     }
 }

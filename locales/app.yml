@@ -177,6 +177,96 @@ _version: 2
   zh_TW: "自行更新"
   de: "Selbstaktualisierung"
 
+"No SDIO updates detected":
+  en: "No SDIO updates detected"
+  lt: "No SDIO updates detected"
+  es: "No SDIO updates detected"
+  fr: "No SDIO updates detected"
+  zh_CN: "No SDIO updates detected"
+  zh_TW: "No SDIO updates detected"
+  de: "No SDIO updates detected"
+
+"SDIO analysis found no drivers to install; keeping this run in analysis mode.":
+  en: "SDIO analysis found no drivers to install; keeping this run in analysis mode."
+  lt: "SDIO analysis found no drivers to install; keeping this run in analysis mode."
+  es: "SDIO analysis found no drivers to install; keeping this run in analysis mode."
+  fr: "SDIO analysis found no drivers to install; keeping this run in analysis mode."
+  zh_CN: "SDIO analysis found no drivers to install; keeping this run in analysis mode."
+  zh_TW: "SDIO analysis found no drivers to install; keeping this run in analysis mode."
+  de: "SDIO analysis found no drivers to install; keeping this run in analysis mode."
+
+"Running SDIO dry-run analysis...":
+  en: "Running SDIO dry-run analysis..."
+  lt: "Running SDIO dry-run analysis..."
+  es: "Running SDIO dry-run analysis..."
+  fr: "Running SDIO dry-run analysis..."
+  zh_CN: "Running SDIO dry-run analysis..."
+  zh_TW: "Running SDIO dry-run analysis..."
+  de: "Running SDIO dry-run analysis..."
+
+"Running SDIO analysis...":
+  en: "Running SDIO analysis..."
+  lt: "Running SDIO analysis..."
+  es: "Running SDIO analysis..."
+  fr: "Running SDIO analysis..."
+  zh_CN: "Running SDIO analysis..."
+  zh_TW: "Running SDIO analysis..."
+  de: "Running SDIO analysis..."
+
+"Running SDIO automatic installation...":
+  en: "Running SDIO automatic installation..."
+  lt: "Running SDIO automatic installation..."
+  es: "Running SDIO automatic installation..."
+  fr: "Running SDIO automatic installation..."
+  zh_CN: "Running SDIO automatic installation..."
+  zh_TW: "Running SDIO automatic installation..."
+  de: "Running SDIO automatic installation..."
+
+"Running SDIO installation...":
+  en: "Running SDIO installation..."
+  lt: "Running SDIO installation..."
+  es: "Running SDIO installation..."
+  fr: "Running SDIO installation..."
+  zh_CN: "Running SDIO installation..."
+  zh_TW: "Running SDIO installation..."
+  de: "Running SDIO installation..."
+
+"SDIO dry-run analysis complete.":
+  en: "SDIO dry-run analysis complete."
+  lt: "SDIO dry-run analysis complete."
+  es: "SDIO dry-run analysis complete."
+  fr: "SDIO dry-run analysis complete."
+  zh_CN: "SDIO dry-run analysis complete."
+  zh_TW: "SDIO dry-run analysis complete."
+  de: "SDIO dry-run analysis complete."
+
+"SDIO analysis complete.":
+  en: "SDIO analysis complete."
+  lt: "SDIO analysis complete."
+  es: "SDIO analysis complete."
+  fr: "SDIO analysis complete."
+  zh_CN: "SDIO analysis complete."
+  zh_TW: "SDIO analysis complete."
+  de: "SDIO analysis complete."
+
+"SDIO automatic installation complete.":
+  en: "SDIO automatic installation complete."
+  lt: "SDIO automatic installation complete."
+  es: "SDIO automatic installation complete."
+  fr: "SDIO automatic installation complete."
+  zh_CN: "SDIO automatic installation complete."
+  zh_TW: "SDIO automatic installation complete."
+  de: "SDIO automatic installation complete."
+
+"SDIO installation complete.":
+  en: "SDIO installation complete."
+  lt: "SDIO installation complete."
+  es: "SDIO installation complete."
+  fr: "SDIO installation complete."
+  zh_CN: "SDIO installation complete."
+  zh_TW: "SDIO installation complete."
+  de: "SDIO installation complete."
+
 # The following 2 strings are used in the same sentence
 # i.e. *Only* updated repositories will be shown...
 # Note that the text *Only* is highlighted in green
