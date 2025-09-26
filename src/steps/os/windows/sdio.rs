@@ -256,7 +256,7 @@ fn count_selected_drivers(report_path: &Path) -> std::io::Result<usize> {
 }
 
 fn is_marked_selected(line: &str) -> bool {
-    let mut parts = line.split(|c| matches!(c, ':' | '='));
+    let mut parts = line.split([':', '=']);
     let key = match parts.next() {
         Some(key) => key.trim(),
         None => return false,
