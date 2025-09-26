@@ -199,10 +199,11 @@ pub fn run_oh_my_fish(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_pkgin(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = ctx.require_sudo()?;
     let pkgin = require("pkgin")?;
 
     print_separator("Pkgin");
+
+    let sudo = ctx.require_sudo()?;
 
     let mut command = sudo.execute(ctx, &pkgin)?;
     command.arg("update");
