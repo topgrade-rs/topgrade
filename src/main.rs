@@ -25,6 +25,7 @@ use self::config::{CommandLineArgs, Config};
 use self::error::StepFailed;
 #[cfg(all(windows, feature = "self-update"))]
 use self::error::Upgraded;
+use self::report::StepResult;
 #[allow(clippy::wildcard_imports)]
 use self::steps::{remote::*, *};
 use self::sudo::{Sudo, SudoKind};
@@ -222,15 +223,33 @@ fn run() -> Result<()> {
     if !runner.report().data().is_empty() {
         print_separator(t!("Summary"));
 
+        let mut skipped_missing_sudo = false;
+
         for (key, result) in runner.report().data() {
+            if let StepResult::SkippedMissingSudo = result {
+                skipped_missing_sudo = true;
+            }
             print_result(key, result);
         }
 
-        #[cfg(target_os = "linux")]
-        {
-            if let Ok(distribution) = &distribution {
-                distribution.show_summary();
-            }
+        if skipped_missing_sudo {
+            print_warning(t!(
+                "\nSome steps were skipped as sudo or equivalent could not be found."
+            ));
+
+            #[cfg(unix)]
+            print_warning(t!(
+                "Install one of sudo, doas, pkexec, run0 or please to run these steps."
+            ));
+            #[cfg(windows)]
+            print_warning(t!("Install gsudo or enable Windows Sudo to run these steps."));
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(distribution) = &distribution {
+            distribution.show_summary();
         }
     }
 

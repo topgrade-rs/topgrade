@@ -91,6 +91,15 @@ impl Display for UnsupportedSudo<'_> {
 }
 
 #[derive(Error, Debug)]
+pub struct MissingSudo();
+
+impl Display for MissingSudo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", t!("Could not find sudo"))
+    }
+}
+
+#[derive(Error, Debug)]
 pub struct DryRun();
 
 impl Display for DryRun {

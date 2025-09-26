@@ -1,11 +1,11 @@
 use crate::ctrlc;
-use crate::error::{DryRun, SkipStep};
+use crate::error::{DryRun, MissingSudo, SkipStep};
 use crate::execution_context::ExecutionContext;
 use crate::report::{Report, StepResult};
 use crate::step::Step;
-use crate::terminal::print_error;
-use crate::terminal::should_retry;
+use crate::terminal::{print_error, print_warning, should_retry};
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 use std::borrow::Cow;
 use std::fmt::Debug;
 use tracing::debug;
@@ -50,6 +50,11 @@ impl<'a> Runner<'a> {
                     break;
                 }
                 Err(e) if e.downcast_ref::<DryRun>().is_some() => break,
+                Err(e) if e.downcast_ref::<MissingSudo>().is_some() => {
+                    print_warning(t!("Skipping step, sudo is required"));
+                    self.report.push_result(Some((key, StepResult::SkippedMissingSudo)));
+                    break;
+                }
                 Err(e) if e.downcast_ref::<SkipStep>().is_some() => {
                     if self.ctx.config().verbose() || self.ctx.config().show_skipped() {
                         self.report.push_result(Some((key, StepResult::Skipped(e.to_string()))));
