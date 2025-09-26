@@ -173,6 +173,11 @@ impl Terminal {
                     StepResult::Success => format!("{}", style(t!("OK")).bold().green()),
                     StepResult::Failure => format!("{}", style(t!("FAILED")).bold().red()),
                     StepResult::Ignored => format!("{}", style(t!("IGNORED")).bold().yellow()),
+                    StepResult::SkippedMissingSudo => format!(
+                        "{}: {}",
+                        style(t!("SKIPPED")).bold().yellow(),
+                        t!("Could not find sudo")
+                    ),
                     StepResult::Skipped(reason) => format!("{}: {}", style(t!("SKIPPED")).bold().blue(), reason),
                 }
             ))
