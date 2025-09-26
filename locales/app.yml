@@ -1120,6 +1120,24 @@ _version: 2
   zh_CN: "\n(R)重启\n(S)Shell\n(Q)退出"
   zh_TW: "\n(R)重新啟動\n(S)殼層\n(Q)退出"
   de: "\n(R) Neustarten\n(S)hell\n(Q)uit beenden"
+
+"Continue?":
+  en: "Continue?"
+  lt: "Tęsti?"
+  es: "¿Continuar?"
+  fr: "Continuer ?"
+  zh_CN: "继续？"
+  zh_TW: "繼續？"
+  de: "Fortfahren?"
+
+"Topgrade should not be run as root, it will run commands with sudo or equivalent where needed.":
+  en: "Topgrade should not be run as root, it will run commands with sudo or equivalent where needed."
+  lt: "Topgrade neturėtų būti paleistas kaip root, jis vykdys komandas su sudo ar atitikmeniu, kai to reikės."
+  es: "Topgrade no debe ejecutarse como root, ejecutará comandos con sudo o equivalente cuando sea necesario."
+  fr: "Topgrade ne doit pas être exécuté en tant que root, il exécutera les commandes avec sudo ou équivalent si nécessaire."
+  zh_CN: "Topgrade 不应以 root 身份运行，它会在需要时使用 sudo 或等效工具执行命令。"
+  zh_TW: "Topgrade 不應以 root 身份執行，它會在需要時使用 sudo 或等效工具執行命令。"
+  de: "Topgrade sollte nicht als Root ausgeführt werden, es führt Befehle mit sudo oder einem Äquivalent aus, wenn erforderlich."
 "Require sudo or counterpart but not found, skip":
   en: "Require sudo or counterpart but not found, skip"
   lt: "Reikalingas sudo arba atitikmuo, bet nerasta, praleidžiama"
