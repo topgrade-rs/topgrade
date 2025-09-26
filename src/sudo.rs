@@ -133,6 +133,11 @@ impl Sudo {
     ///
     /// See: https://github.com/topgrade-rs/topgrade/issues/205
     pub fn elevate(&self, ctx: &ExecutionContext) -> Result<()> {
+        // skip if using null sudo
+        if let SudoKind::Null = self.kind {
+            return Ok(());
+        }
+
         print_separator("Sudo");
         let mut cmd = ctx.execute(&self.path);
         match self.kind {
@@ -189,6 +194,7 @@ impl Sudo {
                 //   Warm the access token and exit.
                 cmd.arg("-w");
             }
+            SudoKind::Null => unreachable!(),
         }
         cmd.status_checked().wrap_err("Failed to elevate permissions")
     }
@@ -205,6 +211,30 @@ impl Sudo {
         command: S,
         opts: SudoExecuteOpts,
     ) -> Result<Executor> {
+        // null sudo is very different, do separately
+        if let SudoKind::Null = self.kind {
+            if opts.interactive {
+                return Err(UnsupportedSudo {
+                    sudo_kind: self.kind,
+                    option: "interactive",
+                }
+                .into());
+            }
+            if opts.user.is_some() {
+                return Err(UnsupportedSudo {
+                    sudo_kind: self.kind,
+                    option: "user",
+                }
+                .into());
+            }
+
+            // NOTE: we ignore preserve_env and set_home, using
+            // no sudo effectively preserves these by default
+
+            // run command directly
+            return Ok(ctx.execute(command));
+        }
+
         let mut cmd = ctx.execute(&self.path);
 
         if opts.interactive {
@@ -224,6 +254,7 @@ impl Sudo {
                     }
                     .into());
                 }
+                SudoKind::Null => unreachable!(),
             }
         } else if let SudoKind::Gsudo = self.kind {
             // The `-d` (direct) flag disables shell detection, running the command directly
@@ -249,6 +280,7 @@ impl Sudo {
                     }
                     .into());
                 }
+                SudoKind::Null => unreachable!(),
             },
             SudoPreserveEnv::Some(vars) => match self.kind {
                 SudoKind::Sudo => {
@@ -270,6 +302,7 @@ impl Sudo {
                     }
                     .into());
                 }
+                SudoKind::Null => unreachable!(),
             },
             SudoPreserveEnv::None => {}
         }
@@ -291,6 +324,7 @@ impl Sudo {
                     }
                     .into());
                 }
+                SudoKind::Null => unreachable!(),
             }
         }
 
@@ -313,6 +347,7 @@ impl Sudo {
                     }
                     .into());
                 }
+                SudoKind::Null => unreachable!(),
             }
         }
 
@@ -343,6 +378,8 @@ pub enum SudoKind {
     Pkexec,
     Run0,
     Please,
+    /// A "no-op" sudo, used when topgrade itself is running as Administrator
+    Null,
 }
 
 #[derive(Clone, Copy, Debug, Display, Deserialize)]
@@ -359,6 +396,8 @@ pub enum SudoKind {
     Pkexec,
     Run0,
     Please,
+    /// A "no-op" sudo, used when topgrade itself is running as root
+    Null,
 }
 
 impl SudoKind {
@@ -373,10 +412,14 @@ impl SudoKind {
             SudoKind::Pkexec => "pkexec",
             SudoKind::Run0 => "run0",
             SudoKind::Please => "please",
+            SudoKind::Null => "<null>", // dummy sudo, no actual binary
         }
     }
 
     fn which(self) -> Option<PathBuf> {
-        which(self.binary_name())
+        match self {
+            SudoKind::Null => Some(self.binary_name().into()), // no actual binary for null sudo
+            _ => which(self.binary_name()),
+        }
     }
 }
