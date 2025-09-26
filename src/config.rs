@@ -112,6 +112,8 @@ pub struct Windows {
     wsl_update_use_web_download: Option<bool>,
     winget_silent_install: Option<bool>,
     winget_use_sudo: Option<bool>,
+    enable_sdio: Option<bool>,
+    sdio_path: Option<String>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1535,6 +1537,21 @@ impl Config {
             .unwrap_or(true)
     }
 
+    pub fn sdio_path(&self) -> Option<&str> {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|windows| windows.sdio_path.as_deref())
+    }
+
+    pub fn enable_sdio(&self) -> bool {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|windows| windows.enable_sdio)
+            .unwrap_or(false)
+    }
+
     pub fn sudo_command(&self) -> Option<SudoKind> {
         self.config_file.misc.as_ref().and_then(|misc| misc.sudo_command)
     }
@@ -1732,6 +1749,41 @@ mod test {
         let str = include_str!("../config.example.toml");
 
         assert!(toml::from_str::<ConfigFile>(str).is_ok());
+    }
+
+    /// Validate that potentially dangerous options in the example config are
+    /// either commented out (unset) or explicitly set to safe values.
+    ///
+    /// This parses the TOML instead of relying on regex/grep so it cannot be
+    /// bypassed by inline comments or whitespace variations.
+    #[test]
+    fn test_example_config_has_safe_defaults() {
+        let str = include_str!("../config.example.toml");
+        let cfg: ConfigFile = toml::from_str(str).expect("example config should parse");
+
+        // [misc] assume_yes must not be true by default
+        let misc_assume_yes = cfg.misc.as_ref().and_then(|m| m.assume_yes);
+        assert_ne!(
+            misc_assume_yes,
+            Some(true),
+            "unsafe default: [misc].assume_yes must not be true in the example config"
+        );
+
+        // [windows] winget_use_sudo must not be true by default
+        let windows_winget_use_sudo = cfg.windows.as_ref().and_then(|w| w.winget_use_sudo);
+        assert_ne!(
+            windows_winget_use_sudo,
+            Some(true),
+            "unsafe default: [windows].winget_use_sudo must not be true in the example config"
+        );
+
+        // [windows] enable_sdio must not be true by default
+        let windows_enable_sdio = cfg.windows.as_ref().and_then(|w| w.enable_sdio);
+        assert_ne!(
+            windows_enable_sdio,
+            Some(true),
+            "unsafe default: [windows].enable_sdio must not be true in the example config"
+        );
     }
 
     fn config() -> Config {
