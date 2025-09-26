@@ -29,7 +29,7 @@ use self::error::Upgraded;
 use self::steps::{remote::*, *};
 #[allow(clippy::wildcard_imports)]
 use self::terminal::*;
-use self::utils::{install_color_eyre, install_tracing, update_tracing};
+use self::utils::{install_color_eyre, install_tracing, is_elevated, update_tracing};
 
 mod breaking_changes;
 mod command;
@@ -134,6 +134,18 @@ fn run() -> Result<()> {
         }
     }
 
+    let elevated = is_elevated();
+
+    #[cfg(unix)]
+    if !config.allow_root() && elevated {
+        print_warning(t!(
+            "Topgrade should not be run as root, it will run commands with sudo or equivalent where needed."
+        ));
+        if !prompt_yesno(&t!("Continue?"))? {
+            exit(1)
+        }
+    }
+
     #[cfg(target_os = "linux")]
     let distribution = linux::Distribution::detect();
 
@@ -157,7 +169,7 @@ fn run() -> Result<()> {
     if !should_skip() && first_run_of_major_release()? {
         print_breaking_changes();
 
-        if prompt_yesno("Confirmed?")? {
+        if prompt_yesno(&t!("Continue?"))? {
             write_keep_file()?;
         } else {
             exit(1);
