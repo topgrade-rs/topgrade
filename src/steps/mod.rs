@@ -1,3 +1,5 @@
+#[cfg(unix)]
+pub mod adless;
 pub mod containers;
 pub mod emacs;
 pub mod generic;
