@@ -3,15 +3,16 @@ use std::{ffi::OsStr, process::Command};
 
 use color_eyre::eyre::Result;
 use etcetera::base_strategy::BaseStrategy;
+use rust_i18n::t;
 use tracing::debug;
 
 use crate::command::CommandExt;
+use crate::config::UpdatesAutoReboot;
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::terminal::{print_separator, print_warning};
 use crate::utils::{require, which};
 use crate::{error::SkipStep, steps::git::RepoStep};
-use rust_i18n::t;
 
 pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
     let choco = require("choco")?;
@@ -215,15 +216,27 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Windows Update"));
 
-    if powershell.supports_windows_update() {
-        powershell.windows_update(ctx)
-    } else {
+    if !powershell.has_module("PSWindowsUpdate") {
         print_warning(t!(
             "The PSWindowsUpdate PowerShell module isn't installed so Topgrade can't run Windows Update.\nInstall PSWindowsUpdate by running `Install-Module PSWindowsUpdate` in PowerShell."
         ));
 
-        Err(SkipStep(t!("PSWindowsUpdate is not installed").to_string()).into())
+        return Err(SkipStep(t!("PSWindowsUpdate is not installed").to_string()).into());
     }
+
+    let mut cmd = "Import-Module PSWindowsUpdate; Install-WindowsUpdate -Verbose".to_string();
+
+    if ctx.config().accept_all_windows_updates() {
+        cmd.push_str(" -AcceptAll");
+    }
+
+    match ctx.config().windows_updates_auto_reboot() {
+        UpdatesAutoReboot::Yes => cmd.push_str(" -AutoReboot"),
+        UpdatesAutoReboot::No => cmd.push_str(" -IgnoreReboot"),
+        UpdatesAutoReboot::Ask => (), // Prompting is the default for Install-WindowsUpdate
+    }
+
+    powershell.build_command(ctx, &cmd, true)?.status_checked()
 }
 
 pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
@@ -231,7 +244,31 @@ pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Microsoft Store"));
 
-    powershell.microsoft_store(ctx)
+    println!("{}", t!("Scanning for updates..."));
+
+    // Scan for updates using the MDM UpdateScanMethod
+    // This method is also available for non-MDM devices
+    let cmd = r#"(Get-CimInstance -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" | Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue"#;
+
+    powershell
+        .build_command(ctx, cmd, true)?
+        .output_checked_with_utf8(|output| {
+            if !output.status.success() {
+                return Err(());
+            }
+            let ret_val = output.stdout.trim();
+            debug!("Command return value: {}", ret_val);
+            if ret_val == "0" {
+                Ok(())
+            } else {
+                Err(())
+            }
+        })?;
+    println!(
+        "{}",
+        t!("Success, Microsoft Store apps are being updated in the background")
+    );
+    Ok(())
 }
 
 pub fn reboot(ctx: &ExecutionContext) -> Result<()> {
