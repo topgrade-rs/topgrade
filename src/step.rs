@@ -664,7 +664,7 @@ impl Step {
             WslUpdate =>
             {
                 #[cfg(windows)]
-                runner.execute(*self, "WSL", || windows::update_wsl(ctx))?
+                runner.execute(*self, "Update WSL", || windows::update_wsl(ctx))?
             }
             Xcodes =>
             {

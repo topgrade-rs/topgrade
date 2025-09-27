@@ -16,7 +16,7 @@ use tracing::{debug, error};
 use which_crate::which;
 
 use crate::command::CommandExt;
-use crate::report::StepResult;
+use crate::runner::StepResult;
 
 static TERMINAL: LazyLock<Mutex<Terminal>> = LazyLock::new(|| Mutex::new(Terminal::new()));
 
