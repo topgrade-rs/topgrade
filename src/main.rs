@@ -25,11 +25,13 @@ use self::config::{CommandLineArgs, Config};
 use self::error::StepFailed;
 #[cfg(all(windows, feature = "self-update"))]
 use self::error::Upgraded;
+use self::report::StepResult;
 #[allow(clippy::wildcard_imports)]
 use self::steps::{remote::*, *};
+use self::sudo::{Sudo, SudoKind};
 #[allow(clippy::wildcard_imports)]
 use self::terminal::*;
-use self::utils::{install_color_eyre, install_tracing, update_tracing};
+use self::utils::{install_color_eyre, install_tracing, is_elevated, update_tracing};
 
 mod breaking_changes;
 mod command;
@@ -135,10 +137,28 @@ fn run() -> Result<()> {
         }
     }
 
+    let elevated = is_elevated();
+
+    #[cfg(unix)]
+    if elevated {
+        print_warning(t!(
+            "Topgrade does not need to be run as root, it will run commands with sudo or equivalent where needed."
+        ));
+        if !prompt_yesno(&t!("Continue?"))? {
+            exit(1)
+        }
+    }
+
+    let sudo = match config.sudo_command() {
+        Some(kind) => Sudo::new(kind),
+        None if elevated => Sudo::new(SudoKind::Null),
+        None => Sudo::detect(),
+    };
+    debug!("Sudo: {:?}", sudo);
+
     #[cfg(target_os = "linux")]
     let distribution = linux::Distribution::detect();
 
-    let sudo = config.sudo_command().map_or_else(sudo::Sudo::detect, sudo::Sudo::new);
     let run_type = execution_context::RunType::new(config.dry_run());
     let ctx = execution_context::ExecutionContext::new(
         run_type,
@@ -158,7 +178,7 @@ fn run() -> Result<()> {
     if !should_skip() && first_run_of_major_release()? {
         print_breaking_changes();
 
-        if prompt_yesno("Confirmed?")? {
+        if prompt_yesno(&t!("Continue?"))? {
             write_keep_file()?;
         } else {
             exit(1);
@@ -203,15 +223,33 @@ fn run() -> Result<()> {
     if !runner.report().data().is_empty() {
         print_separator(t!("Summary"));
 
+        let mut skipped_missing_sudo = false;
+
         for (key, result) in runner.report().data() {
+            if let StepResult::SkippedMissingSudo = result {
+                skipped_missing_sudo = true;
+            }
             print_result(key, result);
         }
 
-        #[cfg(target_os = "linux")]
-        {
-            if let Ok(distribution) = &distribution {
-                distribution.show_summary();
-            }
+        if skipped_missing_sudo {
+            print_warning(t!(
+                "\nSome steps were skipped as sudo or equivalent could not be found."
+            ));
+
+            #[cfg(unix)]
+            print_warning(t!(
+                "Install one of sudo, doas, pkexec, run0 or please to run these steps."
+            ));
+            #[cfg(windows)]
+            print_warning(t!("Install gsudo or enable Windows Sudo to run these steps."));
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(distribution) = &distribution {
+            distribution.show_summary();
         }
     }
 

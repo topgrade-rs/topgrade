@@ -75,10 +75,11 @@ impl Powershell {
     /// Builds a "primary" powershell command (uses dry-run if required):
     /// {powershell} -NoProfile -Command {cmd}
     fn build_command<'a>(&self, ctx: &'a ExecutionContext, cmd: &str, use_sudo: bool) -> Result<impl CommandExt + 'a> {
-        // if use_sudo and sudo is available, use it, otherwise run directly
-        let mut command = match ctx.sudo() {
-            Some(sudo) if use_sudo => sudo.execute(ctx, &self.path)?,
-            _ => ctx.execute(&self.path),
+        let mut command = if use_sudo {
+            let sudo = ctx.require_sudo()?;
+            sudo.execute(ctx, &self.path)?
+        } else {
+            ctx.execute(&self.path)
         };
 
         #[cfg(windows)]
@@ -116,7 +117,7 @@ impl Powershell {
             // and Update-Module updates all modules regardless of their original installation scope
             self.build_command(ctx, &cmd, false)?.status_checked()?;
         } else {
-            // For (Windows) PowerShell, use sudo if available since it defaults to AllUsers scope
+            // For (Windows) PowerShell, use sudo since it defaults to AllUsers scope
             // and may need administrator privileges
             self.build_command(ctx, &cmd, true)?.status_checked()?;
         }
