@@ -4,14 +4,17 @@ pub enum StepResult {
     Success,
     Failure,
     Ignored,
+    SkippedMissingSudo,
     Skipped(String),
 }
 
 impl StepResult {
     pub fn failed(&self) -> bool {
+        use StepResult::*;
+
         match self {
-            StepResult::Success | StepResult::Ignored | StepResult::Skipped(_) => false,
-            StepResult::Failure => true,
+            Success | Ignored | SkippedMissingSudo | Skipped(_) => false,
+            Failure => true,
         }
     }
 }
