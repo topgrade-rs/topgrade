@@ -1065,7 +1065,26 @@ pub fn run_powershell(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Powershell Modules Update"));
 
-    powershell.update_modules(ctx)
+    let mut cmd = "Update-Module".to_string();
+
+    if ctx.config().verbose() {
+        cmd.push_str(" -Verbose");
+    }
+    if ctx.config().yes(Step::Powershell) {
+        cmd.push_str(" -Force");
+    }
+
+    println!("{}", t!("Updating modules..."));
+
+    if powershell.is_pwsh() {
+        // For PowerShell Core, run Update-Module without sudo since it defaults to CurrentUser scope
+        // and Update-Module updates all modules regardless of their original installation scope
+        powershell.build_command(ctx, &cmd, false)?.status_checked()
+    } else {
+        // For (Windows) PowerShell, use sudo if available since it defaults to AllUsers scope
+        // and may need administrator privileges
+        powershell.build_command(ctx, &cmd, true)?.status_checked()
+    }
 }
 
 enum Hx {
