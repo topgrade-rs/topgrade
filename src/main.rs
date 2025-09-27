@@ -27,9 +27,10 @@ use self::error::StepFailed;
 use self::error::Upgraded;
 #[allow(clippy::wildcard_imports)]
 use self::steps::{remote::*, *};
+use self::sudo::{Sudo, SudoKind};
 #[allow(clippy::wildcard_imports)]
 use self::terminal::*;
-use self::utils::{install_color_eyre, install_tracing, update_tracing};
+use self::utils::{install_color_eyre, install_tracing, is_elevated, update_tracing};
 
 mod breaking_changes;
 mod command;
@@ -135,10 +136,28 @@ fn run() -> Result<()> {
         }
     }
 
+    let elevated = is_elevated();
+
+    #[cfg(unix)]
+    if elevated {
+        print_warning(t!(
+            "Topgrade does not need to be run as root, it will run commands with sudo or equivalent where needed."
+        ));
+        if !prompt_yesno(&t!("Continue?"))? {
+            exit(1)
+        }
+    }
+
+    let sudo = match config.sudo_command() {
+        Some(kind) => Sudo::new(kind),
+        None if elevated => Sudo::new(SudoKind::Null),
+        None => Sudo::detect(),
+    };
+    debug!("Sudo: {:?}", sudo);
+
     #[cfg(target_os = "linux")]
     let distribution = linux::Distribution::detect();
 
-    let sudo = config.sudo_command().map_or_else(sudo::Sudo::detect, sudo::Sudo::new);
     let run_type = execution_context::RunType::new(config.dry_run());
     let ctx = execution_context::ExecutionContext::new(
         run_type,
@@ -158,7 +177,7 @@ fn run() -> Result<()> {
     if !should_skip() && first_run_of_major_release()? {
         print_breaking_changes();
 
-        if prompt_yesno("Confirmed?")? {
+        if prompt_yesno(&t!("Continue?"))? {
             write_keep_file()?;
         } else {
             exit(1);
