@@ -549,7 +549,7 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let nix_args = nix_args();
     if multi_user {
         let sudo = ctx.require_sudo()?;
-        sudo.execute_opts(ctx, &nix, SudoExecuteOpts::new().interactive())?
+        sudo.execute_opts(ctx, &nix, SudoExecuteOpts::new().login_shell())?
             .args(nix_args)
             .arg("upgrade-nix")
             .status_checked()
