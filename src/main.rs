@@ -38,7 +38,6 @@ mod ctrlc;
 mod error;
 mod execution_context;
 mod executor;
-mod report;
 mod runner;
 #[cfg(windows)]
 mod self_renamer;
@@ -200,26 +199,32 @@ fn run() -> Result<()> {
         step.run(&mut runner, &ctx)?
     }
 
-    if !runner.report().data().is_empty() {
+    let mut failed = false;
+
+    let report = runner.report();
+    if !report.is_empty() {
         print_separator(t!("Summary"));
 
-        for (key, result) in runner.report().data() {
-            print_result(key, result);
-        }
-
-        #[cfg(target_os = "linux")]
-        {
-            if let Ok(distribution) = &distribution {
-                distribution.show_summary();
+        for (key, result) in report {
+            if !failed && result.failed() {
+                failed = true;
             }
+            print_result(key, result);
         }
     }
 
-    let mut post_command_failed = false;
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(distribution) = &distribution {
+            distribution.show_summary();
+        }
+    }
+
     if let Some(commands) = config.post_commands() {
         for (name, command) in commands {
-            if generic::run_custom_command(name, command, &ctx).is_err() {
-                post_command_failed = true;
+            let result = generic::run_custom_command(name, command, &ctx);
+            if !failed && result.is_err() {
+                failed = true;
             }
         }
     }
@@ -243,8 +248,6 @@ fn run() -> Result<()> {
             break;
         }
     }
-
-    let failed = post_command_failed || runner.report().data().iter().any(|(_, result)| result.failed());
 
     if !config.skip_notify() {
         notify_desktop(
