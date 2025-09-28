@@ -65,6 +65,29 @@ jobs:
       - name: Run tests
         run: cargo test
 
+      # Used `https://github.com/BurntSushi/ripgrep/blob/master/.github/workflows/release.yml`
+      # as a reference.
+      - name: Build debug binary to create release assets
+        shell: bash
+        run: |
+          cargo build
+          bin="target/debug/topgrade"
+          echo "BIN=$bin" >> $GITHUB_ENV
+
+      - name: Create deployment directory
+        shell: bash
+        run: |
+          dir=deployment/deb
+          mkdir -p "$dir"
+          echo "DEPLOY_DIR=$dir" >> $GITHUB_ENV
+
+      - name: Generate shell completions
+        shell: bash
+        run: |
+          "$BIN" --gen-completion bash > "$DEPLOY_DIR/topgrade.bash"
+          "$BIN" --gen-completion fish > "$DEPLOY_DIR/topgrade.fish"
+          "$BIN" --gen-completion zsh > "$DEPLOY_DIR/_topgrade"
+
       - name: Build in Release profile with all features enabled
         run: cargo build --release --all-features
 
@@ -197,6 +220,29 @@ jobs:
 
       - name: Run tests
         run: cross test --target ${{matrix.target}}
+
+      # Used `https://github.com/BurntSushi/ripgrep/blob/master/.github/workflows/release.yml`
+      # as a reference.
+      - name: Build debug binary to create release assets
+        shell: bash
+        run: |
+          cargo build --target ${{ matrix.target }}
+          bin="target/${{ matrix.target }}/debug/topgrade"
+          echo "BIN=$bin" >> $GITHUB_ENV
+
+      - name: Create deployment directory
+        shell: bash
+        run: |
+          dir=deployment/deb
+          mkdir -p "$dir"
+          echo "DEPLOY_DIR=$dir" >> $GITHUB_ENV
+
+      - name: Generate shell completions
+        shell: bash
+        run: |
+          "$BIN" --gen-completion bash > "$DEPLOY_DIR/topgrade.bash"
+          "$BIN" --gen-completion fish > "$DEPLOY_DIR/topgrade.fish"
+          "$BIN" --gen-completion zsh > "$DEPLOY_DIR/_topgrade"
 
       - name: Build in Release profile with all features enabled
         run: cross build --release --all-features --target ${{matrix.target}}
