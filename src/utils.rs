@@ -169,6 +169,22 @@ pub fn hostname() -> Result<String> {
         .map(|output| output.stdout.trim().to_owned())
 }
 
+#[cfg(unix)]
+pub fn is_elevated() -> bool {
+    let euid = nix::unistd::Uid::effective();
+    debug!("Running with euid: {euid}");
+    euid.is_root()
+}
+
+#[cfg(windows)]
+pub fn is_elevated() -> bool {
+    let elevated = is_elevated::is_elevated();
+    if elevated {
+        debug!("Detected elevated process");
+    }
+    elevated
+}
+
 pub mod merge_strategies {
     use merge::Merge;
 
@@ -179,7 +195,7 @@ pub mod merge_strategies {
         if let Some(left_vec) = left {
             if let Some(mut right_vec) = right {
                 right_vec.append(left_vec);
-                let _ = std::mem::replace(left, Some(right_vec));
+                let _ = left.replace(right_vec);
             }
         } else {
             *left = right;
@@ -226,7 +242,7 @@ pub mod merge_strategies {
 ///
 /// # Shim
 /// On Windows, if you install `python` through `winget`, an actual `python`
-/// is installed as well as a `python3` shim. Shim is invokable, but when you
+/// is installed as well as a `python3` shim. Shim is invocable, but when you
 /// execute it, the Microsoft App Store will be launched instead of a Python
 /// shell.
 ///

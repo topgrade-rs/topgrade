@@ -6,13 +6,14 @@ use std::ffi::OsStr;
 use std::process::Command;
 use std::sync::{LazyLock, Mutex};
 
-use crate::executor::DryCommand;
+use crate::config::Config;
+use crate::error::MissingSudo;
+use crate::executor::{DryCommand, Executor};
 use crate::powershell::Powershell;
 #[cfg(target_os = "linux")]
 use crate::steps::linux::Distribution;
 use crate::sudo::Sudo;
 use crate::utils::require_option;
-use crate::{config::Config, executor::Executor};
 
 /// An enum telling whether Topgrade should perform dry runs or actually perform the steps.
 #[derive(Clone, Copy, Debug)]
@@ -95,10 +96,11 @@ impl<'a> ExecutionContext<'a> {
     }
 
     pub fn require_sudo(&self) -> Result<&Sudo> {
-        require_option(
-            self.sudo.as_ref(),
-            t!("Require sudo or counterpart but not found, skip").to_string(),
-        )
+        if let Some(value) = self.sudo() {
+            Ok(value)
+        } else {
+            Err(MissingSudo().into())
+        }
     }
 
     pub fn config(&self) -> &Config {
