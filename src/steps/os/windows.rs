@@ -122,8 +122,8 @@ fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
     let output = Command::new(wsl).args(["--list", "-q"]).output_checked_utf8()?.stdout;
     Ok(output
         .lines()
+        .map(|x| x.replace(['\u{0}', '\r'], "").trim().to_owned())
         .filter(|s| !s.is_empty())
-        .map(|x| x.replace(['\u{0}', '\r'], ""))
         .collect())
 }
 
