@@ -38,8 +38,8 @@ pub enum SudoPreserveEnv<'a> {
 /// default or unsupported.
 #[derive(Clone, Debug, Default)]
 pub struct SudoExecuteOpts<'a> {
-    /// Run the command "interactively", i.e. inside a login shell.
-    pub interactive: bool,
+    /// Run the command inside a login shell.
+    pub login_shell: bool,
     /// Preserve environment variables across the sudo call.
     pub preserve_env: SudoPreserveEnv<'a>,
     /// Set the HOME environment variable to the target user's home directory.
@@ -53,10 +53,10 @@ impl<'a> SudoExecuteOpts<'a> {
         Self::default()
     }
 
-    /// Run the command "interactively", i.e. inside a login shell.
+    /// Run the command inside a login shell.
     #[allow(unused)]
-    pub fn interactive(mut self) -> Self {
-        self.interactive = true;
+    pub fn login_shell(mut self) -> Self {
+        self.login_shell = true;
         self
     }
 
@@ -221,11 +221,11 @@ impl Sudo {
     ) -> Result<Executor> {
         // null sudo is very different, do separately
         if let SudoKind::Null = self.kind {
-            if opts.interactive {
+            if opts.login_shell {
                 // TODO: emulate running in a login shell with su/runuser
                 return Err(UnsupportedSudo {
                     sudo_kind: self.kind,
-                    option: "interactive",
+                    option: "login_shell",
                 }
                 .into());
             }
@@ -248,20 +248,19 @@ impl Sudo {
         // self.path is only None for null sudo, which we've handled above
         let mut cmd = ctx.execute(self.path.as_ref().unwrap());
 
-        if opts.interactive {
+        if opts.login_shell {
             match self.kind {
                 SudoKind::Sudo => {
                     cmd.arg("-i");
                 }
                 SudoKind::Gsudo => {
-                    // By default, gsudo runs all commands inside a shell, so it's effectively
-                    // always "interactive". If interactive is *not* specified, we add `-d`
-                    // to run outside of a shell - see below.
+                    // By default, gsudo runs all commands inside a shell. If login_shell
+                    // is *not* specified, we add `-d` to run outside of a shell - see below.
                 }
                 SudoKind::Doas | SudoKind::WinSudo | SudoKind::Pkexec | SudoKind::Run0 | SudoKind::Please => {
                     return Err(UnsupportedSudo {
                         sudo_kind: self.kind,
-                        option: "interactive",
+                        option: "login_shell",
                     }
                     .into());
                 }
@@ -269,7 +268,7 @@ impl Sudo {
             }
         } else if let SudoKind::Gsudo = self.kind {
             // The `-d` (direct) flag disables shell detection, running the command directly
-            // rather than through the current shell, making it "non-interactive".
+            // rather than through the current shell.
             // Additionally, if the current shell is pwsh >= 7.3.0, then not including this
             // gives errors if the command to run has spaces in it: see
             // https://github.com/gerardog/gsudo/issues/297
