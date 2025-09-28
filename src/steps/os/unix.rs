@@ -199,10 +199,11 @@ pub fn run_oh_my_fish(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_pkgin(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = ctx.require_sudo()?;
     let pkgin = require("pkgin")?;
 
     print_separator("Pkgin");
+
+    let sudo = ctx.require_sudo()?;
 
     let mut command = sudo.execute(ctx, &pkgin)?;
     command.arg("update");
@@ -549,7 +550,7 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let nix_args = nix_args();
     if multi_user {
         let sudo = ctx.require_sudo()?;
-        sudo.execute_opts(ctx, &nix, SudoExecuteOpts::new().interactive())?
+        sudo.execute_opts(ctx, &nix, SudoExecuteOpts::new().login_shell())?
             .args(nix_args)
             .arg("upgrade-nix")
             .status_checked()
@@ -677,7 +678,7 @@ pub fn run_nix_helper(ctx: &ExecutionContext) -> Result<()> {
     };
 
     // We assume that if the user has set these variables, we can throw an error if nh cannot find
-    // a flake there. So we do not anymore perform an eval check to find out wether we should skip
+    // a flake there. So we do not anymore perform an eval check to find out whether we should skip
     // or not.
     #[cfg(target_os = "macos")]
     if darwin_flake_path.is_some() || fallback_flake_path.is_some() {
