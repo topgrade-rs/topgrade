@@ -89,7 +89,7 @@ impl<'a> SudoExecuteOpts<'a> {
     }
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(windows))]
 const DETECT_ORDER: [SudoKind; 5] = [
     SudoKind::Doas,
     SudoKind::Sudo,
@@ -98,7 +98,7 @@ const DETECT_ORDER: [SudoKind; 5] = [
     SudoKind::Please,
 ];
 
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 const DETECT_ORDER: [SudoKind; 2] = [SudoKind::Gsudo, SudoKind::WinSudo];
 
 impl Sudo {
@@ -331,7 +331,7 @@ impl Sudo {
 #[derive(Clone, Copy, Debug, Display, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 pub enum SudoKind {
     Doas,
     #[expect(unused, reason = "Sudo is unix-only")]
@@ -348,7 +348,7 @@ pub enum SudoKind {
 #[derive(Clone, Copy, Debug, Display, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
-#[cfg(not(target_os = "windows"))]
+#[cfg(not(windows))]
 pub enum SudoKind {
     Doas,
     Sudo,
