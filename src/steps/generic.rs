@@ -124,13 +124,11 @@ pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
         || gem_path_str.to_str().unwrap().contains(".rvm")
     {
         ctx.execute(gem).args(["update", "--system"]).status_checked()?;
-    } else {
+    } else if !Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
         let sudo = ctx.require_sudo()?;
-        if !Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
-            sudo.execute_opts(ctx, &gem, SudoExecuteOpts::new().preserve_env().set_home())?
-                .args(["update", "--system"])
-                .status_checked()?;
-        }
+        sudo.execute_opts(ctx, &gem, SudoExecuteOpts::new().preserve_env().set_home())?
+            .args(["update", "--system"])
+            .status_checked()?;
     }
 
     Ok(())
@@ -1081,7 +1079,7 @@ pub fn run_powershell(ctx: &ExecutionContext) -> Result<()> {
         // and Update-Module updates all modules regardless of their original installation scope
         powershell.build_command(ctx, &cmd, false)?.status_checked()
     } else {
-        // For (Windows) PowerShell, use sudo if available since it defaults to AllUsers scope
+        // For (Windows) PowerShell, use sudo since it defaults to AllUsers scope
         // and may need administrator privileges
         powershell.build_command(ctx, &cmd, true)?.status_checked()
     }
@@ -1231,11 +1229,11 @@ pub fn run_bob(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_certbot(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = ctx.require_sudo()?;
     let certbot = require("certbot")?;
 
     print_separator("Certbot");
 
+    let sudo = ctx.require_sudo()?;
     sudo.execute(ctx, &certbot)?.arg("renew").status_checked()
 }
 
@@ -1272,19 +1270,19 @@ pub fn run_platform_io(ctx: &ExecutionContext) -> Result<()> {
 ///
 /// `sudo` will be used if `use_sudo` configuration entry is set to true.
 pub fn run_lensfun_update_data(ctx: &ExecutionContext) -> Result<()> {
-    const SEPARATOR: &str = "Lensfun's database update";
-    let lensfun_update_data = require("lensfun-update-data")?;
     const EXIT_CODE_WHEN_NO_UPDATE: i32 = 1;
+
+    let lensfun_update_data = require("lensfun-update-data")?;
+
+    print_separator("Lensfun's database update");
 
     if ctx.config().lensfun_use_sudo() {
         let sudo = ctx.require_sudo()?;
-        print_separator(SEPARATOR);
         sudo.execute(ctx, &lensfun_update_data)?
             // `lensfun-update-data` returns 1 when there is no update available
             // which should be considered success
             .status_checked_with_codes(&[EXIT_CODE_WHEN_NO_UPDATE])
     } else {
-        print_separator(SEPARATOR);
         ctx.execute(lensfun_update_data)
             .status_checked_with_codes(&[EXIT_CODE_WHEN_NO_UPDATE])
     }

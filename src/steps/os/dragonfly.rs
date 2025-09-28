@@ -6,9 +6,9 @@ use color_eyre::eyre::Result;
 use rust_i18n::t;
 
 pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = ctx.require_sudo()?;
     print_separator(t!("DragonFly BSD Packages"));
 
+    let sudo = ctx.require_sudo()?;
     let mut cmd = sudo.execute(ctx, "/usr/local/sbin/pkg")?;
     cmd.arg("upgrade");
     if ctx.config().yes(Step::System) {
@@ -18,10 +18,9 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn audit_packages(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = ctx.require_sudo()?;
-
     print_separator(t!("DragonFly BSD Audit"));
 
+    let sudo = ctx.require_sudo()?;
     sudo.execute(ctx, "/usr/local/sbin/pkg")?
         .args(["audit", "-Fr"])
         .status_checked_with(|status| {
