@@ -17,19 +17,21 @@ use etcetera::base_strategy::BaseStrategy;
 use etcetera::base_strategy::Windows;
 #[cfg(unix)]
 use etcetera::base_strategy::Xdg;
-use once_cell::sync::Lazy;
 use rust_i18n::{i18n, t};
+use std::sync::LazyLock;
 use tracing::debug;
 
 use self::config::{CommandLineArgs, Config};
 use self::error::StepFailed;
 #[cfg(all(windows, feature = "self-update"))]
 use self::error::Upgraded;
+use self::runner::StepResult;
 #[allow(clippy::wildcard_imports)]
 use self::steps::{remote::*, *};
+use self::sudo::{Sudo, SudoCreateError, SudoKind};
 #[allow(clippy::wildcard_imports)]
 use self::terminal::*;
-use self::utils::{install_color_eyre, install_tracing, update_tracing};
+use self::utils::{install_color_eyre, install_tracing, is_elevated, update_tracing};
 
 mod breaking_changes;
 mod command;
@@ -38,7 +40,6 @@ mod ctrlc;
 mod error;
 mod execution_context;
 mod executor;
-mod report;
 mod runner;
 #[cfg(windows)]
 mod self_renamer;
@@ -50,12 +51,12 @@ mod sudo;
 mod terminal;
 mod utils;
 
-pub(crate) static HOME_DIR: Lazy<PathBuf> = Lazy::new(|| home::home_dir().expect("No home directory"));
+pub(crate) static HOME_DIR: LazyLock<PathBuf> = LazyLock::new(|| home::home_dir().expect("No home directory"));
 #[cfg(unix)]
-pub(crate) static XDG_DIRS: Lazy<Xdg> = Lazy::new(|| Xdg::new().expect("No home directory"));
+pub(crate) static XDG_DIRS: LazyLock<Xdg> = LazyLock::new(|| Xdg::new().expect("No home directory"));
 
 #[cfg(windows)]
-pub(crate) static WINDOWS_DIRS: Lazy<Windows> = Lazy::new(|| Windows::new().expect("No home directory"));
+pub(crate) static WINDOWS_DIRS: LazyLock<Windows> = LazyLock::new(|| Windows::new().expect("No home directory"));
 
 // Init and load the i18n files
 i18n!("locales", fallback = "en");
@@ -97,9 +98,9 @@ fn run() -> Result<()> {
     }
 
     for env in opt.env_variables() {
-        let mut splitted = env.split('=');
-        let var = splitted.next().unwrap();
-        let value = splitted.next().unwrap();
+        let mut parts = env.split('=');
+        let var = parts.next().unwrap();
+        let value = parts.next().unwrap();
         env::set_var(var, value);
     }
 
@@ -135,10 +136,33 @@ fn run() -> Result<()> {
         }
     }
 
+    let elevated = is_elevated();
+
+    #[cfg(unix)]
+    if !config.allow_root() && elevated {
+        print_warning(t!(
+            "Topgrade should not be run as root, it will run commands with sudo or equivalent where needed."
+        ));
+        if !prompt_yesno(&t!("Continue?"))? {
+            exit(1)
+        }
+    }
+
+    let sudo = match config.sudo_command() {
+        Some(kind) => Sudo::new(kind),
+        None if elevated => Sudo::new(SudoKind::Null),
+        None => Sudo::detect(),
+    };
+    debug!("Sudo: {:?}", sudo);
+
+    let (sudo, sudo_err) = match sudo {
+        Ok(sudo) => (Some(sudo), None),
+        Err(e) => (None, Some(e)),
+    };
+
     #[cfg(target_os = "linux")]
     let distribution = linux::Distribution::detect();
 
-    let sudo = config.sudo_command().map_or_else(sudo::Sudo::detect, sudo::Sudo::new);
     let run_type = execution_context::RunType::new(config.dry_run());
     let ctx = execution_context::ExecutionContext::new(
         run_type,
@@ -151,14 +175,14 @@ fn run() -> Result<()> {
 
     // If
     //
-    // 1. the breaking changes notification shouldnot be skipped
+    // 1. the breaking changes notification shouldn't be skipped
     // 2. this is the first execution of a major release
     //
     // inform user of breaking changes
     if !should_skip() && first_run_of_major_release()? {
         print_breaking_changes();
 
-        if prompt_yesno("Confirmed?")? {
+        if prompt_yesno(&t!("Continue?"))? {
             write_keep_file()?;
         } else {
             exit(1);
@@ -200,26 +224,69 @@ fn run() -> Result<()> {
         step.run(&mut runner, &ctx)?
     }
 
-    if !runner.report().data().is_empty() {
+    let mut failed = false;
+
+    let report = runner.report();
+    if !report.is_empty() {
         print_separator(t!("Summary"));
 
-        for (key, result) in runner.report().data() {
+        let mut skipped_missing_sudo = false;
+
+        for (key, result) in report {
+            if !failed && result.failed() {
+                failed = true;
+            }
+            if let StepResult::SkippedMissingSudo = result {
+                skipped_missing_sudo = true;
+            }
             print_result(key, result);
         }
 
-        #[cfg(target_os = "linux")]
-        {
-            if let Ok(distribution) = &distribution {
-                distribution.show_summary();
+        if skipped_missing_sudo {
+            print_warning(t!(
+                "\nSome steps were skipped as sudo or equivalent could not be found."
+            ));
+            // Steps can only fail with SkippedMissingSudo if sudo is None,
+            // therefore we must have a sudo_err
+            match sudo_err.unwrap() {
+                SudoCreateError::CannotFindBinary => {
+                    #[cfg(unix)]
+                    print_warning(t!(
+                        "Install one of `sudo`, `doas`, `pkexec`, `run0` or `please` to run these steps."
+                    ));
+
+                    // if this windows version supported Windows Sudo, the error would have been WinSudoDisabled
+                    #[cfg(windows)]
+                    print_warning(t!("Install gsudo to run these steps."));
+                }
+                #[cfg(windows)]
+                SudoCreateError::WinSudoDisabled => {
+                    print_warning(t!(
+                        "Install gsudo or enable Windows Sudo to run these steps.\nFor Windows Sudo, the default 'In a new window' mode is not supported as it prevents Topgrade from waiting for commands to finish. Please configure it to use 'Inline' mode instead.\nGo to https://go.microsoft.com/fwlink/?linkid=2257346 to learn more."
+                    ));
+                }
+                #[cfg(windows)]
+                SudoCreateError::WinSudoNewWindowMode => {
+                    print_warning(t!(
+                        "Windows Sudo was found, but it is set to 'In a new window' mode, which prevents Topgrade from waiting for commands to finish. Please configure it to use 'Inline' mode instead.\nGo to https://go.microsoft.com/fwlink/?linkid=2257346 to learn more."
+                    ));
+                }
             }
         }
     }
 
-    let mut post_command_failed = false;
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(distribution) = &distribution {
+            distribution.show_summary();
+        }
+    }
+
     if let Some(commands) = config.post_commands() {
         for (name, command) in commands {
-            if generic::run_custom_command(name, command, &ctx).is_err() {
-                post_command_failed = true;
+            let result = generic::run_custom_command(name, command, &ctx);
+            if !failed && result.is_err() {
+                failed = true;
             }
         }
     }
@@ -243,8 +310,6 @@ fn run() -> Result<()> {
             break;
         }
     }
-
-    let failed = post_command_failed || runner.report().data().iter().any(|(_, result)| result.failed());
 
     if !config.skip_notify() {
         notify_desktop(

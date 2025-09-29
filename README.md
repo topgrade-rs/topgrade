@@ -2,7 +2,7 @@
   <h1>
     <img alt="Topgrade" src="doc/topgrade_transparent.png" width="850px">
   </h1>
-  
+
   <a href="https://github.com/topgrade-rs/topgrade/releases"><img alt="GitHub Release" src="https://img.shields.io/github/release/topgrade-rs/topgrade.svg"></a>
   <a href="https://crates.io/crates/topgrade"><img alt="crates.io" src="https://img.shields.io/crates/v/topgrade.svg"></a>
   <a href="https://aur.archlinux.org/packages/topgrade"><img alt="AUR" src="https://img.shields.io/aur/version/topgrade.svg"></a>
@@ -44,14 +44,14 @@ The compiled binaries contain a self-upgrading feature.
 
 Just run `topgrade`.
 
-## Configuration 
+## Configuration
 
 See `config.example.toml` for an example configuration file.
 
 ## Migration and Breaking Changes
 
 Whenever there is a **breaking change**, the major version number will be bumped,
-and we will document these changes in the release note, please take a look at 
+and we will document these changes in the release note, please take a look at
 it when updated to a major release.
 
 > Got a question? Feel free to open an issue or discussion!
