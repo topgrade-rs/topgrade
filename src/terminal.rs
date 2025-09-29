@@ -16,7 +16,7 @@ use tracing::{debug, error};
 use which_crate::which;
 
 use crate::command::CommandExt;
-use crate::report::StepResult;
+use crate::runner::StepResult;
 
 static TERMINAL: LazyLock<Mutex<Terminal>> = LazyLock::new(|| Mutex::new(Terminal::new()));
 
@@ -181,6 +181,11 @@ impl Terminal {
                     }
                     StepResult::Failure => format!("{}", style(t!("FAILED")).bold().red()),
                     StepResult::Ignored => format!("{}", style(t!("IGNORED")).bold().yellow()),
+                    StepResult::SkippedMissingSudo => format!(
+                        "{}: {}",
+                        style(t!("SKIPPED")).bold().yellow(),
+                        t!("Could not find sudo")
+                    ),
                     StepResult::Skipped(reason) => format!("{}: {}", style(t!("SKIPPED")).bold().blue(), reason),
                 }
             ))

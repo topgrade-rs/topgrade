@@ -3,15 +3,16 @@ use std::{ffi::OsStr, process::Command};
 
 use color_eyre::eyre::Result;
 use etcetera::base_strategy::BaseStrategy;
+use rust_i18n::t;
 use tracing::debug;
 
 use crate::command::CommandExt;
+use crate::config::UpdatesAutoReboot;
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::terminal::{print_separator, print_warning};
 use crate::utils::{require, which};
 use crate::{error::SkipStep, steps::git::RepoStep};
-use rust_i18n::t;
 
 pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
     let choco = require("choco")?;
@@ -19,11 +20,9 @@ pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Chocolatey");
 
-    let mut command = match ctx.sudo() {
-        Some(sudo) => sudo.execute(ctx, &choco)?,
-        None => ctx.execute(choco),
-    };
+    let sudo = ctx.require_sudo()?;
 
+    let mut command = sudo.execute(ctx, &choco)?;
     command.args(["upgrade", "all"]);
 
     if yes {
@@ -41,10 +40,8 @@ pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(&winget).args(["source", "update"]).status_checked()?;
 
     let mut command = if ctx.config().winget_use_sudo() {
-        match ctx.sudo() {
-            Some(sudo) => sudo.execute(ctx, &winget)?,
-            None => ctx.execute(winget),
-        }
+        let sudo = ctx.require_sudo()?;
+        sudo.execute(ctx, &winget)?
     } else {
         ctx.execute(winget)
     };
@@ -100,7 +97,7 @@ pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
 /// Detect if WSL is installed or not.
 ///
 /// For WSL, we cannot simply check if command `wsl` is installed as on newer
-/// versions of Windows (since windows 10 version 2004), this commmand is
+/// versions of Windows (since windows 10 version 2004), this command is
 /// installed by default.
 ///
 /// If the command is installed and the user hasn't installed any Linux distros
@@ -125,8 +122,8 @@ fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
     let output = Command::new(wsl).args(["--list", "-q"]).output_checked_utf8()?.stdout;
     Ok(output
         .lines()
+        .map(|x| x.replace(['\u{0}', '\r'], "").trim().to_owned())
         .filter(|s| !s.is_empty())
-        .map(|x| x.replace(['\u{0}', '\r'], ""))
         .collect())
 }
 
@@ -149,12 +146,12 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     //
     // ```rust
     // command
-    //  .args(["-d", dist, "bash", "-c"])
+    //  .args(["-d", dist, "bash", "-lc"])
     //  .arg(format!("TOPGRADE_PREFIX={dist} exec {topgrade}"));
     // ```
     //
     // creates a command string like:
-    // > `C:\WINDOWS\system32\wsl.EXE -d Ubuntu bash -c 'TOPGRADE_PREFIX=Ubuntu exec /bin/topgrade'`
+    // > `C:\WINDOWS\system32\wsl.EXE -d Ubuntu bash -lc 'TOPGRADE_PREFIX=Ubuntu exec /bin/topgrade'`
     //
     // Adding the following:
     //
@@ -163,7 +160,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     // ```
     //
     // appends the next argument like so:
-    // > `C:\WINDOWS\system32\wsl.EXE -d Ubuntu bash -c 'TOPGRADE_PREFIX=Ubuntu exec /bin/topgrade' -v`
+    // > `C:\WINDOWS\system32\wsl.EXE -d Ubuntu bash -lc 'TOPGRADE_PREFIX=Ubuntu exec /bin/topgrade' -v`
     // which means `-v` isn't passed to `topgrade`.
     let mut args = String::new();
     if ctx.config().verbose() {
@@ -171,7 +168,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     }
 
     command
-        .args(["-d", dist, "bash", "-c"])
+        .args(["-d", dist, "bash", "-lc"])
         .arg(format!("TOPGRADE_PREFIX={dist} exec {topgrade} {args}"));
 
     if ctx.config().yes(Step::Wsl) {
@@ -206,7 +203,7 @@ pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     if ran {
         Ok(())
     } else {
-        Err(SkipStep(t!("Could not find Topgrade in any WSL disribution").to_string()).into())
+        Err(SkipStep(t!("Could not find Topgrade in any WSL distribution").to_string()).into())
     }
 }
 
@@ -215,15 +212,27 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Windows Update"));
 
-    if powershell.supports_windows_update() {
-        powershell.windows_update(ctx)
-    } else {
+    if !powershell.has_module("PSWindowsUpdate") {
         print_warning(t!(
             "The PSWindowsUpdate PowerShell module isn't installed so Topgrade can't run Windows Update.\nInstall PSWindowsUpdate by running `Install-Module PSWindowsUpdate` in PowerShell."
         ));
 
-        Err(SkipStep(t!("PSWindowsUpdate is not installed").to_string()).into())
+        return Err(SkipStep(t!("PSWindowsUpdate is not installed").to_string()).into());
     }
+
+    let mut cmd = "Import-Module PSWindowsUpdate; Install-WindowsUpdate -Verbose".to_string();
+
+    if ctx.config().accept_all_windows_updates() {
+        cmd.push_str(" -AcceptAll");
+    }
+
+    match ctx.config().windows_updates_auto_reboot() {
+        UpdatesAutoReboot::Yes => cmd.push_str(" -AutoReboot"),
+        UpdatesAutoReboot::No => cmd.push_str(" -IgnoreReboot"),
+        UpdatesAutoReboot::Ask => (), // Prompting is the default for Install-WindowsUpdate
+    }
+
+    powershell.build_command(ctx, &cmd, true)?.status_checked()
 }
 
 pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
@@ -231,7 +240,31 @@ pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Microsoft Store"));
 
-    powershell.microsoft_store(ctx)
+    println!("{}", t!("Scanning for updates..."));
+
+    // Scan for updates using the MDM UpdateScanMethod
+    // This method is also available for non-MDM devices
+    let cmd = r#"(Get-CimInstance -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" | Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue"#;
+
+    powershell
+        .build_command(ctx, cmd, true)?
+        .output_checked_with_utf8(|output| {
+            if !output.status.success() {
+                return Err(());
+            }
+            let ret_val = output.stdout.trim();
+            debug!("Command return value: {}", ret_val);
+            if ret_val == "0" {
+                Ok(())
+            } else {
+                Err(())
+            }
+        })?;
+    println!(
+        "{}",
+        t!("Success, Microsoft Store apps are being updated in the background")
+    );
+    Ok(())
 }
 
 pub fn reboot(ctx: &ExecutionContext) -> Result<()> {
