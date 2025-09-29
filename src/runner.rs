@@ -1,4 +1,4 @@
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{Result, WrapErr};
 use rust_i18n::t;
 use std::borrow::Cow;
 use std::fmt::Debug;
@@ -106,14 +106,14 @@ impl<'a> Runner<'a> {
 
                     match should_retry {
                         ShouldRetry::No | ShouldRetry::Quit => {
-                            self.push_result(Some((
+                            self.push_result(
                                 key,
                                 if ignore_failure {
                                     StepResult::Ignored
                                 } else {
                                     StepResult::Failure
                                 },
-                            )));
+                            );
                             if let ShouldRetry::Quit = should_retry {
                                 return Err(io::Error::from(io::ErrorKind::Interrupted))
                                     .context("Quit from user input");
