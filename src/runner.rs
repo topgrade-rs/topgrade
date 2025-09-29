@@ -31,7 +31,6 @@ impl StepResult {
 
 type Report<'a> = Vec<(Cow<'a, str>, StepResult)>;
 
-
 pub struct UpdatedComponents(Vec<UpdatedComponent>);
 
 impl UpdatedComponents {
