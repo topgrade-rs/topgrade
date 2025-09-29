@@ -112,7 +112,7 @@ impl<'a> Runner<'a> {
         self._execute(step, key, || func().map(|()| None))
     }
 
-    pub fn execute_with_updated<K, M>(&mut self, step: Step, key: M, func: F) -> Result<()>
+    pub fn execute_with_updated<K, F>(&mut self, step: Step, key: K, func: F) -> Result<()>
     where
         K: Into<Cow<'a, str>> + Debug,
         F: Fn() -> Result<Vec<UpdatedComponent>>,
@@ -120,7 +120,7 @@ impl<'a> Runner<'a> {
         self._execute(step, key, || func().map(Some))
     }
 
-    fn _execute<K, M>(&mut self, step: Step, key: M, func: F) -> Result<()>
+    fn _execute<K, F>(&mut self, step: Step, key: K, func: F) -> Result<()>
     where
         K: Into<Cow<'a, str>> + Debug,
         F: Fn() -> Result<Option<Vec<UpdatedComponent>>>,
