@@ -70,7 +70,7 @@ jobs:
       - name: Build debug binary to create release assets
         shell: bash
         run: |
-          cargo build
+          cargo build --all-features
           bin="target/debug/topgrade"
           echo "BIN=$bin" >> $GITHUB_ENV
 
