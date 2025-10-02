@@ -226,8 +226,11 @@ jobs:
       - name: Build debug binary to create release assets
         shell: bash
         run: |
-          cargo build --target ${{ matrix.target }}
-          bin="target/${{ matrix.target }}/debug/topgrade"
+          # This build is not using the target arch since this binary is only needed in CI. It needs
+          # to be the compiled for the runner since it has the run the binary to generate completion
+          # scripts.
+          cargo build --all-features
+          bin="target/debug/topgrade"
           echo "BIN=$bin" >> $GITHUB_ENV
 
       - name: Create deployment directory
