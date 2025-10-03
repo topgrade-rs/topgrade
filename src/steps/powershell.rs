@@ -82,10 +82,11 @@ impl Powershell {
         cmd: &str,
         use_sudo: bool,
     ) -> Result<impl CommandExt + 'a> {
-        // if use_sudo and sudo is available, use it, otherwise run directly
-        let mut command = match ctx.sudo() {
-            Some(sudo) if use_sudo => sudo.execute(ctx, &self.path)?,
-            _ => ctx.execute(&self.path),
+        let mut command = if use_sudo {
+            let sudo = ctx.require_sudo()?;
+            sudo.execute(ctx, &self.path)?
+        } else {
+            ctx.execute(&self.path)
         };
 
         #[cfg(windows)]

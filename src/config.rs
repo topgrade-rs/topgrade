@@ -297,6 +297,8 @@ pub struct Vim {
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Misc {
+    allow_root: Option<bool>,
+
     pre_sudo: Option<bool>,
 
     sudo_command: Option<SudoKind>,
@@ -768,6 +770,10 @@ pub struct CommandLineArgs {
     /// Show the reason for skipped steps
     #[arg(long = "show-skipped")]
     show_skipped: bool,
+
+    /// Suppress warning and confirmation prompt if running as root
+    #[arg(long = "allow-root")]
+    allow_root: bool,
 
     /// Tracing filter directives.
     ///
@@ -1550,6 +1556,16 @@ impl Config {
             .as_ref()
             .and_then(|windows| windows.enable_sdio)
             .unwrap_or(false)
+    }
+
+    pub fn allow_root(&self) -> bool {
+        self.opt.allow_root
+            || self
+                .config_file
+                .misc
+                .as_ref()
+                .and_then(|misc| misc.allow_root)
+                .unwrap_or(false)
     }
 
     pub fn sudo_command(&self) -> Option<SudoKind> {

@@ -1,18 +1,20 @@
 use color_eyre::eyre::Result;
+use rust_i18n::t;
 use std::borrow::Cow;
 use std::fmt::Debug;
 use tracing::debug;
 
 use crate::ctrlc;
-use crate::error::{DryRun, SkipStep};
+use crate::error::{DryRun, MissingSudo, SkipStep};
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
-use crate::terminal::{print_error, should_retry};
+use crate::terminal::{print_error, print_warning, should_retry};
 
 pub enum StepResult {
     Success,
     Failure,
     Ignored,
+    SkippedMissingSudo,
     Skipped(String),
 }
 
@@ -21,7 +23,7 @@ impl StepResult {
         use StepResult::*;
 
         match self {
-            Success | Ignored | Skipped(_) => false,
+            Success | Ignored | Skipped(_) | SkippedMissingSudo => false,
             Failure => true,
         }
     }
@@ -74,6 +76,11 @@ impl<'a> Runner<'a> {
                     break;
                 }
                 Err(e) if e.downcast_ref::<DryRun>().is_some() => break,
+                Err(e) if e.downcast_ref::<MissingSudo>().is_some() => {
+                    print_warning(t!("Skipping step, sudo is required"));
+                    self.push_result(key, StepResult::SkippedMissingSudo);
+                    break;
+                }
                 Err(e) if e.downcast_ref::<SkipStep>().is_some() => {
                     if self.ctx.config().verbose() || self.ctx.config().show_skipped() {
                         self.push_result(key, StepResult::Skipped(e.to_string()));

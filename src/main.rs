@@ -25,11 +25,13 @@ use self::config::{CommandLineArgs, Config};
 use self::error::StepFailed;
 #[cfg(all(windows, feature = "self-update"))]
 use self::error::Upgraded;
+use self::runner::StepResult;
 #[allow(clippy::wildcard_imports)]
 use self::steps::{remote::*, *};
+use self::sudo::{Sudo, SudoCreateError, SudoKind};
 #[allow(clippy::wildcard_imports)]
 use self::terminal::*;
-use self::utils::{install_color_eyre, install_tracing, update_tracing};
+use self::utils::{install_color_eyre, install_tracing, is_elevated, update_tracing};
 
 mod breaking_changes;
 mod command;
@@ -134,10 +136,33 @@ fn run() -> Result<()> {
         }
     }
 
+    let elevated = is_elevated();
+
+    #[cfg(unix)]
+    if !config.allow_root() && elevated {
+        print_warning(t!(
+            "Topgrade should not be run as root, it will run commands with sudo or equivalent where needed."
+        ));
+        if !prompt_yesno(&t!("Continue?"))? {
+            exit(1)
+        }
+    }
+
+    let sudo = match config.sudo_command() {
+        Some(kind) => Sudo::new(kind),
+        None if elevated => Sudo::new(SudoKind::Null),
+        None => Sudo::detect(),
+    };
+    debug!("Sudo: {:?}", sudo);
+
+    let (sudo, sudo_err) = match sudo {
+        Ok(sudo) => (Some(sudo), None),
+        Err(e) => (None, Some(e)),
+    };
+
     #[cfg(target_os = "linux")]
     let distribution = linux::Distribution::detect();
 
-    let sudo = config.sudo_command().map_or_else(sudo::Sudo::detect, sudo::Sudo::new);
     let run_type = execution_context::RunType::new(config.dry_run());
     let ctx = execution_context::ExecutionContext::new(
         run_type,
@@ -157,7 +182,7 @@ fn run() -> Result<()> {
     if !should_skip() && first_run_of_major_release()? {
         print_breaking_changes();
 
-        if prompt_yesno("Confirmed?")? {
+        if prompt_yesno(&t!("Continue?"))? {
             write_keep_file()?;
         } else {
             exit(1);
@@ -205,11 +230,48 @@ fn run() -> Result<()> {
     if !report.is_empty() {
         print_separator(t!("Summary"));
 
+        let mut skipped_missing_sudo = false;
+
         for (key, result) in report {
             if !failed && result.failed() {
                 failed = true;
             }
+            if let StepResult::SkippedMissingSudo = result {
+                skipped_missing_sudo = true;
+            }
             print_result(key, result);
+        }
+
+        if skipped_missing_sudo {
+            print_warning(t!(
+                "\nSome steps were skipped as sudo or equivalent could not be found."
+            ));
+            // Steps can only fail with SkippedMissingSudo if sudo is None,
+            // therefore we must have a sudo_err
+            match sudo_err.unwrap() {
+                SudoCreateError::CannotFindBinary => {
+                    #[cfg(unix)]
+                    print_warning(t!(
+                        "Install one of `sudo`, `doas`, `pkexec`, `run0` or `please` to run these steps."
+                    ));
+
+                    // if this windows version supported Windows Sudo, the error would have been WinSudoDisabled
+                    #[cfg(windows)]
+                    print_warning(t!("Install gsudo to run these steps."));
+                }
+                #[cfg(windows)]
+                SudoCreateError::WinSudoDisabled => {
+                    print_warning(t!(
+                        "Install gsudo or enable Windows Sudo to run these steps.\nFor Windows Sudo, the default 'In a new window' mode is not supported as it prevents Topgrade from waiting for commands to finish. Please configure it to use 'Inline' mode instead.\nGo to https://go.microsoft.com/fwlink/?linkid=2257346 to learn more."
+                    ));
+                }
+                #[cfg(windows)]
+                SudoCreateError::WinSudoNewWindowMode => {
+                    print_warning(t!(
+                        "Windows Sudo was found, but it is set to 'In a new window' mode, which prevents Topgrade from waiting for commands to finish. Please configure it to use 'Inline' mode instead.\nGo to https://go.microsoft.com/fwlink/?linkid=2257346 to learn more."
+                    ));
+                }
+            }
         }
     }
 
