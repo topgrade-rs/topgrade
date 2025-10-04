@@ -297,6 +297,8 @@ fn build_sdio_script(work_dir: &Path, verbose_settings: &str, emit_echo: bool, m
                 verbose_settings,
             );
 
+            script.push_str("enableinstall off\n\n");
+
             push_echo_line(&mut script, emit_echo, "Topgrade: starting SDIO dry-run analysis...");
             script.push_str("init\n");
             script.push_str("onerror goto end\n\n");
@@ -304,7 +306,7 @@ fn build_sdio_script(work_dir: &Path, verbose_settings: &str, emit_echo: bool, m
             script.push_str("# Generate device analysis report before selection\n");
             script.push_str("writedevicelist device_analysis_before.txt\n\n");
 
-            script.push_str("select missing better\n\n");
+            script.push_str("select missing newer better\n\n");
 
             script.push_str("# Generate device analysis report after selection\n");
             script.push_str("writedevicelist device_analysis_after.txt\n\n");
@@ -326,6 +328,8 @@ fn build_sdio_script(work_dir: &Path, verbose_settings: &str, emit_echo: bool, m
                 verbose_settings,
             );
 
+            script.push_str("enableinstall off\n\n");
+
             push_echo_line(&mut script, emit_echo, "Topgrade: running SDIO analysis...");
             script.push_str("checkupdates\n");
             script.push_str("onerror goto end\n\n");
@@ -336,7 +340,7 @@ fn build_sdio_script(work_dir: &Path, verbose_settings: &str, emit_echo: bool, m
             script.push_str("# Generate initial device report\n");
             script.push_str("writedevicelist initial_device_report.txt\n\n");
 
-            script.push_str("select missing better\n\n");
+            script.push_str("select missing newer better\n\n");
 
             script.push_str("# Generate selected devices report (what would be changed)\n");
             script.push_str("writedevicelist selected_device_report.txt\n\n");
@@ -358,6 +362,8 @@ fn build_sdio_script(work_dir: &Path, verbose_settings: &str, emit_echo: bool, m
                 verbose_settings,
             );
 
+            script.push_str("enableinstall on\n\n");
+
             push_echo_line(
                 &mut script,
                 emit_echo,
@@ -375,7 +381,7 @@ fn build_sdio_script(work_dir: &Path, verbose_settings: &str, emit_echo: bool, m
             script.push_str("restorepoint \"Topgrade SDIO Driver Update\"\n");
             script.push_str("onerror echo Warning: Failed to create restore point, continuing anyway...\n\n");
 
-            script.push_str("select missing better\n\n");
+            script.push_str("select missing newer better\n\n");
 
             script.push_str("install\n");
             script.push_str("onerror echo Warning: Some drivers may have failed to install\n\n");
@@ -400,6 +406,8 @@ fn build_sdio_script(work_dir: &Path, verbose_settings: &str, emit_echo: bool, m
                 verbose_settings,
             );
 
+            script.push_str("enableinstall on\n\n");
+
             push_echo_line(&mut script, emit_echo, "Topgrade: starting SDIO installation...");
             script.push_str("checkupdates\n");
             script.push_str("onerror goto end\n\n");
@@ -413,7 +421,7 @@ fn build_sdio_script(work_dir: &Path, verbose_settings: &str, emit_echo: bool, m
             script.push_str("restorepoint \"Topgrade SDIO Driver Update\"\n");
             script.push_str("onerror echo Warning: Failed to create restore point, continuing anyway...\n\n");
 
-            script.push_str("select missing better\n\n");
+            script.push_str("select missing newer better\n\n");
 
             script.push_str("install\n");
             script.push_str("onerror echo Warning: Some drivers may have failed to install\n\n");
