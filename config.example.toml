@@ -61,7 +61,11 @@
 # Changes the way topgrade interacts with
 # the tmux session, creating the session
 # and only attaching to it if not inside tmux
-# (default: "attach_if_not_in_session", allowed values: "attach_if_not_in_session", "attach_always")
+# (default: "attach_if_not_in_session", allowed values:
+# - "attach_if_not_in_session", 
+# - "attach_always", 
+# - "reattach_if_not_in_session", 
+# - "reattach_always")
 # tmux_session_mode = "attach_if_not_in_session"
 
 # Cleanup temporary or old files (default: false)
