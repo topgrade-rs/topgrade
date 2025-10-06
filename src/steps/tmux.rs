@@ -117,6 +117,21 @@ impl Tmux {
         unreachable!()
     }
 
+    fn new_same_session(&self, session_name: &str, window_name: &str, command: &str) -> Result<String> {
+        let session = session_name.to_owned();
+
+        if !self
+            .has_session(&session)
+            .context("Error determining if a tmux session exists")?
+        {
+            self.new_session(&session, window_name, command)
+                .context("Error running Topgrade in tmux")?;
+            return Ok(session);
+        }
+
+        Ok(session)
+    }
+
     /// Create a new window in the given tmux session, running the given command.
     fn new_window(&self, session_name: &str, window_name: &str, command: &str) -> Result<()> {
         self.build()
@@ -168,11 +183,13 @@ pub fn run_in_tmux(config: TmuxConfig) -> Result<()> {
     // Find an unused session and run `topgrade` in it with the current command's arguments.
     let session_name = "topgrade";
     let window_name = "topgrade";
-    let session = tmux.new_unique_session(session_name, window_name, &command)?;
+    // let session = tmux.new_unique_session(session_name, window_name, &command)?;
+    let session: String;
 
     let is_inside_tmux = env::var("TMUX").is_ok();
     let err = match config.session_mode {
         TmuxSessionMode::AttachIfNotInSession => {
+            session = tmux.new_unique_session(session_name, window_name, &command)?;
             if is_inside_tmux {
                 // Only attach to the newly-created session if we're not currently in a tmux session.
                 println!("{}", t!("Topgrade launched in a new tmux session"));
@@ -183,6 +200,24 @@ pub fn run_in_tmux(config: TmuxConfig) -> Result<()> {
         }
 
         TmuxSessionMode::AttachAlways => {
+            session = tmux.new_unique_session(session_name, window_name, &command)?;
+            if is_inside_tmux {
+                tmux.build().args(["switch-client", "-t", &session]).exec()
+            } else {
+                tmux.build().args(["attach-session", "-t", &session]).exec()
+            }
+        }
+        TmuxSessionMode::ReattachIfNotInSession => {
+            session = tmux.new_same_session(session_name, window_name, &command)?;
+            if is_inside_tmux {
+                println!("{}", t!("Topgrade launched in a new tmux session"));
+                return Ok(());
+            } else {
+                tmux.build().args(["attach-session", "-t", &session]).exec()
+            }
+        }
+        TmuxSessionMode::ReattachAlways => {
+            session = tmux.new_same_session(session_name, window_name, &command)?;
             if is_inside_tmux {
                 tmux.build().args(["switch-client", "-t", &session]).exec()
             } else {
