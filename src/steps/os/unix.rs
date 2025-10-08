@@ -1,6 +1,7 @@
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use etcetera::BaseStrategy;
 use home;
 use ini::Ini;
 #[cfg(target_os = "linux")]
@@ -20,6 +21,7 @@ use tracing::{debug, warn};
 
 use crate::command::CommandExt;
 use crate::sudo::SudoExecuteOpts;
+use crate::XDG_DIRS;
 use crate::{output_changed_message, HOME_DIR};
 
 #[cfg(target_os = "linux")]
@@ -427,7 +429,11 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     let nix_env = require("nix-env")?;
     // TODO: Is None possible here?
     let profile_path = match home::home_dir() {
-        Some(home) => Path::new(&home).join(".nix-profile"),
+        Some(home) => XDG_DIRS
+            .state_dir()
+            .map(|d| d.join("nix/profile"))
+            .filter(|p| p.exists())
+            .unwrap_or(Path::new(&home).join(".nix-profile")),
         None => Path::new("/nix/var/nix/profiles/per-user/default").into(),
     };
     debug!("nix profile: {:?}", profile_path);
