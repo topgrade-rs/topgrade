@@ -1,0 +1,24 @@
+name: cosign-sign-assets
+description: Keyless sign all files in a directory with Cosign
+inputs:
+  dir:
+    description: Directory containing files to sign
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@v3
+    - name: Sign assets
+      shell: bash
+      env:
+        COSIGN_EXPERIMENTAL: "true"
+      run: |
+        set -euo pipefail
+        for f in "${{ inputs.dir }}"/*; do
+          [ -f "$f" ] || continue
+          echo "Signing $f"
+          cosign sign-blob --yes "$f" \
+            --output-signature "${f}.sig" \
+            --output-certificate "${f}.crt"
+        done
