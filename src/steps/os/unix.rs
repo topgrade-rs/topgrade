@@ -902,6 +902,14 @@ pub fn run_maza(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(maza).arg("update").status_checked()
 }
 
+pub fn run_hyprpm(ctx: &ExecutionContext) -> Result<()> {
+    let hyprpm = require("hyprpm")?;
+
+    print_separator("hyprpm");
+
+    ctx.execute(hyprpm).arg("update").status_checked()
+}
+
 pub fn reboot(ctx: &ExecutionContext) -> Result<()> {
     match ctx.sudo() {
         Some(sudo) => sudo.execute(ctx, "reboot")?.status_checked(),
