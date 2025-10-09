@@ -276,7 +276,7 @@ fn run() -> Result<()> {
     }
 
     #[cfg(target_os = "linux")]
-    {
+    if config.show_distribution_summary() {
         if let Ok(distribution) = &distribution {
             distribution.show_summary();
         }
