@@ -332,6 +332,37 @@
 # sdio_path = "C:\\Program Files\\SDIO\\SDIO_x64_R1515.exe"
 # sdio_path = "C:\\SDIO\\SDIO_auto.bat"
 
+# Advanced SDIO configuration
+#[windows.sdio]
+# Filters applied to the SDIO "select" command. Defaults to ["missing", "newer", "better"].
+# selection_filters = ["missing", "newer", "better", "lan"]
+
+# Driver pack download policy during install. One of: "none", "selected", "missing", "updates", "all".
+# driverpack_policy = "selected"
+
+# Download driver packs during analysis (without installing) so they are ready for later runs.
+# prefetch_in_analysis = false
+
+# Update the SDIO index catalog when running (recommended unless offline).
+# fetch_indexes = true
+
+# Allow SDIO to download updated driver packs.
+# fetch_updates = true
+
+# Control SDIO verbosity and logging; values above 255 enable debug-level detail.
+# verbose_level = 255
+# debug_logging = true
+
+# Keep SDIO extraction and log files in the temporary directory for review.
+# keep_tempfiles = true
+
+# Emit echo statements in the SDIO console output for easier tracing.
+# emit_echo = true
+
+# Create a system restore point before installing drivers and customise its description.
+# restore_point = true
+# restore_point_description = "Topgrade SDIO Driver Update"
+
 # ============================================================================
 # EDITORS & DEVELOPMENT TOOLS
 # ============================================================================

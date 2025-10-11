@@ -114,6 +114,35 @@ pub struct Windows {
     winget_use_sudo: Option<bool>,
     enable_sdio: Option<bool>,
     sdio_path: Option<String>,
+    sdio: Option<WindowsSdio>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct WindowsSdio {
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    selection_filters: Option<Vec<String>>,
+    driverpack_policy: Option<SdioDriverpackPolicy>,
+    prefetch_in_analysis: Option<bool>,
+    fetch_indexes: Option<bool>,
+    fetch_updates: Option<bool>,
+    verbose_level: Option<u16>,
+    debug_logging: Option<bool>,
+    keep_tempfiles: Option<bool>,
+    emit_echo: Option<bool>,
+    restore_point: Option<bool>,
+    restore_point_description: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum SdioDriverpackPolicy {
+    None,
+    #[default]
+    Selected,
+    Missing,
+    Updates,
+    All,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1548,6 +1577,93 @@ impl Config {
             .windows
             .as_ref()
             .and_then(|windows| windows.sdio_path.as_deref())
+    }
+
+    fn windows_sdio(&self) -> Option<&WindowsSdio> {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|windows| windows.sdio.as_ref())
+    }
+
+    pub fn sdio_selection_filters(&self) -> Vec<String> {
+        let default_filters = vec!["missing".to_string(), "newer".to_string(), "better".to_string()];
+
+        let Some(raw_filters) = self.windows_sdio().and_then(|sdio| sdio.selection_filters.clone()) else {
+            return default_filters;
+        };
+
+        let mut normalized = Vec::new();
+        for filter in raw_filters {
+            let value = filter.trim().to_ascii_lowercase();
+            if value.is_empty() {
+                continue;
+            }
+            if !normalized.contains(&value) {
+                normalized.push(value);
+            }
+        }
+
+        if normalized.is_empty() {
+            default_filters
+        } else {
+            normalized
+        }
+    }
+
+    pub fn sdio_driverpack_policy(&self) -> SdioDriverpackPolicy {
+        self.windows_sdio()
+            .and_then(|sdio| sdio.driverpack_policy)
+            .unwrap_or_default()
+    }
+
+    pub fn sdio_prefetch_driverpacks_in_analysis(&self) -> bool {
+        self.windows_sdio()
+            .and_then(|sdio| sdio.prefetch_in_analysis)
+            .unwrap_or(false)
+    }
+
+    pub fn sdio_fetch_indexes(&self) -> bool {
+        self.windows_sdio().and_then(|sdio| sdio.fetch_indexes).unwrap_or(true)
+    }
+
+    pub fn sdio_fetch_updates(&self) -> bool {
+        self.windows_sdio().and_then(|sdio| sdio.fetch_updates).unwrap_or(true)
+    }
+
+    pub fn sdio_debug_logging(&self, verbose: bool) -> bool {
+        self.windows_sdio()
+            .and_then(|sdio| sdio.debug_logging)
+            .unwrap_or(verbose)
+    }
+
+    pub fn sdio_verbose_level(&self, verbose: bool) -> u16 {
+        let default_level = if verbose { 255 } else { 128 };
+        self.windows_sdio()
+            .and_then(|sdio| sdio.verbose_level)
+            .map(|level| level.clamp(0, 8580))
+            .unwrap_or(default_level)
+    }
+
+    pub fn sdio_keep_tempfiles(&self, verbose: bool) -> bool {
+        self.windows_sdio()
+            .and_then(|sdio| sdio.keep_tempfiles)
+            .unwrap_or(verbose)
+    }
+
+    pub fn sdio_emit_echo(&self, verbose: bool) -> bool {
+        self.windows_sdio().and_then(|sdio| sdio.emit_echo).unwrap_or(verbose)
+    }
+
+    pub fn sdio_restore_point_enabled(&self) -> bool {
+        self.windows_sdio().and_then(|sdio| sdio.restore_point).unwrap_or(true)
+    }
+
+    pub fn sdio_restore_point_description(&self) -> String {
+        self.windows_sdio()
+            .and_then(|sdio| sdio.restore_point_description.clone())
+            .filter(|desc| !desc.trim().is_empty())
+            .unwrap_or_else(|| "Topgrade SDIO Driver Update".to_string())
     }
 
     pub fn enable_sdio(&self) -> bool {

@@ -1,0 +1,24 @@
+#
+# Snappy Driver Installer Origin
+#
+# Title: Simple Install
+# Author: Glenn Delahoy
+# Description: Simple script to install missing and better drivers.
+# Notes: Test mode by default. Set 'enableinstall on' to make it live.
+#
+
+echo ==============================
+echo Snappy Driver Installer Origin
+echo       Simple Install
+echo ==============================
+echo
+
+echo Initialising...
+verbose 384
+logging on
+enableinstall off
+init
+echo Installing missing and better drivers...
+select missing better
+install
+end

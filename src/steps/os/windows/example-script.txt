@@ -1,0 +1,74 @@
+#
+# Snappy Driver Installer Origin
+#
+# Title: Example Script
+# Author: Glenn Delahoy
+# Description: Shows the various commands in action.
+# Notes: Test mode by default. Set 'enableinstall on' to make it live.
+#
+
+echo ==============================
+echo Snappy Driver Installer Origin
+echo       Example Script
+echo ==============================
+echo
+
+echo Script File Name: %0
+echo Parameters: %1 %2 %3 %4 %5 %6 %7 %8 %9
+
+; ***************************
+; *    initialisation       *
+; ***************************
+echo Initialising
+verbose 384
+;debug on
+logging on
+enableinstall off
+keeptempfiles on
+init
+
+; ***************************
+; *    save system info     *
+; ***************************
+:info
+echo Writing device list
+writedevicelist devicelist.txt
+echo Writing snapshot
+snapshot
+
+; ***************************
+; *    download updates     *
+; ***************************
+:updates
+echo Checking updates
+checkupdates
+onerror goto :end
+;echo Getting application updates
+;get app
+;echo Getting indexes
+;get indexes
+echo Getting driver pack updates for what i already have
+get driverpacks updates
+;echo Getting application updates
+;get everything
+
+; ***************************
+; *  install driver updates *
+; ***************************
+:install
+echo Creating restore point
+restorepoint
+onerror goto :end
+select missing better lan wlan-wifi
+install
+onerror goto :end
+
+; ***************************
+; *        cleanup          *
+; ***************************
+:end
+logging off
+debug off
+reboot ifneeded
+echo *** END ***
+end
