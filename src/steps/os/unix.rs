@@ -550,6 +550,33 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Nix (self-upgrade)"));
 
+    let mut get_version_cmd = ctx.execute(&nix);
+    get_version_cmd.arg("--version");
+    let get_version_cmd_output = get_version_cmd.output_checked_utf8()?;
+    let get_version_cmd_first_line_stdout = get_version_cmd_output
+        .stdout
+        .lines()
+        .next()
+        .ok_or_else(|| eyre!("`nix --version` output is empty"))?;
+
+    let is_determinate_nix = get_version_cmd_first_line_stdout.contains("Determinate Nix");
+
+    debug!(
+    output=%get_version_cmd_output,
+    ?is_determinate_nix,
+    "`nix --version` output"
+    );
+
+    if is_determinate_nix {
+        let nixd = require("determinate-nixd")?;
+
+        let sudo = ctx.require_sudo()?;
+        return sudo
+            .execute_opts(ctx, &nixd, SudoExecuteOpts::new().login_shell())?
+            .arg("upgrade")
+            .status_checked();
+    }
+
     let multi_user = fs::metadata(&nix)?.uid() == 0;
     debug!("Multi user nix: {}", multi_user);
 
