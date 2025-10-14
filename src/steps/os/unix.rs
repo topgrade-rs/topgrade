@@ -550,10 +550,10 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Nix (self-upgrade)"));
 
-    let mut get_version_cmd = ctx.execute(&nix);
-    get_version_cmd.arg("--version");
-    let get_version_cmd_output = get_version_cmd.output_checked_utf8()?;
-    let get_version_cmd_first_line_stdout = get_version_cmd_output
+    let version = ctx
+    	.execute(&nix)
+  		.arg("--version")
+  		.output_checked_utf8()?
         .stdout
         .lines()
         .next()
