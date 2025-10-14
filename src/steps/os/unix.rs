@@ -26,7 +26,7 @@ use crate::{output_changed_message, HOME_DIR};
 
 #[cfg(target_os = "linux")]
 use super::linux::Distribution;
-use crate::error::SkipStep;
+use crate::error::{SkipStep, StepFailed};
 use crate::execution_context::ExecutionContext;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use crate::executor::Executor;
@@ -550,29 +550,32 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Nix (self-upgrade)"));
 
-    let version = ctx
-    	.execute(&nix)
-  		.arg("--version")
-  		.output_checked_utf8()?
+    let version_output = ctx.execute(&nix).arg("--version").output_checked_utf8()?;
+    let version = version_output
         .stdout
         .lines()
         .next()
         .ok_or_else(|| eyre!("`nix --version` output is empty"))?;
 
-    let is_determinate_nix = get_version_cmd_first_line_stdout.contains("Determinate Nix");
+    let is_determinate_nix = version.contains("Determinate Nix");
 
     debug!(
-    output=%get_version_cmd_output,
+    output=%version_output,
     ?is_determinate_nix,
     "`nix --version` output"
     );
 
     if is_determinate_nix {
-        let nixd = require("determinate-nixd")?;
+        let nixd = require("determinate-nixd");
+
+        if nixd.is_err() {
+            println!("Found Determinate Nix, but could not find determinate-nixd");
+            return Err(StepFailed.into());
+        }
 
         let sudo = ctx.require_sudo()?;
         return sudo
-            .execute_opts(ctx, &nixd, SudoExecuteOpts::new().login_shell())?
+            .execute_opts(ctx, nixd.unwrap(), SudoExecuteOpts::new().login_shell())?
             .arg("upgrade")
             .status_checked();
     }
