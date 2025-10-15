@@ -567,18 +567,17 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     if is_determinate_nix {
         let nixd = require("determinate-nixd");
-
         let nixd = match nixd {
-        	Err(_) => {
-            	println!("Found Determinate Nix, but could not find determinate-nixd");
-            	return Err(StepFailed.into());
-        	}
-        	Ok(nixd) => nixd,
+            Err(_) => {
+                println!("Found Determinate Nix, but could not find determinate-nixd");
+                return Err(StepFailed.into());
+            }
+            Ok(nixd) => nixd,
         };
 
         let sudo = ctx.require_sudo()?;
         return sudo
-            .execute_opts(ctx, nixd.unwrap(), SudoExecuteOpts::new().login_shell())?
+            .execute_opts(ctx, nixd, SudoExecuteOpts::new().login_shell())?
             .arg("upgrade")
             .status_checked();
     }
