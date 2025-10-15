@@ -569,12 +569,12 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
         let nixd = require("determinate-nixd");
 
         let nixd = match nixd {
-        	Err(_) -> {
+        	Err(_) => {
             	println!("Found Determinate Nix, but could not find determinate-nixd");
             	return Err(StepFailed.into());
         	}
-        	Ok(nixd) -> nixd,
-        }
+        	Ok(nixd) => nixd,
+        };
 
         let sudo = ctx.require_sudo()?;
         return sudo
