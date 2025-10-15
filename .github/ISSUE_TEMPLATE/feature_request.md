@@ -16,10 +16,13 @@ assignees: ''
 * Does it have a `--dry-run` option? i.e., print what should be done and exit
 * Does it need the user to confirm the execution? And does it provide a `--yes`
   option to skip this step?
+* Can Topgrade extract the components that it updated to use in the summary?
 
 ## I want to suggest some general feature
+
 Topgrade should...
 
 ## More information
+
 <!-- Assuming that someone else implements the feature,
 please state if you know how to test it from a side branch of Topgrade. -->
