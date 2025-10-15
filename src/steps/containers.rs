@@ -142,12 +142,12 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
 
     for container in &containers {
         debug!("Pulling container '{}'", container);
-        let args = vec![
-            "pull",
-            container.repo_tag.as_str(),
-            "--platform",
-            container.platform.as_str(),
-        ];
+        let mut args = vec!["pull", container.repo_tag.as_str()];
+        if container.platform.as_str() != "/" {
+            args.push("--platform");
+            args.push(container.platform.as_str());
+        }
+
         let mut exec = ctx.execute(&crt);
 
         if let Err(e) = exec.args(&args).status_checked() {

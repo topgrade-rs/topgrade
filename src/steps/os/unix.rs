@@ -1,6 +1,7 @@
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use etcetera::BaseStrategy;
 use home;
 use ini::Ini;
 #[cfg(target_os = "linux")]
@@ -20,11 +21,12 @@ use tracing::{debug, warn};
 
 use crate::command::CommandExt;
 use crate::sudo::SudoExecuteOpts;
+use crate::XDG_DIRS;
 use crate::{output_changed_message, HOME_DIR};
 
 #[cfg(target_os = "linux")]
 use super::linux::Distribution;
-use crate::error::SkipStep;
+use crate::error::{SkipStep, StepFailed};
 use crate::execution_context::ExecutionContext;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use crate::executor::Executor;
@@ -199,10 +201,11 @@ pub fn run_oh_my_fish(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_pkgin(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = ctx.require_sudo()?;
     let pkgin = require("pkgin")?;
 
     print_separator("Pkgin");
+
+    let sudo = ctx.require_sudo()?;
 
     let mut command = sudo.execute(ctx, &pkgin)?;
     command.arg("update");
@@ -426,7 +429,11 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     let nix_env = require("nix-env")?;
     // TODO: Is None possible here?
     let profile_path = match home::home_dir() {
-        Some(home) => Path::new(&home).join(".nix-profile"),
+        Some(home) => XDG_DIRS
+            .state_dir()
+            .map(|d| d.join("nix/profile"))
+            .filter(|p| p.exists())
+            .unwrap_or(Path::new(&home).join(".nix-profile")),
         None => Path::new("/nix/var/nix/profiles/per-user/default").into(),
     };
     debug!("nix profile: {:?}", profile_path);
@@ -543,13 +550,45 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Nix (self-upgrade)"));
 
+    let version_output = ctx.execute(&nix).arg("--version").output_checked_utf8()?;
+    let version = version_output
+        .stdout
+        .lines()
+        .next()
+        .ok_or_else(|| eyre!("`nix --version` output is empty"))?;
+
+    let is_determinate_nix = version.contains("Determinate Nix");
+
+    debug!(
+    output=%version_output,
+    ?is_determinate_nix,
+    "`nix --version` output"
+    );
+
+    if is_determinate_nix {
+        let nixd = require("determinate-nixd");
+        let nixd = match nixd {
+            Err(_) => {
+                println!("Found Determinate Nix, but could not find determinate-nixd");
+                return Err(StepFailed.into());
+            }
+            Ok(nixd) => nixd,
+        };
+
+        let sudo = ctx.require_sudo()?;
+        return sudo
+            .execute_opts(ctx, nixd, SudoExecuteOpts::new().login_shell())?
+            .arg("upgrade")
+            .status_checked();
+    }
+
     let multi_user = fs::metadata(&nix)?.uid() == 0;
     debug!("Multi user nix: {}", multi_user);
 
     let nix_args = nix_args();
     if multi_user {
         let sudo = ctx.require_sudo()?;
-        sudo.execute_opts(ctx, &nix, SudoExecuteOpts::new().interactive())?
+        sudo.execute_opts(ctx, &nix, SudoExecuteOpts::new().login_shell())?
             .args(nix_args)
             .arg("upgrade-nix")
             .status_checked()

@@ -156,7 +156,7 @@ jobs:
         run: rustup target add ${{ matrix.target }}
 
       - name: install cross
-        uses: taiki-e/install-action@849bd009f730a24e9db18262f4e9f062591dee39 # v2.61.5
+        uses: taiki-e/install-action@e7ef886cf8f69c25ecef6bbc2858a42e273496ec # v2.62.28
         with:
           tool: cross@0.2.5
 
