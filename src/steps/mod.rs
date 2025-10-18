@@ -1,4 +1,3 @@
-pub mod atuin;
 pub mod containers;
 pub mod emacs;
 pub mod generic;

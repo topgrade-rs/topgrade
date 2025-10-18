@@ -203,7 +203,11 @@ impl Step {
                 )))]
                 runner.execute(*self, "apm", || generic::run_apm(ctx))?
             }
-            Atuin => runner.execute(*self, "atuin", || atuin::run_atuin(ctx))?,
+            Atuin =>
+            {
+                #[cfg(unix)]
+                runner.execute(*self, "atuin", || unix::run_atuin(ctx))?
+            }
             Audit => {
                 #[cfg(target_os = "dragonfly")]
                 runner.execute(*self, "DragonFly Audit", || dragonfly::audit_packages(ctx))?;
