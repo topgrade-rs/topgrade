@@ -770,6 +770,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Sdkman,
         Rcm,
         Maza,
+        Atuin,
     ]);
 
     #[cfg(not(any(
@@ -880,7 +881,6 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Powershell,
         CustomCommands,
         Vagrant,
-        Atuin,
     ]);
 
     steps.shrink_to_fit();
