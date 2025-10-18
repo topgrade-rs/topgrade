@@ -25,6 +25,7 @@ pub enum Step {
     Aqua,
     Asdf,
     Atom,
+    Atuin,
     Audit,
     AutoCpufreq,
     Bin,
@@ -202,6 +203,7 @@ impl Step {
                 )))]
                 runner.execute(*self, "apm", || generic::run_apm(ctx))?
             }
+            Atuin => runner.execute(*self, "atuin", || atuin::run_atuin(ctx))?,
             Audit => {
                 #[cfg(target_os = "dragonfly")]
                 runner.execute(*self, "DragonFly Audit", || dragonfly::audit_packages(ctx))?;
@@ -874,6 +876,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Powershell,
         CustomCommands,
         Vagrant,
+        Atuin,
     ]);
 
     steps.shrink_to_fit();
