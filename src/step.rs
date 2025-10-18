@@ -25,6 +25,7 @@ pub enum Step {
     Aqua,
     Asdf,
     Atom,
+    Atuin,
     Audit,
     AutoCpufreq,
     Bin,
@@ -201,6 +202,11 @@ impl Step {
                     target_os = "dragonfly"
                 )))]
                 runner.execute(*self, "apm", || generic::run_apm(ctx))?
+            }
+            Atuin =>
+            {
+                #[cfg(unix)]
+                runner.execute(*self, "atuin", || unix::run_atuin(ctx))?
             }
             Audit => {
                 #[cfg(target_os = "dragonfly")]
@@ -764,6 +770,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Sdkman,
         Rcm,
         Maza,
+        Atuin,
     ]);
 
     #[cfg(not(any(
