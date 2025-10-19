@@ -934,6 +934,14 @@ pub fn run_maza(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(maza).arg("update").status_checked()
 }
 
+pub fn run_atuin(ctx: &ExecutionContext) -> Result<()> {
+    let atuin = require("atuin-update")?;
+
+    print_separator("atuin");
+
+    ctx.execute(atuin).status_checked()
+}
+
 pub fn reboot(ctx: &ExecutionContext) -> Result<()> {
     match ctx.sudo() {
         Some(sudo) => sudo.execute(ctx, "reboot")?.status_checked(),
