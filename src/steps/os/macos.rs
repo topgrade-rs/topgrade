@@ -11,10 +11,12 @@ use std::process::Command;
 use tracing::debug;
 
 pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = ctx.require_sudo()?;
     let port = require("port")?;
 
     print_separator("MacPorts");
+
+    let sudo = ctx.require_sudo()?;
+
     sudo.execute(ctx, &port)?.arg("selfupdate").status_checked()?;
     sudo.execute(ctx, &port)?
         .args(["-u", "upgrade", "outdated"])

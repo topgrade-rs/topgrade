@@ -25,6 +25,7 @@ pub enum Step {
     Aqua,
     Asdf,
     Atom,
+    Atuin,
     Audit,
     AutoCpufreq,
     Bin,
@@ -94,6 +95,7 @@ pub enum Step {
     Lure,
     Macports,
     Mamba,
+    Mandb,
     Mas,
     Maza,
     Micro,
@@ -116,6 +118,7 @@ pub enum Step {
     Pipxu,
     Pixi,
     Pkg,
+    Pkgfile,
     Pkgin,
     PlatformioCore,
     Pnpm,
@@ -152,7 +155,9 @@ pub enum Step {
     Vim,
     VoltaPackages,
     Vscode,
+    VscodeInsiders,
     Vscodium,
+    VscodiumInsiders,
     Waydroid,
     Winget,
     Wsl,
@@ -197,6 +202,11 @@ impl Step {
                     target_os = "dragonfly"
                 )))]
                 runner.execute(*self, "apm", || generic::run_apm(ctx))?
+            }
+            Atuin =>
+            {
+                #[cfg(unix)]
+                runner.execute(*self, "atuin", || unix::run_atuin(ctx))?
             }
             Audit => {
                 #[cfg(target_os = "dragonfly")]
@@ -265,9 +275,12 @@ impl Step {
             }
             Containers => runner.execute(*self, "Containers", || containers::run_containers(ctx))?,
             CustomCommands => {
-                if let Some(commands) = ctx.config().pre_commands() {
-                    for (name, command) in commands {
-                        generic::run_custom_command(name, command, ctx)?;
+                if let Some(commands) = ctx.config().commands() {
+                    for (name, command) in commands
+                        .iter()
+                        .filter(|(n, _)| ctx.config().should_run_custom_command(n))
+                    {
+                        runner.execute(*self, name.clone(), || generic::run_custom_command(name, command, ctx))?;
                     }
                 }
             }
@@ -306,7 +319,7 @@ impl Step {
             Gem => runner.execute(*self, "gem", || generic::run_gem(ctx))?,
             Ghcup => runner.execute(*self, "ghcup", || generic::run_ghcup_update(ctx))?,
             GitRepos => runner.execute(*self, "Git Repositories", || git::run_git_pull(ctx))?,
-            GithubCliExtensions => runner.execute(*self, "GitHub CLI Extenstions", || {
+            GithubCliExtensions => runner.execute(*self, "GitHub CLI Extensions", || {
                 generic::run_ghcli_extensions_upgrade(ctx)
             })?,
             GnomeShellExtensions =>
@@ -385,6 +398,11 @@ impl Step {
                 runner.execute(*self, "MacPorts", || macos::run_macports(ctx))?
             }
             Mamba => runner.execute(*self, "mamba", || generic::run_mamba_update(ctx))?,
+            Mandb =>
+            {
+                #[cfg(target_os = "linux")]
+                runner.execute(*self, "Manual Entries", || linux::run_mandb(ctx))?
+            }
             Mas =>
             {
                 #[cfg(target_os = "macos")]
@@ -455,6 +473,11 @@ impl Step {
                 #[cfg(target_os = "android")]
                 runner.execute(*self, "Termux Packages", || android::upgrade_packages(ctx))?
             }
+            Pkgfile =>
+            {
+                #[cfg(target_os = "linux")]
+                runner.execute(*self, "pkgfile", || linux::run_pkgfile(ctx))?
+            }
             Pkgin =>
             {
                 #[cfg(unix)]
@@ -463,7 +486,7 @@ impl Step {
             PlatformioCore => runner.execute(*self, "PlatformIO Core", || generic::run_platform_io(ctx))?,
             Pnpm => runner.execute(*self, "pnpm", || node::run_pnpm_upgrade(ctx))?,
             Poetry => runner.execute(*self, "Poetry", || generic::run_poetry(ctx))?,
-            Powershell => runner.execute(Powershell, "Powershell Modules Update", || generic::run_powershell(ctx))?,
+            Powershell => runner.execute(*self, "Powershell Modules Update", || generic::run_powershell(ctx))?,
             Protonup =>
             {
                 #[cfg(target_os = "linux")]
@@ -486,7 +509,7 @@ impl Step {
                         .iter()
                         .filter(|t| ctx.config().should_execute_remote(hostname(), t))
                     {
-                        runner.execute(Remotes, format!("Remote ({remote_topgrade})"), || {
+                        runner.execute(*self, format!("Remote ({remote_topgrade})"), || {
                             crate::ssh::ssh_step(ctx, remote_topgrade)
                         })?;
                     }
@@ -563,7 +586,7 @@ impl Step {
 
                     match ctx.distribution() {
                         Ok(distribution) => {
-                            runner.execute(System, "System update", || distribution.upgrade(ctx))?;
+                            runner.execute(*self, "System update", || distribution.upgrade(ctx))?;
                         }
                         Err(e) => {
                             println!("{}", t!("Error detecting current distribution: {error}", error = e));
@@ -601,13 +624,13 @@ impl Step {
                 if ctx.config().should_run(Vagrant) {
                     if let Ok(boxes) = vagrant::collect_boxes(ctx) {
                         for vagrant_box in boxes {
-                            runner.execute(Vagrant, format!("Vagrant ({})", vagrant_box.smart_name()), || {
+                            runner.execute(*self, format!("Vagrant ({})", vagrant_box.smart_name()), || {
                                 vagrant::topgrade_vagrant_box(ctx, &vagrant_box)
                             })?;
                         }
                     }
                 }
-                runner.execute(Vagrant, "Vagrant boxes", || vagrant::upgrade_vagrant_boxes(ctx))?;
+                runner.execute(*self, "Vagrant boxes", || vagrant::upgrade_vagrant_boxes(ctx))?;
             }
             Vcpkg => runner.execute(*self, "vcpkg", || generic::run_vcpkg_update(ctx))?,
             Vim => {
@@ -620,8 +643,14 @@ impl Step {
             Vscode => runner.execute(*self, "Visual Studio Code extensions", || {
                 generic::run_vscode_extensions_update(ctx)
             })?,
+            VscodeInsiders => runner.execute(*self, "Visual Studio Code Insiders extensions", || {
+                generic::run_vscode_insiders_extensions_update(ctx)
+            })?,
             Vscodium => runner.execute(*self, "VSCodium extensions", || {
                 generic::run_vscodium_extensions_update(ctx)
+            })?,
+            VscodiumInsiders => runner.execute(*self, "VSCodium Insiders extensions", || {
+                generic::run_vscodium_insiders_extensions_update(ctx)
             })?,
             Waydroid =>
             {
@@ -641,7 +670,7 @@ impl Step {
             WslUpdate =>
             {
                 #[cfg(windows)]
-                runner.execute(*self, "WSL", || windows::update_wsl(ctx))?
+                runner.execute(*self, "Update WSL", || windows::update_wsl(ctx))?
             }
             Xcodes =>
             {
@@ -672,26 +701,31 @@ pub(crate) fn default_steps() -> Vec<Step> {
     // initial and shrink
     let mut steps = Vec::with_capacity(Step::COUNT);
 
+    // Not combined with other generic steps to preserve the order as it was in main.rs originally,
+    // but this can be changed in the future.
+    steps.push(Remotes);
+
     #[cfg(windows)]
-    steps.extend_from_slice(&[Wsl, WslUpdate, Chocolatey, Scoop, Winget]);
+    steps.extend_from_slice(&[Wsl, WslUpdate, Chocolatey, Scoop, Winget, System, MicrosoftStore]);
 
     #[cfg(target_os = "macos")]
-    steps.extend_from_slice(&[BrewFormula, BrewCask, Macports, Xcodes, Sparkle, Mas]);
+    steps.extend_from_slice(&[BrewFormula, BrewCask, Macports, Xcodes, Sparkle, Mas, System]);
 
     #[cfg(target_os = "dragonfly")]
     steps.extend_from_slice(&[Pkg, Audit]);
 
-    #[cfg(any(target_os = "freebsd", target_os = "openbsd"))]
+    #[cfg(target_os = "freebsd")]
+    steps.extend_from_slice(&[Pkg, System, Audit]);
+
+    #[cfg(target_os = "openbsd")]
+    steps.extend_from_slice(&[Pkg, System]);
+
+    #[cfg(target_os = "android")]
     steps.push(Pkg);
-
-    #[cfg(not(any(target_os = "dragonfly", target_os = "android")))]
-    steps.push(System);
-
-    #[cfg(windows)]
-    steps.push(MicrosoftStore);
 
     #[cfg(target_os = "linux")]
     steps.extend_from_slice(&[
+        System,
         ConfigUpdate,
         AM,
         AppMan,
@@ -711,15 +745,15 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Waydroid,
         AutoCpufreq,
         CinnamonSpices,
+        Mandb,
+        Pkgfile,
     ]);
-
-    #[cfg(target_os = "freebsd")]
-    steps.push(Audit);
 
     #[cfg(unix)]
     steps.extend_from_slice(&[
         Yadm,
         Nix,
+        NixHelper,
         Guix,
         HomeManager,
         Asdf,
@@ -736,6 +770,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Sdkman,
         Rcm,
         Maza,
+        Atuin,
     ]);
 
     #[cfg(not(any(
@@ -764,7 +799,9 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Pipx,
         Pipxu,
         Vscode,
+        VscodeInsiders,
         Vscodium,
+        VscodiumInsiders,
         Conda,
         Mamba,
         Pixi,

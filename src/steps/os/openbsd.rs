@@ -17,8 +17,9 @@ fn is_openbsd_current(ctx: &ExecutionContext) -> Result<bool> {
 }
 
 pub fn upgrade_openbsd(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = ctx.require_sudo()?;
     print_separator(t!("OpenBSD Update"));
+
+    let sudo = ctx.require_sudo()?;
 
     let is_current = is_openbsd_current(ctx)?;
 
@@ -35,8 +36,9 @@ pub fn upgrade_openbsd(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = ctx.require_sudo()?;
     print_separator(t!("OpenBSD Packages"));
+
+    let sudo = ctx.require_sudo()?;
 
     let is_current = is_openbsd_current(ctx)?;
 

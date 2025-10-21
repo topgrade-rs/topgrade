@@ -45,7 +45,7 @@ semver = "~1.0"
 shell-words = "~1.1"
 color-eyre = "~0.6"
 tracing = { version = "~0.1", features = ["attributes", "log"] }
-tracing-subscriber = { version = "~0.3", features = ["env-filter", "time"] }
+tracing-subscriber = { version = "~0.3.20", features = ["env-filter", "time"] }
 merge = "~0.1"
 regex-split = "~0.1"
 notify-rust = "~4.11"
@@ -78,9 +78,11 @@ rust-ini = "~0.21"
 self_update_crate = { version = "~0.40", default-features = false, optional = true, package = "self_update", features = ["archive-tar", "compression-flate2", "rustls"] }
 
 [target.'cfg(windows)'.dependencies]
-self_update_crate = { version = "~0.40", default-features = false, optional = true, package = "self_update", features = ["archive-zip", "compression-zip-deflate", "rustls"] }
-winapi = "~0.3"
+is_elevated = "~0.1"
 parselnk = "~0.1"
+self_update_crate = { version = "~0.40", default-features = false, optional = true, package = "self_update", features = ["archive-zip", "compression-zip-deflate", "rustls"] }
+windows = { version = "~0.62", features = ["Win32_System_Console"] }
+windows-registry = "~0.6"
 
 [profile.release]
 lto = true

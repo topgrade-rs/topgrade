@@ -6,6 +6,13 @@
 
 
 [misc]
+# On Unix systems, Topgrade should not be run as root, it
+# will run commands with sudo or equivalent where needed.
+# Set this to true to suppress the warning and confirmation
+# prompt if Topgrade detects it is being run as root.
+# (default: false)
+# allow_root = false
+
 # Run `sudo -v` to cache credentials at the start of the run
 # This avoids a blocking password prompt in the middle of an unattended run
 # (default: false)
@@ -43,6 +50,10 @@
 
 # Do not ask to retry failed steps (default: false)
 # no_retry = true
+
+# Show the reason for skipped steps (default: false)
+# This has no effect if the "only" option is specified
+# show_skipped = true
 
 # Run inside tmux (default: false)
 # run_in_tmux = true
@@ -203,6 +214,13 @@
 
 # Extra Home Manager arguments
 # home_manager_arguments = ["--flake", "file"]
+
+
+[mandb]
+# Enable the mandb step (to update manual entries).
+# Mandb is updated in the background by a service on most systems by default.
+# (default: false)
+# enable = true
 
 
 [git]
