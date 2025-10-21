@@ -858,6 +858,14 @@ pub fn run_ghcup_update(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(ghcup).arg("upgrade").status_checked()
 }
 
+pub fn run_tldr(ctx: &ExecutionContext) -> Result<()> {
+    let tldr = require("tldr")?;
+
+    print_separator("TLDR");
+
+    ctx.execute(tldr).arg("--update").status_checked()
+}
+
 pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
     cfg_if::cfg_if! {
         if #[cfg(any(target_os = "linux", target_os = "android"))] {
