@@ -603,11 +603,7 @@ impl Step {
                 #[cfg(target_os = "openbsd")]
                 runner.execute(*self, "OpenBSD Upgrade", || openbsd::upgrade_openbsd(ctx))?
             }
-            Tldr =>
-            {
-                #[cfg(unix)]
-                runner.execute(*self, "TLDR", || unix::run_tldr(ctx))?
-            }
+            Tldr => runner.execute(*self, "TLDR", || generic::run_tldr(ctx))?,
             Tlmgr => runner.execute(*self, "tlmgr", || generic::run_tlmgr_update(ctx))?,
             Tmux =>
             {
@@ -762,7 +758,6 @@ pub(crate) fn default_steps() -> Vec<Step> {
         BunPackages,
         Shell,
         Tmux,
-        Tldr,
         Pearl,
         #[cfg(not(any(target_os = "macos", target_os = "android")))]
         GnomeShellExtensions,
@@ -812,6 +807,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Pipupgrade,
         Ghcup,
         Stack,
+        Tldr,
         Tlmgr,
         Myrepos,
         Chezmoi,
