@@ -182,11 +182,7 @@ impl Step {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "am", || linux::run_am(ctx))?
             }
-            Adless =>
-            {
-                #[cfg(unix)]
-                runner.execute(*self, "adless", || adless::run_adless(ctx))?
-            }
+            Adless => runner.execute(*self, "adless", || adless::run_adless(ctx))?,
             AndroidStudio => runner.execute(*self, "Android Studio Plugins", || generic::run_android_studio(ctx))?,
             AppMan =>
             {
