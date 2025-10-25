@@ -1,23 +1,8 @@
 name: Publish release files for CD native and non-cd-native environments
 
 on:
-  release:
-    types: [ created ]
-  # When a release failed, and there is something you need to fix in this
-  # YML file, you can manually re-run the job via this event to re-do the
-  # release. (Simply re-run the job through GitHub UI won't work as it would use
-  # the old YML file, which needs a fix.)
-  workflow_dispatch:
-    inputs:
-      # The GitHub Action (softprops/action-gh-release) used in this pipeline
-      # needs a tag, you specify it through this parameter.
-      #
-      # In the case described above, it should be an existing tag. E.g., the
-      # release of v16.0.4 failed, you should specify "v16.0.4" here.
-      existing_tag:
-        description: "The tag of the failed release that you wanna re-run and fix"
-        required: true
-        type: string
+  repository_dispatch:
+    types: [ release-created ]
 
 permissions:
   contents: read
@@ -91,21 +76,11 @@ jobs:
       - name: Build in Release profile with all features enabled
         run: cargo build --release --all-features
 
-      - name: Determine tag name
-        id: determine_tag_name
-        shell: bash # Or it won't work on Windows
-        run: |
-          if [ -n "${{ github.event.release.tag_name }}" ]; then
-            echo "tag_name=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
-          else
-            echo "tag_name=${{ github.event.inputs.existing_tag }}" >> $GITHUB_OUTPUT
-          fi
-
       - name: Rename Release (Unix)
         run: |
           cargo install default-target
           mkdir -p assets
-          FILENAME=topgrade-${{ steps.determine_tag_name.outputs.tag_name }}-$(default-target)
+          FILENAME=topgrade-${{ github.event.client_payload.tag }}-$(default-target)
           mv target/release/topgrade assets
           cd assets
           tar --format=ustar -czf $FILENAME.tar.gz topgrade
@@ -136,7 +111,7 @@ jobs:
         run: |
           cargo install default-target
           mkdir assets
-          FILENAME=topgrade-${{steps.determine_tag_name.outputs.tag_name}}-$(default-target)
+          FILENAME=topgrade-${{ github.event.client_payload.tag }}-$(default-target)
           mv target/release/topgrade.exe assets/topgrade.exe
           cd assets
           powershell Compress-Archive -Path * -Destination ${FILENAME}.zip
@@ -145,12 +120,11 @@ jobs:
         if: ${{ matrix.platform == 'windows-latest' }}
         shell: bash
 
-
-      - name: Release
-        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090 # v2.4.1
-        with:
-          tag_name: ${{ steps.determine_tag_name.outputs.tag_name }}
-          files: assets/*
+      - name: Upload assets
+        run:
+          gh release upload "${{ github.event.client_payload.tag }}" assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate artifact attestations
         uses: actions/attest-build-provenance@v3.0.0
@@ -250,20 +224,10 @@ jobs:
       - name: Build in Release profile with all features enabled
         run: cross build --release --all-features --target ${{matrix.target}}
 
-      - name: Determine tag name
-        id: determine_tag_name
-        shell: bash # Or it won't work on Windows
-        run: |
-          if [ -n "${{ github.event.release.tag_name }}" ]; then
-            echo "tag_name=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
-          else
-            echo "tag_name=${{ github.event.inputs.existing_tag }}" >> $GITHUB_OUTPUT
-          fi
-
       - name: Rename Release
         run: |
           mkdir -p assets
-          FILENAME=topgrade-${{steps.determine_tag_name.outputs.tag_name}}-${{matrix.target}}
+          FILENAME=topgrade-${{ github.event.client_payload.tag }}-${{matrix.target}}
           mv target/${{matrix.target}}/release/topgrade assets
           cd assets
           tar --format=ustar -czf $FILENAME.tar.gz topgrade
@@ -289,13 +253,25 @@ jobs:
         shell: bash
 
 
-      - name: Release
-        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090 # v2.4.1
-        with:
-          tag_name: ${{ steps.determine_tag_name.outputs.tag_name }}
-          files: assets/*
+      - name: Upload assets
+        run:
+          gh release upload "${{ github.event.client_payload.tag }}" assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate artifact attestations
         uses: actions/attest-build-provenance@v3.0.0
         with:
           subject-path: assets/*
+
+  triggers:
+    runs-on: ubuntu-latest
+    needs: [ native_build, cross_build ]
+    steps:
+      - name: Trigger workflows
+        run: |
+          gh api repos/${{ github.repository }}/dispatches \
+            -f "event_type=release-assets-built" \
+            -F "client_payload[tag]=${{ github.event.client_payload.tag }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
