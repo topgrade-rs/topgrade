@@ -13,13 +13,6 @@ edition = "2021"
 
 readme = "README.md"
 
-[[bin]]
-name = "topgrade"
-path = "src/main.rs"
-
-##[lib]
-##name = "topgrade_lib"
-
 [dependencies]
 home = "~0.5"
 etcetera = "~0.8"
