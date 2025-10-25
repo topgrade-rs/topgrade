@@ -115,7 +115,7 @@ pub fn run_git_pull(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Git repositories"));
 
-    repos.pull_repos(ctx)
+    repos.pull_or_fetch_repos(ctx)
 }
 
 #[cfg(windows)]
@@ -298,41 +298,61 @@ impl RepoStep {
         debug_assert!(_removed);
     }
 
-    /// Try to pull a repo.
-    async fn pull_repo<P: AsRef<Path>>(&self, ctx: &ExecutionContext<'_>, repo: P) -> Result<()> {
+    /// Try to pull a repo, or fetch it if `fetch_only` is enabled.
+    async fn pull_or_fetch_repo<P: AsRef<Path>>(&self, ctx: &ExecutionContext<'_>, repo: P) -> Result<()> {
         let before_revision = get_head_revision(&self.git, &repo);
-
-        if ctx.config().verbose() {
-            println!("{} {}", style(t!("Pulling")).cyan().bold(), repo.as_ref().display());
-        }
+        let is_fetch_only = ctx.config().git_fetch_only();
 
         let mut command = AsyncCommand::new(&self.git);
 
-        command
-            .stdin(Stdio::null())
-            .current_dir(&repo)
-            .args(["pull", "--ff-only"]);
+        if is_fetch_only {
+            if ctx.config().verbose() {
+                println!("{} {}", style(t!("Fetching")).cyan().bold(), repo.as_ref().display());
+            }
+
+            command.stdin(Stdio::null()).current_dir(&repo).args(["fetch"]);
+        } else {
+            if ctx.config().verbose() {
+                println!("{} {}", style(t!("Pulling")).cyan().bold(), repo.as_ref().display());
+            }
+
+            command
+                .stdin(Stdio::null())
+                .current_dir(&repo)
+                .args(["pull", "--ff-only"]);
+        }
 
         if let Some(extra_arguments) = ctx.config().git_arguments() {
             command.args(extra_arguments.split_whitespace());
         }
 
-        let pull_output = command.output().await?;
-        let submodule_output = AsyncCommand::new(&self.git)
-            .args(["submodule", "update", "--recursive"])
-            .current_dir(&repo)
-            .stdin(Stdio::null())
-            .output()
-            .await?;
-        let result = output_checked_utf8(pull_output)
-            .and_then(|()| output_checked_utf8(submodule_output))
-            .wrap_err_with(|| format!("Failed to pull {}", repo.as_ref().display()));
+        let pull_or_fetch_output = command.output().await?;
+
+        let result = if is_fetch_only {
+            output_checked_utf8(pull_or_fetch_output)
+        } else {
+            let submodule_output = AsyncCommand::new(&self.git)
+                .args(["submodule", "update", "--recursive"])
+                .current_dir(&repo)
+                .stdin(Stdio::null())
+                .output()
+                .await?;
+
+            output_checked_utf8(pull_or_fetch_output).and_then(|()| output_checked_utf8(submodule_output))
+        }
+        .wrap_err_with(|| {
+            format!(
+                "Failed to {} {}",
+                if is_fetch_only { "fetch" } else { "pull" },
+                repo.as_ref().display()
+            )
+        });
 
         if result.is_err() {
             println!(
                 "{} {} {}",
                 style(t!("Failed")).red().bold(),
-                t!("pulling"),
+                if is_fetch_only { t!("fetching") } else { t!("pulling") },
                 repo.as_ref().display()
             );
         } else {
@@ -366,16 +386,25 @@ impl RepoStep {
         result
     }
 
-    /// Pull the repositories specified in `self.repos`.
+    /// Pulls or fetches the repositories specified in `self.repos`, depending on `fetch_only`.
     ///
     /// # NOTE
     /// This function will create an async runtime and do the real job so the
     /// function itself is not async.
-    fn pull_repos(&self, ctx: &ExecutionContext) -> Result<()> {
+    fn pull_or_fetch_repos(&self, ctx: &ExecutionContext) -> Result<()> {
+        let is_fetch_only = ctx.config().git_fetch_only();
+
         if ctx.run_type().dry() {
-            self.repos
-                .iter()
-                .for_each(|repo| println!("{}", t!("Would pull {repo}", repo = repo.display())));
+            self.repos.iter().for_each(|repo| {
+                println!(
+                    "{}",
+                    t!(
+                        "Would {action} {repo}",
+                        action = if is_fetch_only { "fetch" } else { "pull" },
+                        repo = repo.display()
+                    )
+                )
+            });
 
             return Ok(());
         }
@@ -403,7 +432,7 @@ impl RepoStep {
                 }
                 _ => true, // repo has remotes or command to check for remotes has failed. proceed to pull anyway.
             })
-            .map(|repo| self.pull_repo(ctx, repo));
+            .map(|repo| self.pull_or_fetch_repo(ctx, repo));
 
         let stream_of_futures = if let Some(limit) = ctx.config().git_concurrency_limit() {
             iter(futures_iterator).buffer_unordered(limit).boxed()
