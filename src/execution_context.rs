@@ -1,10 +1,14 @@
 #![allow(dead_code)]
-use color_eyre::eyre::Result;
-use rust_i18n::t;
 use std::env::var;
 use std::ffi::OsStr;
 use std::process::Command;
 use std::sync::{LazyLock, Mutex};
+
+use clap::ValueEnum;
+use color_eyre::eyre::Result;
+use rust_i18n::t;
+use serde::Deserialize;
+use strum::EnumString;
 
 use crate::config::Config;
 use crate::error::MissingSudo;
@@ -16,30 +20,26 @@ use crate::sudo::Sudo;
 use crate::utils::require_option;
 
 /// An enum telling whether Topgrade should perform dry runs or actually perform the steps.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Deserialize, Default, EnumString, ValueEnum)]
 pub enum RunType {
     /// Executing commands will just print the command with its argument.
     Dry,
 
     /// Executing commands will perform actual execution.
+    #[default]
     Wet,
+
+    /// Executing commands will print the command and perform actual execution.
+    Damp,
 }
 
 impl RunType {
-    /// Create a new instance from a boolean telling whether to dry run.
-    pub fn new(dry_run: bool) -> Self {
-        if dry_run {
-            RunType::Dry
-        } else {
-            RunType::Wet
-        }
-    }
-
     /// Tells whether we're performing a dry run.
     pub fn dry(self) -> bool {
         match self {
             RunType::Dry => true,
             RunType::Wet => false,
+            RunType::Damp => false,
         }
     }
 }
@@ -84,6 +84,7 @@ impl<'a> ExecutionContext<'a> {
         match self.run_type {
             RunType::Dry => Executor::Dry(DryCommand::new(program)),
             RunType::Wet => Executor::Wet(Command::new(program)),
+            RunType::Damp => Executor::Damp(Command::new(program)),
         }
     }
 
