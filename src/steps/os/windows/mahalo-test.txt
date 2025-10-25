@@ -1,0 +1,27 @@
+#
+# Snappy Driver Installer Origin
+#
+# Title: The Mahalo Test
+# Author: Glenn Delahoy
+# Description: Updates to the latest application, indexes and driver packs.
+# Notes:
+#
+
+echo ==============================
+echo Snappy Driver Installer Origin
+echo       The Mahalo Test
+echo ==============================
+echo
+
+echo Initialising...
+verbose 8580
+debug on
+init
+echo Getting the latest of everything...
+activetorrent 1
+checkupdates
+get everything
+activetorrent 2
+checkupdates
+get everything
+end
