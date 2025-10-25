@@ -20,6 +20,7 @@ use crate::utils::hostname;
 #[strum(serialize_all = "snake_case")]
 pub enum Step {
     AM,
+    Adless,
     AndroidStudio,
     AppMan,
     Aqua,
@@ -181,6 +182,7 @@ impl Step {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "am", || linux::run_am(ctx))?
             }
+            Adless => runner.execute(*self, "adless", || adless::run_adless(ctx))?,
             AndroidStudio => runner.execute(*self, "Android Studio Plugins", || generic::run_android_studio(ctx))?,
             AppMan =>
             {
@@ -759,6 +761,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Shell,
         Tmux,
         Pearl,
+        Adless,
         #[cfg(not(any(target_os = "macos", target_os = "android")))]
         GnomeShellExtensions,
         Pyenv,
