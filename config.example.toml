@@ -224,19 +224,19 @@
 
 
 [git]
-# How many repos to pull at max in parallel
+# How many repos to pull or fetch at max in parallel
 # max_concurrency = 5
 
-# Additional git repositories to pull
+# Additional git repositories to pull or fetch
 # repos = [
 #     "~/src/*/",
 #     "~/.config/something"
 # ]
 
-# Don't pull the predefined git repos
+# Don't pull/fetch the predefined git repos
 # pull_predefined = false
 
-# Arguments to pass Git when pulling Repositories
+# Arguments to pass Git when pulling/fetching Repositories
 # arguments = "--rebase --autostash"
 
 # Whether to perform a `git fetch` instead of `git pull`
