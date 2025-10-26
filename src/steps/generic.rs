@@ -1743,3 +1743,11 @@ pub fn run_yazi(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(ya).args(["pkg", "upgrade"]).status_checked()
 }
+
+pub fn run_typst(ctx: &ExecutionContext) -> Result<()> {
+    let typst = require("typst")?;
+
+    print_separator("Typst");
+
+    ctx.execute(typst).args(["update"]).status_checked()
+}
