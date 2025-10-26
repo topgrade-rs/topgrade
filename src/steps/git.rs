@@ -326,7 +326,7 @@ impl RepoStep {
             command.args(extra_arguments.split_whitespace());
         }
 
-        let pull_or_fetch_output = command.output().await?;
+        let output = command.output().await?;
 
         let result = if is_fetch_only {
             output_checked_utf8(pull_or_fetch_output)
