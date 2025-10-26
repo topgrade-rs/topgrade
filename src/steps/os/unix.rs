@@ -814,13 +814,6 @@ pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
     cmd.status_checked()
 }
 
-pub fn run_tldr(ctx: &ExecutionContext) -> Result<()> {
-    let tldr = require("tldr")?;
-
-    print_separator("TLDR");
-    ctx.execute(tldr).arg("--update").status_checked()
-}
-
 pub fn run_pearl(ctx: &ExecutionContext) -> Result<()> {
     let pearl = require("pearl")?;
     print_separator("pearl");
