@@ -149,6 +149,7 @@ pub enum Step {
     Tlmgr,
     Tmux,
     Toolbx,
+    Typst,
     Uv,
     Vagrant,
     Vcpkg,
@@ -615,6 +616,7 @@ impl Step {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "toolbx", || toolbx::run_toolbx(ctx))?
             }
+            Typst => runner.execute(*self, "Typst", || generic::run_typst(ctx))?,
             Uv => runner.execute(*self, "uv", || generic::run_uv(ctx))?,
             Vagrant => {
                 if ctx.config().should_run(Vagrant) {
@@ -877,6 +879,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Powershell,
         CustomCommands,
         Vagrant,
+        Typst,
     ]);
 
     steps.shrink_to_fit();
