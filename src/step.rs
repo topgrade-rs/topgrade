@@ -318,7 +318,7 @@ impl Step {
             Gcloud => runner.execute(*self, "gcloud", || generic::run_gcloud_components_update(ctx))?,
             Gem => runner.execute(*self, "gem", || generic::run_gem(ctx))?,
             Ghcup => runner.execute(*self, "ghcup", || generic::run_ghcup_update(ctx))?,
-            GitRepos => runner.execute(*self, "Git Repositories", || git::run_git_pull(ctx))?,
+            GitRepos => runner.execute(*self, "Git Repositories", || git::run_git_pull_or_fetch(ctx))?,
             GithubCliExtensions => runner.execute(*self, "GitHub CLI Extensions", || {
                 generic::run_ghcli_extensions_upgrade(ctx)
             })?,

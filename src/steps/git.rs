@@ -28,7 +28,7 @@ use crate::XDG_DIRS;
 #[cfg(windows)]
 use crate::WINDOWS_DIRS;
 
-pub fn run_git_pull(ctx: &ExecutionContext) -> Result<()> {
+pub fn run_git_pull_or_fetch(ctx: &ExecutionContext) -> Result<()> {
     let mut repos = RepoStep::try_new()?;
     let config = ctx.config();
 
@@ -329,7 +329,7 @@ impl RepoStep {
         let output = command.output().await?;
 
         let result = if is_fetch_only {
-            output_checked_utf8(pull_or_fetch_output)
+            output_checked_utf8(output)
         } else {
             let submodule_output = AsyncCommand::new(&self.git)
                 .args(["submodule", "update", "--recursive"])
@@ -338,7 +338,7 @@ impl RepoStep {
                 .output()
                 .await?;
 
-            output_checked_utf8(pull_or_fetch_output).and_then(|()| output_checked_utf8(submodule_output))
+            output_checked_utf8(output).and_then(|()| output_checked_utf8(submodule_output))
         }
         .wrap_err_with(|| {
             format!(
@@ -396,14 +396,12 @@ impl RepoStep {
 
         if ctx.run_type().dry() {
             self.repos.iter().for_each(|repo| {
-                println!(
-                    "{}",
-                    t!(
-                        "Would {action} {repo}",
-                        action = if is_fetch_only { "fetch" } else { "pull" },
-                        repo = repo.display()
-                    )
-                )
+                let message = if is_fetch_only {
+                    t!("Would fetch {repo}", repo = repo.display())
+                } else {
+                    t!("Would pull {repo}", repo = repo.display())
+                };
+                println!("{}", message);
             });
 
             return Ok(());
