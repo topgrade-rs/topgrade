@@ -447,9 +447,7 @@ impl NixVersion {
             return Err(eyre!("`nix --version` output was empty"));
         }
 
-        Ok(Self {
-            version_string
-        })
+        Ok(Self { version_string })
     }
 
     fn version(&self) -> Result<Version> {
