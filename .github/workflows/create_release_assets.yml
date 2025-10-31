@@ -50,6 +50,29 @@ jobs:
       - name: Run tests
         run: cargo test
 
+      # Used `https://github.com/BurntSushi/ripgrep/blob/master/.github/workflows/release.yml`
+      # as a reference.
+      - name: Build debug binary to create release assets
+        shell: bash
+        run: |
+          cargo build --all-features
+          bin="target/debug/topgrade"
+          echo "BIN=$bin" >> $GITHUB_ENV
+
+      - name: Create deployment directory
+        shell: bash
+        run: |
+          dir=deployment/deb
+          mkdir -p "$dir"
+          echo "DEPLOY_DIR=$dir" >> $GITHUB_ENV
+
+      - name: Generate shell completions
+        shell: bash
+        run: |
+          "$BIN" --gen-completion bash > "$DEPLOY_DIR/topgrade.bash"
+          "$BIN" --gen-completion fish > "$DEPLOY_DIR/topgrade.fish"
+          "$BIN" --gen-completion zsh > "$DEPLOY_DIR/_topgrade"
+
       - name: Build in Release profile with all features enabled
         run: cargo build --release --all-features
 
@@ -156,7 +179,7 @@ jobs:
         run: rustup target add ${{ matrix.target }}
 
       - name: install cross
-        uses: taiki-e/install-action@e7ef886cf8f69c25ecef6bbc2858a42e273496ec # v2.62.28
+        uses: taiki-e/install-action@c5b1b6f479c32f356cc6f4ba672a47f63853b13b # v2.62.38
         with:
           tool: cross@0.2.5
 
@@ -171,6 +194,32 @@ jobs:
 
       - name: Run tests
         run: cross test --target ${{matrix.target}}
+
+      # Used `https://github.com/BurntSushi/ripgrep/blob/master/.github/workflows/release.yml`
+      # as a reference.
+      - name: Build debug binary to create release assets
+        shell: bash
+        run: |
+          # This build is not using the target arch since this binary is only needed in CI. It needs
+          # to be the compiled for the runner since it has the run the binary to generate completion
+          # scripts.
+          cargo build --all-features
+          bin="target/debug/topgrade"
+          echo "BIN=$bin" >> $GITHUB_ENV
+
+      - name: Create deployment directory
+        shell: bash
+        run: |
+          dir=deployment/deb
+          mkdir -p "$dir"
+          echo "DEPLOY_DIR=$dir" >> $GITHUB_ENV
+
+      - name: Generate shell completions
+        shell: bash
+        run: |
+          "$BIN" --gen-completion bash > "$DEPLOY_DIR/topgrade.bash"
+          "$BIN" --gen-completion fish > "$DEPLOY_DIR/topgrade.fish"
+          "$BIN" --gen-completion zsh > "$DEPLOY_DIR/_topgrade"
 
       - name: Build in Release profile with all features enabled
         run: cross build --release --all-features --target ${{matrix.target}}

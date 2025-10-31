@@ -814,13 +814,6 @@ pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
     cmd.status_checked()
 }
 
-pub fn run_tldr(ctx: &ExecutionContext) -> Result<()> {
-    let tldr = require("tldr")?;
-
-    print_separator("TLDR");
-    ctx.execute(tldr).arg("--update").status_checked()
-}
-
 pub fn run_pearl(ctx: &ExecutionContext) -> Result<()> {
     let pearl = require("pearl")?;
     print_separator("pearl");
@@ -932,6 +925,14 @@ pub fn run_maza(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("maza");
     ctx.execute(maza).arg("update").status_checked()
+}
+
+pub fn run_atuin(ctx: &ExecutionContext) -> Result<()> {
+    let atuin = require("atuin-update")?;
+
+    print_separator("atuin");
+
+    ctx.execute(atuin).status_checked()
 }
 
 pub fn reboot(ctx: &ExecutionContext) -> Result<()> {

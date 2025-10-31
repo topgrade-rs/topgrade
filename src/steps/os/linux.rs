@@ -582,7 +582,14 @@ pub fn run_deb_get(ctx: &ExecutionContext) -> Result<()> {
     print_separator("deb-get");
 
     ctx.execute(&deb_get).arg("update").status_checked()?;
-    ctx.execute(&deb_get).arg("upgrade").status_checked()?;
+    ctx.execute(&deb_get)
+        .arg("upgrade")
+        // Since the `apt` step already updates all other apt packages, don't check for updates
+        //  to all packages here. This does suboptimally check for updates for deb-get packages
+        //  that apt can update (that were installed via a repository), but that is only a few,
+        //  and there's nothing we can do about that.
+        .arg("--dg-only")
+        .status_checked()?;
 
     if ctx.config().cleanup() {
         let output = ctx.execute(&deb_get).arg("clean").output_checked()?;

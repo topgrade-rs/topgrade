@@ -25,6 +25,7 @@ pub enum Step {
     Aqua,
     Asdf,
     Atom,
+    Atuin,
     Audit,
     AutoCpufreq,
     Bin,
@@ -148,6 +149,7 @@ pub enum Step {
     Tlmgr,
     Tmux,
     Toolbx,
+    Typst,
     Uv,
     Vagrant,
     Vcpkg,
@@ -201,6 +203,11 @@ impl Step {
                     target_os = "dragonfly"
                 )))]
                 runner.execute(*self, "apm", || generic::run_apm(ctx))?
+            }
+            Atuin =>
+            {
+                #[cfg(unix)]
+                runner.execute(*self, "atuin", || unix::run_atuin(ctx))?
             }
             Audit => {
                 #[cfg(target_os = "dragonfly")]
@@ -597,11 +604,7 @@ impl Step {
                 #[cfg(target_os = "openbsd")]
                 runner.execute(*self, "OpenBSD Upgrade", || openbsd::upgrade_openbsd(ctx))?
             }
-            Tldr =>
-            {
-                #[cfg(unix)]
-                runner.execute(*self, "TLDR", || unix::run_tldr(ctx))?
-            }
+            Tldr => runner.execute(*self, "TLDR", || generic::run_tldr(ctx))?,
             Tlmgr => runner.execute(*self, "tlmgr", || generic::run_tlmgr_update(ctx))?,
             Tmux =>
             {
@@ -613,6 +616,7 @@ impl Step {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "toolbx", || toolbx::run_toolbx(ctx))?
             }
+            Typst => runner.execute(*self, "Typst", || generic::run_typst(ctx))?,
             Uv => runner.execute(*self, "uv", || generic::run_uv(ctx))?,
             Vagrant => {
                 if ctx.config().should_run(Vagrant) {
@@ -756,7 +760,6 @@ pub(crate) fn default_steps() -> Vec<Step> {
         BunPackages,
         Shell,
         Tmux,
-        Tldr,
         Pearl,
         #[cfg(not(any(target_os = "macos", target_os = "android")))]
         GnomeShellExtensions,
@@ -764,6 +767,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Sdkman,
         Rcm,
         Maza,
+        Atuin,
     ]);
 
     #[cfg(not(any(
@@ -805,6 +809,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Pipupgrade,
         Ghcup,
         Stack,
+        Tldr,
         Tlmgr,
         Myrepos,
         Chezmoi,
@@ -874,6 +879,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Powershell,
         CustomCommands,
         Vagrant,
+        Typst,
     ]);
 
     steps.shrink_to_fit();

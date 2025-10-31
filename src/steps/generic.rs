@@ -858,6 +858,14 @@ pub fn run_ghcup_update(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(ghcup).arg("upgrade").status_checked()
 }
 
+pub fn run_tldr(ctx: &ExecutionContext) -> Result<()> {
+    let tldr = require("tldr")?;
+
+    print_separator("TLDR");
+
+    ctx.execute(tldr).arg("--update").status_checked()
+}
+
 pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
     cfg_if::cfg_if! {
         if #[cfg(any(target_os = "linux", target_os = "android"))] {
@@ -1243,7 +1251,34 @@ pub fn run_certbot(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_freshclam(ctx: &ExecutionContext) -> Result<()> {
     let freshclam = require("freshclam")?;
     print_separator(t!("Update ClamAV Database(FreshClam)"));
-    ctx.execute(freshclam).status_checked()
+
+    let output = ctx.execute(&freshclam).output()?;
+    let output = match output {
+        ExecutorOutput::Wet(output) => output,
+        ExecutorOutput::Dry => return Ok(()), // In a dry run, just exit after running without sudo
+    };
+
+    // Check if running without sudo was successful
+    if output.status.success() {
+        // Success, so write the output and exit
+        std::io::stdout().lock().write_all(&output.stdout).unwrap();
+        std::io::stderr().lock().write_all(&output.stderr).unwrap();
+        return Ok(());
+    }
+
+    // Since running without sudo failed (hopefully due to permission errors), try running with sudo.
+    debug!("`freshclam` (without sudo) resulted in error: {:?}", output);
+    let sudo = ctx.require_sudo()?;
+
+    match sudo.execute(ctx, freshclam)?.status_checked() {
+        Ok(()) => Ok(()), // Success! The output of only the sudo'ed process is written.
+        Err(err) => {
+            // Error! We add onto the error the output of running without sudo for more information.
+            Err(err.wrap_err(format!(
+                "Running `freshclam` with sudo failed as well as running without sudo. Output without sudo: {output:?}"
+            )))
+        }
+    }
 }
 
 /// Involve `pio upgrade` to update PlatformIO core.
@@ -1742,4 +1777,12 @@ pub fn run_yazi(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Yazi packages");
 
     ctx.execute(ya).args(["pkg", "upgrade"]).status_checked()
+}
+
+pub fn run_typst(ctx: &ExecutionContext) -> Result<()> {
+    let typst = require("typst")?;
+
+    print_separator("Typst");
+
+    ctx.execute(typst).args(["update"]).status_checked()
 }
