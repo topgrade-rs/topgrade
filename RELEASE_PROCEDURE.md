@@ -1,4 +1,4 @@
-TODO: For major versions, we want to bypass release-plz and do this
+Non-major versions go via release-plz.
 
    1. bumps the version number.
 
