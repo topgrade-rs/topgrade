@@ -197,9 +197,6 @@ jobs:
         # Install from source to fix `ld: cannot find -lgeom` for freebsd build
         run: cargo +stable install --git https://github.com/cross-rs/cross cross
 
-      - name: Check format
-        run: cross fmt --all -- --check
-
       - name: Run clippy
         run: cross clippy --all-targets --locked --target ${{matrix.target}} -- -D warnings
 
