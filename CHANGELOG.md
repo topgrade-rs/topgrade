@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.1.2](https://github.com/topgrade-rs/topgrade/compare/v16.1.1...v16.1.2) - 2025-11-01
+
+### Fixed
+
+- *(release)* Fix cross-compilation for arm requiring glibc>=2.39 ([#1405](https://github.com/topgrade-rs/topgrade/pull/1405))
+- *(release)* Fix FreeBSD build ([#1404](https://github.com/topgrade-rs/topgrade/pull/1404))
+- *(release)* Fix FreeBSD build ([#1402](https://github.com/topgrade-rs/topgrade/pull/1402))
+- *(release)* Fix manual workflow trigger ([#1401](https://github.com/topgrade-rs/topgrade/pull/1401))
+- *(release)* Fix FreeBSD build and add manual workflow trigger ([#1399](https://github.com/topgrade-rs/topgrade/pull/1399))
+
+### Other
+
+- *(release)* Fix cross trying to fmt ([#1403](https://github.com/topgrade-rs/topgrade/pull/1403))
+
 ## [16.1.1](https://github.com/topgrade-rs/topgrade/compare/v16.1.0...v16.1.1) - 2025-11-01
 
 ### Fixed
