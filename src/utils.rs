@@ -169,6 +169,22 @@ pub fn hostname() -> Result<String> {
         .map(|output| output.stdout.trim().to_owned())
 }
 
+#[cfg(unix)]
+pub fn is_elevated() -> bool {
+    let euid = nix::unistd::Uid::effective();
+    debug!("Running with euid: {euid}");
+    euid.is_root()
+}
+
+#[cfg(windows)]
+pub fn is_elevated() -> bool {
+    let elevated = is_elevated::is_elevated();
+    if elevated {
+        debug!("Detected elevated process");
+    }
+    elevated
+}
+
 pub mod merge_strategies {
     use merge::Merge;
 

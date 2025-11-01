@@ -53,7 +53,7 @@ Execute the erroneous command directly to see if the problem persists
 - [ ] Yes
 - [ ] No
 
-If yes, does the issue still occur when you run topgrade directlly in your
+If yes, does the issue still occur when you run topgrade directly in your
 remote host
 
 - [ ] Yes

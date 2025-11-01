@@ -5,6 +5,7 @@ use jetbrains_toolbox_updater::{find_jetbrains_toolbox, update_jetbrains_toolbox
 use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
+use serde::Deserialize;
 use std::ffi::OsString;
 use std::iter::once;
 use std::path::PathBuf;
@@ -124,13 +125,11 @@ pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
         || gem_path_str.to_str().unwrap().contains(".rvm")
     {
         ctx.execute(gem).args(["update", "--system"]).status_checked()?;
-    } else {
+    } else if !Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
         let sudo = ctx.require_sudo()?;
-        if !Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
-            sudo.execute_opts(ctx, &gem, SudoExecuteOpts::new().preserve_env().set_home())?
-                .args(["update", "--system"])
-                .status_checked()?;
-        }
+        sudo.execute_opts(ctx, &gem, SudoExecuteOpts::new().preserve_env().set_home())?
+            .args(["update", "--system"])
+            .status_checked()?;
     }
 
     Ok(())
@@ -860,6 +859,14 @@ pub fn run_ghcup_update(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(ghcup).arg("upgrade").status_checked()
 }
 
+pub fn run_tldr(ctx: &ExecutionContext) -> Result<()> {
+    let tldr = require("tldr")?;
+
+    print_separator("TLDR");
+
+    ctx.execute(tldr).arg("--update").status_checked()
+}
+
 pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
     cfg_if::cfg_if! {
         if #[cfg(any(target_os = "linux", target_os = "android"))] {
@@ -1065,7 +1072,26 @@ pub fn run_powershell(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Powershell Modules Update"));
 
-    powershell.update_modules(ctx)
+    let mut cmd = "Update-Module".to_string();
+
+    if ctx.config().verbose() {
+        cmd.push_str(" -Verbose");
+    }
+    if ctx.config().yes(Step::Powershell) {
+        cmd.push_str(" -Force");
+    }
+
+    println!("{}", t!("Updating modules..."));
+
+    if powershell.is_pwsh() {
+        // For PowerShell Core, run Update-Module without sudo since it defaults to CurrentUser scope
+        // and Update-Module updates all modules regardless of their original installation scope
+        powershell.build_command(ctx, &cmd, false)?.status_checked()
+    } else {
+        // For (Windows) PowerShell, use sudo since it defaults to AllUsers scope
+        // and may need administrator privileges
+        powershell.build_command(ctx, &cmd, true)?.status_checked()
+    }
 }
 
 enum Hx {
@@ -1212,11 +1238,11 @@ pub fn run_bob(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_certbot(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = ctx.require_sudo()?;
     let certbot = require("certbot")?;
 
     print_separator("Certbot");
 
+    let sudo = ctx.require_sudo()?;
     sudo.execute(ctx, &certbot)?.arg("renew").status_checked()
 }
 
@@ -1226,7 +1252,34 @@ pub fn run_certbot(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_freshclam(ctx: &ExecutionContext) -> Result<()> {
     let freshclam = require("freshclam")?;
     print_separator(t!("Update ClamAV Database(FreshClam)"));
-    ctx.execute(freshclam).status_checked()
+
+    let output = ctx.execute(&freshclam).output()?;
+    let output = match output {
+        ExecutorOutput::Wet(output) => output,
+        ExecutorOutput::Dry => return Ok(()), // In a dry run, just exit after running without sudo
+    };
+
+    // Check if running without sudo was successful
+    if output.status.success() {
+        // Success, so write the output and exit
+        std::io::stdout().lock().write_all(&output.stdout).unwrap();
+        std::io::stderr().lock().write_all(&output.stderr).unwrap();
+        return Ok(());
+    }
+
+    // Since running without sudo failed (hopefully due to permission errors), try running with sudo.
+    debug!("`freshclam` (without sudo) resulted in error: {:?}", output);
+    let sudo = ctx.require_sudo()?;
+
+    match sudo.execute(ctx, freshclam)?.status_checked() {
+        Ok(()) => Ok(()), // Success! The output of only the sudo'ed process is written.
+        Err(err) => {
+            // Error! We add onto the error the output of running without sudo for more information.
+            Err(err.wrap_err(format!(
+                "Running `freshclam` with sudo failed as well as running without sudo. Output without sudo: {output:?}"
+            )))
+        }
+    }
 }
 
 /// Involve `pio upgrade` to update PlatformIO core.
@@ -1253,19 +1306,19 @@ pub fn run_platform_io(ctx: &ExecutionContext) -> Result<()> {
 ///
 /// `sudo` will be used if `use_sudo` configuration entry is set to true.
 pub fn run_lensfun_update_data(ctx: &ExecutionContext) -> Result<()> {
-    const SEPARATOR: &str = "Lensfun's database update";
-    let lensfun_update_data = require("lensfun-update-data")?;
     const EXIT_CODE_WHEN_NO_UPDATE: i32 = 1;
+
+    let lensfun_update_data = require("lensfun-update-data")?;
+
+    print_separator("Lensfun's database update");
 
     if ctx.config().lensfun_use_sudo() {
         let sudo = ctx.require_sudo()?;
-        print_separator(SEPARATOR);
         sudo.execute(ctx, &lensfun_update_data)?
             // `lensfun-update-data` returns 1 when there is no update available
             // which should be considered success
             .status_checked_with_codes(&[EXIT_CODE_WHEN_NO_UPDATE])
     } else {
-        print_separator(SEPARATOR);
         ctx.execute(lensfun_update_data)
             .status_checked_with_codes(&[EXIT_CODE_WHEN_NO_UPDATE])
     }
@@ -1725,4 +1778,43 @@ pub fn run_yazi(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Yazi packages");
 
     ctx.execute(ya).args(["pkg", "upgrade"]).status_checked()
+}
+
+#[derive(Deserialize)]
+struct TypstInfo {
+    build: TypstBuild,
+}
+
+#[derive(Deserialize)]
+struct TypstBuild {
+    settings: TypstSettings,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+struct TypstSettings {
+    self_update: bool,
+}
+
+pub fn run_typst(ctx: &ExecutionContext) -> Result<()> {
+    let typst = require("typst")?;
+
+    let raw_info = ctx
+        .execute(&typst)
+        .args(["info", "-f", "json"])
+        .output_checked_utf8()?
+        .stdout;
+    let info: TypstInfo = serde_json::from_str(&raw_info).wrap_err_with(|| {
+        output_changed_message!(
+            "typst info -f json",
+            "json output invalid or does not contain .build.settings.self-update"
+        )
+    })?;
+    if !info.build.settings.self_update {
+        return Err(SkipStep("This build of typst does not have self-update enabled".to_string()).into());
+    }
+
+    print_separator("Typst");
+
+    ctx.execute(typst).args(["update"]).status_checked()
 }
