@@ -106,8 +106,9 @@ pub fn run_gem(ctx: &ExecutionContext) -> Result<()> {
     command.arg("update");
 
     if env::var_os("RBENV_SHELL").is_none() {
-        debug!("Detected rbenv. Avoiding --user-install");
         command.arg("--user-install");
+    } else {
+        debug!("Detected rbenv. Avoiding --user-install");
     }
 
     command.status_checked()
