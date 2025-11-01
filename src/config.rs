@@ -295,6 +295,8 @@ pub struct Vim {
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Misc {
+    allow_root: Option<bool>,
+
     pre_sudo: Option<bool>,
 
     sudo_command: Option<SudoKind>,
@@ -697,6 +699,10 @@ pub struct CommandLineArgs {
     #[arg(short = 't', long = "tmux")]
     run_in_tmux: bool,
 
+    /// Don't run inside tmux
+    #[arg(long = "no-tmux")]
+    no_tmux: bool,
+
     /// Cleanup temporary or old files
     #[arg(short = 'c', long = "cleanup")]
     cleanup: bool,
@@ -762,6 +768,10 @@ pub struct CommandLineArgs {
     /// Show the reason for skipped steps
     #[arg(long = "show-skipped")]
     show_skipped: bool,
+
+    /// Suppress warning and confirmation prompt if running as root
+    #[arg(long = "allow-root")]
+    allow_root: bool,
 
     /// Tracing filter directives.
     ///
@@ -961,13 +971,14 @@ impl Config {
 
     /// Tell whether we should run in tmux.
     pub fn run_in_tmux(&self) -> bool {
-        self.opt.run_in_tmux
-            || self
-                .config_file
-                .misc
-                .as_ref()
-                .and_then(|misc| misc.run_in_tmux)
-                .unwrap_or(false)
+        !self.opt.no_tmux
+            && (self.opt.run_in_tmux
+                || self
+                    .config_file
+                    .misc
+                    .as_ref()
+                    .and_then(|misc| misc.run_in_tmux)
+                    .unwrap_or(false))
     }
 
     /// The preferred way to run the new tmux session.
@@ -1528,6 +1539,16 @@ impl Config {
             .as_ref()
             .and_then(|windows| windows.winget_silent_install)
             .unwrap_or(true)
+    }
+
+    pub fn allow_root(&self) -> bool {
+        self.opt.allow_root
+            || self
+                .config_file
+                .misc
+                .as_ref()
+                .and_then(|misc| misc.allow_root)
+                .unwrap_or(false)
     }
 
     pub fn sudo_command(&self) -> Option<SudoKind> {

@@ -1,8 +1,8 @@
 name: Publish to WinGet
+
 on:
-  release:
-    types: [released]
-  workflow_dispatch:
+  repository_dispatch:
+    types: [ release-created ]
 
 permissions:
   contents: read
@@ -13,6 +13,7 @@ jobs:
     steps:
       - uses: vedantmgoyal2009/winget-releaser@19e706d4c9121098010096f9c495a70a7518b30f # main
         with:
+          release-tag: ${{ github.event.client_payload.tag }}
           identifier: topgrade-rs.topgrade
           max-versions-to-keep: 5 # keep only latest 5 versions
           token: ${{ secrets.WINGET_TOKEN }}
