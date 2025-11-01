@@ -23,7 +23,7 @@ jobs:
         # Use the Ubuntu 22.04 image to link with a low version of glibc
         #
         # https://github.com/topgrade-rs/topgrade/issues/1095
-        platform: [ ubuntu-22.04, macos-latest, macos-13, windows-latest ]
+        platform: [ ubuntu-22.04, macos-latest, macos-15-intel, windows-latest ]
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v5.0.0
