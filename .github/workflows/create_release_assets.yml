@@ -5,14 +5,9 @@ on:
     types: [ release-created ]
   workflow_dispatch:
     inputs:
-      platform:
-        description: "Run only this native platform (leave empty for all)"
-        required: false
-        default: ""
-      target:
-        description: "Run only this cross target (leave empty for all)"
-        required: false
-        default: ""
+      bsdonly:
+        description: "Run only on freebsd (true/false)?"
+        required: true
       run_trigger:
         description: "Run the trigger job after builds?"
         required: false
@@ -41,8 +36,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
     if: >
       github.event_name == 'repository_dispatch' ||
-      github.event.inputs.platform == '' ||
-      github.event.inputs.platform == matrix.platform
+      github.event.inputs.bsdonly == 'false'
     steps:
       - uses: actions/checkout@v5.0.0
 
@@ -172,8 +166,7 @@ jobs:
     runs-on: ubuntu-latest
     if: >
       github.event_name == 'repository_dispatch' ||
-      github.event.inputs.target == '' ||
-      github.event.inputs.target == matrix.target
+      github.event.inputs.bsdonly == 'true'
     steps:
       - uses: actions/checkout@v5.0.0
 
