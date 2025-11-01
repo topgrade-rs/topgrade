@@ -2,7 +2,7 @@ name: Update PyPi
 
 on:
   repository_dispatch:
-    types: [ release-created ]
+    types: [release-created]
 
 permissions:
   contents: read
@@ -84,10 +84,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [linux, windows, macos, sdist]
     permissions:
-      # Use to sign the release artifacts
+      # Use to sign the release artifacts (PyPI trusted publishing)
       id-token: write
-      # Used to upload release artifacts
-      contents: write
       # Used to generate artifact attestation
       attestations: write
     steps:
@@ -96,7 +94,7 @@ jobs:
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v3.0.0
         with:
-          subject-path: 'wheels-*/*'
+          subject-path: "wheels-*/*"
 
       - name: Publish to PyPI
         uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
