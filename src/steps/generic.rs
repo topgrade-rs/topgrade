@@ -602,11 +602,11 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
     let conda = require("conda")?;
 
     let output = Command::new(&conda)
-        .args(["config", "--show", "auto_activate_base"])
+        .args(["config", "--show", "auto_activate"])
         .output_checked_utf8()?;
     debug!("Conda output: {}", output.stdout);
     if output.stdout.contains("False") {
-        return Err(SkipStep("auto_activate_base is set to False".to_string()).into());
+        return Err(SkipStep("auto_activate is set to False".to_string()).into());
     }
 
     print_separator("Conda");
