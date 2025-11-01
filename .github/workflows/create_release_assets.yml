@@ -3,6 +3,20 @@ name: Publish release files for CD native and non-cd-native environments
 on:
   repository_dispatch:
     types: [ release-created ]
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Run only this native platform (leave empty for all)"
+        required: false
+        default: ""
+      target:
+        description: "Run only this cross target (leave empty for all)"
+        required: false
+        default: ""
+      run_trigger:
+        description: "Run the trigger job after builds?"
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -25,6 +39,10 @@ jobs:
         # https://github.com/topgrade-rs/topgrade/issues/1095
         platform: [ ubuntu-22.04, macos-latest, macos-15-intel, windows-latest ]
     runs-on: ${{ matrix.platform }}
+    if: >
+      github.event_name == 'repository_dispatch' ||
+      github.event.inputs.platform == '' ||
+      github.event.inputs.platform == matrix.platform
     steps:
       - uses: actions/checkout@v5.0.0
 
@@ -152,6 +170,10 @@ jobs:
             "x86_64-unknown-freebsd",
           ]
     runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'repository_dispatch' ||
+      github.event.inputs.target == '' ||
+      github.event.inputs.target == matrix.target
     steps:
       - uses: actions/checkout@v5.0.0
 
@@ -179,9 +201,8 @@ jobs:
         run: rustup target add ${{ matrix.target }}
 
       - name: install cross
-        uses: taiki-e/install-action@c5b1b6f479c32f356cc6f4ba672a47f63853b13b # v2.62.38
-        with:
-          tool: cross@0.2.5
+        # Install from source to fix `ld: cannot find -lgeom` for freebsd build
+        run: cargo install --git https://github.com/cross-rs/cross cross
 
       - name: Check format
         run: cross fmt --all -- --check
@@ -201,6 +222,7 @@ jobs:
         #   could not execute process `/target/x86_64-unknown-freebsd/debug/deps/topgrade-9b1670d87ca863dd` (never executed)
         # Caused by:
         #   No such file or directory (os error 2)
+        # TODO: I have not tested this in GHA yet, only locally
         if: ${{ matrix.target != 'x86_64-unknown-freebsd' }}
 
       # Used `https://github.com/BurntSushi/ripgrep/blob/master/.github/workflows/release.yml`
@@ -275,6 +297,7 @@ jobs:
   triggers:
     runs-on: ubuntu-latest
     needs: [ native_build, cross_build ]
+    if: ${{ github.event_name == 'repository_dispatch' && github.event.inputs.run_trigger == 'true' }}
     steps:
       - name: Trigger workflows
         run: |
