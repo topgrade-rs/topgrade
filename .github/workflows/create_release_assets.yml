@@ -2,11 +2,10 @@ name: Publish release files for CD native and non-cd-native environments
 
 on:
   repository_dispatch:
-    types: [ release-created ]
+    types: [release-created]
 
 permissions:
-  # Write permissions to call the repository dispatch
-  contents: write
+  contents: read
 
 jobs:
   # Publish release files for CD native environments
@@ -24,7 +23,7 @@ jobs:
         # Use the Ubuntu 22.04 image to link with a low version of glibc
         #
         # https://github.com/topgrade-rs/topgrade/issues/1095
-        platform: [ ubuntu-22.04, macos-latest, macos-15-intel, windows-latest ]
+        platform: [ubuntu-22.04, macos-latest, macos-15-intel, windows-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v5.0.0
@@ -122,8 +121,7 @@ jobs:
         shell: bash
 
       - name: Upload assets
-        run:
-          gh release upload "${{ github.event.client_payload.tag }}" assets/*
+        run: gh release upload "${{ github.event.client_payload.tag }}" assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -261,10 +259,8 @@ jobs:
         if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'armv7-unknown-linux-gnueabihf' }}
         shell: bash
 
-
       - name: Upload assets
-        run:
-          gh release upload "${{ github.event.client_payload.tag }}" assets/*
+        run: gh release upload "${{ github.event.client_payload.tag }}" assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -275,7 +271,7 @@ jobs:
 
   triggers:
     runs-on: ubuntu-latest
-    needs: [ native_build, cross_build ]
+    needs: [native_build, cross_build]
     steps:
       - name: Trigger workflows
         run: |

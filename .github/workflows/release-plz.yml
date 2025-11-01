@@ -5,8 +5,10 @@ on:
     branches:
       - main
 
-jobs:
+permissions:
+  contents: read
 
+jobs:
   # Release unpublished packages.
   release-plz-release:
     name: Release-plz release
@@ -14,7 +16,7 @@ jobs:
     environment: crates_io
     permissions:
       contents: write
-      id-token: write  # For trusted publishing
+      id-token: write # For trusted publishing
     steps:
       - &checkout
         name: Checkout repository
