@@ -2,7 +2,7 @@ name: Publish release files for CD native and non-cd-native environments
 
 on:
   repository_dispatch:
-    types: [ release-created ]
+    types: [release-created]
 
 permissions:
   # Write permissions to call the repository dispatch
@@ -24,10 +24,14 @@ jobs:
         # Use the Ubuntu 22.04 image to link with a low version of glibc
         #
         # https://github.com/topgrade-rs/topgrade/issues/1095
-        platform: [ ubuntu-22.04, macos-latest, macos-15-intel, windows-latest ]
+        platform: [ubuntu-22.04, macos-latest, macos-15-intel, windows-latest]
     runs-on: ${{ matrix.platform }}
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
 
       - name: Install needed components
         run: |
@@ -122,8 +126,7 @@ jobs:
         shell: bash
 
       - name: Upload assets
-        run:
-          gh release upload "${{ github.event.client_payload.tag }}" assets/*
+        run: gh release upload "${{ github.event.client_payload.tag }}" assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -156,8 +159,12 @@ jobs:
     # Even though this is cross-compiled, it links to the libc6-<arch>-cross installed on the host
     # (see the apt-get install calls below)
     runs-on: ubuntu-22.04
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
 
       - name: Install needed components
         run: |
@@ -261,10 +268,8 @@ jobs:
         if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'armv7-unknown-linux-gnueabihf' }}
         shell: bash
 
-
       - name: Upload assets
-        run:
-          gh release upload "${{ github.event.client_payload.tag }}" assets/*
+        run: gh release upload "${{ github.event.client_payload.tag }}" assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -275,7 +280,7 @@ jobs:
 
   triggers:
     runs-on: ubuntu-latest
-    needs: [ native_build, cross_build ]
+    needs: [native_build, cross_build]
     steps:
       - name: Trigger workflows
         run: |
