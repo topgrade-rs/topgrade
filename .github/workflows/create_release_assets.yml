@@ -201,7 +201,7 @@ jobs:
         #   could not execute process `/target/x86_64-unknown-freebsd/debug/deps/topgrade-9b1670d87ca863dd` (never executed)
         # Caused by:
         #   No such file or directory (os error 2)
-        if: ${{ matrix.target != "x86_64-unknown-freebsd" }}
+        if: ${{ matrix.target != 'x86_64-unknown-freebsd' }}
 
       # Used `https://github.com/BurntSushi/ripgrep/blob/master/.github/workflows/release.yml`
       # as a reference.
