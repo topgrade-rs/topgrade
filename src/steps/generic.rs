@@ -12,6 +12,7 @@ use std::process::Command;
 use std::sync::LazyLock;
 use std::{env, path::Path};
 use std::{fs, io::Write};
+use serde::Deserialize;
 use tempfile::tempfile_in;
 use tracing::{debug, error, warn};
 
@@ -1779,8 +1780,33 @@ pub fn run_yazi(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(ya).args(["pkg", "upgrade"]).status_checked()
 }
 
+#[derive(Deserialize)]
+struct TypstInfo {
+    build: TypstBuild,
+}
+
+#[derive(Deserialize)]
+struct TypstBuild {
+    settings: TypstSettings,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+struct TypstSettings {
+    self_update: bool,
+}
+
 pub fn run_typst(ctx: &ExecutionContext) -> Result<()> {
     let typst = require("typst")?;
+
+    let raw_info = ctx.execute(&typst).args(["info", "-f", "json"]).output_checked_utf8()?.stdout;
+    let info: TypstInfo = serde_json::from_str(&raw_info).wrap_err_with(|| output_changed_message!(
+        "typst info -f json",
+        "json output invalid or does not contain .build.settings.self-update"
+    ))?;
+    if !info.build.settings.self_update {
+        return Err(SkipStep("This build of typst does not have self-update enabled".to_string()).into());
+    }
 
     print_separator("Typst");
 

@@ -54,6 +54,7 @@ rust-i18n = "3.0.1"
 sys-locale = "0.3.1"
 jetbrains-toolbox-updater = "5.0.0"
 indexmap = { version = "2.9.0", features = ["serde"] }
+serde_json = "1.0.145"
 
 [package.metadata.generate-rpm]
 assets = [{ source = "target/release/topgrade", dest = "/usr/bin/topgrade" }]
