@@ -1,0 +1,137 @@
+Script Commands
+Each line of the script file is one command followed by any arguments, separated by spaces. There
+is no leading "-" or "/" sign. Any line beginning with "#" or ";" is a comment and is ignored. Any
+line   beginning   with   ":"   is   a   label   used   as   a   target   for   a   "goto"   command.   Arguments   given   in
+triangular brackets, "< >", are required and will give an error if missing. Arguments given in square
+brackets,   "[   ]",   are   optional   and   may   be   omitted.   Defaults   may   or   may   not   be   used   for   each
+command.
+init [reindex]
+Initialises the scripting engine, loads the indexes and drivers, builds any missing indexes and
+scans the current PC for devices. This should nearly always be done after setting directories
+and before anything else. It can also be used at any point in the script to reset the engine and
+allow   new   driver   packs   to   be   indexed   locally   or   a   change   of   path   configuration.   If   the
+optional "reindex" argument is given, all indexes are rebuilt.
+checkupdates
+Downloads the latest update torrent and reads it into memory. You must do this before other
+update commands. If you don't do this or it fails, all subsequent update commands will fail.
+If you're in an environment where you don't want the torrent client to activate then don't run
+checkupdates.
+get <app | indexes | driverpacks <all | missing | updates | selected> | 
+everything>
+Downloads updates. Specify *one* of the given file types:
+app
+Downloads the latest application, tools, languages, themes and all other files that are
+not drivers or indexes.
+indexes
+Downloads the latest online indexes.
+driverpacks <all | missing | updates | selected>
+Downloads driver packs. Specify one of the given arguments. 
+all = missing and updated driver packs
+missing = only missing driver packs
+updates = only updates for driver packs you already have
+selected = only the selected missing and updated driver packs
+everything
+Downloads the latest of everything: application, indexes and driver packs.
+For example: 
+get driverpacks updates
+select < [missing newer current older better worse] [drpfilters] >
+Select the drivers to be installed. The equivalent on the GUI is setting the expert filters and
+then clicking Select All. Specify one or more of the given arguments separated by a space.
+For example: 
+select missing newer better
+To further narrow your selection, you can specify one or more driver pack filters. These are
+specified by using the middle part (in between the underscores) of the driver pack zip file
+name.   So   for   example,   specify   "lan"   to   include   only   those   drivers   found   in   the
+"DP_LAN_xxxxx.7z"   driver  pack.   Other  examples  are:   chipset,   printer,   video,  wlan-wifi,
+wwan-4g.
+For example: 
+select missing lan
+This will select missing lan drivers. That is, a matching driver is both missing and in the lan
+driver pack.
+Select missing better lan wlan-wifi
+This will select missing or better drivers that exist in the lan or wlan-wifi driver packs.
+You can specify any combination   of   regular   filters   and   driver   pack   filters.   Anything   that
+doesn't   match   one   of   the   six   regular   filters   is   assumed   to   be   a   driver   pack   filter.   If   you
+specify a non existent regular filter or driver pack filter, nothing will be selected.  If you do
+not specify a regular filter but only a driver pack filter, nothing will be selected.
+install
+Install   the   selected   drivers.   If   drivers   are   not   found   locally   they   will   be   automatically
+downloaded if checkupdates previously completed successfully. You don't need to do a 'get'
+command, just the 'select' and 'install'.
+snapshot [filename]
+Saves a snapshot to disk. If the optional "filename" argument is specified, the snapshot is
+saved to that file. If the file name is not given, the snapshot is saved to the logs directory
+with a time stamp in the file name.
+loadsnapshot <filename>
+Loads the specified snapshot from disk. This must be placed immediately before the "init"
+command.  The  init  command  will   then  load  the   snapshot   instead  of  scanning   the  PC.  In
+theory you can do this many times in a script.
+unloadsnapshot
+Returns to "real" mode. This must be placed immediately before the "init" command. The
+init command will then perform a normal scan of the current PC.
+writedevicelist <filename>
+Saves the full list of devices and drivers to the given file name.
+restorepoint [description]
+Create a restore point using the specified description. If no description is given, a default
+description is used.
+logdir <directory>
+Sets the log directory to the given directory. Place this before the logging command.
+drpdir <directory>
+Sets the driver packs directory to the given directory. Place this before the init command.
+indexdir <directory>
+Sets the index directory to the given directory. Place this before the init command.
+extractdir <directory>
+Sets the temporary directory used for archive extraction. If it's not set, the default is "%temp
+%\SDIO\".  Place this before the init command.
+torrentport <port>
+Set the torrent listening port. The default is 50171.
+activetorrent <num>
+Set the active updates torrent. A value of 1 is the normal SDIO updates, a value of 2 is the
+driver packs updates.
+echo [any text]
+Displays the given text to the console.
+debug [on|off]
+Sets the console/log verbosity to debug. This is the same as LOG_VERBOSE_DEBUG.
+logging [on|off]
+Enables logging to file.
+verbose [verbositiness]
+Controls the console/log verbosity. See the Verbose chapter earlier for details.
+enableinstall [on|off]
+Controls whether restore points are actually created and drivers are actually installed. If "on"
+is specified, restore points are created and drivers are installed. If "off" is specified, all the
+actions right up to the point of driver installation and/or restore point creation are performed
+but   the  actual   installation/creation   is   skipped.   This  provides  a   way  to  test  things   without
+trashing your PC.
+reboot [ifneeded]
+Reboot the machine now. If the optional "ifneeded" argument is specified, reboot will be
+initiated   only   if   the   most   recent   install   command   has   indicated   a   reboot   is   required   to
+complete driver installation.
+runlatest [arguments]
+Run the latest version of SDIO. Do this after an application update to start using the latest
+version straight away. The executable architecture is preserved. In other words, if you are
+currently running the 32 bit version of SDIO then this command will run the latest 32 bit
+version.   If   you   are   currently   running   the   64   bit   version   then   it   will   run   the   latest   64   bit
+version. You should follow this command in the script with an "end" command to shut down
+the previous instance of SDIO.
+You can include arguments to be added to the SDIO command line. The following example
+will download the latest application, run the latest version with a script and terminate the
+current version (the new version will continue to run).
+get app
+runlatest -script:scripts\update-drivers.txt
+end
+pause
+Pause script execution until a key is pressed.
+cmd <command>
+Execute the given command in a command shell.
+onerror < end | goto <label> >
+Performs the specified action if the previous command resulted in an error.
+end
+Immediately ends execution of the script.
+goto
+Transfers   script   execution   to   the   line   following   the   specified   label.   The   label
+reference can contain the ":" prefix or not.
+goto <label>
+Transfers script execution to the line following the specified label. The label reference can
+contain the ":" prefix or not.
+end
+End script execution.

@@ -1,0 +1,29 @@
+#
+# Snappy Driver Installer Origin
+#
+# Title: The OaksLabs Test
+# Author: Glenn Delahoy
+# Description: Gets latest online indexes, downloads and installs required drivers.
+# Notes: Test mode by default. Set 'enableinstall on' to make it live.
+#
+
+echo ==============================
+echo Snappy Driver Installer Origin
+echo       The OaksLabs Test
+echo ==============================
+echo
+
+echo Initialising...
+verbose 384
+logging on
+enableinstall off
+init
+checkupdates
+echo Getting latest indexes...
+get indexes
+echo Creating restore point...
+restorepoint OaksLabs Driver Installation
+echo Downloading and Installing drivers...
+select missing better
+install
+end

@@ -1,0 +1,18 @@
+[misc]
+only = ["sdio"]
+show_skipped = true
+
+[windows]
+enable_sdio = true
+sdio_path = "E:\\topgrade\\tools\\fake_sdio\\SDIO_auto.bat"
+
+[windows.sdio]
+selection_filters = ["missing", "newer", "better", "lan"]
+driverpack_policy = "selected"
+prefetch_in_analysis = true
+fetch_indexes = true
+fetch_updates = true
+emit_echo = true
+keep_tempfiles = true
+restore_point = true
+restore_point_description = "Topgrade SDIO Driver Update (Test Stub)"
