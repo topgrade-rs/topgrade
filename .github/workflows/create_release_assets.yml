@@ -5,7 +5,8 @@ on:
     types: [ release-created ]
 
 permissions:
-  contents: read
+  # Write permissions to call the repository dispatch
+  contents: write
 
 jobs:
   # Publish release files for CD native environments
