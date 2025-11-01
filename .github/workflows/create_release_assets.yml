@@ -151,7 +151,10 @@ jobs:
             "aarch64-unknown-linux-musl",
             "x86_64-unknown-freebsd",
           ]
-    runs-on: ubuntu-latest
+    # Run this one on an older version as well, to limit glibc to 2.34 instead of 2.39.
+    # Even though this is cross-compiled, it links to the libc6-<arch>-cross installed on the host
+    # (see the apt-get install calls below)
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5.0.0
 
