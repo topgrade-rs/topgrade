@@ -5,6 +5,7 @@ use jetbrains_toolbox_updater::{find_jetbrains_toolbox, update_jetbrains_toolbox
 use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
+use serde::Deserialize;
 use std::ffi::OsString;
 use std::iter::once;
 use std::path::PathBuf;
@@ -12,7 +13,6 @@ use std::process::Command;
 use std::sync::LazyLock;
 use std::{env, path::Path};
 use std::{fs, io::Write};
-use serde::Deserialize;
 use tempfile::tempfile_in;
 use tracing::{debug, error, warn};
 
@@ -1799,11 +1799,17 @@ struct TypstSettings {
 pub fn run_typst(ctx: &ExecutionContext) -> Result<()> {
     let typst = require("typst")?;
 
-    let raw_info = ctx.execute(&typst).args(["info", "-f", "json"]).output_checked_utf8()?.stdout;
-    let info: TypstInfo = serde_json::from_str(&raw_info).wrap_err_with(|| output_changed_message!(
-        "typst info -f json",
-        "json output invalid or does not contain .build.settings.self-update"
-    ))?;
+    let raw_info = ctx
+        .execute(&typst)
+        .args(["info", "-f", "json"])
+        .output_checked_utf8()?
+        .stdout;
+    let info: TypstInfo = serde_json::from_str(&raw_info).wrap_err_with(|| {
+        output_changed_message!(
+            "typst info -f json",
+            "json output invalid or does not contain .build.settings.self-update"
+        )
+    })?;
     if !info.build.settings.self_update {
         return Err(SkipStep("This build of typst does not have self-update enabled".to_string()).into());
     }
