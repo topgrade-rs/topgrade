@@ -1,16 +1,16 @@
-<div align="center">
-  <h1>
-    <img alt="Topgrade" src="doc/topgrade_transparent.png" width="850px">
-  </h1>
+# Topgrade
 
-  <a href="https://github.com/topgrade-rs/topgrade/releases"><img alt="GitHub Release" src="https://img.shields.io/github/release/topgrade-rs/topgrade.svg"></a>
-  <a href="https://crates.io/crates/topgrade"><img alt="crates.io" src="https://img.shields.io/crates/v/topgrade.svg"></a>
-  <a href="https://aur.archlinux.org/packages/topgrade"><img alt="AUR" src="https://img.shields.io/aur/version/topgrade.svg"></a>
-  <a href="https://formulae.brew.sh/formula/topgrade"><img alt="Homebrew" src="https://img.shields.io/homebrew/v/topgrade.svg"></a>
+![Topgrade](doc/topgrade_transparent.png)
 
-  <img alt="Demo" src="doc/topgrade_demo.gif">
-</div>
+[![GitHub Release](https://img.shields.io/github/release/topgrade-rs/topgrade.svg)](https://github.com/topgrade-rs/topgrade/releases)
+[![crates.io](https://img.shields.io/crates/v/topgrade.svg)](https://crates.io/crates/topgrade)
+[![AUR](https://img.shields.io/aur/version/topgrade.svg)](https://aur.archlinux.org/packages/topgrade)
+[![Homebrew](https://img.shields.io/homebrew/v/topgrade.svg)](https://formulae.brew.sh/formula/topgrade)
 
+[![CI](https://github.com/topgrade-rs/topgrade/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/topgrade-rs/topgrade/actions/workflows/ci.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/topgrade-rs/topgrade/badge)](https://securityscorecards.dev/viewer/?uri=github.com/topgrade-rs/topgrade)
+
+![Demo](doc/topgrade_demo.gif)
 
 ## Introduction
 
@@ -40,6 +40,150 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 Other systems users can either use `cargo install` or the compiled binaries from the release page.
 The compiled binaries contain a self-upgrading feature.
 
+### Verify downloads
+
+We publish integrity and provenance data with each release:
+
+- `SHA256SUMS` and its Cosign signature (`SHA256SUMS.sig`) and certificate (`SHA256SUMS.crt`)
+- Per-file Cosign signatures: `<asset>.sig` and `<asset>.crt`
+- SBOM: `sbom.cdx.json` (CycloneDX)
+
+Quick verification:
+
+1. Verify checksums (Linux/macOS):
+
+   ```sh
+   sha256sum -c SHA256SUMS  # or: shasum -a 256 -c SHA256SUMS
+   ```
+
+   Windows (PowerShell):
+
+   ```powershell
+   Get-Content .\SHA256SUMS | ForEach-Object {
+     $parts = $_ -split "\s+"; $expected=$parts[0]; $file=$parts[-1]
+     $actual = (Get-FileHash -Algorithm SHA256 $file).Hash.ToLower()
+     if ($actual -eq $expected) { "OK `t $file" } else { "FAIL`t $file" }
+   }
+   ```
+
+2. Verify the signed checksum manifest (recommended):
+
+   ```sh
+   cosign verify-blob \
+     --signature SHA256SUMS.sig \
+     --certificate SHA256SUMS.crt \
+     SHA256SUMS
+   ```
+
+   For stricter checks:
+
+   ```sh
+   cosign verify-blob \
+     --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+     --certificate-identity-regexp 'https://github.com/topgrade-rs/topgrade/.+' \
+     --signature SHA256SUMS.sig \
+     --certificate SHA256SUMS.crt \
+     SHA256SUMS
+   ```
+
+3. Verify a single asset (optional):
+
+   ```sh
+   cosign verify-blob \
+     --signature topgrade-<tag>-<triple>.<ext>.sig \
+     --certificate topgrade-<tag>-<triple>.<ext>.crt \
+     topgrade-<tag>-<triple>.<ext>
+   ```
+
+See `RELEASE_PROCEDURE.md` for more details.
+
+#### Install Cosign
+
+- macOS (Homebrew):
+
+  ```sh
+  brew install cosign
+  ```
+
+- Windows (Scoop):
+
+  ```powershell
+  scoop install cosign
+  ```
+
+- Windows (Chocolatey):
+
+  ```powershell
+  choco install cosign
+  ```
+
+- Linux (distro packages):
+
+  - Debian/Ubuntu (22.04+):
+
+    ```sh
+    sudo apt-get update
+    sudo apt-get install -y cosign
+    ```
+
+  - Fedora/RHEL/CentOS Stream (9+):
+
+    ```sh
+    sudo dnf install -y cosign
+    ```
+
+  - Arch Linux:
+
+    ```sh
+    sudo pacman -S --needed cosign
+    ```
+
+  - openSUSE:
+
+    ```sh
+    sudo zypper install -y cosign
+    ```
+
+  - Alpine:
+
+    ```sh
+    sudo apk add cosign
+    ```
+
+  - Nix/NixOS:
+
+    ```sh
+    nix-env -iA nixpkgs.cosign
+    ```
+
+#### View the CycloneDX SBOM
+
+`sbom.cdx.json` is standard CycloneDX JSON. You can:
+
+- Quick look with jq (top-level components):
+
+  ```sh
+  jq '.components[] | {name, version, purl, licenses}' sbom.cdx.json
+  ```
+
+- Use CycloneDX CLI (pretty-print/validate):
+
+  ```sh
+  # macOS (Homebrew)
+  brew install cyclonedx/cyclonedx/cyclonedx-cli
+  cyclonedx validate --input-file sbom.cdx.json
+  cyclonedx view --input-file sbom.cdx.json
+  ```
+
+For more viewers and tooling, see the [CycloneDX Tool Center](https://cyclonedx.org/tool-center/).
+
+## Security & supply chain
+
+- OSV Scanner: [![OSV](https://github.com/topgrade-rs/topgrade/actions/workflows/osv-scan.yml/badge.svg?branch=main)](https://github.com/topgrade-rs/topgrade/actions/workflows/osv-scan.yml)
+- Trivy FS: [![Trivy FS](https://github.com/topgrade-rs/topgrade/actions/workflows/trivy-fs.yml/badge.svg?branch=main)](https://github.com/topgrade-rs/topgrade/actions/workflows/trivy-fs.yml)
+- DevSkim: [![DevSkim](https://github.com/topgrade-rs/topgrade/actions/workflows/check_security_vulnerability.yml/badge.svg?branch=main)](https://github.com/topgrade-rs/topgrade/actions/workflows/check_security_vulnerability.yml)
+- SBOM (Syft): [![SBOM](https://github.com/topgrade-rs/topgrade/actions/workflows/sbom.yml/badge.svg?branch=main)](https://github.com/topgrade-rs/topgrade/actions/workflows/sbom.yml)
+
 ## Usage
 
 Just run `topgrade`.
@@ -59,6 +203,7 @@ it when updated to a major release.
 ### Configuration Path
 
 #### `CONFIG_DIR` on each platform
+
 - **Windows**: `%APPDATA%`
 - **macOS** and **other Unix systems**: `${XDG_CONFIG_HOME:-~/.config}`
 
@@ -94,7 +239,7 @@ Open a new issue describing your problem and if possible provide a solution.
 
 ### Missing a feature or found an unsupported tool/distro?
 
-Just let us now what you are missing by opening an issue.
+Just let us know what you are missing by opening an issue.
 For tools, please open an issue describing the tool, which platforms it supports and if possible, give us an example of its usage.
 
 ### Want to contribute to the code?
