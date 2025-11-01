@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.1.1](https://github.com/topgrade-rs/topgrade/compare/v16.1.0...v16.1.1) - 2025-11-01
+
+### Fixed
+
+- *(typst)* Skip typst when self-update is disabled ([#1397](https://github.com/topgrade-rs/topgrade/pull/1397))
+- *(release)* Fix winget release workflow ([#1395](https://github.com/topgrade-rs/topgrade/pull/1395))
+- *(release)* Fix FreeBSD release ([#1393](https://github.com/topgrade-rs/topgrade/pull/1393))
+- *(release)* Fix FreeBSD release ([#1391](https://github.com/topgrade-rs/topgrade/pull/1391))
+
+### Other
+
+- Update from deprecated macos-13 to macos-15-intel ([#1394](https://github.com/topgrade-rs/topgrade/pull/1394))
+
 ## [16.1.0](https://github.com/topgrade-rs/topgrade/compare/v16.0.4...v16.1.0) - 2025-10-31
 
 ### Added
