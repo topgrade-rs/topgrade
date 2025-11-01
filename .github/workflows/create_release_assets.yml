@@ -3,15 +3,6 @@ name: Publish release files for CD native and non-cd-native environments
 on:
   repository_dispatch:
     types: [ release-created ]
-  workflow_dispatch:
-    inputs:
-      bsdonly:
-        description: "Run only on freebsd (true/false)?"
-        required: true
-      run_trigger:
-        description: "Run the trigger job after builds?"
-        required: false
-        default: "false"
 
 permissions:
   contents: read
@@ -34,9 +25,6 @@ jobs:
         # https://github.com/topgrade-rs/topgrade/issues/1095
         platform: [ ubuntu-22.04, macos-latest, macos-15-intel, windows-latest ]
     runs-on: ${{ matrix.platform }}
-    if: >
-      github.event_name == 'repository_dispatch' ||
-      github.event.inputs.bsdonly == 'false'
     steps:
       - uses: actions/checkout@v5.0.0
 
@@ -157,16 +145,13 @@ jobs:
       matrix:
         target:
           [
-#            "aarch64-unknown-linux-gnu",
-#            "armv7-unknown-linux-gnueabihf",
-#            "x86_64-unknown-linux-musl",
-#            "aarch64-unknown-linux-musl",
+            "aarch64-unknown-linux-gnu",
+            "armv7-unknown-linux-gnueabihf",
+            "x86_64-unknown-linux-musl",
+            "aarch64-unknown-linux-musl",
             "x86_64-unknown-freebsd",
           ]
     runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'repository_dispatch' ||
-      github.event.inputs.bsdonly == 'true'
     steps:
       - uses: actions/checkout@v5.0.0
 
@@ -287,7 +272,6 @@ jobs:
   triggers:
     runs-on: ubuntu-latest
     needs: [ native_build, cross_build ]
-    if: ${{ github.event_name == 'repository_dispatch' && github.event.inputs.run_trigger == 'true' }}
     steps:
       - name: Trigger workflows
         run: |
