@@ -194,6 +194,14 @@ jobs:
 
       - name: Run tests
         run: cross test --target ${{matrix.target}}
+        # Running tests on FreeBSD is impossible; see https://github.com/cross-rs/cross/wiki/FAQ#running-bsd-tests
+        # Not that this is *NOT* the same as the original issue with `ld: cannot find -lgeom`, but a new issue:
+        # error: test failed, to rerun pass `--lib`
+        # Caused by:
+        #   could not execute process `/target/x86_64-unknown-freebsd/debug/deps/topgrade-9b1670d87ca863dd` (never executed)
+        # Caused by:
+        #   No such file or directory (os error 2)
+        if: ${{ matrix.target != "x86_64-unknown-freebsd" }}
 
       # Used `https://github.com/BurntSushi/ripgrep/blob/master/.github/workflows/release.yml`
       # as a reference.
