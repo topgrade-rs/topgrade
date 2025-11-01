@@ -195,7 +195,7 @@ jobs:
 
       - name: install cross
         # Install from source to fix `ld: cannot find -lgeom` for freebsd build
-        run: cargo install --git https://github.com/cross-rs/cross cross
+        run: cargo +stable install --git https://github.com/cross-rs/cross cross
 
       - name: Check format
         run: cross fmt --all -- --check
