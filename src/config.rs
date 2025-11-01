@@ -18,14 +18,15 @@ use regex_split::RegexSplit;
 use rust_i18n::t;
 use serde::Deserialize;
 use strum::IntoEnumIterator;
+use tracing::{debug, error};
 use which_crate::which;
 
 use super::utils::editor;
 use crate::command::CommandExt;
+use crate::execution_context::RunType;
 use crate::step::Step;
 use crate::sudo::SudoKind;
 use crate::utils::string_prepend_str;
-use tracing::{debug, error};
 
 // TODO: Add i18n to this. Tracking issue: https://github.com/topgrade-rs/topgrade/issues/859
 pub static EXAMPLE_CONFIG: &str = include_str!("../config.example.toml");
@@ -708,8 +709,14 @@ pub struct CommandLineArgs {
     cleanup: bool,
 
     /// Print what would be done
+    ///
+    /// Alias for --run-type dry
     #[arg(short = 'n', long = "dry-run")]
     dry_run: bool,
+
+    /// Pick between just running commands, running and logging commands, and just logging commands
+    #[arg(short = 'r', long = "run-type", value_enum, default_value_t)]
+    run_type: RunType,
 
     /// Do not ask to retry failed steps
     #[arg(long = "no-retry")]
@@ -1001,9 +1008,13 @@ impl Config {
                 .unwrap_or(false)
     }
 
-    /// Tell whether we are dry-running.
-    pub fn dry_run(&self) -> bool {
-        self.opt.dry_run
+    /// Get the [RunType] for the current execution
+    pub fn run_type(&self) -> RunType {
+        if self.opt.dry_run {
+            RunType::Dry
+        } else {
+            self.opt.run_type
+        }
     }
 
     /// Tell whether we should not attempt to retry anything.

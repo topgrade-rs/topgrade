@@ -18,8 +18,10 @@ assignees: ''
   option to skip this step?
 
 ## I want to suggest some general feature
+
 Topgrade should...
 
 ## More information
+
 <!-- Assuming that someone else implements the feature,
 please state if you know how to test it from a side branch of Topgrade. -->
