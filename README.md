@@ -109,9 +109,7 @@ Just let us now what you are missing by opening an issue.
 For tools, please open an issue describing the tool, which platforms it supports and if possible, give us an example of
 its usage.
 
-Just fork the repository and start coding.
-
-### Contribution Guidelines
+### Want to contribute?
 
 See [CONTRIBUTING.md](https://github.com/topgrade-rs/topgrade/blob/master/CONTRIBUTING.md)
 
