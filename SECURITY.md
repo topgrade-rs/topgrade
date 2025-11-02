@@ -1,10 +1,8 @@
 # Security Policy
 
+## Reporting a vulnerability
+Go to [the security tab](https://github.com/topgrade-rs/topgrade/security) and click "Report a vulnerability"
+
 ## Supported Versions
 
-We only support the latest major version and each subversion.
-
-| Version  | Supported          |
-| -------- | ------------------ |
-| 16.0.x   | :white_check_mark: |
-| < 16.0   | :x:                |
+We only support the latest version of Topgrade. Fixes are not backported.
