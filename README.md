@@ -115,12 +115,6 @@ Just fork the repository and start coding.
 
 See [CONTRIBUTING.md](https://github.com/topgrade-rs/topgrade/blob/master/CONTRIBUTING.md)
 
-## Roadmap
-
-- [ ] Add a proper testing framework to the code base.
-- [ ] Add unit tests for package managers.
-- [ ] Split up code into more maintainable parts, eg. putting every linux package manager in a own submodule of linux.rs.
-
 ## Discord server
 
 Welcome to [join](https://discord.gg/Q8HGGWundY) our Discord server if you want
