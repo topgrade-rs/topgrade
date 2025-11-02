@@ -25,20 +25,26 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/topgrade.svg)](https://repology.org/project/topgrade/versions)
 
-- Arch Linux: [AUR](https://aur.archlinux.org/packages/topgrade)
-- NixOS: [Nixpkgs](https://search.nixos.org/packages?show=topgrade)
-- Void Linux: [XBPS](https://voidlinux.org/packages/?arch=x86_64&q=topgrade)
-- macOS: [Homebrew](https://formulae.brew.sh/formula/topgrade) or [MacPorts](https://ports.macports.org/port/topgrade/)
-- Windows: [Chocolatey][choco], [Scoop][scoop] or [Winget][winget]
-- PyPi: [pip](https://pypi.org/project/topgrade/)
-- Fedora: [Copr](https://copr.fedorainfracloud.org/coprs/lilay/topgrade/)
-
-[choco]: https://community.chocolatey.org/packages/topgrade
-[scoop]: https://scoop.sh/#/apps?q=topgrade
-[winget]: https://winstall.app/apps/topgrade-rs.topgrade
-
-Other systems users can either use `cargo install` or the compiled binaries from the release page.
-The compiled binaries contain a self-upgrading feature.
+- (Official) Self-updating binary (all platforms): [releases](https://github.com/topgrade-rs/topgrade/releases)
+- (Official) Install from source (all platforms): [`cargo install topgrade`](https://crates.io/crates/topgrade)
+- (Official) [deb-get](https://github.com/wimpysworld/deb-get) (Debian/Ubuntu and derivatives):
+  `deb-get install topgrade`
+- (Official) AUR (Arch Linux): [topgrade](https://aur.archlinux.org/packages/topgrade)
+  or [topgrade-bin](https://aur.archlinux.org/packages/topgrade-bin)
+- (Official) [PyPi](https://pypi.org/): `pip`/`pipx`/`uv tool` [`install topgrade`](https://pypi.org/project/topgrade/)
+- (Official) [Winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/) (Windows): [
+  `winget install --id=topgrade-rs.topgrade  -e`](https://winstall.app/apps/topgrade-rs.topgrade)
+- [Chocolatey](https://chocolatey.org/) (Windows): [
+  `choco install topgrade`](https://community.chocolatey.org/packages/topgrade)
+- [Scoop](https://scoop.sh/) (Windows): [
+  `scoop bucket add main && scoop install main/topgrade`](https://scoop.sh/#/apps?q=topgrade)
+- [Homebrew](https://brew.sh/) (macOS or Linux): [`brew install topgrade`](https://formulae.brew.sh/formula/topgrade)
+- [MacPorts](https://www.macports.org/) (macOS): [
+  `sudo port install topgrade`](https://ports.macports.org/port/topgrade/)
+- [Copr](https://copr.fedorainfracloud.org/) (Fedora): [
+  `dnf copr enable lilay/topgrade && dnf install topgrade`](https://copr.fedorainfracloud.org/coprs/lilay/topgrade/)
+- Nixpkgs (NixOS or Nix): [topgrade](https://search.nixos.org/packages?show=topgrade)
+- Void Linux: [`sudo xbps-install -S topgrade`](https://voidlinux.org/packages/?arch=x86_64&q=topgrade)
 
 ## Usage
 
