@@ -84,7 +84,7 @@ When Dependabot creates a PR for a toolchain update:
 
 1. **Component Not Available**: Some Rust versions may not have all components available
    - Solution: Temporarily remove the component or wait for availability
-   
+
 2. **Target Not Supported**: New Rust versions may drop support for older targets
    - Solution: Update CI matrix or remove unsupported targets
 
