@@ -1,14 +1,14 @@
 name: Update PyPi
 
 on:
-  release:
-    types: [published]
-  workflow_dispatch:
+  repository_dispatch:
+    types: [ release-created ]
 
 permissions:
   contents: read
 
 jobs:
+  # TODO: make linux/windows/macos/sdist a matrix. See how other workflows do it.
   linux:
     runs-on: ubuntu-latest
     strategy:
@@ -21,10 +21,9 @@ jobs:
         with:
           target: ${{ matrix.target }}
           args: --release --out dist
-          sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
           manylinux: auto
       - name: Upload wheels
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v5.0.0
         with:
           name: wheels-linux-${{ matrix.target }}
           path: dist
@@ -41,9 +40,8 @@ jobs:
         with:
           target: ${{ matrix.target }}
           args: --release --out dist
-          sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
       - name: Upload wheels
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v5.0.0
         with:
           name: wheels-windows-${{ matrix.target }}
           path: dist
@@ -60,9 +58,8 @@ jobs:
         with:
           target: ${{ matrix.target }}
           args: --release --out dist
-          sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
       - name: Upload wheels
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v5.0.0
         with:
           name: wheels-macos-${{ matrix.target }}
           path: dist
@@ -77,7 +74,7 @@ jobs:
           command: sdist
           args: --out dist
       - name: Upload sdist
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v5.0.0
         with:
           name: wheels-sdist
           path: dist
@@ -94,7 +91,7 @@ jobs:
       # Used to generate artifact attestation
       attestations: write
     steps:
-      - uses: actions/download-artifact@v5.0.0
+      - uses: actions/download-artifact@v6.0.0
 
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v3.0.0
