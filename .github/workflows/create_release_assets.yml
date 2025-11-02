@@ -28,6 +28,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Install needed components
         run: |
@@ -158,6 +160,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Install needed components
         run: |
