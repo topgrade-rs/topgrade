@@ -6,6 +6,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: cargo
     directory: "/"
@@ -22,3 +24,5 @@ updates:
     groups:
       cargo-minor-patch:
         update-types: ["minor", "patch"]
+    cooldown:
+      default-days: 7
