@@ -11,7 +11,6 @@
   <img alt="Demo" src="doc/topgrade_demo.gif">
 </div>
 
-
 ## Introduction
 
 > **Note**
@@ -65,6 +64,7 @@ it when updated to a major release.
 ### Configuration Path
 
 #### `CONFIG_DIR` on each platform
+
 - **Windows**: `%APPDATA%`
 - **macOS** and **other Unix systems**: `${XDG_CONFIG_HOME:-~/.config}`
 
@@ -73,16 +73,21 @@ it when updated to a major release.
 1. `CONFIG_DIR/topgrade.toml`
 2. `CONFIG_DIR/topgrade/topgrade.toml`
 
-If the file with higher priority is present, no matter it is valid or not, the other configuration files will be ignored.
+If the file with higher priority is present, no matter it is valid or not, the other configuration files will be
+ignored.
 
-On the first run(no configuration file exists), `topgrade` will create a configuration file at `CONFIG_DIR/topgrade.toml` for you.
+On the first run(no configuration file exists), `topgrade` will create a configuration file at
+`CONFIG_DIR/topgrade.toml` for you.
 
 ### Custom Commands
 
-Custom commands can be defined in the config file which can be run before, during, or after the inbuilt commands, as required.
-By default, the custom commands are run using a new shell according to the `$SHELL` environment variable on unix (falls back to `sh`) or `pwsh` on windows (falls back to `powershell`).
+Custom commands can be defined in the config file which can be run before, during, or after the inbuilt commands, as
+required.
+By default, the custom commands are run using a new shell according to the `$SHELL` environment variable on unix (falls
+back to `sh`) or `pwsh` on windows (falls back to `powershell`).
 
-On unix, if you want to run your command using an interactive shell, for example to source your shell's rc files, you can add `-i` at the start of your custom command.
+On unix, if you want to run your command using an interactive shell, for example to source your shell's rc files, you
+can add `-i` at the start of your custom command.
 But note that this requires the command to exit the shell correctly or else the shell will hang indefinitely.
 
 ## Remote Execution
@@ -101,9 +106,8 @@ Open a new issue describing your problem and if possible provide a solution.
 ### Missing a feature or found an unsupported tool/distro?
 
 Just let us now what you are missing by opening an issue.
-For tools, please open an issue describing the tool, which platforms it supports and if possible, give us an example of its usage.
-
-### Want to contribute to the code?
+For tools, please open an issue describing the tool, which platforms it supports and if possible, give us an example of
+its usage.
 
 Just fork the repository and start coding.
 
