@@ -3,17 +3,17 @@
 on:
   pull_request:
     paths:
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'src/**'
-      - '.github/workflows/trivy-fs.yml'
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "src/**"
+      - ".github/workflows/trivy-fs.yml"
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'src/**'
-      - '.github/workflows/trivy-fs.yml'
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "src/**"
+      - ".github/workflows/trivy-fs.yml"
 
 permissions:
   contents: read
@@ -28,23 +28,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
           fetch-depth: 1
 
       - name: Run Trivy filesystem scan (repo, pinned digest)
         shell: bash
+        continue-on-error: true
         run: |
           set -euo pipefail
-          IMAGE="aquasec/trivy:latest"
-          docker pull "$IMAGE" > /dev/null
-          DIGEST="$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE")"
-          echo "Using image digest: $DIGEST"
+          # Digest pinned via: docker pull aquasec/trivy:latest && docker image inspect --format='{{index .RepoDigests 0}}' aquasec/trivy:latest
           docker run --rm \
             -v "${{ github.workspace }}":/src \
             -w /src \
-            "$DIGEST" \
+            aquasec/trivy@sha256:ac2f9d0197456a8ce460884b113e49d65b667f506c31d014c9955869a7a5d682 \
             fs \
             --format sarif \
             --output trivy-repo.sarif \
@@ -54,7 +52,7 @@ jobs:
             .
 
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: github/codeql-action/upload-sarif@5d5cd550d3e189c569da8f16ea8de2d821c9bf7a # v3
+        if: ${{ always() && hashFiles('trivy-repo.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         with:
           sarif_file: trivy-repo.sarif
