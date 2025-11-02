@@ -124,7 +124,7 @@ fn run() -> Result<()> {
     debug!("Version: {}", crate_version!());
     debug!("OS: {}", env!("TARGET"));
     debug!("{:?}", env::args());
-    debug!("Binary path: {:?}", std::env::current_exe());
+    debug!("Binary path: {:?}", env::current_exe());
     debug!("self-update Feature Enabled: {:?}", cfg!(feature = "self-update"));
     debug!("Configuration: {:?}", config);
 
@@ -163,7 +163,7 @@ fn run() -> Result<()> {
     #[cfg(target_os = "linux")]
     let distribution = linux::Distribution::detect();
 
-    let run_type = execution_context::RunType::new(config.dry_run());
+    let run_type = config.run_type();
     let ctx = execution_context::ExecutionContext::new(
         run_type,
         sudo,
