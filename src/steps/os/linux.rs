@@ -23,6 +23,7 @@ static OS_RELEASE_PATH: &str = "/etc/os-release";
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Distribution {
     Alpine,
+    AOSC,
     Wolfi,
     Arch,
     Bedrock,
@@ -58,6 +59,7 @@ impl Distribution {
 
         Ok(match id {
             Some("alpine") => Distribution::Alpine,
+            Some("aosc") => Distribution::AOSC,
             Some("chimera") => Distribution::Chimera,
             Some("wolfi") => Distribution::Wolfi,
             Some("centos") | Some("rhel") | Some("ol") => Distribution::CentOS,
@@ -161,6 +163,7 @@ impl Distribution {
             Distribution::PCLinuxOS => upgrade_pclinuxos(ctx),
             Distribution::Nobara => upgrade_nobara(ctx),
             Distribution::NILRT => upgrade_nilrt(ctx),
+            Distribution::AOSC => upgrade_aosc(ctx),
         }
     }
 
@@ -195,6 +198,20 @@ fn update_bedrock(ctx: &ExecutionContext) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn upgrade_aosc(ctx: &ExecutionContext) -> Result<()> {
+    let oma = require("oma")?;
+    let sudo = ctx.require_sudo()?;
+
+    let mut cmd = sudo.execute(ctx, &oma)?;
+    cmd.arg("upgrade");
+
+    if ctx.config().yes(Step::System) {
+        cmd.arg("-y");
+    }
+
+    cmd.status_checked()
 }
 
 fn upgrade_alpine_linux(ctx: &ExecutionContext) -> Result<()> {
