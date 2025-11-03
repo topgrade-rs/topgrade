@@ -1155,6 +1155,11 @@ mod tests {
     }
 
     #[test]
+    fn test_aosc() {
+        test_template(include_str!("os_release/aosc"), Distribution::AOSC);
+    }
+
+    #[test]
     fn test_centos() {
         test_template(include_str!("os_release/centos"), Distribution::CentOS);
     }
