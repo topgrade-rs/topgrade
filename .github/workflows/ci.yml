@@ -13,6 +13,10 @@ env:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   fmt:
     name: Rustfmt
@@ -126,6 +130,9 @@ jobs:
           - target: x86_64-pc-windows-msvc
             target_name: Windows
             os: windows-latest
+    env:
+      cargo_cmd: ${{ matrix.use_cross == true && 'cross' || 'cargo' }}
+      matrix_target: ${{ matrix.target }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5.0.0
@@ -139,17 +146,20 @@ jobs:
 
       - name: Setup cross
         if: matrix.use_cross == true
-        run: curl -fL --retry 3 https://github.com/cross-rs/cross/releases/download/v${{ env.CROSS_VER }}/cross-x86_64-unknown-linux-musl.tar.gz | tar vxz -C /usr/local/bin
+        run: |
+          curl -fL --retry 3 "https://github.com/cross-rs/cross/releases/download/v${CROSS_VER}/cross-x86_64-unknown-linux-musl.tar.gz" | tar vxz -C /usr/local/bin
 
       - name: Run cargo/cross check
-        run: ${{ matrix.use_cross == true && 'cross' || 'cargo' }} check --locked --target ${{ matrix.target }}
+        run: |
+          "${cargo_cmd}" check --locked --target "${matrix_target}"
 
       - name: Run cargo/cross clippy
         run: |
           rustup component add clippy
-          ${{ matrix.use_cross == true && 'cross' || 'cargo' }} clippy --locked --target ${{ matrix.target }} --all-features -- -D warnings
+          "${cargo_cmd}" clippy --locked --target "${matrix_target}" --all-features -- -D warnings
 
       - name: Run cargo test
         # ONLY run test with cargo
         if: matrix.use_cross == false
-        run: cargo test --locked --target ${{ matrix.target }}
+        run: |
+          cargo test --locked --target "${matrix_target}"
