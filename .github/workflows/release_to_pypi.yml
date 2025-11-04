@@ -16,6 +16,9 @@ jobs:
         target: [x86_64, x86, aarch64]
     steps:
       - uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
+
       - name: Build wheels
         uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
         with:
@@ -35,6 +38,9 @@ jobs:
         target: [x64, x86]
     steps:
       - uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
+
       - name: Build wheels
         uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
         with:
@@ -53,6 +59,9 @@ jobs:
         target: [x86_64, aarch64]
     steps:
       - uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
+
       - name: Build wheels
         uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
         with:
@@ -68,6 +77,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
+
       - name: Build sdist
         uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
         with:

@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Run cargo fmt
         env:
@@ -34,6 +36,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Check if `Step` enum is sorted
         run: |
@@ -125,6 +129,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Setup Rust Cache
         uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
