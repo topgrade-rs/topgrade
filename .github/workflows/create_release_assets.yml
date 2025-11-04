@@ -26,6 +26,8 @@ jobs:
         # https://github.com/topgrade-rs/topgrade/issues/1095
         platform: [ ubuntu-22.04, macos-latest, macos-15-intel, windows-latest ]
     runs-on: ${{ matrix.platform }}
+    env:
+      tag: ${{ github.event.client_payload.tag }}
     steps:
       - uses: actions/checkout@v5.0.0
         with:
@@ -83,7 +85,7 @@ jobs:
         run: |
           cargo install default-target
           mkdir -p assets
-          FILENAME=topgrade-${{ github.event.client_payload.tag }}-$(default-target)
+          FILENAME=topgrade-${tag}-$(default-target)
           mv target/release/topgrade assets
           cd assets
           tar --format=ustar -czf $FILENAME.tar.gz topgrade
@@ -114,7 +116,7 @@ jobs:
         run: |
           cargo install default-target
           mkdir assets
-          FILENAME=topgrade-${{ github.event.client_payload.tag }}-$(default-target)
+          FILENAME=topgrade-${tag}-$(default-target)
           mv target/release/topgrade.exe assets/topgrade.exe
           cd assets
           powershell Compress-Archive -Path * -Destination ${FILENAME}.zip
@@ -124,8 +126,8 @@ jobs:
         shell: bash
 
       - name: Upload assets
-        run:
-          gh release upload "${{ github.event.client_payload.tag }}" assets/*
+        run: |
+          gh release upload "${tag}" assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -158,6 +160,9 @@ jobs:
     # Even though this is cross-compiled, it links to the libc6-<arch>-cross installed on the host
     # (see the apt-get install calls below)
     runs-on: ubuntu-22.04
+    env:
+      matrix_target: ${{ matrix.target }}
+      tag: ${{ github.event.client_payload.tag }}
     steps:
       - uses: actions/checkout@v5.0.0
         with:
@@ -184,20 +189,20 @@ jobs:
         shell: bash
 
       - name: install targets
-        run: rustup target add ${{ matrix.target }}
+        run: rustup target add "${matrix_target}"
 
       - name: install cross
         # Install from source to fix `ld: cannot find -lgeom` for freebsd build
         run: cargo +stable install --git https://github.com/cross-rs/cross cross
 
       - name: Run clippy
-        run: cross clippy --all-targets --locked --target ${{matrix.target}} -- -D warnings
+        run: cross clippy --all-targets --locked --target "${matrix_target}" -- -D warnings
 
       - name: Run clippy (All features)
-        run: cross clippy  --locked --all-features --target ${{matrix.target}} -- -D warnings
+        run: cross clippy  --locked --all-features --target "${matrix_target}" -- -D warnings
 
       - name: Run tests
-        run: cross test --target ${{matrix.target}}
+        run: cross test --target "${matrix_target}"
         # Running tests on FreeBSD is impossible; see https://github.com/cross-rs/cross/wiki/FAQ#running-bsd-tests
         # Not that this is *NOT* the same as the original issue with `ld: cannot find -lgeom`, but a new issue:
         # error: test failed, to rerun pass `--lib`
@@ -235,15 +240,15 @@ jobs:
           "$BIN" --gen-completion zsh > "$DEPLOY_DIR/_topgrade"
 
       - name: Build in Release profile with all features enabled
-        run: cross build --release --all-features --target ${{matrix.target}}
+        run: cross build --release --all-features --target "${matrix_target}"
 
       - name: Rename Release
         run: |
           mkdir -p assets
-          FILENAME=topgrade-${{ github.event.client_payload.tag }}-${{matrix.target}}
-          mv target/${{matrix.target}}/release/topgrade assets
+          FILENAME=topgrade-${tag}-${matrix_target}
+          mv "target/${matrix_target}/release/topgrade" assets
           cd assets
-          tar --format=ustar -czf $FILENAME.tar.gz topgrade
+          tar --format=ustar -czf "$FILENAME.tar.gz" topgrade
           rm topgrade
           ls .
 
@@ -252,23 +257,23 @@ jobs:
         # because we don't want the auto-update feature,
         # then build the new binary without auto-updating.
         run: |
-          rm -rf target/${{matrix.target}}
-          cross build --release --target ${{matrix.target}}
-          cargo deb --target=${{matrix.target}} --no-build --no-strip
+          rm -rf "target/${matrix_target}"
+          cross build --release --target "${matrix_target}"
+          cargo deb --target="${matrix_target}" --no-build --no-strip
         if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'armv7-unknown-linux-gnueabihf' }}
         shell: bash
 
       - name: Move Debian-based system package
         run: |
           mkdir -p assets
-          mv target/${{matrix.target}}/debian/*.deb assets
+          mv "target/${matrix_target}/debian/*.deb" assets
         if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'armv7-unknown-linux-gnueabihf' }}
         shell: bash
 
 
       - name: Upload assets
         run:
-          gh release upload "${{ github.event.client_payload.tag }}" assets/*
+          gh release upload "${tag}" assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -280,11 +285,13 @@ jobs:
   triggers:
     runs-on: ubuntu-latest
     needs: [ native_build, cross_build ]
+    env:
+      tag: ${{ github.event.client_payload.tag }}
     steps:
       - name: Trigger workflows
         run: |
-          gh api repos/${{ github.repository }}/dispatches \
+          gh api "repos/${GITHUB_REPOSITORY}/dispatches" \
             -f "event_type=release-assets-built" \
-            -F "client_payload[tag]=${{ github.event.client_payload.tag }}"
+            -F "client_payload[tag]=${tag}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
