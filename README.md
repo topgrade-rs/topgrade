@@ -24,16 +24,21 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/topgrade.svg)](https://repology.org/project/topgrade/versions)
 
-- (Official) Self-updating binary (all platforms): [releases](https://github.com/topgrade-rs/topgrade/releases)
-- (Official) Install from source (all platforms): [`cargo install topgrade`](https://crates.io/crates/topgrade)
-- (Official) Debian/Ubuntu ([deb-get](https://github.com/wimpysworld/deb-get)):
+### Official installation methods
+
+- Self-updating binary (all platforms): [releases](https://github.com/topgrade-rs/topgrade/releases)
+- Install from source (all platforms): [`cargo install topgrade`](https://crates.io/crates/topgrade)
+- Debian/Ubuntu ([deb-get](https://github.com/wimpysworld/deb-get)):
   [`deb-get install topgrade`](https://github.com/wimpysworld/deb-get/blob/main/01-main/packages/topgrade)
-- (Official) Arch Linux (AUR): [topgrade](https://aur.archlinux.org/packages/topgrade)
+- Arch Linux (AUR): [topgrade](https://aur.archlinux.org/packages/topgrade)
   or [topgrade-bin](https://aur.archlinux.org/packages/topgrade-bin)
-- (Official) [PyPi](https://pypi.org/): `pip`, `pipx`, or `uv tool` [
+- [PyPi](https://pypi.org/): `pip`, `pipx`, or `uv tool` [
   `install topgrade`](https://pypi.org/project/topgrade/)
-- (Official) Windows ([Winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/)): [
+- Windows ([Winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/)): [
   `winget install --id=topgrade-rs.topgrade  -e`](https://winstall.app/apps/topgrade-rs.topgrade)
+
+### Community-maintained installation methods
+
 - Windows ([Chocolatey](https://chocolatey.org/)): [
   `choco install topgrade`](https://community.chocolatey.org/packages/topgrade)
 - Windows ([Scoop](https://scoop.sh/)): [
