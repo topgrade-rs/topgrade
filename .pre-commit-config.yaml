@@ -20,6 +20,11 @@ repos:
   hooks:
   - id: typos
 
+- repo: https://github.com/zizmorcore/zizmor-pre-commit
+  rev: v1.16.3
+  hooks:
+  - id: zizmor
+    args: ['--persona=auditor', '--no-progress']
 
 ci:
   autoupdate_commit_msg: "chore(pre-commit): autoupdate"
