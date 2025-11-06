@@ -262,7 +262,11 @@ pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
     let rustup = require("rustup")?;
 
     print_separator("rustup");
-    ctx.execute(rustup).arg("update").status_checked()
+
+    ctx.execute(rustup)
+        .arg("update")
+        .args(ctx.config().rustup_channels())
+        .status_checked()
 }
 
 pub fn run_rye(ctx: &ExecutionContext) -> Result<()> {

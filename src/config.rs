@@ -391,6 +391,12 @@ pub struct VscodeConfig {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct Rustup {
+    channels: Option<Vec<String>>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 /// Configuration file
 pub struct ConfigFile {
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
@@ -473,6 +479,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     vscode: Option<VscodeConfig>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    rustup: Option<Rustup>,
 }
 
 fn config_directory() -> PathBuf {
@@ -1491,6 +1500,14 @@ impl Config {
                 .as_ref()
                 .and_then(|git| git.pull_predefined)
                 .unwrap_or(true)
+    }
+
+    pub fn rustup_channels(&self) -> Vec<String> {
+        self.config_file
+            .rustup
+            .as_ref()
+            .and_then(|rustup| rustup.channels.clone())
+            .unwrap_or_default()
     }
 
     pub fn verbose(&self) -> bool {

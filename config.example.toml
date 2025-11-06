@@ -376,3 +376,8 @@
 # during the pixi step
 # (default: false)
 # include_release_notes = false
+
+[rustup]
+# If set, updates only these channels.
+# (default: [] (all channels))
+# channels = ["stable"]
