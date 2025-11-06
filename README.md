@@ -24,7 +24,7 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/topgrade.svg)](https://repology.org/project/topgrade/versions)
 
-### Official installation methods
+### Official
 
 - Self-updating binary (all platforms): [releases](https://github.com/topgrade-rs/topgrade/releases)
 - Install from source (all platforms): [`cargo install topgrade`](https://crates.io/crates/topgrade)
@@ -37,7 +37,7 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 - Windows ([Winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/)): [
   `winget install --id=topgrade-rs.topgrade  -e`](https://winstall.app/apps/topgrade-rs.topgrade)
 
-### Community-maintained installation methods
+### Community-maintained
 
 - Windows ([Chocolatey](https://chocolatey.org/)): [
   `choco install topgrade`](https://community.chocolatey.org/packages/topgrade)
