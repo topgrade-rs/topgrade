@@ -36,6 +36,7 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
   `install topgrade`](https://pypi.org/project/topgrade/)
 - Windows ([Winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/)): [
   `winget install --id=topgrade-rs.topgrade  -e`](https://winstall.app/apps/topgrade-rs.topgrade)
+- macOS or Linux ([Homebrew](https://brew.sh/)): [`brew install topgrade`](https://formulae.brew.sh/formula/topgrade)
 
 ### Community-maintained
 
@@ -43,7 +44,6 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
   `choco install topgrade`](https://community.chocolatey.org/packages/topgrade)
 - Windows ([Scoop](https://scoop.sh/)): [
   `scoop bucket add main && scoop install main/topgrade`](https://scoop.sh/#/apps?q=topgrade)
-- macOS or Linux ([Homebrew](https://brew.sh/)): [`brew install topgrade`](https://formulae.brew.sh/formula/topgrade)
 - macOS ([MacPorts](https://www.macports.org/)): [
   `sudo port install topgrade`](https://ports.macports.org/port/topgrade/)
 - Fedora ([Copr](https://copr.fedorainfracloud.org/)): [
