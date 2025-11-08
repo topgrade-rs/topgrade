@@ -179,7 +179,7 @@ pub fn topgrade_vagrant_box(ctx: &ExecutionContext, vagrant_box: &VagrantBox) ->
         path: utils::require("vagrant")?,
     };
 
-    let seperator = format!("Vagrant ({})", vagrant_box.smart_name());
+    let separator = format!("Vagrant ({})", vagrant_box.smart_name());
     let mut _poweron = None;
     if !vagrant_box.initial_status.powered_on() {
         if !(ctx.config().vagrant_power_on().unwrap_or(true)) {
@@ -189,11 +189,11 @@ pub fn topgrade_vagrant_box(ctx: &ExecutionContext, vagrant_box: &VagrantBox) ->
             ))
             .into());
         } else {
-            print_separator(seperator);
+            print_separator(separator);
             _poweron = Some(vagrant.temporary_power_on(vagrant_box, ctx)?);
         }
     } else {
-        print_separator(seperator);
+        print_separator(separator);
     }
     let mut command = format!("env TOPGRADE_PREFIX={} topgrade", vagrant_box.smart_name());
     if ctx.config().yes(Step::Vagrant) {

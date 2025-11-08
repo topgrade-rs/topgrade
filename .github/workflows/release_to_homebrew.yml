@@ -1,14 +1,11 @@
 name: Publish to Homebrew
 
 on:
-  # workflow_run:
-  #   workflows: ["Check SemVer compliance"]
-  #   types:
-  #     - completed
-  workflow_dispatch:
-  push:
-    tags:
-      - "v*"
+  repository_dispatch:
+    types: [ release-created ]
+
+permissions:
+  contents: read
 
 jobs:
   homebrew-publish:
@@ -16,10 +13,11 @@ jobs:
     steps:
     - name: Set up Homebrew
       id: set-up-homebrew
-      uses: Homebrew/actions/setup-homebrew@master
+      uses: Homebrew/actions/setup-homebrew@24a0b15df658487e137fcd20fba32757d41a9411 # master
+
     - name: Cache Homebrew Bundler RubyGems
       id: cache
-      uses: actions/cache@v4
+      uses: actions/cache@v4.3.0
       with:
         path: ${{ steps.set-up-homebrew.outputs.gems-path }}
         key: ${{ runner.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
@@ -28,8 +26,9 @@ jobs:
     - name: Install Homebrew Bundler RubyGems
       if: steps.cache.outputs.cache-hit != 'true'
       run: brew install-bundler-gems
+
     - name: Bump formulae
-      uses: Homebrew/actions/bump-packages@master
+      uses: Homebrew/actions/bump-packages@24a0b15df658487e137fcd20fba32757d41a9411 # master
       continue-on-error: true
       with:
         # Custom GitHub access token with only the 'public_repo' scope enabled
