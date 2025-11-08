@@ -91,6 +91,11 @@
 # See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
 # log_filters = ["topgrade::command=debug", "warn"]
 
+# Whether to show a distribution-specific summary if applicable, e.g. listing
+# Pacman backup configuration files (*.pacsave and *.pacnew)
+# (default: true)
+# show_distribution_summary = false
+
 
 # Commands to run before anything
 [pre_commands]
