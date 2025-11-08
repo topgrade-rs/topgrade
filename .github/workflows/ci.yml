@@ -13,6 +13,10 @@ env:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   fmt:
     name: Rustfmt
@@ -20,6 +24,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Run cargo fmt
         env:
@@ -34,6 +40,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Check if `Step` enum is sorted
         run: |
@@ -108,7 +116,7 @@ jobs:
 
           - target: x86_64-apple-darwin
             target_name: macOS-x86_64
-            os: macos-13
+            os: macos-15-intel
 
           - target: aarch64-apple-darwin
             target_name: macOS-aarch64
@@ -122,9 +130,14 @@ jobs:
           - target: x86_64-pc-windows-msvc
             target_name: Windows
             os: windows-latest
+    env:
+      cargo_cmd: ${{ matrix.use_cross == true && 'cross' || 'cargo' }}
+      matrix_target: ${{ matrix.target }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Setup Rust Cache
         uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
@@ -133,17 +146,20 @@ jobs:
 
       - name: Setup cross
         if: matrix.use_cross == true
-        run: curl -fL --retry 3 https://github.com/cross-rs/cross/releases/download/v${{ env.CROSS_VER }}/cross-x86_64-unknown-linux-musl.tar.gz | tar vxz -C /usr/local/bin
+        run: |
+          curl -fL --retry 3 "https://github.com/cross-rs/cross/releases/download/v${CROSS_VER}/cross-x86_64-unknown-linux-musl.tar.gz" | tar vxz -C /usr/local/bin
 
       - name: Run cargo/cross check
-        run: ${{ matrix.use_cross == true && 'cross' || 'cargo' }} check --locked --target ${{ matrix.target }}
+        run: |
+          "${cargo_cmd}" check --locked --target "${matrix_target}"
 
       - name: Run cargo/cross clippy
         run: |
           rustup component add clippy
-          ${{ matrix.use_cross == true && 'cross' || 'cargo' }} clippy --locked --target ${{ matrix.target }} --all-features -- -D warnings
+          "${cargo_cmd}" clippy --locked --target "${matrix_target}" --all-features -- -D warnings
 
       - name: Run cargo test
         # ONLY run test with cargo
         if: matrix.use_cross == false
-        run: cargo test --locked --target ${{ matrix.target }}
+        run: |
+          cargo test --locked --target "${matrix_target}"

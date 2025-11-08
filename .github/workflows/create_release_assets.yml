@@ -1,26 +1,12 @@
 name: Publish release files for CD native and non-cd-native environments
 
 on:
-  release:
-    types: [ created ]
-  # When a release failed, and there is something you need to fix in this
-  # YML file, you can manually re-run the job via this event to re-do the
-  # release. (Simply re-run the job through GitHub UI won't work as it would use
-  # the old YML file, which needs a fix.)
-  workflow_dispatch:
-    inputs:
-      # The GitHub Action (softprops/action-gh-release) used in this pipeline
-      # needs a tag, you specify it through this parameter.
-      #
-      # In the case described above, it should be an existing tag. E.g., the
-      # release of v16.0.4 failed, you should specify "v16.0.4" here.
-      existing_tag:
-        description: "The tag of the failed release that you wanna re-run and fix"
-        required: true
-        type: string
+  repository_dispatch:
+    types: [ release-created ]
 
 permissions:
-  contents: read
+  # Write permissions to call the repository dispatch
+  contents: write
 
 jobs:
   # Publish release files for CD native environments
@@ -38,10 +24,14 @@ jobs:
         # Use the Ubuntu 22.04 image to link with a low version of glibc
         #
         # https://github.com/topgrade-rs/topgrade/issues/1095
-        platform: [ ubuntu-22.04, macos-latest, macos-13, windows-latest ]
+        platform: [ ubuntu-22.04, macos-latest, macos-15-intel, windows-latest ]
     runs-on: ${{ matrix.platform }}
+    env:
+      tag: ${{ github.event.client_payload.tag }}
     steps:
       - uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Install needed components
         run: |
@@ -65,24 +55,37 @@ jobs:
       - name: Run tests
         run: cargo test
 
+      # Used `https://github.com/BurntSushi/ripgrep/blob/master/.github/workflows/release.yml`
+      # as a reference.
+      - name: Build debug binary to create release assets
+        shell: bash
+        run: |
+          cargo build --all-features
+          bin="target/debug/topgrade"
+          echo "BIN=$bin" >> $GITHUB_ENV
+
+      - name: Create deployment directory
+        shell: bash
+        run: |
+          dir=deployment/deb
+          mkdir -p "$dir"
+          echo "DEPLOY_DIR=$dir" >> $GITHUB_ENV
+
+      - name: Generate shell completions
+        shell: bash
+        run: |
+          "$BIN" --gen-completion bash > "$DEPLOY_DIR/topgrade.bash"
+          "$BIN" --gen-completion fish > "$DEPLOY_DIR/topgrade.fish"
+          "$BIN" --gen-completion zsh > "$DEPLOY_DIR/_topgrade"
+
       - name: Build in Release profile with all features enabled
         run: cargo build --release --all-features
-
-      - name: Determine tag name
-        id: determine_tag_name
-        shell: bash # Or it won't work on Windows
-        run: |
-          if [ -n "${{ github.event.release.tag_name }}" ]; then
-            echo "tag_name=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
-          else
-            echo "tag_name=${{ github.event.inputs.existing_tag }}" >> $GITHUB_OUTPUT
-          fi
 
       - name: Rename Release (Unix)
         run: |
           cargo install default-target
           mkdir -p assets
-          FILENAME=topgrade-${{ steps.determine_tag_name.outputs.tag_name }}-$(default-target)
+          FILENAME=topgrade-${tag}-$(default-target)
           mv target/release/topgrade assets
           cd assets
           tar --format=ustar -czf $FILENAME.tar.gz topgrade
@@ -113,7 +116,7 @@ jobs:
         run: |
           cargo install default-target
           mkdir assets
-          FILENAME=topgrade-${{steps.determine_tag_name.outputs.tag_name}}-$(default-target)
+          FILENAME=topgrade-${tag}-$(default-target)
           mv target/release/topgrade.exe assets/topgrade.exe
           cd assets
           powershell Compress-Archive -Path * -Destination ${FILENAME}.zip
@@ -122,12 +125,11 @@ jobs:
         if: ${{ matrix.platform == 'windows-latest' }}
         shell: bash
 
-
-      - name: Release
-        uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836 # v2.3.3
-        with:
-          tag_name: ${{ steps.determine_tag_name.outputs.tag_name }}
-          files: assets/*
+      - name: Upload assets
+        run: |
+          gh release upload "${tag}" assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate artifact attestations
         uses: actions/attest-build-provenance@v3.0.0
@@ -154,9 +156,17 @@ jobs:
             "aarch64-unknown-linux-musl",
             "x86_64-unknown-freebsd",
           ]
-    runs-on: ubuntu-latest
+    # Run this one on an older version as well, to limit glibc to 2.34 instead of 2.39.
+    # Even though this is cross-compiled, it links to the libc6-<arch>-cross installed on the host
+    # (see the apt-get install calls below)
+    runs-on: ubuntu-22.04
+    env:
+      matrix_target: ${{ matrix.target }}
+      tag: ${{ github.event.client_payload.tag }}
     steps:
       - uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Install needed components
         run: |
@@ -179,45 +189,66 @@ jobs:
         shell: bash
 
       - name: install targets
-        run: rustup target add ${{ matrix.target }}
+        run: rustup target add "${matrix_target}"
 
       - name: install cross
-        uses: taiki-e/install-action@d6912b47771be2c443ec90dbb3d28e023987e782 # v2.62.1
-        with:
-          tool: cross@0.2.5
-
-      - name: Check format
-        run: cross fmt --all -- --check
+        # Install from source to fix `ld: cannot find -lgeom` for freebsd build
+        run: cargo +stable install --git https://github.com/cross-rs/cross cross
 
       - name: Run clippy
-        run: cross clippy --all-targets --locked --target ${{matrix.target}} -- -D warnings
+        run: cross clippy --all-targets --locked --target "${matrix_target}" -- -D warnings
 
       - name: Run clippy (All features)
-        run: cross clippy  --locked --all-features --target ${{matrix.target}} -- -D warnings
+        run: cross clippy  --locked --all-features --target "${matrix_target}" -- -D warnings
 
       - name: Run tests
-        run: cross test --target ${{matrix.target}}
+        run: cross test --target "${matrix_target}"
+        # Running tests on FreeBSD is impossible; see https://github.com/cross-rs/cross/wiki/FAQ#running-bsd-tests
+        # Not that this is *NOT* the same as the original issue with `ld: cannot find -lgeom`, but a new issue:
+        # error: test failed, to rerun pass `--lib`
+        # Caused by:
+        #   could not execute process `/target/x86_64-unknown-freebsd/debug/deps/topgrade-9b1670d87ca863dd` (never executed)
+        # Caused by:
+        #   No such file or directory (os error 2)
+        # TODO: I have not tested this in GHA yet, only locally
+        if: ${{ matrix.target != 'x86_64-unknown-freebsd' }}
+
+      # Used `https://github.com/BurntSushi/ripgrep/blob/master/.github/workflows/release.yml`
+      # as a reference.
+      - name: Build debug binary to create release assets
+        shell: bash
+        run: |
+          # This build is not using the target arch since this binary is only needed in CI. It needs
+          # to be the compiled for the runner since it has the run the binary to generate completion
+          # scripts.
+          cargo build --all-features
+          bin="target/debug/topgrade"
+          echo "BIN=$bin" >> $GITHUB_ENV
+
+      - name: Create deployment directory
+        shell: bash
+        run: |
+          dir=deployment/deb
+          mkdir -p "$dir"
+          echo "DEPLOY_DIR=$dir" >> $GITHUB_ENV
+
+      - name: Generate shell completions
+        shell: bash
+        run: |
+          "$BIN" --gen-completion bash > "$DEPLOY_DIR/topgrade.bash"
+          "$BIN" --gen-completion fish > "$DEPLOY_DIR/topgrade.fish"
+          "$BIN" --gen-completion zsh > "$DEPLOY_DIR/_topgrade"
 
       - name: Build in Release profile with all features enabled
-        run: cross build --release --all-features --target ${{matrix.target}}
-
-      - name: Determine tag name
-        id: determine_tag_name
-        shell: bash # Or it won't work on Windows
-        run: |
-          if [ -n "${{ github.event.release.tag_name }}" ]; then
-            echo "tag_name=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
-          else
-            echo "tag_name=${{ github.event.inputs.existing_tag }}" >> $GITHUB_OUTPUT
-          fi
+        run: cross build --release --all-features --target "${matrix_target}"
 
       - name: Rename Release
         run: |
           mkdir -p assets
-          FILENAME=topgrade-${{steps.determine_tag_name.outputs.tag_name}}-${{matrix.target}}
-          mv target/${{matrix.target}}/release/topgrade assets
+          FILENAME=topgrade-${tag}-${matrix_target}
+          mv "target/${matrix_target}/release/topgrade" assets
           cd assets
-          tar --format=ustar -czf $FILENAME.tar.gz topgrade
+          tar --format=ustar -czf "$FILENAME.tar.gz" topgrade
           rm topgrade
           ls .
 
@@ -226,27 +257,41 @@ jobs:
         # because we don't want the auto-update feature,
         # then build the new binary without auto-updating.
         run: |
-          rm -rf target/${{matrix.target}}
-          cross build --release --target ${{matrix.target}}
-          cargo deb --target=${{matrix.target}} --no-build --no-strip
+          rm -rf "target/${matrix_target}"
+          cross build --release --target "${matrix_target}"
+          cargo deb --target="${matrix_target}" --no-build --no-strip
         if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'armv7-unknown-linux-gnueabihf' }}
         shell: bash
 
       - name: Move Debian-based system package
         run: |
           mkdir -p assets
-          mv target/${{matrix.target}}/debian/*.deb assets
+          mv "target/${matrix_target}/debian/*.deb" assets
         if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'armv7-unknown-linux-gnueabihf' }}
         shell: bash
 
 
-      - name: Release
-        uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836 # v2.3.3
-        with:
-          tag_name: ${{ steps.determine_tag_name.outputs.tag_name }}
-          files: assets/*
+      - name: Upload assets
+        run:
+          gh release upload "${tag}" assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate artifact attestations
         uses: actions/attest-build-provenance@v3.0.0
         with:
           subject-path: assets/*
+
+  triggers:
+    runs-on: ubuntu-latest
+    needs: [ native_build, cross_build ]
+    env:
+      tag: ${{ github.event.client_payload.tag }}
+    steps:
+      - name: Trigger workflows
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/dispatches" \
+            -f "event_type=release-assets-built" \
+            -F "client_payload[tag]=${tag}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
