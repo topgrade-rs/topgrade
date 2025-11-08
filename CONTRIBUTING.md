@@ -9,15 +9,15 @@ We welcome and encourage contributions of all kinds, such as:
 
 ### LLM/AI guidelines
 
-The use of LLMs (AI) for contributions is permitted when:
+You may use LLMs (AI tools) for:
 
-* Using them for inspiration, problem solving, understanding code, learning Rust, etc.
-* Using them to generate small and self-contained snippets of code, e.g. shell scripts or utility functions.
+* Inspiration, problem solving, learning Rust, etc.
+* Generating small and self-contained snippets of code (e.g., shell scripts or utility functions)
 
-Do not, under any circumstances, use them to:
+Do **not** use LLMs to:
 
 * Generate ("vibe code") entire pull requests
-* Generate issue or pull request descriptions
+* Write or generate issue or pull request descriptions
 
 ### General guidelines
 
