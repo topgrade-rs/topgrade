@@ -53,6 +53,7 @@ pub enum Step {
     Dotnet,
     Elan,
     Emacs,
+    Falconf,
     Firmware,
     Flatpak,
     Flutter,
@@ -305,6 +306,7 @@ impl Step {
             Dotnet => runner.execute(*self, ".NET", || generic::run_dotnet_upgrade(ctx))?,
             Elan => runner.execute(*self, "elan", || generic::run_elan(ctx))?,
             Emacs => runner.execute(*self, "Emacs", || emacs::Emacs::new().upgrade(ctx))?,
+            Falconf => runner.execute(*self, "falconf sync", || generic::run_falconf(ctx))?,
             Firmware =>
             {
                 #[cfg(target_os = "linux")]
@@ -883,6 +885,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         // JetBrains Space Desktop does not have a CLI
         JetbrainsWebstorm,
         Yazi,
+        Falconf,
         Powershell,
         CustomCommands,
         Vagrant,
