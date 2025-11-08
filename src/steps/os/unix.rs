@@ -922,6 +922,14 @@ pub fn run_maza(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(maza).arg("update").status_checked()
 }
 
+pub fn run_hyprpm(ctx: &ExecutionContext) -> Result<()> {
+    let hyprpm = require("hyprpm")?;
+
+    print_separator("hyprpm");
+
+    ctx.execute(hyprpm).arg("update").status_checked()
+}
+
 pub fn run_atuin(ctx: &ExecutionContext) -> Result<()> {
     let atuin = require("atuin-update")?;
 
