@@ -1,0 +1,10 @@
+PRETTY_NAME="AOSC OS (12.2.2)"
+NAME="AOSC OS"
+VERSION_ID="12.2.2"
+VERSION="12.2.2 (localhost)"
+BUILD_ID="20250916"
+ID=aosc
+ANSI_COLOR="1;36"
+HOME_URL="https://aosc.io/"
+SUPPORT_URL="https://github.com/AOSC-Dev/aosc-os-abbs"
+BUG_REPORT_URL="https://github.com/AOSC-Dev/aosc-os-abbs/issues"
