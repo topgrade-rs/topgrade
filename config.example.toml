@@ -382,6 +382,12 @@
 # (default: false)
 # include_release_notes = false
 
+[doom]
+# If this is set to true, the `--aot` flag is added to `doom upgrade`,
+# which enables ahead-of-time native compilation of packages.
+# (default: false)
+# aot = true
+
 [rustup]
 # If set, updates only these channels.
 # (default: [] (all channels))
