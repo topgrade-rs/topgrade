@@ -228,25 +228,25 @@ impl Aqua {
             Aqua::AquaCLI(_) => Err(SkipStep("Command `aqua` probably points to Aqua CLI".to_string()).into()),
         }
     }
-}
 
-fn get_aqua(ctx: &ExecutionContext) -> Result<Aqua> {
-    let aqua = require("aqua")?;
+    fn get(ctx: &ExecutionContext) -> Result<Self> {
+        let aqua = require("aqua")?;
 
-    // Check if `aqua --help` mentions "aqua". JetBrains Aqua does not, Aqua CLI does.
-    let output = ctx.execute(&aqua).arg("--help").output_checked()?;
+        // Check if `aqua --help` mentions "aqua". JetBrains Aqua does not, Aqua CLI does.
+        let output = ctx.execute(&aqua).arg("--help").output_checked()?;
 
-    if String::from_utf8(output.stdout)?.contains("aqua") {
-        debug!("Detected `aqua` as Aqua CLI");
-        Ok(Aqua::AquaCLI(aqua))
-    } else {
-        debug!("Detected `aqua` as JetBrains Aqua");
-        Ok(Aqua::JetBrainsAqua(aqua))
+        if String::from_utf8(output.stdout)?.contains("aqua") {
+            debug!("Detected `aqua` as Aqua CLI");
+            Ok(Self::AquaCLI(aqua))
+        } else {
+            debug!("Detected `aqua` as JetBrains Aqua");
+            Ok(Self::JetBrainsAqua(aqua))
+        }
     }
 }
 
 pub fn run_aqua(ctx: &ExecutionContext) -> Result<()> {
-    let aqua = get_aqua(ctx)?.aqua_cli()?;
+    let aqua = Aqua::get(ctx)?.aqua_cli()?;
 
     print_separator("Aqua");
     if ctx.run_type().dry() {
@@ -1113,25 +1113,25 @@ impl Hx {
             }
         }
     }
-}
 
-fn get_hx(ctx: &ExecutionContext) -> Result<Hx> {
-    let hx = require("hx")?;
+    fn get(ctx: &ExecutionContext) -> Result<Self> {
+        let hx = require("hx")?;
 
-    // Check if `hx --help` mentions "helix". Helix does, hx (hexdump alternative) doesn't.
-    let output = ctx.execute(&hx).arg("--help").output_checked()?;
+        // Check if `hx --help` mentions "helix". Helix does, hx (hexdump alternative) doesn't.
+        let output = ctx.execute(&hx).arg("--help").output_checked()?;
 
-    if String::from_utf8(output.stdout)?.contains("helix") {
-        debug!("Detected `hx` as Helix");
-        Ok(Hx::Helix(hx))
-    } else {
-        debug!("Detected `hx` as hx (hexdump alternative)");
-        Ok(Hx::HxHexdump)
+        if String::from_utf8(output.stdout)?.contains("helix") {
+            debug!("Detected `hx` as Helix");
+            Ok(Self::Helix(hx))
+        } else {
+            debug!("Detected `hx` as hx (hexdump alternative)");
+            Ok(Self::HxHexdump)
+        }
     }
 }
 
 pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
-    let helix = require("helix").or(get_hx(ctx)?.helix())?;
+    let helix = require("helix").or(Hx::get(ctx)?.helix())?;
 
     print_separator("Helix");
 
@@ -1707,7 +1707,7 @@ pub fn run_android_studio(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_jetbrains_aqua(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, get_aqua(ctx)?.jetbrains_aqua()?, "Aqua")
+    run_jetbrains_ide(ctx, Aqua::get(ctx)?.jetbrains_aqua()?, "Aqua")
 }
 
 pub fn run_jetbrains_clion(ctx: &ExecutionContext) -> Result<()> {
