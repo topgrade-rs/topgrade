@@ -1836,4 +1836,3 @@ pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(falconf).arg("sync").status_checked()
 }
-
