@@ -15,7 +15,6 @@ use indexmap::IndexMap;
 use merge::Merge;
 use regex::Regex;
 use regex_split::RegexSplit;
-use rust_i18n::t;
 use serde::Deserialize;
 use strum::IntoEnumIterator;
 use tracing::{debug, error};
@@ -656,17 +655,6 @@ impl ConfigFile {
             match toml::from_str::<Self>(contents) {
                 Ok(contents) => result.merge(contents),
                 Err(e) => error!("Failed to deserialize {}: {e}", config_path.display(),),
-            }
-        }
-
-        if let Some(paths) = result.git.as_mut().and_then(|git| git.repos.as_mut()) {
-            for path in paths.iter_mut() {
-                let expanded = shellexpand::tilde::<&str>(&path.as_ref()).into_owned();
-                debug!(
-                    "{}",
-                    t!("Path {path} expanded to {expanded}", path = path, expanded = expanded)
-                );
-                *path = expanded;
             }
         }
 
