@@ -10,13 +10,22 @@ env:
   CROSS_VER: '0.2.5'
   CARGO_NET_RETRY: 3
 
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Run cargo fmt
         env:
@@ -25,12 +34,14 @@ jobs:
           rustup component add rustfmt
           cargo fmt --all -- --check
 
-  step-enum-sorted:
-    name: Step enum sorted
+  custom-checks:
+    name: Custom checks
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Check if `Step` enum is sorted
         run: |
@@ -42,22 +53,47 @@ jobs:
           sort original.txt > sorted.txt
           diff original.txt sorted.txt
 
-  step-match-sorted:
-    name: Step match sorted
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Check if `Step::run()`'s match is sorted
         run: |
           FILE="src/step.rs"
           awk '/[[:alpha:]] =>/{print $1}' $FILE > original.txt
           sort original.txt > sorted.txt
           diff original.txt sorted.txt
-  
+
+      - name: Check if `default_steps` contains every step
+        run: |
+          # Extract all variants from enum Step
+          all_variants=$(sed -n '/^pub enum Step {/,/^}/p' src/step.rs | grep -Po '^\s*\K[A-Z][A-Za-z0-9_]*' | sort)
+
+          # Extract variants used inside default_steps
+          used_variants=$(sed -n '/^pub(crate) fn default_steps()/,/^}/p' src/step.rs | \
+            grep -Po '\b[A-Z][A-Za-z0-9_]*\b' | \
+            grep -Fx -f <(echo "$all_variants") | \
+          sort)
+
+          # Check for missing variants
+          missing=$(comm -23 <(echo "$all_variants") <(echo "$used_variants"))
+          if [[ -z "$missing" ]]; then
+            echo "All variants are used."
+            else
+            echo "Missing variants:"
+            echo "$missing"
+            exit 1
+          fi
+
+          # Check for duplicates
+          duplicates=$(echo "$used_variants" | uniq -c | awk '$1 > 1 {print $2}')
+          if [[ -z "$duplicates" ]]; then
+            echo "No duplicates found."
+            else
+            echo "Duplicates found:"
+            echo "$duplicates"
+            # We allow duplicates, but lets keep this check for potential future usefulness
+            # exit 1
+          fi
+
   main:
-    needs: [ fmt, step-enum-sorted, step-match-sorted ]
+    needs: [ fmt, custom-checks ]
     name: ${{ matrix.target_name }} (check, clippy)
     runs-on: ${{ matrix.os }}
     strategy:
@@ -80,7 +116,7 @@ jobs:
 
           - target: x86_64-apple-darwin
             target_name: macOS-x86_64
-            os: macos-13
+            os: macos-15-intel
 
           - target: aarch64-apple-darwin
             target_name: macOS-aarch64
@@ -94,28 +130,36 @@ jobs:
           - target: x86_64-pc-windows-msvc
             target_name: Windows
             os: windows-latest
+    env:
+      cargo_cmd: ${{ matrix.use_cross == true && 'cross' || 'cargo' }}
+      matrix_target: ${{ matrix.target }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Setup Rust Cache
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
         with:
           prefix-key: ${{ matrix.target }}
 
       - name: Setup cross
         if: matrix.use_cross == true
-        run: curl -fL --retry 3 https://github.com/cross-rs/cross/releases/download/v${{ env.CROSS_VER }}/cross-x86_64-unknown-linux-musl.tar.gz | tar vxz -C /usr/local/bin
+        run: |
+          curl -fL --retry 3 "https://github.com/cross-rs/cross/releases/download/v${CROSS_VER}/cross-x86_64-unknown-linux-musl.tar.gz" | tar vxz -C /usr/local/bin
 
       - name: Run cargo/cross check
-        run: ${{ matrix.use_cross == true && 'cross' || 'cargo' }} check --locked --target ${{ matrix.target }}
+        run: |
+          "${cargo_cmd}" check --locked --target "${matrix_target}"
 
       - name: Run cargo/cross clippy
         run: |
           rustup component add clippy
-          ${{ matrix.use_cross == true && 'cross' || 'cargo' }} clippy --locked --target ${{ matrix.target }} --all-features -- -D warnings
+          "${cargo_cmd}" clippy --locked --target "${matrix_target}" --all-features -- -D warnings
 
       - name: Run cargo test
         # ONLY run test with cargo
         if: matrix.use_cross == false
-        run: cargo test --locked --target ${{ matrix.target }}
+        run: |
+          cargo test --locked --target "${matrix_target}"

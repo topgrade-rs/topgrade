@@ -29,15 +29,32 @@ pub fn vimrc() -> Result<PathBuf> {
 
 fn nvimrc() -> Result<PathBuf> {
     #[cfg(unix)]
-    let base_dir = crate::XDG_DIRS.config_dir();
+    let bases: Vec<PathBuf> = vec![crate::XDG_DIRS.config_dir()];
 
     #[cfg(windows)]
-    let base_dir = crate::WINDOWS_DIRS.cache_dir();
+    let mut bases: Vec<PathBuf> = vec![crate::WINDOWS_DIRS.cache_dir()];
 
-    base_dir
-        .join("nvim/init.vim")
-        .require()
-        .or_else(|_| base_dir.join("nvim/init.lua").require())
+    #[cfg(windows)]
+    {
+        if let Some(xdg) = std::env::var_os("XDG_CONFIG_HOME")
+            .map(PathBuf::from)
+            .filter(|path| path.is_absolute())
+        {
+            bases.insert(0, xdg);
+        }
+    }
+
+    for base_dir in bases {
+        if let Ok(p) = base_dir
+            .join("nvim/init.vim")
+            .require()
+            .or_else(|_| base_dir.join("nvim/init.lua").require())
+        {
+            return Ok(p);
+        }
+    }
+
+    Err(SkipStep(format!("{}", t!("No Neovim config found"))).into())
 }
 
 fn upgrade_script() -> Result<tempfile::NamedTempFile> {
