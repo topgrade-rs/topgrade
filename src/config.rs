@@ -113,6 +113,37 @@ pub struct Windows {
     wsl_update_use_web_download: Option<bool>,
     winget_silent_install: Option<bool>,
     winget_use_sudo: Option<bool>,
+    enable_sdio: Option<bool>,
+    sdio_path: Option<String>,
+    sdio: Option<WindowsSdio>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct WindowsSdio {
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    selection_filters: Option<Vec<String>>,
+    driverpack_policy: Option<SdioDriverpackPolicy>,
+    prefetch_in_analysis: Option<bool>,
+    fetch_indexes: Option<bool>,
+    fetch_updates: Option<bool>,
+    verbose_level: Option<u16>,
+    debug_logging: Option<bool>,
+    keep_tempfiles: Option<bool>,
+    emit_echo: Option<bool>,
+    restore_point: Option<bool>,
+    restore_point_description: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum SdioDriverpackPolicy {
+    None,
+    #[default]
+    Selected,
+    Missing,
+    Updates,
+    All,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1569,6 +1600,108 @@ impl Config {
             .unwrap_or(true)
     }
 
+    pub fn sdio_path(&self) -> Option<&str> {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|windows| windows.sdio_path.as_deref())
+    }
+
+    fn windows_sdio(&self) -> Option<&WindowsSdio> {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|windows| windows.sdio.as_ref())
+    }
+
+    pub fn sdio_selection_filters(&self) -> Vec<String> {
+        let default_filters = vec!["missing".to_string(), "newer".to_string(), "better".to_string()];
+
+        let Some(raw_filters) = self.windows_sdio().and_then(|sdio| sdio.selection_filters.clone()) else {
+            return default_filters;
+        };
+
+        let mut normalized = Vec::new();
+        for filter in raw_filters {
+            let value = filter.trim().to_ascii_lowercase();
+            if value.is_empty() {
+                continue;
+            }
+            if !normalized.contains(&value) {
+                normalized.push(value);
+            }
+        }
+
+        if normalized.is_empty() {
+            default_filters
+        } else {
+            normalized
+        }
+    }
+
+    pub fn sdio_driverpack_policy(&self) -> SdioDriverpackPolicy {
+        self.windows_sdio()
+            .and_then(|sdio| sdio.driverpack_policy)
+            .unwrap_or_default()
+    }
+
+    pub fn sdio_prefetch_driverpacks_in_analysis(&self) -> bool {
+        self.windows_sdio()
+            .and_then(|sdio| sdio.prefetch_in_analysis)
+            .unwrap_or(false)
+    }
+
+    pub fn sdio_fetch_indexes(&self) -> bool {
+        self.windows_sdio().and_then(|sdio| sdio.fetch_indexes).unwrap_or(true)
+    }
+
+    pub fn sdio_fetch_updates(&self) -> bool {
+        self.windows_sdio().and_then(|sdio| sdio.fetch_updates).unwrap_or(true)
+    }
+
+    pub fn sdio_debug_logging(&self, verbose: bool) -> bool {
+        self.windows_sdio()
+            .and_then(|sdio| sdio.debug_logging)
+            .unwrap_or(verbose)
+    }
+
+    pub fn sdio_verbose_level(&self, verbose: bool) -> u16 {
+        let default_level = if verbose { 255 } else { 128 };
+        self.windows_sdio()
+            .and_then(|sdio| sdio.verbose_level)
+            .map(|level| level.clamp(0, 8580))
+            .unwrap_or(default_level)
+    }
+
+    pub fn sdio_keep_tempfiles(&self, verbose: bool) -> bool {
+        self.windows_sdio()
+            .and_then(|sdio| sdio.keep_tempfiles)
+            .unwrap_or(verbose)
+    }
+
+    pub fn sdio_emit_echo(&self, verbose: bool) -> bool {
+        self.windows_sdio().and_then(|sdio| sdio.emit_echo).unwrap_or(verbose)
+    }
+
+    pub fn sdio_restore_point_enabled(&self) -> bool {
+        self.windows_sdio().and_then(|sdio| sdio.restore_point).unwrap_or(true)
+    }
+
+    pub fn sdio_restore_point_description(&self) -> String {
+        self.windows_sdio()
+            .and_then(|sdio| sdio.restore_point_description.clone())
+            .filter(|desc| !desc.trim().is_empty())
+            .unwrap_or_else(|| "Topgrade SDIO Driver Update".to_string())
+    }
+
+    pub fn enable_sdio(&self) -> bool {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|windows| windows.enable_sdio)
+            .unwrap_or(false)
+    }
+
     pub fn allow_root(&self) -> bool {
         self.opt.allow_root
             || self
@@ -1776,6 +1909,41 @@ mod test {
         let str = include_str!("../config.example.toml");
 
         assert!(toml::from_str::<ConfigFile>(str).is_ok());
+    }
+
+    /// Validate that potentially dangerous options in the example config are
+    /// either commented out (unset) or explicitly set to safe values.
+    ///
+    /// This parses the TOML instead of relying on regex/grep so it cannot be
+    /// bypassed by inline comments or whitespace variations.
+    #[test]
+    fn test_example_config_has_safe_defaults() {
+        let str = include_str!("../config.example.toml");
+        let cfg: ConfigFile = toml::from_str(str).expect("example config should parse");
+
+        // [misc] assume_yes must not be true by default
+        let misc_assume_yes = cfg.misc.as_ref().and_then(|m| m.assume_yes);
+        assert_ne!(
+            misc_assume_yes,
+            Some(true),
+            "unsafe default: [misc].assume_yes must not be true in the example config"
+        );
+
+        // [windows] winget_use_sudo must not be true by default
+        let windows_winget_use_sudo = cfg.windows.as_ref().and_then(|w| w.winget_use_sudo);
+        assert_ne!(
+            windows_winget_use_sudo,
+            Some(true),
+            "unsafe default: [windows].winget_use_sudo must not be true in the example config"
+        );
+
+        // [windows] enable_sdio must not be true by default
+        let windows_enable_sdio = cfg.windows.as_ref().and_then(|w| w.enable_sdio);
+        assert_ne!(
+            windows_enable_sdio,
+            Some(true),
+            "unsafe default: [windows].enable_sdio must not be true in the example config"
+        );
     }
 
     fn config() -> Config {

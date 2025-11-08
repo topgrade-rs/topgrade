@@ -193,6 +193,96 @@ _version: 2
   zh_TW: "自行更新"
   de: "Selbstaktualisierung"
 
+"No SDIO updates detected":
+  en: "No SDIO updates detected"
+  lt: "No SDIO updates detected"
+  es: "No SDIO updates detected"
+  fr: "No SDIO updates detected"
+  zh_CN: "No SDIO updates detected"
+  zh_TW: "No SDIO updates detected"
+  de: "No SDIO updates detected"
+
+"SDIO analysis found no drivers to install; keeping this run in analysis mode.":
+  en: "SDIO analysis found no drivers to install; keeping this run in analysis mode."
+  lt: "SDIO analysis found no drivers to install; keeping this run in analysis mode."
+  es: "SDIO analysis found no drivers to install; keeping this run in analysis mode."
+  fr: "SDIO analysis found no drivers to install; keeping this run in analysis mode."
+  zh_CN: "SDIO analysis found no drivers to install; keeping this run in analysis mode."
+  zh_TW: "SDIO analysis found no drivers to install; keeping this run in analysis mode."
+  de: "SDIO analysis found no drivers to install; keeping this run in analysis mode."
+
+"Running SDIO dry-run analysis...":
+  en: "Running SDIO dry-run analysis..."
+  lt: "Running SDIO dry-run analysis..."
+  es: "Running SDIO dry-run analysis..."
+  fr: "Running SDIO dry-run analysis..."
+  zh_CN: "Running SDIO dry-run analysis..."
+  zh_TW: "Running SDIO dry-run analysis..."
+  de: "Running SDIO dry-run analysis..."
+
+"Running SDIO analysis...":
+  en: "Running SDIO analysis..."
+  lt: "Running SDIO analysis..."
+  es: "Running SDIO analysis..."
+  fr: "Running SDIO analysis..."
+  zh_CN: "Running SDIO analysis..."
+  zh_TW: "Running SDIO analysis..."
+  de: "Running SDIO analysis..."
+
+"Running SDIO automatic installation...":
+  en: "Running SDIO automatic installation..."
+  lt: "Running SDIO automatic installation..."
+  es: "Running SDIO automatic installation..."
+  fr: "Running SDIO automatic installation..."
+  zh_CN: "Running SDIO automatic installation..."
+  zh_TW: "Running SDIO automatic installation..."
+  de: "Running SDIO automatic installation..."
+
+"Running SDIO installation...":
+  en: "Running SDIO installation..."
+  lt: "Running SDIO installation..."
+  es: "Running SDIO installation..."
+  fr: "Running SDIO installation..."
+  zh_CN: "Running SDIO installation..."
+  zh_TW: "Running SDIO installation..."
+  de: "Running SDIO installation..."
+
+"SDIO dry-run analysis complete.":
+  en: "SDIO dry-run analysis complete."
+  lt: "SDIO dry-run analysis complete."
+  es: "SDIO dry-run analysis complete."
+  fr: "SDIO dry-run analysis complete."
+  zh_CN: "SDIO dry-run analysis complete."
+  zh_TW: "SDIO dry-run analysis complete."
+  de: "SDIO dry-run analysis complete."
+
+"SDIO analysis complete.":
+  en: "SDIO analysis complete."
+  lt: "SDIO analysis complete."
+  es: "SDIO analysis complete."
+  fr: "SDIO analysis complete."
+  zh_CN: "SDIO analysis complete."
+  zh_TW: "SDIO analysis complete."
+  de: "SDIO analysis complete."
+
+"SDIO automatic installation complete.":
+  en: "SDIO automatic installation complete."
+  lt: "SDIO automatic installation complete."
+  es: "SDIO automatic installation complete."
+  fr: "SDIO automatic installation complete."
+  zh_CN: "SDIO automatic installation complete."
+  zh_TW: "SDIO automatic installation complete."
+  de: "SDIO automatic installation complete."
+
+"SDIO installation complete.":
+  en: "SDIO installation complete."
+  lt: "SDIO installation complete."
+  es: "SDIO installation complete."
+  fr: "SDIO installation complete."
+  zh_CN: "SDIO installation complete."
+  zh_TW: "SDIO installation complete."
+  de: "SDIO installation complete."
+
 # The following 2 strings are used in the same sentence
 # i.e. *Only* updated repositories will be shown...
 # Note that the text *Only* is highlighted in green
@@ -1135,6 +1225,15 @@ _version: 2
   zh_TW: "再試一次？ (y)是/(N)否/(s)殼層/(q)退出"
   de: "Wiederholen? (y) Ja / (n) Nein / (s) Shell / (q) Beenden"
 
+"Awaiting user":
+  en: "Awaiting user"
+  lt: "Laukiama naudotojo"
+  es: "Esperando al usuario"
+  fr: "En attente de l'utilisateur"
+  zh_CN: "等待用户操作"
+  zh_TW: "等待使用者操作"
+  de: "Warte auf Benutzereingabe"
+
 # 'R', 'S', 'Q'  have to stay the same throughout all translations. Eg German would look like "\n(R) Neustarten\n(S) Konsole\n(Q) Beenden"
 "\n(R)eboot\n(S)hell\n(Q)uit":
   en: "\n(R)eboot\n(S)hell\n(Q)uit"
@@ -1144,7 +1243,32 @@ _version: 2
   zh_CN: "\n(R)重启\n(S)Shell\n(Q)退出"
   zh_TW: "\n(R)重新啟動\n(S)殼層\n(Q)退出"
   de: "\n(R) Neustarten\n(S)hell\n(Q)uit beenden"
+"Require sudo or counterpart but not found, skip":
+  en: "Require sudo or counterpart but not found, skip"
+  lt: "Reikalingas sudo arba atitikmuo, bet nerasta, praleidžiama"
+  es: "Se requiere sudo o su equivalente pero no ha sido encontrado, omitiendo"
+  fr: "Nécessite sudo ou un équivalent mais n'a pas été trouvé, passé"
+  zh_CN: "找不到权限管理程序（sudo 等），跳过"
+  zh_TW: "找不到權限管理程式（sudo 等），略過"
+  de: "Benötigt sudo oder Äquivalent, aber nicht gefunden, überspringe"
 
+# Generic messages with formatting placeholders used in output and errors
+"Command failed: `{command}`":
+  en: "Command failed: `%{command}`"
+  lt: "Komanda nepavyko: `%{command}`"
+  es: "El comando falló: `%{command}`"
+  fr: "La commande a échoué : `%{command}`"
+  zh_CN: "命令失败：`%{command}`"
+  zh_TW: "指令失敗：`%{command}`"
+  de: "Befehl fehlgeschlagen: `%{command}`"
+"Failed to execute `{command}`":
+  en: "Failed to execute `%{command}`"
+  lt: "Nepavyko įvykdyti `%{command}`"
+  es: "No se pudo ejecutar `%{command}`"
+  fr: "Échec de l'exécution de `%{command}`"
+  zh_CN: "无法执行：`%{command}`"
+  zh_TW: "無法執行：`%{command}`"
+  de: "Ausführung fehlgeschlagen: `%{command}`"
 "Continue?":
   en: "Continue?"
   lt: "Tęsti?"
@@ -1314,6 +1438,38 @@ _version: 2
   zh_CN: "无法在任何 WSL 发行版中找到 Topgrade"
   zh_TW: "在所有 WSL 中找不到 Topgrade"
   de: "Konnte Topgrade in keiner WSL-Distribution finden"
+"SDIO (Snappy Driver Installer Origin) not found":
+  en: "SDIO (Snappy Driver Installer Origin) not found"
+  lt: "SDIO (Snappy Driver Installer Origin) nerastas"
+  es: "SDIO (Snappy Driver Installer Origin) no encontrado"
+  fr: "SDIO (Snappy Driver Installer Origin) introuvable"
+  zh_CN: "未找到 SDIO (Snappy Driver Installer Origin)"
+  zh_TW: "找不到 SDIO (Snappy Driver Installer Origin)"
+  de: "SDIO (Snappy Driver Installer Origin) nicht gefunden"
+"SDIO driver updates are disabled. Enable with 'enable_sdio = true' in [windows] section":
+  en: "SDIO driver updates are disabled. Enable with 'enable_sdio = true' in [windows] section"
+  lt: "SDIO tvarkyklių atnaujinimai išjungti. Įjunkite su 'enable_sdio = true' [windows] sekcijoje"
+  es: "Las actualizaciones de controladores SDIO están deshabilitadas. Habilite con 'enable_sdio = true' en la sección [windows]"
+  fr: "Les mises à jour des pilotes SDIO sont désactivées. Activez avec 'enable_sdio = true' dans la section [windows]"
+  zh_CN: "SDIO 驱动程序更新已禁用。在 [windows] 部分使用 'enable_sdio = true' 启用"
+  zh_TW: "SDIO 驅動程式更新已停用。在 [windows] 部分使用 'enable_sdio = true' 啟用"
+  de: "SDIO-Treiberupdates sind deaktiviert. Mit 'enable_sdio = true' im Abschnitt [windows] aktivieren"
+"Snappy Driver Installer Origin":
+  en: "Snappy Driver Installer Origin"
+  lt: "Snappy Driver Installer Origin"
+  es: "Snappy Driver Installer Origin"
+  fr: "Snappy Driver Installer Origin"
+  zh_CN: "Snappy Driver Installer Origin"
+  zh_TW: "Snappy Driver Installer Origin"
+  de: "Snappy Driver Installer Origin"
+"Proceed to install selected drivers now? This will create a restore point first. (y/N)":
+  en: "Proceed to install selected drivers now? This will create a restore point first. (y/N)"
+  lt: "Ar norite dabar įdiegti pasirinktus tvarkykles? Pirmiausia bus sukurta atkūrimo taškas. (y/N)"
+  es: "¿Desea instalar los controladores seleccionados ahora? Primero se creará un punto de restauración. (y/N)"
+  fr: "Procéder à l'installation des pilotes sélectionnés maintenant ? Un point de restauration sera créé d'abord. (y/N)"
+  zh_CN: "现在安装所选驱动程序吗？将首先创建一个还原点。(y/N)"
+  zh_TW: "現在要安裝所選的驅動程式嗎？將先建立還原點。(y/N)"
+  de: "Ausgewählte Treiber jetzt installieren? Zuerst wird ein Wiederherstellungspunkt erstellt. (y/N)"
 "Windows Update":
   en: "Windows Update"
   lt: "Windows atnaujinimas"
