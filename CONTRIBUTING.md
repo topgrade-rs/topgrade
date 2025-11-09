@@ -11,7 +11,7 @@ We welcome and encourage contributions of all kinds, such as:
 
 You may use LLMs (AI tools) for:
 
-* Inspiration, problem solving, learning Rust, etc.
+* Inspiration, problem solving, learning Rust, translation (to English or to Rust), etc.
 * Generating small and self-contained snippets of code (e.g., shell scripts or utility functions)
 
 Do **not** use LLMs to:
