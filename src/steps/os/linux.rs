@@ -1030,6 +1030,7 @@ pub fn run_dkp_pacman_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
+    // The `config_update` step always requests user input, so when running with `--yes` we need to skip the step entirely
     if ctx.config().yes(Step::ConfigUpdate) {
         return Err(SkipStep(t!("Skipped in --yes").to_string()).into());
     }
@@ -1039,6 +1040,7 @@ pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
         let sudo = ctx.require_sudo()?;
         sudo.execute(ctx, etc_update)?.status_checked()?;
     } else if let Ok(pacdiff) = require("pacdiff") {
+        // When `DIFFPROG` is unset, `pacdiff` uses `vim` by default
         if std::env::var("DIFFPROG").is_err() {
             require("vim")?;
         }
