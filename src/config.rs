@@ -196,12 +196,6 @@ pub struct Brew {
     fetch_head: Option<bool>,
 }
 
-#[derive(Deserialize, Default, Debug, Merge)]
-#[serde(deny_unknown_fields)]
-pub struct Pkgfile {
-    enable: Option<bool>,
-}
-
 #[derive(Debug, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum ArchPackageManager {
@@ -501,6 +495,12 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     pkgfile: Option<Pkgfile>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct Pkgfile {
+    enable: Option<bool>,
 }
 
 fn config_directory() -> PathBuf {
@@ -1615,14 +1615,6 @@ impl Config {
             .unwrap_or(true)
     }
 
-    pub fn enable_pkgfile(&self) -> bool {
-        self.config_file
-            .pkgfile
-            .as_ref()
-            .and_then(|pkgfile| pkgfile.enable)
-            .unwrap_or(false)
-    }
-
     #[cfg(target_os = "linux")]
     pub fn npm_use_sudo(&self) -> bool {
         self.config_file
@@ -1798,6 +1790,14 @@ impl Config {
             .doom
             .as_ref()
             .and_then(|doom| doom.aot)
+            .unwrap_or(false)
+    }
+
+    pub fn enable_pkgfile(&self) -> bool {
+        self.config_file
+            .pkgfile
+            .as_ref()
+            .and_then(|pkgfile| pkgfile.enable)
             .unwrap_or(false)
     }
 }
