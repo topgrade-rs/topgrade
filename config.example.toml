@@ -228,6 +228,13 @@
 # enable = true
 
 
+[pkgfile]
+# Enable the pkgfile step (to update the pkgfile database).
+# Pkgfile is sometimes installed by default, but often not used and heavy to update.
+# (default: false)
+# enable = true
+
+
 [git]
 # How many repos to pull at max in parallel
 # max_concurrency = 5
