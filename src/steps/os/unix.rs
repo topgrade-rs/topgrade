@@ -803,6 +803,8 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(&mise).args(["plugins", "update"]).status_checked()?;
 
+    ctx.execute(&mise).args(["self-update"]).status_checked()?;
+
     ctx.execute(&mise).arg("upgrade").status_checked()
 }
 
