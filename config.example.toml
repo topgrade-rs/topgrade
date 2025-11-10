@@ -288,6 +288,7 @@
 
 [chezmoi]
 # Exclude encrypted files from update
+# (default: false)
 # exclude_encrypted = false
 
 [npm]
