@@ -916,12 +916,18 @@ pub fn run_chezmoi_update(ctx: &ExecutionContext) -> Result<()> {
     let chezmoi = require("chezmoi")?;
     HOME_DIR.join(".local/share/chezmoi").require()?;
 
+    let mut executor = ctx.execute(chezmoi);
+
     print_separator("chezmoi");
 
-    ctx.execute(chezmoi)
-        .arg("update")
-        .arg("--exclude=encrypted")
-        .status_checked()
+    executor.arg("update");
+
+    if ctx.config().chezmoi_exclude_encrypted() {
+        executor.arg("--exclude=encrypted");
+    }
+
+    executor.status_checked()
+
 }
 
 pub fn run_myrepos_update(ctx: &ExecutionContext) -> Result<()> {
