@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.2.1](https://github.com/topgrade-rs/topgrade/compare/v16.2.0...v16.2.1) - 2025-11-10
+
+### Fixed
+
+- *(release)* Use bash in Windows to fix powershell issues ([#1461](https://github.com/topgrade-rs/topgrade/pull/1461))
+- *(release)* Fix .deb distribution ([#1460](https://github.com/topgrade-rs/topgrade/pull/1460))
+- *(release)* Fix .deb distribution ([#1458](https://github.com/topgrade-rs/topgrade/pull/1458))
+
 ## [16.2.0](https://github.com/topgrade-rs/topgrade/compare/v16.1.2...v16.2.0) - 2025-11-10
 
 ### Added

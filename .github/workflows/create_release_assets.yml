@@ -8,6 +8,10 @@ permissions:
   # Write permissions to call the repository dispatch
   contents: write
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   # Publish release files for CD native environments
   native_build:
@@ -268,7 +272,7 @@ jobs:
       - name: Move Debian-based system package
         run: |
           mkdir -p assets
-          mv "target/${matrix_target}/debian/*.deb" assets
+          mv target/"${matrix_target}"/debian/*.deb assets
         if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'armv7-unknown-linux-gnueabihf' }}
         shell: bash
 
