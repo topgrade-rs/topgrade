@@ -916,7 +916,7 @@ pub fn run_chezmoi_update(ctx: &ExecutionContext) -> Result<()> {
     let chezmoi = require("chezmoi")?;
     HOME_DIR.join(".local/share/chezmoi").require()?;
 
-    let mut executor = ctx.execute(chezmoi);
+    let mut cmd = ctx.execute(chezmoi);
 
     print_separator("chezmoi");
 
