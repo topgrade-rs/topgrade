@@ -813,7 +813,7 @@ pub struct CommandLineArgs {
     #[arg(long, default_value = DEFAULT_LOG_LEVEL)]
     pub log_filter: String,
 
-    /// Print completion script for the given shell (bash, zsh, fish, nu, ...) and exit
+    /// Print completion script for the given shell (bash, zsh, fish, powershell, elvish) and exit
     #[arg(long = "completions")]
     pub gen_completion: Option<String>,
 
@@ -1897,12 +1897,6 @@ mod test {
     fn test_completions_option_fish() {
         let args = CommandLineArgs::parse_from(["topgrade", "--completions", "fish"]);
         assert_eq!(args.gen_completion, Some("fish".to_string()));
-    }
-
-    #[test]
-    fn test_completions_option_nu() {
-        let args = CommandLineArgs::parse_from(["topgrade", "--completions", "nu"]);
-        assert_eq!(args.gen_completion, Some("nu".to_string()));
     }
 
     #[test]

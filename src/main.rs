@@ -9,8 +9,6 @@ use std::time::Duration;
 use crate::breaking_changes::{first_run_of_major_release, print_breaking_changes, should_skip, write_keep_file};
 use clap::CommandFactory;
 use clap::{crate_version, Parser};
-use clap_complete::Generator;
-use clap_complete_nushell;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use console::Key;
@@ -85,7 +83,7 @@ fn run() -> Result<()> {
     rust_i18n::set_locale(&system_locale);
     debug!("Current system locale is {system_locale}");
 
-    // Generate shell completion scripts for the specified shell (bash, zsh, fish, nu, etc.)
+    // Generate shell completion scripts for the specified shell (bash, zsh, fish, powershell, elvish) and exit
     if let Some(shell_str) = opt.gen_completion {
         let cmd = &mut CommandLineArgs::command();
         cmd.set_bin_name(clap::crate_name!());
@@ -105,11 +103,9 @@ fn run() -> Result<()> {
                 clap::crate_name!(),
                 &mut io::stdout(),
             ),
-            // Generate Nushell completion script
-            "nu" => clap_complete_nushell::Nushell.generate(cmd, &mut io::stdout()),
             _ => {
                 eprintln!(
-                    "Unsupported shell '{}'. Supported shells are: bash, zsh, fish, powershell, elvish, nu",
+                    "Unsupported shell '{}'. Supported shells are: bash, zsh, fish, powershell, elvish",
                     shell_str
                 );
                 std::process::exit(1);

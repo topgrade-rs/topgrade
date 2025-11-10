@@ -21,8 +21,7 @@ toml = "0.8"
 which_crate = { version = "~6.0", package = "which" }
 shellexpand = "~3.1"
 clap = { version = "~4.5", features = ["cargo", "derive"] }
-clap_complete = "~4.5"
-clap_complete_nushell = "~4.5"
+clap_complete = "4.3.4"
 clap_mangen = "~0.2"
 walkdir = "~2.5"
 console = "~0.15"
@@ -49,6 +48,8 @@ sys-locale = "0.3.1"
 jetbrains-toolbox-updater = "5.0.0"
 indexmap = { version = "2.9.0", features = ["serde"] }
 serde_json = "1.0.145"
+globset = "0.4.17"
+
 
 [package.metadata.generate-rpm]
 assets = [{ source = "target/release/topgrade", dest = "/usr/bin/topgrade" }]
