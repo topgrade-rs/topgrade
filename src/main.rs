@@ -23,8 +23,6 @@ use tracing::debug;
 
 use self::config::{CommandLineArgs, Config};
 use self::error::StepFailed;
-#[cfg(all(windows, feature = "self-update"))]
-use self::error::Upgraded;
 use self::runner::StepResult;
 #[allow(clippy::wildcard_imports)]
 use self::steps::{remote::*, *};
@@ -335,13 +333,6 @@ fn main() {
             exit(0);
         }
         Err(error) => {
-            #[cfg(all(windows, feature = "self-update"))]
-            {
-                if let Some(Upgraded(status)) = error.downcast_ref::<Upgraded>() {
-                    exit(status.code().unwrap());
-                }
-            }
-
             let skip_print = (error.downcast_ref::<StepFailed>().is_some())
                 || (error
                     .downcast_ref::<io::Error>()

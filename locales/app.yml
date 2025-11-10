@@ -1062,14 +1062,6 @@ _version: 2
   zh_CN: "模拟运行"
   zh_TW: "模擬執行"
   de: "Testlauf"
-"Topgrade Upgraded":
-  en: "Topgrade Upgraded"
-  lt: "Topgrade atnaujintas"
-  es: "Topgrade Actualizado"
-  fr: "Topgrade mis à jour"
-  zh_CN: "已升级 Topgrade"
-  zh_TW: "已更新 Topgrade"
-  de: "Topgrade aktualisiert"
 
 # Summary texts
 "OK":
