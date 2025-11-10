@@ -8,6 +8,10 @@ permissions:
   # Write permissions to call the repository dispatch
   contents: write
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   # Publish release files for CD native environments
   native_build:
