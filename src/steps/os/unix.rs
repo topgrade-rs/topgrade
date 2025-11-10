@@ -1,6 +1,6 @@
-use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use color_eyre::eyre::{eyre, OptionExt};
 use etcetera::BaseStrategy;
 use home;
 use ini::Ini;
@@ -10,13 +10,14 @@ use regex::Regex;
 use rust_i18n::t;
 use semver::Version;
 use std::ffi::OsStr;
-use std::fs;
+use std::io::Write;
 use std::os::unix::fs::MetadataExt;
 use std::path::Component;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::LazyLock;
 use std::{env::var, path::Path};
+use std::{fs, io};
 use tracing::{debug, warn};
 
 use crate::command::CommandExt;
@@ -803,7 +804,25 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(&mise).args(["plugins", "update"]).status_checked()?;
 
-    ctx.execute(&mise).args(["self-update"]).status_checked()?;
+    let output = ctx
+        .execute(&mise)
+        .args(["self-update"])
+        .output_checked_with(|_| Ok(()))?;
+    let status_code = output
+        .status
+        .code()
+        .ok_or_eyre("Couldn't get status code (terminated by signal)")?;
+    let stderr = std::str::from_utf8(&output.stderr).wrap_err("Expected output to be valid UTF-8")?;
+    if stderr.contains("mise is installed via a package manager") && status_code == 1 {
+        debug!("Mise self-update not available")
+    } else {
+        // Write the output
+        io::stdout().write_all(&output.stdout)?;
+        io::stderr().write_all(&output.stderr)?;
+        if status_code != 0 {
+            return Err(StepFailed.into());
+        }
+    }
 
     ctx.execute(&mise).arg("upgrade").status_checked()
 }
