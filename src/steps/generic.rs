@@ -918,7 +918,10 @@ pub fn run_chezmoi_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("chezmoi");
 
-    ctx.execute(chezmoi).arg("update").status_checked()
+    ctx.execute(chezmoi)
+        .arg("update")
+        .arg("--exclude=encrypted")
+        .status_checked()
 }
 
 pub fn run_myrepos_update(ctx: &ExecutionContext) -> Result<()> {
