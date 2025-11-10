@@ -7,7 +7,7 @@ use std::process::Command;
 use std::{env, fmt, fs};
 
 use clap::{Parser, ValueEnum};
-use clap_complete::Shell;
+
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use etcetera::base_strategy::BaseStrategy;
@@ -813,9 +813,9 @@ pub struct CommandLineArgs {
     #[arg(long, default_value = DEFAULT_LOG_LEVEL)]
     pub log_filter: String,
 
-    /// Print completion script for the given shell and exit
-    #[arg(long, value_enum, hide = true)]
-    pub gen_completion: Option<Shell>,
+    /// Print completion script for the given shell (bash, zsh, fish, nu, ...) and exit
+    #[arg(long = "completions")]
+    pub gen_completion: Option<String>,
 
     /// Print roff manpage and exit
     #[arg(long, hide = true)]

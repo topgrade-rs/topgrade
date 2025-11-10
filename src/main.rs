@@ -9,6 +9,8 @@ use std::time::Duration;
 use crate::breaking_changes::{first_run_of_major_release, print_breaking_changes, should_skip, write_keep_file};
 use clap::CommandFactory;
 use clap::{crate_version, Parser};
+use clap_complete::Generator;
+use clap_complete_nushell;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use console::Key;
@@ -83,9 +85,31 @@ fn run() -> Result<()> {
     rust_i18n::set_locale(&system_locale);
     debug!("Current system locale is {system_locale}");
 
-    if let Some(shell) = opt.gen_completion {
+    if let Some(shell_str) = opt.gen_completion {
         let cmd = &mut CommandLineArgs::command();
-        clap_complete::generate(shell, cmd, clap::crate_name!(), &mut io::stdout());
+        cmd.set_bin_name(clap::crate_name!());
+        match shell_str.as_str() {
+            "bash" => clap_complete::generate(clap_complete::Shell::Bash, cmd, clap::crate_name!(), &mut io::stdout()),
+            "zsh" => clap_complete::generate(clap_complete::Shell::Zsh, cmd, clap::crate_name!(), &mut io::stdout()),
+            "fish" => clap_complete::generate(clap_complete::Shell::Fish, cmd, clap::crate_name!(), &mut io::stdout()),
+            "powershell" => clap_complete::generate(
+                clap_complete::Shell::PowerShell,
+                cmd,
+                clap::crate_name!(),
+                &mut io::stdout(),
+            ),
+            "elvish" => clap_complete::generate(
+                clap_complete::Shell::Elvish,
+                cmd,
+                clap::crate_name!(),
+                &mut io::stdout(),
+            ),
+            "nu" => clap_complete_nushell::Nushell.generate(cmd, &mut io::stdout()),
+            _ => {
+                eprintln!("Unsupported shell: {}", shell_str);
+                std::process::exit(1);
+            }
+        }
         return Ok(());
     }
 
