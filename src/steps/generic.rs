@@ -436,10 +436,10 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
     let is_root_install = false;
 
     let mut command = if is_root_install {
-        ctx.execute(&vcpkg)
-    } else {
         let sudo = ctx.require_sudo()?;
         sudo.execute(ctx, &vcpkg)?
+    } else {
+        ctx.execute(&vcpkg)
     };
 
     command.args(["upgrade", "--no-dry-run"]).status_checked()
