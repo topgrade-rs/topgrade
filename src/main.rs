@@ -108,7 +108,10 @@ fn run() -> Result<()> {
             // Generate Nushell completion script
             "nu" => clap_complete_nushell::Nushell.generate(cmd, &mut io::stdout()),
             _ => {
-                eprintln!("Unsupported shell: {}", shell_str);
+                eprintln!(
+                    "Unsupported shell '{}'. Supported shells are: bash, zsh, fish, powershell, elvish, nu",
+                    shell_str
+                );
                 std::process::exit(1);
             }
         }
