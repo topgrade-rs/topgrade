@@ -927,7 +927,6 @@ pub fn run_chezmoi_update(ctx: &ExecutionContext) -> Result<()> {
     }
 
     executor.status_checked()
-
 }
 
 pub fn run_myrepos_update(ctx: &ExecutionContext) -> Result<()> {
