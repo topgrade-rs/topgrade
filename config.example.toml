@@ -229,7 +229,7 @@
 
 
 [pkgfile]
-# Enable the pkgfile step (to update manual entries).
+# Enable the pkgfile step (to update the pkgfile database).
 # Pkgfile is updated in the background by a service on most systems by default.
 # (default: false)
 # enable = true
