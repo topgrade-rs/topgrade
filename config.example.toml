@@ -286,6 +286,10 @@
 # winget_use_sudo = true
 
 
+[chezmoi]
+# Exclude encrypted files from update
+# exclude_encrypted = false
+
 [npm]
 # Use sudo if the NPM directory isn't owned by the current user
 # use_sudo = true
