@@ -230,7 +230,7 @@
 
 [pkgfile]
 # Enable the pkgfile step (to update the pkgfile database).
-# Pkgfile is sometimes installed, but default but often not used and heavy to update.
+# Pkgfile is sometimes installed by default, but often not used and heavy to update.
 # (default: false)
 # enable = true
 

@@ -404,6 +404,12 @@ pub struct Rustup {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct Pkgfile {
+    enable: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 /// Configuration file
 pub struct ConfigFile {
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
@@ -495,12 +501,6 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     pkgfile: Option<Pkgfile>,
-}
-
-#[derive(Deserialize, Default, Debug, Merge)]
-#[serde(deny_unknown_fields)]
-pub struct Pkgfile {
-    enable: Option<bool>,
 }
 
 fn config_directory() -> PathBuf {
