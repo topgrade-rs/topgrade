@@ -1880,4 +1880,34 @@ mod test {
         config.opt = CommandLineArgs::parse_from(["topgrade", "--remote-host-limit", "other_hostname"]);
         assert!(!config.should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"));
     }
+
+    #[test]
+    fn test_completions_option_bash() {
+        let args = CommandLineArgs::parse_from(["topgrade", "--completions", "bash"]);
+        assert_eq!(args.gen_completion, Some("bash".to_string()));
+    }
+
+    #[test]
+    fn test_completions_option_zsh() {
+        let args = CommandLineArgs::parse_from(["topgrade", "--completions", "zsh"]);
+        assert_eq!(args.gen_completion, Some("zsh".to_string()));
+    }
+
+    #[test]
+    fn test_completions_option_fish() {
+        let args = CommandLineArgs::parse_from(["topgrade", "--completions", "fish"]);
+        assert_eq!(args.gen_completion, Some("fish".to_string()));
+    }
+
+    #[test]
+    fn test_completions_option_nu() {
+        let args = CommandLineArgs::parse_from(["topgrade", "--completions", "nu"]);
+        assert_eq!(args.gen_completion, Some("nu".to_string()));
+    }
+
+    #[test]
+    fn test_completions_option_none_by_default() {
+        let args = CommandLineArgs::parse_from(["topgrade"]);
+        assert_eq!(args.gen_completion, None);
+    }
 }
