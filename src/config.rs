@@ -1774,6 +1774,14 @@ impl Config {
             .unwrap_or(false)
     }
 
+    pub fn chezmoi_exclude_encrypted(&self) -> bool {
+        self.config_file
+            .chezmoi
+            .as_ref()
+            .and_then(|chezmoi| chezmoi.exclude_encrypted)
+            .unwrap_or(false)
+    }
+
     pub fn vscode_profile(&self) -> Option<&str> {
         let vscode_cfg = self.config_file.vscode.as_ref()?;
         let profile = vscode_cfg.profile.as_ref()?;
