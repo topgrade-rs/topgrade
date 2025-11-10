@@ -168,6 +168,13 @@ pub struct Deno {
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
+pub struct Chezmoi {
+    exclude_encrypted: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct Firmware {
     upgrade: Option<bool>,
 }
@@ -456,6 +463,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     npm: Option<NPM>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    chezmoi: Option<Chezmoi>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     yarn: Option<Yarn>,
@@ -1771,6 +1781,14 @@ impl Config {
             .zigup
             .as_ref()
             .and_then(|zigup| zigup.cleanup)
+            .unwrap_or(false)
+    }
+
+    pub fn chezmoi_exclude_encrypted(&self) -> bool {
+        self.config_file
+            .chezmoi
+            .as_ref()
+            .and_then(|chezmoi| chezmoi.exclude_encrypted)
             .unwrap_or(false)
     }
 
