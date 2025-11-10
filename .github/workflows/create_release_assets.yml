@@ -71,9 +71,10 @@ jobs:
           mkdir -p "$dir"
           echo "DEPLOY_DIR=$dir" >> $GITHUB_ENV
 
-      - name: Generate shell completions
+      - name: Generate man page and shell completions
         shell: bash
         run: |
+          "$BIN" --gen-manpage > "$DEPLOY_DIR/topgrade.1"
           "$BIN" --gen-completion bash > "$DEPLOY_DIR/topgrade.bash"
           "$BIN" --gen-completion fish > "$DEPLOY_DIR/topgrade.fish"
           "$BIN" --gen-completion zsh > "$DEPLOY_DIR/_topgrade"
