@@ -1030,7 +1030,7 @@ pub fn run_dkp_pacman_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
-    //ConfigUpdate wants to pauze but because of the yes it always wants to skip the whole line
+    // The `config_update` step always requests user input, so when running with `--yes` we need to skip the step entirely
     if ctx.config().yes(Step::ConfigUpdate) {
         return Err(SkipStep(t!("Skipped in --yes").to_string()).into());
     }
