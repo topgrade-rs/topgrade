@@ -1,6 +1,6 @@
-use color_eyre::eyre::{eyre, OptionExt};
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use color_eyre::eyre::{eyre, OptionExt};
 use etcetera::BaseStrategy;
 use home;
 use ini::Ini;
@@ -10,14 +10,14 @@ use regex::Regex;
 use rust_i18n::t;
 use semver::Version;
 use std::ffi::OsStr;
-use std::{fs, io};
+use std::io::Write;
 use std::os::unix::fs::MetadataExt;
 use std::path::Component;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::LazyLock;
 use std::{env::var, path::Path};
-use std::io::Write;
+use std::{fs, io};
 use tracing::{debug, warn};
 
 use crate::command::CommandExt;
@@ -804,7 +804,10 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(&mise).args(["plugins", "update"]).status_checked()?;
 
-    let output = ctx.execute(&mise).args(["self-update"]).output_checked_with(|_| Ok(()))?;
+    let output = ctx
+        .execute(&mise)
+        .args(["self-update"])
+        .output_checked_with(|_| Ok(()))?;
     let status_code = output
         .status
         .code()
