@@ -116,14 +116,3 @@ impl Display for SkipStep {
         write!(f, "{}", self.0)
     }
 }
-
-#[cfg(all(windows, feature = "self-update"))]
-#[derive(Error, Debug)]
-pub struct Upgraded(pub ExitStatus);
-
-#[cfg(all(windows, feature = "self-update"))]
-impl Display for Upgraded {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", t!("Topgrade Upgraded"))
-    }
-}
