@@ -920,13 +920,13 @@ pub fn run_chezmoi_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("chezmoi");
 
-    executor.arg("update");
+    cmd.arg("update");
 
     if ctx.config().chezmoi_exclude_encrypted() {
-        executor.arg("--exclude=encrypted");
+        cmd.arg("--exclude=encrypted");
     }
 
-    executor.status_checked()
+    cmd.status_checked()
 }
 
 pub fn run_myrepos_update(ctx: &ExecutionContext) -> Result<()> {
