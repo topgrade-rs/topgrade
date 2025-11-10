@@ -169,7 +169,7 @@ pub struct Deno {
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct Chezmoi {
-    version: Option<bool>,
+    exclude_encrypted: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
