@@ -7,6 +7,7 @@ use std::process::exit;
 use std::time::Duration;
 
 use crate::breaking_changes::{first_run_of_major_release, print_breaking_changes, should_skip, write_keep_file};
+use crate::config::CompletionShell;
 use clap::CommandFactory;
 use clap::{crate_version, Parser};
 use color_eyre::eyre::Context;
@@ -84,32 +85,31 @@ fn run() -> Result<()> {
     debug!("Current system locale is {system_locale}");
 
     // Generate shell completion scripts for the specified shell (bash, zsh, fish, powershell, elvish) and exit
-    if let Some(shell_str) = opt.gen_completion {
+    if let Some(shell) = opt.gen_completion {
         let cmd = &mut CommandLineArgs::command();
         cmd.set_bin_name(clap::crate_name!());
-        match shell_str.as_str() {
-            "bash" => clap_complete::generate(clap_complete::Shell::Bash, cmd, clap::crate_name!(), &mut io::stdout()),
-            "zsh" => clap_complete::generate(clap_complete::Shell::Zsh, cmd, clap::crate_name!(), &mut io::stdout()),
-            "fish" => clap_complete::generate(clap_complete::Shell::Fish, cmd, clap::crate_name!(), &mut io::stdout()),
-            "powershell" => clap_complete::generate(
+        match shell {
+            CompletionShell::Bash => {
+                clap_complete::generate(clap_complete::Shell::Bash, cmd, clap::crate_name!(), &mut io::stdout())
+            }
+            CompletionShell::Zsh => {
+                clap_complete::generate(clap_complete::Shell::Zsh, cmd, clap::crate_name!(), &mut io::stdout())
+            }
+            CompletionShell::Fish => {
+                clap_complete::generate(clap_complete::Shell::Fish, cmd, clap::crate_name!(), &mut io::stdout())
+            }
+            CompletionShell::PowerShell => clap_complete::generate(
                 clap_complete::Shell::PowerShell,
                 cmd,
                 clap::crate_name!(),
                 &mut io::stdout(),
             ),
-            "elvish" => clap_complete::generate(
+            CompletionShell::Elvish => clap_complete::generate(
                 clap_complete::Shell::Elvish,
                 cmd,
                 clap::crate_name!(),
                 &mut io::stdout(),
             ),
-            _ => {
-                eprintln!(
-                    "Unsupported shell '{}'. Supported shells are: bash, zsh, fish, powershell, elvish",
-                    shell_str
-                );
-                std::process::exit(1);
-            }
         }
         return Ok(());
     }

@@ -8,6 +8,15 @@ use std::{env, fmt, fs};
 
 use clap::{Parser, ValueEnum};
 
+#[derive(Clone, Debug, PartialEq, ValueEnum)]
+pub enum CompletionShell {
+    Bash,
+    Zsh,
+    Fish,
+    PowerShell,
+    Elvish,
+}
+
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use etcetera::base_strategy::BaseStrategy;
@@ -814,8 +823,8 @@ pub struct CommandLineArgs {
     pub log_filter: String,
 
     /// Print completion script for the given shell (bash, zsh, fish, powershell, elvish) and exit
-    #[arg(long = "completions")]
-    pub gen_completion: Option<String>,
+    #[arg(long = "completions", value_enum)]
+    pub gen_completion: Option<CompletionShell>,
 
     /// Print roff manpage and exit
     #[arg(long, hide = true)]
@@ -1884,19 +1893,31 @@ mod test {
     #[test]
     fn test_completions_option_bash() {
         let args = CommandLineArgs::parse_from(["topgrade", "--completions", "bash"]);
-        assert_eq!(args.gen_completion, Some("bash".to_string()));
+        assert_eq!(args.gen_completion, Some(CompletionShell::Bash));
     }
 
     #[test]
     fn test_completions_option_zsh() {
         let args = CommandLineArgs::parse_from(["topgrade", "--completions", "zsh"]);
-        assert_eq!(args.gen_completion, Some("zsh".to_string()));
+        assert_eq!(args.gen_completion, Some(CompletionShell::Zsh));
     }
 
     #[test]
     fn test_completions_option_fish() {
         let args = CommandLineArgs::parse_from(["topgrade", "--completions", "fish"]);
-        assert_eq!(args.gen_completion, Some("fish".to_string()));
+        assert_eq!(args.gen_completion, Some(CompletionShell::Fish));
+    }
+
+    #[test]
+    fn test_completions_option_powershell() {
+        let args = CommandLineArgs::parse_from(["topgrade", "--completions", "power-shell"]);
+        assert_eq!(args.gen_completion, Some(CompletionShell::PowerShell));
+    }
+
+    #[test]
+    fn test_completions_option_elvish() {
+        let args = CommandLineArgs::parse_from(["topgrade", "--completions", "elvish"]);
+        assert_eq!(args.gen_completion, Some(CompletionShell::Elvish));
     }
 
     #[test]
