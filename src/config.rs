@@ -168,6 +168,13 @@ pub struct Deno {
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
+pub struct Chezmoi {
+    version: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct Firmware {
     upgrade: Option<bool>,
 }
@@ -456,6 +463,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     npm: Option<NPM>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    chezmoi: Option<Chezmoi>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     yarn: Option<Yarn>,
