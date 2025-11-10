@@ -196,6 +196,12 @@ pub struct Brew {
     fetch_head: Option<bool>,
 }
 
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct Pkgfile {
+    enable: Option<bool>,
+}
+
 #[derive(Debug, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum ArchPackageManager {
@@ -492,6 +498,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     rustup: Option<Rustup>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    pkgfile: Option<Pkgfile>,
 }
 
 fn config_directory() -> PathBuf {
@@ -1604,6 +1613,14 @@ impl Config {
             .as_ref()
             .and_then(|misc| misc.show_distribution_summary)
             .unwrap_or(true)
+    }
+
+    pub fn enable_pkgfile(&self) -> bool {
+        self.config_file
+            .pkgfile
+            .as_ref()
+            .and_then(|pkgfile| pkgfile.enable)
+            .unwrap_or(false)
     }
 
     #[cfg(target_os = "linux")]

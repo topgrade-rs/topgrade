@@ -228,6 +228,13 @@
 # enable = true
 
 
+[pkgfile]
+# Enable the pkgfile step (to update manual entries).
+# Pkgfile is updated in the background by a service on most systems by default.
+# (default: false)
+# enable = true
+
+
 [git]
 # How many repos to pull at max in parallel
 # max_concurrency = 5

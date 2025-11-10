@@ -710,6 +710,10 @@ pub fn run_pacstall(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_pkgfile(ctx: &ExecutionContext) -> Result<()> {
     let pkgfile = require("pkgfile")?;
 
+    if !ctx.config().enable_pkgfile() {
+        return Err(SkipStep("Pkgfile isn't enabled".to_string()).into());
+    }
+
     print_separator("pkgfile");
 
     let sudo = ctx.require_sudo()?;
