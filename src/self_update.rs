@@ -1,18 +1,17 @@
 use std::env;
 #[cfg(unix)]
 use std::os::unix::process::CommandExt as _;
+use std::process::exit;
 use std::process::Command;
 
 use crate::step::Step;
-use color_eyre::eyre::{bail, Result};
+use color_eyre::eyre::Result;
 use rust_i18n::t;
 use self_update_crate::backends::github::Update;
 use self_update_crate::update::UpdateStatus;
 
 use super::terminal::{print_info, print_separator};
 #[cfg(windows)]
-use crate::error::Upgraded;
-
 use crate::execution_context::ExecutionContext;
 
 pub fn self_update(ctx: &ExecutionContext) -> Result<()> {
@@ -63,7 +62,7 @@ pub fn self_update(ctx: &ExecutionContext) -> Result<()> {
                 {
                     #[allow(clippy::disallowed_methods)]
                     let status = command.status()?;
-                    exit(status.exit_code);
+                    exit(status.code().expect("This cannot return None on Windows"));
                 }
             }
         }
