@@ -85,6 +85,7 @@ fn run() -> Result<()> {
     rust_i18n::set_locale(&system_locale);
     debug!("Current system locale is {system_locale}");
 
+    // Generate shell completion scripts for the specified shell (bash, zsh, fish, nu, etc.)
     if let Some(shell_str) = opt.gen_completion {
         let cmd = &mut CommandLineArgs::command();
         cmd.set_bin_name(clap::crate_name!());
@@ -104,6 +105,7 @@ fn run() -> Result<()> {
                 clap::crate_name!(),
                 &mut io::stdout(),
             ),
+            // Generate Nushell completion script
             "nu" => clap_complete_nushell::Nushell.generate(cmd, &mut io::stdout()),
             _ => {
                 eprintln!("Unsupported shell: {}", shell_str);
