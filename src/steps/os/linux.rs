@@ -1040,7 +1040,7 @@ pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
         let sudo = ctx.require_sudo()?;
         sudo.execute(ctx, etc_update)?.status_checked()?;
     } else if let Ok(pacdiff) = require("pacdiff") {
-        //we want you to download vim because of pacdiff uses vim
+        // When `DIFFPROG` is unset, `pacdiff` uses `vim` by default
         if std::env::var("DIFFPROG").is_err() {
             require("vim")?;
         }
