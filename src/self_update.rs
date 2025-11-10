@@ -63,7 +63,7 @@ pub fn self_update(ctx: &ExecutionContext) -> Result<()> {
                 {
                     #[allow(clippy::disallowed_methods)]
                     let status = command.status()?;
-                    bail!(Upgraded(status));
+                    exit(status.exit_code);
                 }
             }
         }
