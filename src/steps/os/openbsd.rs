@@ -26,11 +26,11 @@ pub fn upgrade_openbsd(ctx: &ExecutionContext) -> Result<()> {
     let is_current = is_openbsd_current(ctx)?;
 
     match ctx.run_type() {
-	RunType::Dry | RunType::Damp => {
-	    println!("{}", t!("Would upgrade the OpenBSD system"));
+        RunType::Dry | RunType::Damp => {
+            println!("{}", t!("Would upgrade the OpenBSD system"));
             return Ok(());
-	}
-	RunType::Wet => {}
+        }
+        RunType::Wet => {}
     }
 
     if is_current {
