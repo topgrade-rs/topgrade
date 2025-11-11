@@ -187,17 +187,7 @@ fn run() -> Result<()> {
         }
     }
 
-    // Self-Update step, this will execute only if:
-    // 1. the `self-update` feature is enabled
-    // 2. it is not disabled from configuration (env var/CLI opt/file)
-    #[cfg(feature = "self-update")]
-    {
-        let should_self_update = env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() && !config.no_self_update();
-
-        if should_self_update {
-            runner.execute(step::Step::SelfUpdate, "Self Update", || self_update::self_update(&ctx))?;
-        }
-    }
+    step::Step::SelfUpdate.run(&mut runner, &ctx)?;
 
     #[cfg(windows)]
     let _self_rename = if config.self_rename() {
