@@ -206,15 +206,15 @@ fn run() -> Result<()> {
         None
     };
 
-    if let Some(commands) = config.pre_commands() {
-        for (name, command) in commands {
-            generic::run_custom_command(name, command, &ctx)?;
-        }
-    }
-
     if config.pre_sudo() {
         if let Some(sudo) = ctx.sudo() {
             sudo.elevate(&ctx)?;
+        }
+    }
+
+    if let Some(commands) = config.pre_commands() {
+        for (name, command) in commands {
+            generic::run_custom_command(name, command, &ctx)?;
         }
     }
 
