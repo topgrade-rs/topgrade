@@ -18,4 +18,5 @@ jobs:
         token: ${{secrets.HOMEBREW_ACCESS_TOKEN}}
         formula: topgrade
         tag: ${{ github.event.client_payload.tag }}
-        org: topgrade-rs
+        # We cannot use an org because org forks cannot give push access to maintainers, which Homebrew requires.
+        # org: topgrade-rs
