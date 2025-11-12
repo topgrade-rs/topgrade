@@ -1,4 +1,5 @@
 use crate::command::CommandExt;
+use crate::debug;
 use crate::execution_context::ExecutionContext;
 use crate::execution_context::RunType;
 use crate::terminal::print_separator;
@@ -9,9 +10,9 @@ use std::fs;
 fn is_openbsd_current(ctx: &ExecutionContext) -> Result<bool> {
     let motd_content = fs::read_to_string("/etc/motd")?;
     let is_current = ["-current", "-beta"].iter().any(|&s| motd_content.contains(s));
-    match ctx.config().run_type() {
+    match ctx.run_type() {
         RunType::Dry | RunType::Damp => {
-            println!("{}", t!("Checking if /etc/motd contains -current or -beta"));
+            debug!("OpenBSD is -current/-beta: {is_current}");
         }
         RunType::Wet => {}
     }
@@ -24,14 +25,6 @@ pub fn upgrade_openbsd(ctx: &ExecutionContext) -> Result<()> {
     let sudo = ctx.require_sudo()?;
 
     let is_current = is_openbsd_current(ctx)?;
-
-    match ctx.config().run_type() {
-        RunType::Dry | RunType::Damp => {
-            println!("{}", t!("Would upgrade the OpenBSD system"));
-            return Ok(());
-        }
-        RunType::Wet => {}
-    }
 
     if is_current {
         sudo.execute(ctx, "/usr/sbin/sysupgrade")?.arg("-sn").status_checked()
