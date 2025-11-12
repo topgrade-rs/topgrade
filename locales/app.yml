@@ -1306,14 +1306,6 @@ _version: 2
   zh_CN: "Windows 更新"
   zh_TW: "Windows 更新"
   de: "Windows-Update"
-"Checking if /etc/motd contains -current or -beta":
-  en: "Checking if /etc/motd contains -current or -beta"
-  lt: "Tikrinimas, jei /etc/motd yra -current arba -beta"
-  es: "Comprobación de si /etc/motd contiene -current o -beta"
-  fr: "Vérification si /etc/motd contient -current ou -beta"
-  zh_CN: "检查 /etc/motd 是否包含 -current 或 -beta"
-  zh_TW: "檢查 /etc/motd 是否包含 -current 或 -beta"
-  de: "Überprüfen, ob /etc/motd -current oder -beta enthält"
 "Microsoft Store":
   en: "Microsoft Store"
   lt: "Microsoft parduotuvė"
