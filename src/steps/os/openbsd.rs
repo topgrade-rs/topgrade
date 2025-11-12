@@ -1,5 +1,5 @@
 use crate::command::CommandExt;
-use crate::debug;
+use tracing::debug;
 use crate::execution_context::ExecutionContext;
 use crate::terminal::print_separator;
 use color_eyre::eyre::Result;
