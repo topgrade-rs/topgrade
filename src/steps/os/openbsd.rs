@@ -1,10 +1,10 @@
 use crate::command::CommandExt;
-use tracing::debug;
 use crate::execution_context::ExecutionContext;
 use crate::terminal::print_separator;
 use color_eyre::eyre::Result;
 use rust_i18n::t;
 use std::fs;
+use tracing::debug;
 
 fn is_openbsd_current() -> Result<bool> {
     let motd_content = fs::read_to_string("/etc/motd")?;
