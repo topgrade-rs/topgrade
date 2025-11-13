@@ -1,4 +1,4 @@
-﻿name: Trivy FS Scan
+name: Trivy FS Scan
 
 on:
   pull_request:
@@ -28,7 +28,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: Checkout
+        # action pin via: git ls-remote https://github.com/actions/checkout refs/tags/v5.0.0 | head -1
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
           fetch-depth: 1
@@ -52,6 +54,7 @@ jobs:
             .
 
       - name: Upload SARIF
+        # action pin via: git ls-remote https://github.com/github/codeql-action refs/tags/codeql-bundle-v3.27.7 | head -1
         uses: github/codeql-action/upload-sarif@5d5cd550d3e189c569da8f16ea8de2d821c9bf7a # v3
         if: ${{ always() && hashFiles('trivy-repo.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         with:

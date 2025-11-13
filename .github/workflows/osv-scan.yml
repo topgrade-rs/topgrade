@@ -1,4 +1,4 @@
-﻿name: OSV Scanner
+name: OSV Scanner
 
 on:
   pull_request:
@@ -29,12 +29,14 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
+        # action pin via: git ls-remote https://github.com/actions/checkout refs/tags/v5.0.0 | head -1
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
           fetch-depth: 1
 
       - name: Prepare lockfile
+        # action pin via: git ls-remote https://github.com/dtolnay/rust-toolchain refs/heads/stable | head -1
         uses: dtolnay/rust-toolchain@5d458579430fc14a04a08a1e7d3694f545e91ce6 # stable
 
       - name: Fetch dependencies
@@ -57,6 +59,7 @@ jobs:
             --output osv-results.sarif
 
       - name: Upload SARIF
+        # action pin via: git ls-remote https://github.com/github/codeql-action refs/tags/codeql-bundle-v3.27.7 | head -1
         uses: github/codeql-action/upload-sarif@5d5cd550d3e189c569da8f16ea8de2d821c9bf7a # v3
         if: ${{ always() && hashFiles('osv-results.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         with:

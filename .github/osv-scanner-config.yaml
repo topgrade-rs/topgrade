@@ -1,4 +1,4 @@
-﻿version: 1
+version: 1
 filters:
   severities:
     - HIGH
@@ -8,4 +8,4 @@ ignore:
   # Example (remove or replace as needed):
   # - id: RUSTSEC-0000-0000
   #   reason: "Example ignore with expiry; replace with real items after triage"
-  #   expires: 2025-12-31
+  #   expires: 2026-12-31
