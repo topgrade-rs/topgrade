@@ -2919,6 +2919,7 @@ dependencies = [
 name = "topgrade"
 version = "16.2.1"
 dependencies = [
+ "base64ct",
  "cfg-if",
  "chrono",
  "clap",
@@ -2930,6 +2931,7 @@ dependencies = [
  "futures",
  "glob",
  "home",
+ "ignore",
  "indexmap 2.9.0",
  "is_elevated",
  "jetbrains-toolbox-updater",
