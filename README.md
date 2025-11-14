@@ -24,25 +24,31 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/topgrade.svg)](https://repology.org/project/topgrade/versions)
 
-- (Official) Self-updating binary (all platforms): [releases](https://github.com/topgrade-rs/topgrade/releases)
-- (Official) Install from source (all platforms): [`cargo install topgrade`](https://crates.io/crates/topgrade)
-- (Official) [deb-get](https://github.com/wimpysworld/deb-get) (Debian/Ubuntu and derivatives):
-  `deb-get install topgrade`
-- (Official) AUR (Arch Linux): [topgrade](https://aur.archlinux.org/packages/topgrade)
+### Official
+
+- Self-updating binary (all platforms): [releases](https://github.com/topgrade-rs/topgrade/releases)
+- Install from source (all platforms): [`cargo install topgrade`](https://crates.io/crates/topgrade)
+- Debian/Ubuntu ([deb-get](https://github.com/wimpysworld/deb-get)):
+  [`deb-get install topgrade`](https://github.com/wimpysworld/deb-get/blob/main/01-main/packages/topgrade)
+- Arch Linux (AUR): [topgrade](https://aur.archlinux.org/packages/topgrade)
   or [topgrade-bin](https://aur.archlinux.org/packages/topgrade-bin)
-- (Official) [PyPi](https://pypi.org/): `pip`/`pipx`/`uv tool` [`install topgrade`](https://pypi.org/project/topgrade/)
-- (Official) [Winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/) (Windows): [
+- [PyPi](https://pypi.org/): `pip`, `pipx`, or `uv tool` [
+  `install topgrade`](https://pypi.org/project/topgrade/)
+- Windows ([Winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/)): [
   `winget install --id=topgrade-rs.topgrade  -e`](https://winstall.app/apps/topgrade-rs.topgrade)
-- [Chocolatey](https://chocolatey.org/) (Windows): [
+- macOS or Linux ([Homebrew](https://brew.sh/)): [`brew install topgrade`](https://formulae.brew.sh/formula/topgrade)
+
+### Community-maintained
+
+- Windows ([Chocolatey](https://chocolatey.org/)): [
   `choco install topgrade`](https://community.chocolatey.org/packages/topgrade)
-- [Scoop](https://scoop.sh/) (Windows): [
+- Windows ([Scoop](https://scoop.sh/)): [
   `scoop bucket add main && scoop install main/topgrade`](https://scoop.sh/#/apps?q=topgrade)
-- [Homebrew](https://brew.sh/) (macOS or Linux): [`brew install topgrade`](https://formulae.brew.sh/formula/topgrade)
-- [MacPorts](https://www.macports.org/) (macOS): [
+- macOS ([MacPorts](https://www.macports.org/)): [
   `sudo port install topgrade`](https://ports.macports.org/port/topgrade/)
-- [Copr](https://copr.fedorainfracloud.org/) (Fedora): [
+- Fedora ([Copr](https://copr.fedorainfracloud.org/)): [
   `dnf copr enable lilay/topgrade && dnf install topgrade`](https://copr.fedorainfracloud.org/coprs/lilay/topgrade/)
-- Nixpkgs (NixOS or Nix): [topgrade](https://search.nixos.org/packages?show=topgrade)
+- NixOS or Nix (nixpkgs): [topgrade](https://search.nixos.org/packages?show=topgrade)
 - Void Linux: [`sudo xbps-install -S topgrade`](https://voidlinux.org/packages/?arch=x86_64&q=topgrade)
 
 ## Usage

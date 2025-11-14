@@ -16,14 +16,12 @@ jobs:
       contents: write
       id-token: write  # For trusted publishing
     steps:
-      - &checkout
-        name: Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
           persist-credentials: false
-      - &install-rust
-        name: Install Rust toolchain
+      - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Run release-plz
         id: release-plz
@@ -35,12 +33,13 @@ jobs:
 
       - name: Trigger workflows
         if: steps.release-plz.outputs.releases_created == 'true'
-        run: |
-          gh api repos/${{ github.repository }}/dispatches \
-            -f "event_type=release-created" \
-            -F "client_payload[tag]=${{ fromJSON(steps.release-plz.outputs.releases)[0].tag }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ fromJSON(steps.release-plz.outputs.releases)[0].tag }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/dispatches" \
+            -f "event_type=release-created" \
+            -F "client_payload[tag]=${tag}"
 
   # Create a PR with the new versions and changelog, preparing the next release.
   release-plz-pr:
@@ -53,8 +52,13 @@ jobs:
       group: release-plz-${{ github.ref }}
       cancel-in-progress: false
     steps:
-      - *checkout
-      - *install-rust
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
       - name: Run release-plz
         uses: release-plz/action@v0.5
         with:

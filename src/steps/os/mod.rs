@@ -14,7 +14,7 @@ pub mod macos;
 pub mod openbsd;
 #[cfg(unix)]
 pub mod unix;
-#[cfg(target_os = "windows")]
+#[cfg(windows)]
 pub mod windows;
 
 #[cfg(windows)]

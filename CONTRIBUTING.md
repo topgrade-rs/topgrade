@@ -7,6 +7,18 @@ We welcome and encourage contributions of all kinds, such as:
 2. Documentation improvements
 3. Code (PR or PR Review)
 
+### LLM/AI guidelines
+
+You may use LLMs (AI tools) for:
+
+* Inspiration, problem solving, help with Rust, translation, etc.
+* Generating small and self-contained snippets of code (e.g., shell scripts or utility functions)
+
+Do **not** use LLMs to:
+
+* Generate ("vibe code") entire pull requests
+* Write or generate issue or pull request descriptions
+
 ### General guidelines
 
 **Please use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) for your PR title**.

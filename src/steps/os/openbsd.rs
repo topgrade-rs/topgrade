@@ -1,20 +1,17 @@
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
-use crate::executor::RunType;
 use crate::terminal::print_separator;
 use color_eyre::eyre::Result;
 use rust_i18n::t;
 use std::fs;
+use tracing::debug;
 
-fn is_openbsd_current(ctx: &ExecutionContext) -> Result<bool> {
+fn is_openbsd_current() -> Result<bool> {
     let motd_content = fs::read_to_string("/etc/motd")?;
     let is_current = ["-current", "-beta"].iter().any(|&s| motd_content.contains(s));
-    match ctx.config.run_type() {
-        RunType::Dry | RunType::Damp => {
-            println!("{}", t!("Checking if /etc/motd contains -current or -beta"));
-        }
-        RunType::Wet => {}
-    }
+
+    debug!("OpenBSD is -current/-beta: {is_current}");
+
     Ok(is_current)
 }
 
@@ -23,12 +20,7 @@ pub fn upgrade_openbsd(ctx: &ExecutionContext) -> Result<()> {
 
     let sudo = ctx.require_sudo()?;
 
-    let is_current = is_openbsd_current(ctx)?;
-
-    if ctx.config().dry_run() {
-        println!("{}", t!("Would upgrade the OpenBSD system"));
-        return Ok(());
-    }
+    let is_current = is_openbsd_current()?;
 
     if is_current {
         sudo.execute(ctx, "/usr/sbin/sysupgrade")?.arg("-sn").status_checked()
@@ -42,7 +34,7 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
 
     let sudo = ctx.require_sudo()?;
 
-    let is_current = is_openbsd_current(ctx)?;
+    let is_current = is_openbsd_current()?;
 
     if ctx.config().cleanup() {
         sudo.execute(ctx, "/usr/sbin/pkg_delete")?.arg("-ac").status_checked()?;

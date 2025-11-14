@@ -7,6 +7,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.2.1](https://github.com/topgrade-rs/topgrade/compare/v16.2.0...v16.2.1) - 2025-11-10
+
+### Fixed
+
+- *(release)* Use bash in Windows to fix powershell issues ([#1461](https://github.com/topgrade-rs/topgrade/pull/1461))
+- *(release)* Fix .deb distribution ([#1460](https://github.com/topgrade-rs/topgrade/pull/1460))
+- *(release)* Fix .deb distribution ([#1458](https://github.com/topgrade-rs/topgrade/pull/1458))
+
+## [16.2.0](https://github.com/topgrade-rs/topgrade/compare/v16.1.2...v16.2.0) - 2025-11-10
+
+### Added
+
+- *(mise)* run `mise self-update` ([#1450](https://github.com/topgrade-rs/topgrade/pull/1450))
+- *(falconf)* add falconf step ([#1219](https://github.com/topgrade-rs/topgrade/pull/1219))
+- *(hyprpm)* add hyprpm step ([#1213](https://github.com/topgrade-rs/topgrade/pull/1213))
+- *(doom)* add doom.aot option ([#1214](https://github.com/topgrade-rs/topgrade/pull/1214))
+- add show_distribution_summary config option ([#1259](https://github.com/topgrade-rs/topgrade/pull/1259))
+- *(rustup)* add rustup.channels config ([#1206](https://github.com/topgrade-rs/topgrade/pull/1206))
+- *(os)* add AOSC OS support ([#1424](https://github.com/topgrade-rs/topgrade/pull/1424))
+- add damp run type ([#1217](https://github.com/topgrade-rs/topgrade/pull/1217))
+
+### Fixed
+
+- *(release)* fix homebrew releases by migrating to dawidd6/action-homebrew-bump-formula ([#1457](https://github.com/topgrade-rs/topgrade/pull/1457))
+- *(mise)* fix mise self-update failing when installed via a package manager ([#1456](https://github.com/topgrade-rs/topgrade/pull/1456))
+- *(release)* Add man page to .deb distribution ([#1455](https://github.com/topgrade-rs/topgrade/pull/1455))
+- *(self-update)* fix windows self-update reporting failure on successful self-update ([#1452](https://github.com/topgrade-rs/topgrade/pull/1452))
+- *(pkgfile)* make pkgfile opt-in ([#1449](https://github.com/topgrade-rs/topgrade/pull/1449))
+- *(vcpkg)* fix permission denied when updating vcpkg if it's installed as root ([#1447](https://github.com/topgrade-rs/topgrade/pull/1447))
+- *(zh_TW)* fixed zh_TW strings ([#1446](https://github.com/topgrade-rs/topgrade/pull/1446))
+- *(git)* fix shellexpand::tilde in git_repos in topgrade.d/* ([#1223](https://github.com/topgrade-rs/topgrade/pull/1223))
+- *(auto-cpufreq)* skip when install script is not used ([#1215](https://github.com/topgrade-rs/topgrade/pull/1215))
+- *(vim)* change nvimrc base_dir for windows ([#1433](https://github.com/topgrade-rs/topgrade/pull/1433))
+- *(guix)* fix overcomplicated Guix step ([#1290](https://github.com/topgrade-rs/topgrade/pull/1290))
+- *(gem)* fix incorrectly placed debug message in `gem` step ([#1212](https://github.com/topgrade-rs/topgrade/pull/1212))
+- *(conda)* replace deprecated `auto_activate_base` ([#1158](https://github.com/topgrade-rs/topgrade/pull/1158))
+- *(containers)* fix panic in `containers` step ([#1150](https://github.com/topgrade-rs/topgrade/pull/1150))
+- *(jetbrains-toolbox)* fix step not dry running ([#1253](https://github.com/topgrade-rs/topgrade/pull/1253))
+
+### Other
+
+- comment run_config_update ([#1448](https://github.com/topgrade-rs/topgrade/pull/1448))
+- Expand LLM guidelines in CONTRIBUTING.md ([#1445](https://github.com/topgrade-rs/topgrade/pull/1445))
+- Add AI guidelines to CONTRIBUTING.md ([#1444](https://github.com/topgrade-rs/topgrade/pull/1444))
+- add comments to Config::allowed_steps ([#1291](https://github.com/topgrade-rs/topgrade/pull/1291))
+- *(nix)* Deduplicate run_nix and run_nix_self_upgrade nix --version checking ([#1376](https://github.com/topgrade-rs/topgrade/pull/1376))
+- remove commented-out library code and unnecessary bin declaration ([#1373](https://github.com/topgrade-rs/topgrade/pull/1373))
+- Simplify target cfgs ([#1346](https://github.com/topgrade-rs/topgrade/pull/1346))
+- tidy up binary-conflict code ([#1329](https://github.com/topgrade-rs/topgrade/pull/1329))
+- Improve installation section ([#1442](https://github.com/topgrade-rs/topgrade/pull/1442))
+- *(deps)* Update jetbrains-toolbox-updater ([#1438](https://github.com/topgrade-rs/topgrade/pull/1438))
+- remove template expansion in code contexts ([#1434](https://github.com/topgrade-rs/topgrade/pull/1434))
+- *(deps)* bump github/codeql-action from 4.31.0 to 4.31.2 ([#1427](https://github.com/topgrade-rs/topgrade/pull/1427))
+- don't persist credentials in actions/checkout ([#1422](https://github.com/topgrade-rs/topgrade/pull/1422))
+- Improve CONTRIBUTING.md ([#1420](https://github.com/topgrade-rs/topgrade/pull/1420))
+- Update SECURITY.md ([#1421](https://github.com/topgrade-rs/topgrade/pull/1421))
+- Enforce conventional commits in PR titles ([#1418](https://github.com/topgrade-rs/topgrade/pull/1418))
+- Improve contributing section
+- Remove roadmap
+- Reformat README.md
+- Update installation methods
+- *(release)* Fix dispatch error in create_release_assets.yml ([#1406](https://github.com/topgrade-rs/topgrade/pull/1406))
+
 ## [16.1.2](https://github.com/topgrade-rs/topgrade/compare/v16.1.1...v16.1.2) - 2025-11-01
 
 ### Fixed

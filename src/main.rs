@@ -23,8 +23,6 @@ use tracing::debug;
 
 use self::config::{CommandLineArgs, Config};
 use self::error::StepFailed;
-#[cfg(all(windows, feature = "self-update"))]
-use self::error::Upgraded;
 use self::runner::StepResult;
 #[allow(clippy::wildcard_imports)]
 use self::steps::{remote::*, *};
@@ -189,17 +187,7 @@ fn run() -> Result<()> {
         }
     }
 
-    // Self-Update step, this will execute only if:
-    // 1. the `self-update` feature is enabled
-    // 2. it is not disabled from configuration (env var/CLI opt/file)
-    #[cfg(feature = "self-update")]
-    {
-        let should_self_update = env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() && !config.no_self_update();
-
-        if should_self_update {
-            runner.execute(step::Step::SelfUpdate, "Self Update", || self_update::self_update(&ctx))?;
-        }
-    }
+    step::Step::SelfUpdate.run(&mut runner, &ctx)?;
 
     #[cfg(windows)]
     let _self_rename = if config.self_rename() {
@@ -208,15 +196,15 @@ fn run() -> Result<()> {
         None
     };
 
-    if let Some(commands) = config.pre_commands() {
-        for (name, command) in commands {
-            generic::run_custom_command(name, command, &ctx)?;
-        }
-    }
-
     if config.pre_sudo() {
         if let Some(sudo) = ctx.sudo() {
             sudo.elevate(&ctx)?;
+        }
+    }
+
+    if let Some(commands) = config.pre_commands() {
+        for (name, command) in commands {
+            generic::run_custom_command(name, command, &ctx)?;
         }
     }
 
@@ -276,7 +264,7 @@ fn run() -> Result<()> {
     }
 
     #[cfg(target_os = "linux")]
-    {
+    if config.show_distribution_summary() {
         if let Ok(distribution) = &distribution {
             distribution.show_summary();
         }
@@ -335,13 +323,6 @@ fn main() {
             exit(0);
         }
         Err(error) => {
-            #[cfg(all(windows, feature = "self-update"))]
-            {
-                if let Some(Upgraded(status)) = error.downcast_ref::<Upgraded>() {
-                    exit(status.code().unwrap());
-                }
-            }
-
             let skip_print = (error.downcast_ref::<StepFailed>().is_some())
                 || (error
                     .downcast_ref::<io::Error>()

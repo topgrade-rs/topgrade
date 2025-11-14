@@ -53,6 +53,7 @@ pub enum Step {
     Dotnet,
     Elan,
     Emacs,
+    Falconf,
     Firmware,
     Flatpak,
     Flutter,
@@ -69,6 +70,7 @@ pub enum Step {
     Helix,
     Helm,
     HomeManager,
+    Hyprpm,
     // These names are miscapitalized on purpose, so the CLI name is
     //  `jetbrains_pycharm` instead of `jet_brains_py_charm`.
     JetbrainsAqua,
@@ -304,6 +306,7 @@ impl Step {
             Dotnet => runner.execute(*self, ".NET", || generic::run_dotnet_upgrade(ctx))?,
             Elan => runner.execute(*self, "elan", || generic::run_elan(ctx))?,
             Emacs => runner.execute(*self, "Emacs", || emacs::Emacs::new().upgrade(ctx))?,
+            Falconf => runner.execute(*self, "falconf sync", || generic::run_falconf(ctx))?,
             Firmware =>
             {
                 #[cfg(target_os = "linux")]
@@ -344,6 +347,11 @@ impl Step {
             {
                 #[cfg(unix)]
                 runner.execute(*self, "home-manager", || unix::run_home_manager(ctx))?
+            }
+            Hyprpm =>
+            {
+                #[cfg(unix)]
+                runner.execute(*self, "hyprpm", || unix::run_hyprpm(ctx))?
             }
             JetbrainsAqua => runner.execute(*self, "JetBrains Aqua Plugins", || generic::run_jetbrains_aqua(ctx))?,
             JetbrainsClion => runner.execute(*self, "JetBrains CL", || generic::run_jetbrains_clion(ctx))?,
@@ -536,6 +544,9 @@ impl Step {
                 runner.execute(*self, "SDKMAN!", || unix::run_sdkman(ctx))?
             }
             SelfUpdate => {
+                // Self-Update step, this will execute only if:
+                // 1. the `self-update` feature is enabled
+                // 2. it is not disabled from configuration (env var/CLI opt/file)
                 #[cfg(feature = "self-update")]
                 {
                     if std::env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() && !ctx.config().no_self_update() {
@@ -767,6 +778,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Sdkman,
         Rcm,
         Maza,
+        Hyprpm,
         Atuin,
     ]);
 
@@ -876,6 +888,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         // JetBrains Space Desktop does not have a CLI
         JetbrainsWebstorm,
         Yazi,
+        Falconf,
         Powershell,
         CustomCommands,
         Vagrant,
