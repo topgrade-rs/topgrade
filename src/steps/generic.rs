@@ -1569,9 +1569,25 @@ pub fn run_zvm(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
     let bun = require("bun")?;
 
-    print_separator("Bun");
+    // From the official install script (both install.sh and install.ps1), Bun uses
+    // the path set in this variable as the install root, and its defaults to
+    // `$HOME/.bun`
+    //
+    // UNIX: https://bun.sh/install.sh
+    // Windows: https://bun.sh/install.ps1
+    let bun_install_env = env::var("BUN_INSTALL")
+        .map(PathBuf::from)
+        .unwrap_or(HOME_DIR.join(".bun"));
 
-    ctx.execute(bun).arg("upgrade").status_checked()
+    // If `bun` is a descendant of `bun_install_env`, then Bun is installed
+    // through the official script
+    if bun.is_descendant_of(&bun_install_env) {
+        print_separator("Bun");
+
+        ctx.execute(bun).arg("upgrade").status_checked()
+    } else {
+        Err(SkipStep("Not installed through the official script".to_string()).into())
+    }
 }
 
 pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
