@@ -1574,7 +1574,7 @@ pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
     // `$HOME/.bun`
     //
     // UNIX: https://bun.sh/install.sh
-    // Windows:https://bun.sh/install.ps1
+    // Windows: https://bun.sh/install.ps1
     let bun_install_env = env::var("BUN_INSTALL")
         .map(PathBuf::from)
         .unwrap_or(HOME_DIR.join(".bun"));
