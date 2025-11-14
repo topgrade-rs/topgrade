@@ -17,7 +17,7 @@ jobs:
       id-token: write  # For trusted publishing
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -25,7 +25,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       - name: Run release-plz
         id: release-plz
-        uses: release-plz/action@v0.5
+        uses: release-plz/action@d529f731ae3e89610ada96eda34e5c6ba3b12214 # v0.5
         with:
           command: release
         env:
@@ -53,14 +53,14 @@ jobs:
       cancel-in-progress: false
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
         with:
           fetch-depth: 0
           persist-credentials: false
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Run release-plz
-        uses: release-plz/action@v0.5
+        uses: release-plz/action@d529f731ae3e89610ada96eda34e5c6ba3b12214 # v0.5
         with:
           command: release-pr
         env:
