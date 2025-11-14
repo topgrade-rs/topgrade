@@ -14,7 +14,7 @@ edition = "2021"
 readme = "README.md"
 
 [dependencies]
-home = "~0.5"
+home = "~0.5,<0.5.11"
 etcetera = "~0.8"
 serde = { version = "~1.0", features = ["derive"] }
 toml = "0.8"
@@ -48,6 +48,9 @@ sys-locale = "0.3.1"
 jetbrains-toolbox-updater = "5.0.0"
 indexmap = { version = "2.9.0", features = ["serde"] }
 serde_json = "1.0.145"
+# Temporary transitive dependency pins
+ignore = "<0.4.24"
+base64ct = "<1.8.0"
 
 [package.metadata.generate-rpm]
 assets = [{ source = "target/release/topgrade", dest = "/usr/bin/topgrade" }]
