@@ -6,6 +6,7 @@ use ini::Ini;
 use rust_i18n::t;
 use tracing::{debug, warn};
 
+use crate::HOME_DIR;
 use crate::command::CommandExt;
 use crate::error::{SkipStep, TopgradeError};
 use crate::execution_context::ExecutionContext;
@@ -14,8 +15,7 @@ use crate::steps::generic::is_wsl;
 use crate::steps::os::archlinux;
 use crate::sudo::SudoExecuteOpts;
 use crate::terminal::{print_separator, prompt_yesno};
-use crate::utils::{require, require_one, which, PathExt};
-use crate::HOME_DIR;
+use crate::utils::{PathExt, require, require_one, which};
 
 static OS_RELEASE_PATH: &str = "/etc/os-release";
 

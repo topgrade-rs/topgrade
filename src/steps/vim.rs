@@ -1,6 +1,6 @@
+use crate::HOME_DIR;
 use crate::command::CommandExt;
 use crate::error::{SkipStep, TopgradeError};
-use crate::HOME_DIR;
 use color_eyre::eyre::Result;
 use etcetera::base_strategy::BaseStrategy;
 
@@ -8,7 +8,7 @@ use crate::executor::{Executor, ExecutorOutput};
 use crate::terminal::print_separator;
 use crate::{
     execution_context::ExecutionContext,
-    utils::{require, PathExt},
+    utils::{PathExt, require},
 };
 use rust_i18n::t;
 use std::path::PathBuf;

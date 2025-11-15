@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::fs::{write, File};
+use std::fs::{File, write};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;

@@ -1,7 +1,7 @@
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use color_eyre::eyre::{eyre, OptionExt};
-use jetbrains_toolbox_updater::{find_jetbrains_toolbox, update_jetbrains_toolbox, FindError};
+use color_eyre::eyre::{OptionExt, eyre};
+use jetbrains_toolbox_updater::{FindError, find_jetbrains_toolbox, update_jetbrains_toolbox};
 use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
@@ -16,6 +16,7 @@ use std::{fs, io::Write};
 use tempfile::tempfile_in;
 use tracing::{debug, error, warn};
 
+use crate::HOME_DIR;
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
@@ -23,8 +24,7 @@ use crate::output_changed_message;
 use crate::step::Step;
 use crate::sudo::SudoExecuteOpts;
 use crate::terminal::{print_separator, shell};
-use crate::utils::{check_is_python_2_or_shim, require, require_one, require_option, which, PathExt};
-use crate::HOME_DIR;
+use crate::utils::{PathExt, check_is_python_2_or_shim, require, require_one, require_option, which};
 use crate::{
     error::{SkipStep, StepFailed, TopgradeError},
     terminal::print_warning,
@@ -65,7 +65,9 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
         .or_else(|| cargo_dir.join("bin/cargo-install-update").if_exists());
 
     let Some(cargo_update) = cargo_update else {
-        let message = String::from("cargo-update isn't installed so Topgrade can't upgrade cargo packages.\nInstall cargo-update by running `cargo install cargo-update`");
+        let message = String::from(
+            "cargo-update isn't installed so Topgrade can't upgrade cargo packages.\nInstall cargo-update by running `cargo install cargo-update`",
+        );
         print_warning(&message);
         return Err(SkipStep(message).into());
     };
@@ -81,7 +83,9 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
         if let Some(e) = cargo_cache {
             ctx.execute(e).args(["-a"]).status_checked()?;
         } else {
-            let message = String::from("cargo-cache isn't installed so Topgrade can't cleanup cargo packages.\nInstall cargo-cache by running `cargo install cargo-cache`");
+            let message = String::from(
+                "cargo-cache isn't installed so Topgrade can't cleanup cargo packages.\nInstall cargo-cache by running `cargo install cargo-cache`",
+            );
             print_warning(message);
         }
     }
@@ -542,7 +546,7 @@ fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Resu
             return Err(eyre!(output_changed_message!(
                 &format!("{bin_name} --version"),
                 "No first line"
-            )))
+            )));
         }
     };
 
@@ -1239,11 +1243,7 @@ pub fn run_helm_repo_update(ctx: &ExecutionContext) -> Result<()> {
         };
     }
 
-    if success {
-        Ok(())
-    } else {
-        Err(eyre!(StepFailed))
-    }
+    if success { Ok(()) } else { Err(eyre!(StepFailed)) }
 }
 
 pub fn run_stew(ctx: &ExecutionContext) -> Result<()> {
@@ -1428,8 +1428,7 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
             .map_err(|e| SkipStep(format!("Could not find interpreter for {}: {}", poetry.display(), e)))?;
         debug!("poetry interpreter: {:?}, args: {:?}", interp, interp_args);
 
-        let check_official_install_script =
-            "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
+        let check_official_install_script = "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
         let mut command = Command::new(&interp);
         if let Some(args) = interp_args {
             command.arg(args);
@@ -1708,7 +1707,10 @@ fn run_jetbrains_ide_generic<const IS_JETBRAINS: bool>(ctx: &ExecutionContext, b
             .code()
             .ok_or_eyre("Failed to get status code; was killed with signal")?;
         if status_code != 1 {
-            return Err(eyre!("Expected status code 1 ('Only one instance of <IDE> can be run at a time.'), but found status code {}. Output: {output:?}", status_code));
+            return Err(eyre!(
+                "Expected status code 1 ('Only one instance of <IDE> can be run at a time.'), but found status code {}. Output: {output:?}",
+                status_code
+            ));
         }
         // Don't crash, but don't be silent either
         warn!("{name} is already running, can't update it now.");

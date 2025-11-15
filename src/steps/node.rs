@@ -14,7 +14,7 @@ use tracing::debug;
 
 use crate::command::CommandExt;
 use crate::terminal::{print_info, print_separator};
-use crate::utils::{require, PathExt};
+use crate::utils::{PathExt, require};
 use crate::{error::SkipStep, execution_context::ExecutionContext};
 
 enum NPMVariant {
@@ -65,11 +65,7 @@ impl NPM {
     /// If the “NPM” version is larger than 8.11.0, we use
     /// `--location=global`; otherwise, use `-g`.
     fn global_location_arg(&self) -> &str {
-        if self.is_npm_8() {
-            "--location=global"
-        } else {
-            "-g"
-        }
+        if self.is_npm_8() { "--location=global" } else { "-g" }
     }
 
     #[cfg(target_os = "linux")]

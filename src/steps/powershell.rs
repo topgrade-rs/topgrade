@@ -1,15 +1,15 @@
 use std::path::PathBuf;
 use std::process::Command;
 
+use color_eyre::eyre::Result;
 #[cfg(windows)]
 use color_eyre::eyre::eyre;
-use color_eyre::eyre::Result;
 use tracing::debug;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::terminal;
-use crate::utils::{which, PathExt};
+use crate::utils::{PathExt, which};
 
 pub struct Powershell {
     path: PathBuf,

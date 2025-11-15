@@ -1,6 +1,6 @@
 //! SIGINT handling in Unix systems.
 use crate::ctrlc::interrupted::set_interrupted;
-use nix::sys::signal::{sigaction, SaFlags, SigAction, SigHandler, SigSet, Signal};
+use nix::sys::signal::{SaFlags, SigAction, SigHandler, SigSet, Signal, sigaction};
 
 /// Handle SIGINT. Set the interruption flag.
 extern "C" fn handle_sigint(_: i32) {

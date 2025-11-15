@@ -2,20 +2,20 @@ use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
-use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use color_eyre::eyre::eyre;
 use etcetera::base_strategy::BaseStrategy;
 
 use crate::command::CommandExt;
 use crate::config::TmuxConfig;
 use crate::config::TmuxSessionMode;
 use crate::terminal::print_separator;
+use crate::{HOME_DIR, XDG_DIRS};
 use crate::{
     execution_context::ExecutionContext,
-    utils::{which, PathExt},
+    utils::{PathExt, which},
 };
-use crate::{HOME_DIR, XDG_DIRS};
 
 use rust_i18n::t;
 #[cfg(unix)]
