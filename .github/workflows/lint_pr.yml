@@ -1,11 +1,12 @@
 name: 'Lint PR'
 
 on:
-  pull_request_target:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] this is the only way, and we're not running user code
     types:
       - opened
       - edited
       - reopened
+      - synchronize
 
 jobs:
   main:
