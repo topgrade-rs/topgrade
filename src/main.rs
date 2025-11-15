@@ -209,7 +209,19 @@ fn run() -> Result<()> {
     }
 
     for step in step::default_steps() {
-        step.run(&mut runner, &ctx)?
+        match step.run(&mut runner, &ctx) {
+            Ok(()) => (),
+            Err(error)
+                if error
+                    .downcast_ref::<io::Error>()
+                    .is_some_and(|e| e.kind() == io::ErrorKind::Interrupted) =>
+            {
+                println!();
+                debug!("Interrupted (possibly with 'q' during retry prompt). Printing summary.");
+                break;
+            }
+            Err(error) => return Err(error),
+        }
     }
 
     let mut failed = false;
