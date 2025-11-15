@@ -1,0 +1,38 @@
+name: cargo-deny
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@0c5db7f7f897c03b771660e91d065338615679f4 # v2.60.0
+        with:
+          tool: cargo-deny@0.16.3
+
+      - name: Run cargo deny (advisories)
+        run: cargo deny check advisories --all-features
+
+      - name: Run cargo deny (licenses)
+        run: cargo deny check licenses --all-features
+
+      - name: Run cargo deny (bans)
+        run: cargo deny check bans --all-features
