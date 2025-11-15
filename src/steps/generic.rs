@@ -889,12 +889,11 @@ pub fn run_tldr(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
-    cfg_if::cfg_if! {
-        if #[cfg(any(target_os = "linux", target_os = "android"))] {
-            if !ctx.config().enable_tlmgr_linux() {
-                return Err(SkipStep(String::from("tlmgr must be explicitly enabled in the configuration to run in Android/Linux")).into());
-            }
-        }
+    if cfg!(any(target_os = "linux", target_os = "android")) && !ctx.config().enable_tlmgr_linux() {
+        return Err(SkipStep(String::from(
+            "tlmgr must be explicitly enabled in the configuration to run in Android/Linux",
+        ))
+        .into());
     }
 
     let tlmgr = require("tlmgr")?;
@@ -999,23 +998,19 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
     print_separator(t!("Composer"));
 
     if ctx.config().composer_self_update() {
-        cfg_if::cfg_if! {
-            if #[cfg(unix)] {
-                // If self-update fails without sudo then there's probably an update
-                let has_update = match ctx.execute(&composer).arg("self-update").output()? {
-                    ExecutorOutput::Wet(output) => !output.status.success(),
-                    _ => false
-                };
+        if cfg!(unix) {
+            // If self-update fails without sudo then there's probably an update
+            let has_update = match ctx.execute(&composer).arg("self-update").output()? {
+                ExecutorOutput::Wet(output) => !output.status.success(),
+                _ => false,
+            };
 
-                if has_update {
-                    let sudo = ctx.require_sudo()?;
-                    sudo.execute(ctx, &composer)?
-                       .arg("self-update")
-                       .status_checked()?;
-                }
-            } else {
-                ctx.execute(&composer).arg("self-update").status_checked()?;
+            if has_update {
+                let sudo = ctx.require_sudo()?;
+                sudo.execute(ctx, &composer)?.arg("self-update").status_checked()?;
             }
+        } else {
+            ctx.execute(&composer).arg("self-update").status_checked()?;
         }
     }
 
