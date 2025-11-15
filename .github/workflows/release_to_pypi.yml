@@ -7,10 +7,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # TODO: make linux/windows/macos/sdist a matrix. See how other workflows do it.
   linux:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     strategy:
       matrix:
         target: [x86_64, x86, aarch64]
@@ -33,6 +38,7 @@ jobs:
 
   windows:
     runs-on: windows-latest
+    timeout-minutes: 60
     strategy:
       matrix:
         target: [x64, x86]
@@ -40,6 +46,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
+          fetch-depth: 1
 
       - name: Build wheels
         uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
@@ -54,6 +61,7 @@ jobs:
 
   macos:
     runs-on: macos-latest
+    timeout-minutes: 60
     strategy:
       matrix:
         target: [x86_64, aarch64]
@@ -61,6 +69,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
+          fetch-depth: 1
 
       - name: Build wheels
         uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
@@ -75,10 +84,12 @@ jobs:
 
   sdist:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
+          fetch-depth: 1
 
       - name: Build sdist
         uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4

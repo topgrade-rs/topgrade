@@ -21,11 +21,13 @@ jobs:
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
+          fetch-depth: 1
 
       - name: Run cargo fmt
         env:
@@ -37,11 +39,13 @@ jobs:
   custom-checks:
     name: Custom checks
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout code
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
+          fetch-depth: 1
 
       - name: Check if `Step` enum is sorted
         run: |
@@ -138,16 +142,18 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
+          fetch-depth: 1
 
       - name: Setup Rust Cache
         uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
         with:
           prefix-key: ${{ matrix.target }}
 
-      - name: Setup cross
+      - name: Install cross
         if: matrix.use_cross == true
-        run: |
-          curl -fL --retry 3 "https://github.com/cross-rs/cross/releases/download/v${CROSS_VER}/cross-x86_64-unknown-linux-musl.tar.gz" | tar vxz -C /usr/local/bin
+        uses: taiki-e/install-action@0c5db7f7f897c03b771660e91d065338615679f4 # v2.60.0
+        with:
+          tool: cross@${{ env.CROSS_VER }}
 
       - name: Run cargo/cross check
         run: |
