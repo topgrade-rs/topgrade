@@ -164,7 +164,7 @@ jobs:
     # Run this one on an older version as well, to limit glibc to 2.34 instead of 2.39.
     # Even though this is cross-compiled, it links to the libc6-<arch>-cross installed on the host
     # (see the apt-get install calls below)
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       matrix_target: ${{ matrix.target }}
       tag: ${{ github.event.client_payload.tag }}
