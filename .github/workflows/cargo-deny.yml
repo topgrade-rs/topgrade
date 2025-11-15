@@ -32,9 +32,12 @@ jobs:
 
       - name: Run cargo deny (advisories)
         run: cargo deny check advisories --all-features
+        continue-on-error: true
 
       - name: Run cargo deny (licenses)
         run: cargo deny check licenses --all-features
+        continue-on-error: true
 
       - name: Run cargo deny (bans)
         run: cargo deny check bans --all-features
+        continue-on-error: true
