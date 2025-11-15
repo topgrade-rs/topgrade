@@ -151,7 +151,7 @@ pub fn string_prepend_str(string: &mut String, s: &str) {
     *string = new_string;
 }
 
-#[cfg(target_family = "unix")]
+#[cfg(unix)]
 pub fn hostname() -> Result<String> {
     match nix::unistd::gethostname() {
         Ok(os_str) => Ok(os_str
@@ -161,12 +161,28 @@ pub fn hostname() -> Result<String> {
     }
 }
 
-#[cfg(target_family = "windows")]
+#[cfg(windows)]
 pub fn hostname() -> Result<String> {
     Command::new("hostname")
         .output_checked_utf8()
         .map_err(|err| SkipStep(t!("Failed to get hostname: {err}", err = err).to_string()).into())
         .map(|output| output.stdout.trim().to_owned())
+}
+
+#[cfg(unix)]
+pub fn is_elevated() -> bool {
+    let euid = nix::unistd::Uid::effective();
+    debug!("Running with euid: {euid}");
+    euid.is_root()
+}
+
+#[cfg(windows)]
+pub fn is_elevated() -> bool {
+    let elevated = is_elevated::is_elevated();
+    if elevated {
+        debug!("Detected elevated process");
+    }
+    elevated
 }
 
 pub mod merge_strategies {
@@ -179,7 +195,7 @@ pub mod merge_strategies {
         if let Some(left_vec) = left {
             if let Some(mut right_vec) = right {
                 right_vec.append(left_vec);
-                let _ = std::mem::replace(left, Some(right_vec));
+                let _ = left.replace(right_vec);
             }
         } else {
             *left = right;
@@ -222,17 +238,11 @@ pub mod merge_strategies {
     }
 }
 
-// Skip causes
-// TODO: Put them in a better place when we have more of them
-pub fn get_require_sudo_string() -> String {
-    t!("Require sudo or counterpart but not found, skip").to_string()
-}
-
 /// Return `Err(SkipStep)` if `python` is a Python 2 or shim.
 ///
 /// # Shim
 /// On Windows, if you install `python` through `winget`, an actual `python`
-/// is installed as well as a `python3` shim. Shim is invokable, but when you
+/// is installed as well as a `python3` shim. Shim is invocable, but when you
 /// execute it, the Microsoft App Store will be launched instead of a Python
 /// shell.
 ///

@@ -8,9 +8,9 @@ assignees: ''
 ---
 
 <!--
-Thanks for taking the time to fill out this bug report! 
-Please make sure to 
-[search for existing issues](https://github.com/topgrade-rs/topgrade/issues) 
+Thanks for taking the time to fill out this bug report!
+Please make sure to
+[search for existing issues](https://github.com/topgrade-rs/topgrade/issues)
 before filing a new one!
 
 Questions labeled with `Optional` can be skipped.
@@ -28,7 +28,7 @@ an hour has been passed since the last release was made.
 
 ## Erroneous Behavior
 
-<!-- 
+<!--
 What actually happened?
 -->
 
@@ -91,8 +91,8 @@ related to configuration.
   <!-- For example, Fedora Linux 38 -->
 
 - Installation
-  <!-- 
-  How did you install topgrade: build from repo / crates.io (cargo install topgrade) 
+  <!--
+  How did you install topgrade: build from repo / crates.io (cargo install topgrade)
   / package manager (which one) / other (describe)
   -->
 

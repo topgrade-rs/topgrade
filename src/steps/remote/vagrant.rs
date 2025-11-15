@@ -114,8 +114,7 @@ impl<'a> TemporaryPowerOn<'a> {
             BoxStatus::Running => unreachable!(),
         };
 
-        ctx.run_type()
-            .execute(vagrant)
+        ctx.execute(vagrant)
             .args([subcommand, &vagrant_box.name])
             .current_dir(vagrant_box.path.clone())
             .status_checked()?;
@@ -141,7 +140,6 @@ impl Drop for TemporaryPowerOn<'_> {
 
         println!();
         self.ctx
-            .run_type()
             .execute(self.vagrant)
             .args([subcommand, &self.vagrant_box.name])
             .current_dir(self.vagrant_box.path.clone())
@@ -181,7 +179,7 @@ pub fn topgrade_vagrant_box(ctx: &ExecutionContext, vagrant_box: &VagrantBox) ->
         path: utils::require("vagrant")?,
     };
 
-    let seperator = format!("Vagrant ({})", vagrant_box.smart_name());
+    let separator = format!("Vagrant ({})", vagrant_box.smart_name());
     let mut _poweron = None;
     if !vagrant_box.initial_status.powered_on() {
         if !(ctx.config().vagrant_power_on().unwrap_or(true)) {
@@ -191,19 +189,18 @@ pub fn topgrade_vagrant_box(ctx: &ExecutionContext, vagrant_box: &VagrantBox) ->
             ))
             .into());
         } else {
-            print_separator(seperator);
+            print_separator(separator);
             _poweron = Some(vagrant.temporary_power_on(vagrant_box, ctx)?);
         }
     } else {
-        print_separator(seperator);
+        print_separator(separator);
     }
     let mut command = format!("env TOPGRADE_PREFIX={} topgrade", vagrant_box.smart_name());
     if ctx.config().yes(Step::Vagrant) {
         command.push_str(" -y");
     }
 
-    ctx.run_type()
-        .execute(&vagrant.path)
+    ctx.execute(&vagrant.path)
         .current_dir(&vagrant_box.path)
         .args(["ssh", "-c", &command])
         .status_checked()
@@ -223,7 +220,6 @@ pub fn upgrade_vagrant_boxes(ctx: &ExecutionContext) -> Result<()> {
     for ele in re.captures_iter(&outdated.stdout) {
         found = true;
         let _ = ctx
-            .run_type()
             .execute(&vagrant)
             .args(["box", "update", "--box"])
             .arg(ele.get(1).unwrap().as_str())
@@ -235,10 +231,7 @@ pub fn upgrade_vagrant_boxes(ctx: &ExecutionContext) -> Result<()> {
     if !found {
         println!("{}", t!("No outdated boxes"));
     } else {
-        ctx.run_type()
-            .execute(&vagrant)
-            .args(["box", "prune"])
-            .status_checked()?;
+        ctx.execute(&vagrant).args(["box", "prune"]).status_checked()?;
     }
 
     Ok(())
