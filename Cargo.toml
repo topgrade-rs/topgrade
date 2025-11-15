@@ -83,12 +83,12 @@ assets = [
 [target.'cfg(unix)'.dependencies]
 nix = { version = "~0.29", features = ["hostname", "signal", "user"] }
 rust-ini = "~0.21"
-self_update_crate = { version = "~0.40", default-features = false, optional = true, package = "self_update", features = ["archive-tar", "compression-flate2", "rustls"] }
+self_update_crate = { version = "~0.42.0", default-features = false, optional = true, package = "self_update", features = ["archive-tar", "compression-flate2", "rustls"] }
 
 [target.'cfg(windows)'.dependencies]
 is_elevated = "~0.1"
 parselnk = "~0.1"
-self_update_crate = { version = "~0.40", default-features = false, optional = true, package = "self_update", features = ["archive-zip", "compression-zip-deflate", "rustls"] }
+self_update_crate = { version = "~0.42.0", default-features = false, optional = true, package = "self_update", features = ["archive-zip", "compression-zip-deflate", "rustls"] }
 windows = { version = "~0.62", features = ["Win32_System_Console"] }
 windows-registry = "~0.6"
 
