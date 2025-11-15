@@ -18,7 +18,7 @@ home = "~0.5,<0.5.11"
 etcetera = "~0.8"
 serde = { version = "~1.0", features = ["derive"] }
 toml = "0.8"
-which_crate = { version = "~6.0", package = "which" }
+which_crate = { version = "~8.0.0", package = "which" }
 shellexpand = "~3.1"
 clap = { version = "~4.5", features = ["cargo", "derive"] }
 clap_complete = "~4.5"
