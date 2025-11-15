@@ -2988,7 +2988,6 @@ dependencies = [
  "futures",
  "glob",
  "globset",
- "home",
  "ignore",
  "indexmap",
  "is_elevated",
