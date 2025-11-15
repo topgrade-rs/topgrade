@@ -363,6 +363,8 @@ pub struct Misc {
 pub enum TmuxSessionMode {
     AttachIfNotInSession,
     AttachAlways,
+    ReattachIfNotInSession,
+    ReattachAlways,
 }
 
 pub struct TmuxConfig {
