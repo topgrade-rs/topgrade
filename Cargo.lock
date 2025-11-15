@@ -2976,7 +2976,6 @@ checksum = "df8b2b54733674ad286d16267dcfc7a71ed5c776e4ac7aa3c3e2561f7c637bf2"
 name = "topgrade"
 version = "16.4.2"
 dependencies = [
- "base64ct",
  "chrono",
  "clap",
  "clap-cargo",
@@ -2987,8 +2986,6 @@ dependencies = [
  "etcetera",
  "futures",
  "glob",
- "globset",
- "ignore",
  "indexmap",
  "is_elevated",
  "jetbrains-toolbox-updater",
