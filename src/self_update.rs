@@ -1,14 +1,14 @@
 use std::env;
 #[cfg(unix)]
 use std::os::unix::process::CommandExt as _;
+use std::process::Command;
 #[cfg(windows)]
 use std::process::exit;
-use std::process::Command;
 
 use crate::step::Step;
+use color_eyre::eyre::Result;
 #[cfg(unix)]
 use color_eyre::eyre::bail;
-use color_eyre::eyre::Result;
 use rust_i18n::t;
 use self_update_crate::backends::github::Update;
 use self_update_crate::update::UpdateStatus;
