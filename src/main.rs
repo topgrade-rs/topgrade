@@ -1,6 +1,7 @@
 #![allow(clippy::cognitive_complexity)]
 
 use std::env;
+use std::env::home_dir;
 use std::io;
 use std::path::PathBuf;
 use std::process::exit;
@@ -8,7 +9,7 @@ use std::time::Duration;
 
 use crate::breaking_changes::{first_run_of_major_release, print_breaking_changes, should_skip, write_keep_file};
 use clap::CommandFactory;
-use clap::{crate_version, Parser};
+use clap::{Parser, crate_version};
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use console::Key;
@@ -48,7 +49,7 @@ mod sudo;
 mod terminal;
 mod utils;
 
-pub(crate) static HOME_DIR: LazyLock<PathBuf> = LazyLock::new(|| home::home_dir().expect("No home directory"));
+pub(crate) static HOME_DIR: LazyLock<PathBuf> = LazyLock::new(|| home_dir().expect("No home directory"));
 #[cfg(unix)]
 pub(crate) static XDG_DIRS: LazyLock<Xdg> = LazyLock::new(|| Xdg::new().expect("No home directory"));
 
@@ -98,7 +99,7 @@ fn run() -> Result<()> {
         let mut parts = env.split('=');
         let var = parts.next().unwrap();
         let value = parts.next().unwrap();
-        env::set_var(var, value);
+        unsafe { env::set_var(var, value) };
     }
 
     if opt.edit_config() {
@@ -321,11 +322,7 @@ fn run() -> Result<()> {
         );
     }
 
-    if failed {
-        Err(StepFailed.into())
-    } else {
-        Ok(())
-    }
+    if failed { Err(StepFailed.into()) } else { Ok(()) }
 }
 
 fn main() {

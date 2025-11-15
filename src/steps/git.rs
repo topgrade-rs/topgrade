@@ -4,10 +4,10 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 
 use color_eyre::eyre::Context;
-use color_eyre::eyre::{eyre, Result};
+use color_eyre::eyre::{Result, eyre};
 use console::style;
-use futures::stream::{iter, FuturesUnordered, StreamExt};
-use glob::{glob_with, MatchOptions};
+use futures::stream::{FuturesUnordered, StreamExt, iter};
+use glob::{MatchOptions, glob_with};
 use tokio::process::Command as AsyncCommand;
 use tokio::runtime;
 use tracing::{debug, error};
@@ -17,8 +17,8 @@ use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::steps::emacs::Emacs;
 use crate::terminal::print_separator;
-use crate::utils::{require, PathExt};
-use crate::{error::SkipStep, terminal::print_warning, HOME_DIR};
+use crate::utils::{PathExt, require};
+use crate::{HOME_DIR, error::SkipStep, terminal::print_warning};
 use etcetera::base_strategy::BaseStrategy;
 use rust_i18n::t;
 

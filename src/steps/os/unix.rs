@@ -1,14 +1,14 @@
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use color_eyre::eyre::{eyre, OptionExt};
+use color_eyre::eyre::{OptionExt, eyre};
 use etcetera::BaseStrategy;
-use home;
 use ini::Ini;
 #[cfg(target_os = "linux")]
 use nix::unistd::Uid;
 use regex::Regex;
 use rust_i18n::t;
 use semver::Version;
+use std::env::home_dir;
 use std::ffi::OsStr;
 use std::io::Write;
 use std::os::unix::fs::MetadataExt;
@@ -20,10 +20,10 @@ use std::{env::var, path::Path};
 use std::{fs, io};
 use tracing::{debug, warn};
 
+use crate::XDG_DIRS;
 use crate::command::CommandExt;
 use crate::sudo::SudoExecuteOpts;
-use crate::XDG_DIRS;
-use crate::{output_changed_message, HOME_DIR};
+use crate::{HOME_DIR, output_changed_message};
 
 #[cfg(target_os = "linux")]
 use super::linux::Distribution;
@@ -33,7 +33,7 @@ use crate::execution_context::ExecutionContext;
 use crate::executor::Executor;
 use crate::step::Step;
 use crate::terminal::print_separator;
-use crate::utils::{require, PathExt};
+use crate::utils::{PathExt, require};
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 const INTEL_BREW: &str = "/usr/local/bin/brew";
@@ -491,8 +491,8 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     let nix = require("nix")?;
     let nix_channel = require("nix-channel")?;
     let nix_env = require("nix-env")?;
-    // TODO: Is None possible here?
-    let profile_path = match home::home_dir() {
+    // TODO: Is None possible here? Should we use HOME_DIR instead?
+    let profile_path = match home_dir() {
         Some(home) => XDG_DIRS
             .state_dir()
             .map(|d| d.join("nix/profile"))
