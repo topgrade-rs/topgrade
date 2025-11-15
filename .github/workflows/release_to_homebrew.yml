@@ -7,9 +7,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   homebrew-publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
     - name: Bump formulae
       uses: dawidd6/action-homebrew-bump-formula@3428a0601bba3173ec0bdcc945be23fa27aa4c31 # v5
