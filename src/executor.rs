@@ -7,7 +7,7 @@ use std::process::{Child, Command, ExitStatus, Output};
 
 use color_eyre::eyre::Result;
 use rust_i18n::t;
-use tracing::{debug, enabled, Level};
+use tracing::{Level, debug, enabled};
 
 use crate::command::CommandExt;
 use crate::error::DryRun;
