@@ -282,6 +282,17 @@ pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("elan");
 
+    let version_output = ctx.execute(&elan).arg("--version").output_checked_utf8()?;
+    let version_string = version_output.stdout.split_whitespace().nth(1).ok_or_else(|| {
+        eyre!(output_changed_message!(
+            "elan --version",
+            "Expected version after 'elan '"
+        ))
+    })?;
+    let version = Version::parse(version_string)
+        .wrap_err_with(|| output_changed_message!("elan --version", "Invalid version"))?;
+    debug!("Detected elan version as: {}", version);
+
     let disabled_error_msg = "self-update is disabled";
     let executor_output = ctx.execute(&elan).args(["self", "update"]).output()?;
     match executor_output {
@@ -310,7 +321,12 @@ pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
         ExecutorOutput::Dry => { /* nothing needed because in a dry run */ }
     }
 
-    ctx.execute(&elan).arg("update").status_checked()
+    // In elan 4.0.0, `elan update` was removed, as toolchains are now updated automatically
+    if version < Version::new(4, 0, 0) {
+        ctx.execute(&elan).arg("update").status_checked()?;
+    }
+
+    Ok(())
 }
 
 pub fn run_juliaup(ctx: &ExecutionContext) -> Result<()> {
