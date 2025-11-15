@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::fs::{write, File};
+use std::fs::{File, write};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -24,7 +24,7 @@ use which_crate::which;
 use super::utils::editor;
 use crate::command::CommandExt;
 use crate::execution_context::RunType;
-use crate::step::{Step, DEPRECATED_STEPS};
+use crate::step::{DEPRECATED_STEPS, Step};
 use crate::sudo::SudoKind;
 use crate::terminal::print_warning;
 use crate::utils::string_prepend_str;
