@@ -14,7 +14,7 @@ edition = "2021"
 readme = "README.md"
 
 [dependencies]
-etcetera = "=0.10.0"
+etcetera = "~0.11.0"
 serde = { version = "~1.0", features = ["derive"] }
 toml = "=0.9.8"
 which_crate = { version = "~8.0", package = "which" }
