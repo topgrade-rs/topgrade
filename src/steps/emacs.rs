@@ -10,7 +10,7 @@ use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::terminal::print_separator;
-use crate::utils::{require, require_option, PathExt};
+use crate::utils::{PathExt, require, require_option};
 
 const EMACS_UPGRADE: &str = include_str!("emacs.el");
 #[cfg(windows)]

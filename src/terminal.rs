@@ -8,7 +8,7 @@ use std::time::Duration;
 use chrono::{Local, Timelike};
 use color_eyre::eyre;
 use color_eyre::eyre::Context;
-use console::{style, Key, Term};
+use console::{Key, Term, style};
 use notify_rust::{Notification, Timeout};
 use rust_i18n::t;
 use tracing::{debug, error};
