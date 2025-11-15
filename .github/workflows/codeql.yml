@@ -2,10 +2,10 @@ name: CodeQL
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
   schedule:
-    - cron: '0 3 * * 1'
+    - cron: "0 3 * * 1"
 
 permissions:
   contents: read
@@ -22,20 +22,24 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout repository
+        # action pin via: git ls-remote https://github.com/actions/checkout refs/tags/v5.0.0 | head -1
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
           fetch-depth: 1
 
       - name: Initialize CodeQL
+        # action pin via: git ls-remote https://github.com/github/codeql-action refs/tags/v4.31.3 | head -1
         uses: github/codeql-action/init@014f16e7ab1402f30e7c3329d33797e7948572db # v4.31.3
         with:
           languages: rust
 
       - name: Autobuild
+        # action pin via: git ls-remote https://github.com/github/codeql-action refs/tags/v4.31.3 | head -1
         uses: github/codeql-action/autobuild@014f16e7ab1402f30e7c3329d33797e7948572db # v4.31.3
 
       - name: Perform CodeQL Analysis
+        # action pin via: git ls-remote https://github.com/github/codeql-action refs/tags/v4.31.3 | head -1
         uses: github/codeql-action/analyze@014f16e7ab1402f30e7c3329d33797e7948572db # v4.31.3
         with:
-          category: '/language:rust'
+          category: "/language:rust"

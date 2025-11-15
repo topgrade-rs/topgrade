@@ -7,7 +7,7 @@ on:
 name: CI
 
 env:
-  CROSS_VER: '0.2.5'
+  CROSS_VER: "0.2.5"
   CARGO_NET_RETRY: 3
 
 permissions:
@@ -24,6 +24,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout code
+        # action pin via: git ls-remote https://github.com/actions/checkout refs/tags/v5.0.0 | head -1
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
@@ -97,7 +98,7 @@ jobs:
           fi
 
   main:
-    needs: [ fmt, custom-checks ]
+    needs: [fmt, custom-checks]
     name: ${{ matrix.target_name }} (check, clippy)
     runs-on: ${{ matrix.os }}
     strategy:
@@ -145,12 +146,14 @@ jobs:
           fetch-depth: 1
 
       - name: Setup Rust Cache
+        # action pin via: git ls-remote https://github.com/Swatinem/rust-cache refs/tags/v2.8.1 | head -1
         uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
         with:
           prefix-key: ${{ matrix.target }}
 
       - name: Install cross
         if: matrix.use_cross == true
+        # action pin via: git ls-remote https://github.com/taiki-e/install-action refs/tags/v2.60.0 | head -1
         uses: taiki-e/install-action@0c5db7f7f897c03b771660e91d065338615679f4 # v2.60.0
         with:
           tool: cross@${{ env.CROSS_VER }}
