@@ -13,7 +13,6 @@ use clap::{crate_version, Parser};
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use console::Key;
-use etcetera::base_strategy::BaseStrategy;
 #[cfg(windows)]
 use etcetera::base_strategy::Windows;
 #[cfg(unix)]
