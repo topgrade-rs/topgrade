@@ -8,7 +8,7 @@ repository = "https://github.com/topgrade-rs/topgrade"
 rust-version = "1.88.0"
 version = "16.9.0"
 exclude = ["doc/screenshot.gif", "BREAKINGCHANGES_dev.md"]
-edition = "2021"
+edition = "2024"
 
 readme = "README.md"
 

@@ -199,10 +199,10 @@ pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     for distribution in wsl_distributions {
         let result = upgrade_wsl_distribution(&wsl, &distribution, ctx);
         debug!("Upgrading {:?}: {:?}", distribution, result);
-        if let Err(e) = result {
-            if e.is::<SkipStep>() {
-                continue;
-            }
+        if let Err(e) = result
+            && e.is::<SkipStep>()
+        {
+            continue;
         }
         ran = true
     }
@@ -261,11 +261,7 @@ pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
             }
             let ret_val = output.stdout.trim();
             debug!("Command return value: {}", ret_val);
-            if ret_val == "0" {
-                Ok(())
-            } else {
-                Err(())
-            }
+            if ret_val == "0" { Ok(()) } else { Err(()) }
         })?;
     println!(
         "{}",
@@ -286,12 +282,12 @@ pub fn insert_startup_scripts(ctx: &ExecutionContext, git_repos: &mut RepoStep) 
         .join("Microsoft\\Windows\\Start Menu\\Programs\\Startup");
     for entry in std::fs::read_dir(&startup_dir)?.flatten() {
         let path = entry.path();
-        if path.extension().and_then(OsStr::to_str) == Some("lnk") {
-            if let Ok(lnk) = parselnk::Lnk::try_from(Path::new(&path)) {
-                debug!("Startup link: {:?}", lnk);
-                if let Some(path) = lnk.relative_path() {
-                    git_repos.insert_if_repo(ctx, startup_dir.join(path));
-                }
+        if path.extension().and_then(OsStr::to_str) == Some("lnk")
+            && let Ok(lnk) = parselnk::Lnk::try_from(Path::new(&path))
+        {
+            debug!("Startup link: {:?}", lnk);
+            if let Some(path) = lnk.relative_path() {
+                git_repos.insert_if_repo(ctx, startup_dir.join(path));
             }
         }
     }

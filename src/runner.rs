@@ -9,7 +9,7 @@ use crate::ctrlc;
 use crate::error::{DryRun, MissingSudo, SkipStep};
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
-use crate::terminal::{print_error, print_warning, should_retry, ShouldRetry};
+use crate::terminal::{ShouldRetry, print_error, print_warning, should_retry};
 
 pub enum StepResult {
     Success,

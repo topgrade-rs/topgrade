@@ -632,13 +632,13 @@ impl Step {
             Typst => runner.execute(*self, "Typst", || generic::run_typst(ctx))?,
             Uv => runner.execute(*self, "uv", || generic::run_uv(ctx))?,
             Vagrant => {
-                if ctx.config().should_run(Vagrant) {
-                    if let Ok(boxes) = vagrant::collect_boxes(ctx) {
-                        for vagrant_box in boxes {
-                            runner.execute(*self, format!("Vagrant ({})", vagrant_box.smart_name()), || {
-                                vagrant::topgrade_vagrant_box(ctx, &vagrant_box)
-                            })?;
-                        }
+                if ctx.config().should_run(Vagrant)
+                    && let Ok(boxes) = vagrant::collect_boxes(ctx)
+                {
+                    for vagrant_box in boxes {
+                        runner.execute(*self, format!("Vagrant ({})", vagrant_box.smart_name()), || {
+                            vagrant::topgrade_vagrant_box(ctx, &vagrant_box)
+                        })?;
                     }
                 }
                 runner.execute(*self, "Vagrant boxes", || vagrant::upgrade_vagrant_boxes(ctx))?;
