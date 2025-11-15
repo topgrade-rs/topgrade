@@ -1806,10 +1806,10 @@ pub fn run_jetbrains_webstorm(ctx: &ExecutionContext) -> Result<()> {
     run_jetbrains_ide(ctx, require_one(["webstorm", "webstorm-eap"])?, "WebStorm")
 }
 
-pub fn run_yazi(ctx: &ExecutionContext) -> Result<()> {
+pub fn run_yazi(ctx: &ExecutionContext, confirm_run: &dyn Fn()) -> Result<()> {
     let ya = require("ya")?;
 
-    print_separator("Yazi packages");
+    confirm_run();
 
     ctx.execute(ya).args(["pkg", "upgrade"]).status_checked()
 }

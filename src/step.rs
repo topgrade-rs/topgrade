@@ -692,7 +692,7 @@ impl Step {
                 runner.execute(*self, "yadm", || unix::run_yadm(ctx))?
             }
             Yarn => runner.execute(*self, "yarn", || node::run_yarn_upgrade(ctx))?,
-            Yazi => runner.execute(*self, "Yazi packages", || generic::run_yazi(ctx))?,
+            Yazi => runner.execute_2(*self, "Yazi packages", generic::run_yazi)?,
             Zigup => runner.execute(*self, "zigup", || generic::run_zigup(ctx))?,
             Zvm => runner.execute(*self, "ZVM", || generic::run_zvm(ctx))?,
         }
