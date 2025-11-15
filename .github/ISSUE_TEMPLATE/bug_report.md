@@ -21,10 +21,7 @@ an hour has been passed since the last release was made.
 
 ## Checklist
 
-- [ ] I have searched the issue tracker for relevant or duplicate issues. Search terms used:
-    - ...
-- [ ] The issue persists on the `main` branch (install with
-  `cargo install --git https://github.com/topgrade-rs/topgrade`, run with `~/.cargo/bin/topgrade`)
+- [ ] I have searched the issue tracker for relevant or duplicate issues.
 
 ## Erroneous Behavior
 

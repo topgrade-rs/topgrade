@@ -9,8 +9,7 @@ assignees: ''
 
 ## Checklist
 
-- [ ] I have searched the issue tracker for relevant or duplicate issues. Search terms used:
-    - ...
+- [ ] I have searched the issue tracker for relevant or duplicate issues.
 
 ## I want to suggest a new step
 
