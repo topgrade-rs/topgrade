@@ -889,13 +889,11 @@ pub fn run_tldr(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
-    if cfg!(any(target_os = "linux", target_os = "android")) {
-        if !ctx.config().enable_tlmgr_linux() {
-            return Err(SkipStep(String::from(
-                "tlmgr must be explicitly enabled in the configuration to run in Android/Linux",
-            ))
-            .into());
-        }
+    if cfg!(any(target_os = "linux", target_os = "android")) && !ctx.config().enable_tlmgr_linux() {
+        return Err(SkipStep(String::from(
+            "tlmgr must be explicitly enabled in the configuration to run in Android/Linux",
+        ))
+        .into());
     }
 
     let tlmgr = require("tlmgr")?;
