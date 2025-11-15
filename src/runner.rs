@@ -1,14 +1,15 @@
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{Result, WrapErr};
 use rust_i18n::t;
 use std::borrow::Cow;
 use std::fmt::{Debug, Display};
+use std::io;
 use tracing::debug;
 
 use crate::ctrlc;
 use crate::error::{DryRun, MissingSudo, SkipStep};
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
-use crate::terminal::{print_error, print_warning, should_retry};
+use crate::terminal::{print_error, print_warning, should_retry, ShouldRetry};
 
 pub enum StepResult {
     Success(Option<UpdatedComponents>),
@@ -169,21 +170,28 @@ impl<'a> Runner<'a> {
                     let should_ask = interrupted || !(self.ctx.config().no_retry() || ignore_failure);
                     let should_retry = if should_ask {
                         print_error(&key, format!("{e:?}"));
-                        should_retry(interrupted, key.as_ref())?
+                        should_retry(key.as_ref())?
                     } else {
-                        false
+                        ShouldRetry::No
                     };
 
-                    if !should_retry {
-                        self.push_result(
-                            key,
-                            if ignore_failure {
-                                StepResult::Ignored
-                            } else {
-                                StepResult::Failure
-                            },
-                        );
-                        break;
+                    match should_retry {
+                        ShouldRetry::No | ShouldRetry::Quit => {
+                            self.push_result(
+                                key,
+                                if ignore_failure {
+                                    StepResult::Ignored
+                                } else {
+                                    StepResult::Failure
+                                },
+                            );
+                            if let ShouldRetry::Quit = should_retry {
+                                return Err(io::Error::from(io::ErrorKind::Interrupted))
+                                    .context("Quit from user input");
+                            }
+                            break;
+                        }
+                        ShouldRetry::Yes => (),
                     }
                 }
             }

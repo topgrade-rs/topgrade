@@ -5,6 +5,7 @@ use jetbrains_toolbox_updater::{find_jetbrains_toolbox, update_jetbrains_toolbox
 use regex::Regex;
 use rust_i18n::t;
 use semver::Version;
+use serde::Deserialize;
 use std::ffi::OsString;
 use std::iter::once;
 use std::path::PathBuf;
@@ -106,8 +107,9 @@ pub fn run_gem(ctx: &ExecutionContext) -> Result<()> {
     command.arg("update");
 
     if env::var_os("RBENV_SHELL").is_none() {
-        debug!("Detected rbenv. Avoiding --user-install");
         command.arg("--user-install");
+    } else {
+        debug!("Detected rbenv. Avoiding --user-install");
     }
 
     command.status_checked()
@@ -227,25 +229,25 @@ impl Aqua {
             Aqua::AquaCLI(_) => Err(SkipStep("Command `aqua` probably points to Aqua CLI".to_string()).into()),
         }
     }
-}
 
-fn get_aqua(ctx: &ExecutionContext) -> Result<Aqua> {
-    let aqua = require("aqua")?;
+    fn get(ctx: &ExecutionContext) -> Result<Self> {
+        let aqua = require("aqua")?;
 
-    // Check if `aqua --help` mentions "aqua". JetBrains Aqua does not, Aqua CLI does.
-    let output = ctx.execute(&aqua).arg("--help").output_checked()?;
+        // Check if `aqua --help` mentions "aqua". JetBrains Aqua does not, Aqua CLI does.
+        let output = ctx.execute(&aqua).arg("--help").output_checked()?;
 
-    if String::from_utf8(output.stdout)?.contains("aqua") {
-        debug!("Detected `aqua` as Aqua CLI");
-        Ok(Aqua::AquaCLI(aqua))
-    } else {
-        debug!("Detected `aqua` as JetBrains Aqua");
-        Ok(Aqua::JetBrainsAqua(aqua))
+        if String::from_utf8(output.stdout)?.contains("aqua") {
+            debug!("Detected `aqua` as Aqua CLI");
+            Ok(Self::AquaCLI(aqua))
+        } else {
+            debug!("Detected `aqua` as JetBrains Aqua");
+            Ok(Self::JetBrainsAqua(aqua))
+        }
     }
 }
 
 pub fn run_aqua(ctx: &ExecutionContext) -> Result<()> {
-    let aqua = get_aqua(ctx)?.aqua_cli()?;
+    let aqua = Aqua::get(ctx)?.aqua_cli()?;
 
     print_separator("Aqua");
     if ctx.run_type().dry() {
@@ -262,7 +264,11 @@ pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
     let rustup = require("rustup")?;
 
     print_separator("rustup");
-    ctx.execute(rustup).arg("update").status_checked()
+
+    ctx.execute(rustup)
+        .arg("update")
+        .args(ctx.config().rustup_channels())
+        .status_checked()
 }
 
 pub fn run_rye(ctx: &ExecutionContext) -> Result<()> {
@@ -431,10 +437,10 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
     let is_root_install = false;
 
     let mut command = if is_root_install {
-        ctx.execute(&vcpkg)
-    } else {
         let sudo = ctx.require_sudo()?;
         sudo.execute(ctx, &vcpkg)?
+    } else {
+        ctx.execute(&vcpkg)
     };
 
     command.args(["upgrade", "--no-dry-run"]).status_checked()
@@ -602,11 +608,11 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
     let conda = require("conda")?;
 
     let output = Command::new(&conda)
-        .args(["config", "--show", "auto_activate_base"])
+        .args(["config", "--show", "auto_activate"])
         .output_checked_utf8()?;
     debug!("Conda output: {}", output.stdout);
     if output.stdout.contains("False") {
-        return Err(SkipStep("auto_activate_base is set to False".to_string()).into());
+        return Err(SkipStep("auto_activate is set to False".to_string()).into());
     }
 
     print_separator("Conda");
@@ -859,6 +865,14 @@ pub fn run_ghcup_update(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(ghcup).arg("upgrade").status_checked()
 }
 
+pub fn run_tldr(ctx: &ExecutionContext) -> Result<()> {
+    let tldr = require("tldr")?;
+
+    print_separator("TLDR");
+
+    ctx.execute(tldr).arg("--update").status_checked()
+}
+
 pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
     cfg_if::cfg_if! {
         if #[cfg(any(target_os = "linux", target_os = "android"))] {
@@ -903,9 +917,17 @@ pub fn run_chezmoi_update(ctx: &ExecutionContext) -> Result<()> {
     let chezmoi = require("chezmoi")?;
     HOME_DIR.join(".local/share/chezmoi").require()?;
 
+    let mut cmd = ctx.execute(chezmoi);
+
     print_separator("chezmoi");
 
-    ctx.execute(chezmoi).arg("update").status_checked()
+    cmd.arg("update");
+
+    if ctx.config().chezmoi_exclude_encrypted() {
+        cmd.arg("--exclude=encrypted");
+    }
+
+    cmd.status_checked()
 }
 
 pub fn run_myrepos_update(ctx: &ExecutionContext) -> Result<()> {
@@ -1100,25 +1122,25 @@ impl Hx {
             }
         }
     }
-}
 
-fn get_hx(ctx: &ExecutionContext) -> Result<Hx> {
-    let hx = require("hx")?;
+    fn get(ctx: &ExecutionContext) -> Result<Self> {
+        let hx = require("hx")?;
 
-    // Check if `hx --help` mentions "helix". Helix does, hx (hexdump alternative) doesn't.
-    let output = ctx.execute(&hx).arg("--help").output_checked()?;
+        // Check if `hx --help` mentions "helix". Helix does, hx (hexdump alternative) doesn't.
+        let output = ctx.execute(&hx).arg("--help").output_checked()?;
 
-    if String::from_utf8(output.stdout)?.contains("helix") {
-        debug!("Detected `hx` as Helix");
-        Ok(Hx::Helix(hx))
-    } else {
-        debug!("Detected `hx` as hx (hexdump alternative)");
-        Ok(Hx::HxHexdump)
+        if String::from_utf8(output.stdout)?.contains("helix") {
+            debug!("Detected `hx` as Helix");
+            Ok(Self::Helix(hx))
+        } else {
+            debug!("Detected `hx` as hx (hexdump alternative)");
+            Ok(Self::HxHexdump)
+        }
     }
 }
 
 pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
-    let helix = require("helix").or(get_hx(ctx)?.helix())?;
+    let helix = require("helix").or(Hx::get(ctx)?.helix())?;
 
     print_separator("Helix");
 
@@ -1244,7 +1266,34 @@ pub fn run_certbot(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_freshclam(ctx: &ExecutionContext) -> Result<()> {
     let freshclam = require("freshclam")?;
     print_separator(t!("Update ClamAV Database(FreshClam)"));
-    ctx.execute(freshclam).status_checked()
+
+    let output = ctx.execute(&freshclam).output()?;
+    let output = match output {
+        ExecutorOutput::Wet(output) => output,
+        ExecutorOutput::Dry => return Ok(()), // In a dry run, just exit after running without sudo
+    };
+
+    // Check if running without sudo was successful
+    if output.status.success() {
+        // Success, so write the output and exit
+        std::io::stdout().lock().write_all(&output.stdout).unwrap();
+        std::io::stderr().lock().write_all(&output.stderr).unwrap();
+        return Ok(());
+    }
+
+    // Since running without sudo failed (hopefully due to permission errors), try running with sudo.
+    debug!("`freshclam` (without sudo) resulted in error: {:?}", output);
+    let sudo = ctx.require_sudo()?;
+
+    match sudo.execute(ctx, freshclam)?.status_checked() {
+        Ok(()) => Ok(()), // Success! The output of only the sudo'ed process is written.
+        Err(err) => {
+            // Error! We add onto the error the output of running without sudo for more information.
+            Err(err.wrap_err(format!(
+                "Running `freshclam` with sudo failed as well as running without sudo. Output without sudo: {output:?}"
+            )))
+        }
+    }
 }
 
 /// Involve `pio upgrade` to update PlatformIO core.
@@ -1557,9 +1606,25 @@ pub fn run_zvm(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
     let bun = require("bun")?;
 
-    print_separator("Bun");
+    // From the official install script (both install.sh and install.ps1), Bun uses
+    // the path set in this variable as the install root, and its defaults to
+    // `$HOME/.bun`
+    //
+    // UNIX: https://bun.sh/install.sh
+    // Windows: https://bun.sh/install.ps1
+    let bun_install_env = env::var("BUN_INSTALL")
+        .map(PathBuf::from)
+        .unwrap_or(HOME_DIR.join(".bun"));
 
-    ctx.execute(bun).arg("upgrade").status_checked()
+    // If `bun` is a descendant of `bun_install_env`, then Bun is installed
+    // through the official script
+    if bun.is_descendant_of(&bun_install_env) {
+        print_separator("Bun");
+
+        ctx.execute(bun).arg("upgrade").status_checked()
+    } else {
+        Err(SkipStep("Not installed through the official script".to_string()).into())
+    }
 }
 
 pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
@@ -1601,7 +1666,7 @@ pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-pub fn run_jetbrains_toolbox(_ctx: &ExecutionContext) -> Result<()> {
+pub fn run_jetbrains_toolbox(ctx: &ExecutionContext) -> Result<()> {
     let installation = find_jetbrains_toolbox();
     match installation {
         Err(FindError::NotFound) => {
@@ -1623,6 +1688,11 @@ pub fn run_jetbrains_toolbox(_ctx: &ExecutionContext) -> Result<()> {
         }
         Ok(installation) => {
             print_separator("JetBrains Toolbox");
+
+            if ctx.run_type().dry() {
+                println!("Dry running jetbrains-toolbox-updater");
+                return Ok(());
+            }
 
             match update_jetbrains_toolbox(installation) {
                 Err(e) => {
@@ -1698,7 +1768,7 @@ pub fn run_android_studio(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_jetbrains_aqua(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, get_aqua(ctx)?.jetbrains_aqua()?, "Aqua")
+    run_jetbrains_ide(ctx, Aqua::get(ctx)?.jetbrains_aqua()?, "Aqua")
 }
 
 pub fn run_jetbrains_clion(ctx: &ExecutionContext) -> Result<()> {
@@ -1779,4 +1849,51 @@ pub fn run_yazi(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Yazi packages");
 
     ctx.execute(ya).args(["pkg", "upgrade"]).status_checked()
+}
+
+#[derive(Deserialize)]
+struct TypstInfo {
+    build: TypstBuild,
+}
+
+#[derive(Deserialize)]
+struct TypstBuild {
+    settings: TypstSettings,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+struct TypstSettings {
+    self_update: bool,
+}
+
+pub fn run_typst(ctx: &ExecutionContext) -> Result<()> {
+    let typst = require("typst")?;
+
+    let raw_info = ctx
+        .execute(&typst)
+        .args(["info", "-f", "json"])
+        .output_checked_utf8()?
+        .stdout;
+    let info: TypstInfo = serde_json::from_str(&raw_info).wrap_err_with(|| {
+        output_changed_message!(
+            "typst info -f json",
+            "json output invalid or does not contain .build.settings.self-update"
+        )
+    })?;
+    if !info.build.settings.self_update {
+        return Err(SkipStep("This build of typst does not have self-update enabled".to_string()).into());
+    }
+
+    print_separator("Typst");
+
+    ctx.execute(typst).args(["update"]).status_checked()
+}
+
+pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
+    let falconf = require("falconf")?;
+
+    print_separator("falconf sync");
+
+    ctx.execute(falconf).arg("sync").status_checked()
 }

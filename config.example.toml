@@ -91,6 +91,11 @@
 # See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
 # log_filters = ["topgrade::command=debug", "warn"]
 
+# Whether to show a distribution-specific summary if applicable, e.g. listing
+# Pacman backup configuration files (*.pacsave and *.pacnew)
+# (default: true)
+# show_distribution_summary = false
+
 
 # Commands to run before anything
 [pre_commands]
@@ -223,6 +228,13 @@
 # enable = true
 
 
+[pkgfile]
+# Enable the pkgfile step (to update the pkgfile database).
+# Pkgfile is sometimes installed by default, but often not used and heavy to update.
+# (default: false)
+# enable = true
+
+
 [git]
 # How many repos to pull at max in parallel
 # max_concurrency = 5
@@ -273,6 +285,11 @@
 # (default: false)
 # winget_use_sudo = true
 
+
+[chezmoi]
+# Exclude encrypted files from update
+# (default: false)
+# exclude_encrypted = false
 
 [npm]
 # Use sudo if the NPM directory isn't owned by the current user
@@ -376,3 +393,14 @@
 # during the pixi step
 # (default: false)
 # include_release_notes = false
+
+[doom]
+# If this is set to true, the `--aot` flag is added to `doom upgrade`,
+# which enables ahead-of-time native compilation of packages.
+# (default: false)
+# aot = true
+
+[rustup]
+# If set, updates only these channels.
+# (default: [] (all channels))
+# channels = ["stable"]

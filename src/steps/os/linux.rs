@@ -23,6 +23,7 @@ static OS_RELEASE_PATH: &str = "/etc/os-release";
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Distribution {
     Alpine,
+    AOSC,
     Wolfi,
     Arch,
     Bedrock,
@@ -58,6 +59,7 @@ impl Distribution {
 
         Ok(match id {
             Some("alpine") => Distribution::Alpine,
+            Some("aosc") => Distribution::AOSC,
             Some("chimera") => Distribution::Chimera,
             Some("wolfi") => Distribution::Wolfi,
             Some("centos") | Some("rhel") | Some("ol") => Distribution::CentOS,
@@ -161,6 +163,7 @@ impl Distribution {
             Distribution::PCLinuxOS => upgrade_pclinuxos(ctx),
             Distribution::Nobara => upgrade_nobara(ctx),
             Distribution::NILRT => upgrade_nilrt(ctx),
+            Distribution::AOSC => upgrade_aosc(ctx),
         }
     }
 
@@ -195,6 +198,20 @@ fn update_bedrock(ctx: &ExecutionContext) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn upgrade_aosc(ctx: &ExecutionContext) -> Result<()> {
+    let oma = require("oma")?;
+    let sudo = ctx.require_sudo()?;
+
+    let mut cmd = sudo.execute(ctx, &oma)?;
+    cmd.arg("upgrade");
+
+    if ctx.config().yes(Step::System) {
+        cmd.arg("-y");
+    }
+
+    cmd.status_checked()
 }
 
 fn upgrade_alpine_linux(ctx: &ExecutionContext) -> Result<()> {
@@ -582,7 +599,14 @@ pub fn run_deb_get(ctx: &ExecutionContext) -> Result<()> {
     print_separator("deb-get");
 
     ctx.execute(&deb_get).arg("update").status_checked()?;
-    ctx.execute(&deb_get).arg("upgrade").status_checked()?;
+    ctx.execute(&deb_get)
+        .arg("upgrade")
+        // Since the `apt` step already updates all other apt packages, don't check for updates
+        //  to all packages here. This does suboptimally check for updates for deb-get packages
+        //  that apt can update (that were installed via a repository), but that is only a few,
+        //  and there's nothing we can do about that.
+        .arg("--dg-only")
+        .status_checked()?;
 
     if ctx.config().cleanup() {
         let output = ctx.execute(&deb_get).arg("clean").output_checked()?;
@@ -685,6 +709,10 @@ pub fn run_pacstall(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_pkgfile(ctx: &ExecutionContext) -> Result<()> {
     let pkgfile = require("pkgfile")?;
+
+    if !ctx.config().enable_pkgfile() {
+        return Err(SkipStep("Pkgfile isn't enabled".to_string()).into());
+    }
 
     print_separator("pkgfile");
 
@@ -1006,6 +1034,7 @@ pub fn run_dkp_pacman_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
+    // The `config_update` step always requests user input, so when running with `--yes` we need to skip the step entirely
     if ctx.config().yes(Step::ConfigUpdate) {
         return Err(SkipStep(t!("Skipped in --yes").to_string()).into());
     }
@@ -1015,6 +1044,7 @@ pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
         let sudo = ctx.require_sudo()?;
         sudo.execute(ctx, etc_update)?.status_checked()?;
     } else if let Ok(pacdiff) = require("pacdiff") {
+        // When `DIFFPROG` is unset, `pacdiff` uses `vim` by default
         if std::env::var("DIFFPROG").is_err() {
             require("vim")?;
         }
@@ -1092,6 +1122,12 @@ pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_auto_cpufreq(ctx: &ExecutionContext) -> Result<()> {
     let auto_cpu_freq = require("auto-cpufreq")?;
+    if auto_cpu_freq != PathBuf::from("/usr/local/bin/auto-cpufreq") {
+        return Err(SkipStep(String::from(
+            "`auto-cpufreq` was not installed by the official installer, but presumably by a package manager.",
+        ))
+        .into());
+    }
 
     print_separator("auto-cpufreq");
 
@@ -1128,6 +1164,11 @@ mod tests {
     fn test_arch_linux() {
         test_template(include_str!("os_release/arch"), Distribution::Arch);
         test_template(include_str!("os_release/arch32"), Distribution::Arch);
+    }
+
+    #[test]
+    fn test_aosc() {
+        test_template(include_str!("os_release/aosc"), Distribution::AOSC);
     }
 
     #[test]
