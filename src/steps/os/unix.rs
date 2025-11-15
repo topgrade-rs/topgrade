@@ -2,13 +2,13 @@ use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use color_eyre::eyre::{eyre, OptionExt};
 use etcetera::BaseStrategy;
-use home;
 use ini::Ini;
 #[cfg(target_os = "linux")]
 use nix::unistd::Uid;
 use regex::Regex;
 use rust_i18n::t;
 use semver::Version;
+use std::env::home_dir;
 use std::ffi::OsStr;
 use std::io::Write;
 use std::os::unix::fs::MetadataExt;
@@ -491,8 +491,8 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     let nix = require("nix")?;
     let nix_channel = require("nix-channel")?;
     let nix_env = require("nix-env")?;
-    // TODO: Is None possible here?
-    let profile_path = match home::home_dir() {
+    // TODO: Is None possible here? Should we use HOME_DIR instead?
+    let profile_path = match home_dir() {
         Some(home) => XDG_DIRS
             .state_dir()
             .map(|d| d.join("nix/profile"))
