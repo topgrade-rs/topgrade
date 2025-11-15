@@ -1,6 +1,7 @@
 #![allow(clippy::cognitive_complexity)]
 
 use std::env;
+use std::env::home_dir;
 use std::io;
 use std::path::PathBuf;
 use std::process::exit;
@@ -48,7 +49,7 @@ mod sudo;
 mod terminal;
 mod utils;
 
-pub(crate) static HOME_DIR: LazyLock<PathBuf> = LazyLock::new(|| home::home_dir().expect("No home directory"));
+pub(crate) static HOME_DIR: LazyLock<PathBuf> = LazyLock::new(|| home_dir().expect("No home directory"));
 #[cfg(unix)]
 pub(crate) static XDG_DIRS: LazyLock<Xdg> = LazyLock::new(|| Xdg::new().expect("No home directory"));
 

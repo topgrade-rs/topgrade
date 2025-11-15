@@ -14,7 +14,6 @@ edition = "2021"
 readme = "README.md"
 
 [dependencies]
-home = "=0.5.11"
 etcetera = "=0.10.0"
 serde = { version = "~1.0", features = ["derive"] }
 toml = "=0.9.8"
