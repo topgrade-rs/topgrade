@@ -28,7 +28,6 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-          fetch-depth: 1
 
       - name: Run cargo fmt
         env:
@@ -46,7 +45,6 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-          fetch-depth: 1
 
       - name: Check if `Step` enum is sorted
         run: |
@@ -143,7 +141,6 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-          fetch-depth: 1
 
       - name: Setup Rust Cache
         # action pin via: git ls-remote https://github.com/Swatinem/rust-cache refs/tags/v2.8.1 | head -1
