@@ -8,8 +8,6 @@
   <a href="https://aur.archlinux.org/packages/topgrade"><img alt="AUR" src="https://img.shields.io/aur/version/topgrade.svg"></a>
   <a href="https://formulae.brew.sh/formula/topgrade"><img alt="Homebrew" src="https://img.shields.io/homebrew/v/topgrade.svg"></a>
 
-  <a href="https://github.com/topgrade-rs/topgrade/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/topgrade-rs/topgrade/actions/workflows/codeql.yml/badge.svg?branch=main"></a>
-
   <img alt="Demo" src="doc/topgrade_demo.gif">
 </div>
 
