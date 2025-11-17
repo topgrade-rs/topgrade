@@ -230,7 +230,7 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
             error!("Running system prune failed: {}", e);
             success = false;
         }
-    } else if ctx.config().cleanup() {
+    } else if ctx.config().cleanup() {  // Only run `image prune` if we don't run `system prune`
         // Remove dangling images
         debug!("Removing dangling images");
         if let Err(e) = ctx.execute(&crt).args(["image", "prune", "-f"]).status_checked() {
