@@ -2964,7 +2964,7 @@ checksum = "df8b2b54733674ad286d16267dcfc7a71ed5c776e4ac7aa3c3e2561f7c637bf2"
 
 [[package]]
 name = "topgrade"
-version = "16.2.1"
+version = "16.3.0"
 dependencies = [
  "base64ct",
  "chrono",

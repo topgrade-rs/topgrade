@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.3.0](https://github.com/topgrade-rs/topgrade/compare/v16.2.1...v16.3.0) - 2025-11-16
+
+### Added
+
+- print summary and run post commands when (q)uit is used ([#1254](https://github.com/topgrade-rs/topgrade/pull/1254))
+- run pre_sudo before pre_commands ([#1469](https://github.com/topgrade-rs/topgrade/pull/1469))
+- *(chezmoi)* add `exclude_encrypted` config ([#1453](https://github.com/topgrade-rs/topgrade/pull/1453))
+
+### Fixed
+
+- *(elan)* skip running elan update on elan >=4.0.0 ([#1507](https://github.com/topgrade-rs/topgrade/pull/1507))
+- *(deps)* Fix non-locked install on older version of Rust ([#1485](https://github.com/topgrade-rs/topgrade/pull/1485))
+- *(deps)* Fix non-locked install on older version of Rust ([#1482](https://github.com/topgrade-rs/topgrade/pull/1482))
+- *(bun)* skip self-update if not installed via official script ([#1476](https://github.com/topgrade-rs/topgrade/pull/1476))
+- *(openbsd)* fix compilation on OpenBSD ([#1473](https://github.com/topgrade-rs/topgrade/pull/1473))
+
+### Other
+
+- *(license)* switch license variant to GPL-3.0-or-later ([#1518](https://github.com/topgrade-rs/topgrade/pull/1518))
+- *(deps)* update some dependencies ([#1512](https://github.com/topgrade-rs/topgrade/pull/1512))
+- *(deps)* update github/codeql-action action to v4.31.3 ([#1483](https://github.com/topgrade-rs/topgrade/pull/1483))
+- remove unnecessary cfg-if dependency ([#1509](https://github.com/topgrade-rs/topgrade/pull/1509))
+- *(lint_pr)* run on synchronize, and add zizmor ignore ([#1508](https://github.com/topgrade-rs/topgrade/pull/1508))
+- *(pre-commit)* autoupdate ([#1464](https://github.com/topgrade-rs/topgrade/pull/1464))
+- improve issue templates ([#1235](https://github.com/topgrade-rs/topgrade/pull/1235))
+- *(deps)* bump mac-notification-sys, use main branch temporarily ([#1506](https://github.com/topgrade-rs/topgrade/pull/1506))
+- *(deps)* lock file maintenance ([#1481](https://github.com/topgrade-rs/topgrade/pull/1481))
+- *(deps)* pin dependencies ([#1478](https://github.com/topgrade-rs/topgrade/pull/1478))
+- *(deps)* update actions/dependency-review-action action to v4.8.2 ([#1479](https://github.com/topgrade-rs/topgrade/pull/1479))
+- Add Renovate ([#1477](https://github.com/topgrade-rs/topgrade/pull/1477))
+- Replace main's self update with a proper step call ([#1470](https://github.com/topgrade-rs/topgrade/pull/1470))
+- *(release)* Fix homebrew releases ([#1468](https://github.com/topgrade-rs/topgrade/pull/1468))
+
 ## [16.2.1](https://github.com/topgrade-rs/topgrade/compare/v16.2.0...v16.2.1) - 2025-11-10
 
 ### Fixed
