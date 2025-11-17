@@ -224,7 +224,14 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
         }
     }
 
-    if ctx.config().cleanup() {
+    if ctx.config().containers_system_prune() {
+        // Run system prune to clean up unused containers, networks, and build cache
+        if let Err(e) = ctx.execute(&crt).args(["system", "prune", "--force"]).status_checked() {
+            error!("Running system prune failed: {}", e);
+            success = false;
+        }
+    // Only run `image prune` if we don't run `system prune`
+    } else if ctx.config().cleanup() {
         // Remove dangling images
         debug!("Removing dangling images");
         if let Err(e) = ctx.execute(&crt).args(["image", "prune", "-f"]).status_checked() {

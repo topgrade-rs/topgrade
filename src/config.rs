@@ -60,6 +60,7 @@ pub struct Containers {
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     ignored_containers: Option<Vec<String>>,
     runtime: Option<ContainerRuntime>,
+    system_prune: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -956,6 +957,15 @@ impl Config {
             .as_ref()
             .and_then(|containers| containers.runtime)
             .unwrap_or(ContainerRuntime::Docker) // defaults to a popular choice
+    }
+
+    /// Whether to run system prune for containers.
+    pub fn containers_system_prune(&self) -> bool {
+        self.config_file
+            .containers
+            .as_ref()
+            .and_then(|containers| containers.system_prune)
+            .unwrap_or(false)
     }
 
     /// Tell whether the specified step should run.

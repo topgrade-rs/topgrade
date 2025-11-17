@@ -342,6 +342,10 @@
 # Specify the runtime to use for containers (default: "docker", allowed values: "docker", "podman")
 # runtime = "podman"
 
+# Run 'docker system prune' to clean up unused containers, networks, and build cache
+# (default: false)
+# system_prune = false
+
 [lensfun]
 # If disabled, Topgrade invokes `lensfun‑update‑data` without root privilege,
 # then the update will be only available to you. Otherwise, `sudo` is required,
