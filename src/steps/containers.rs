@@ -235,7 +235,7 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
 
     if ctx.config().containers_system_prune() {
         // Run system prune to clean up unused containers, networks, and build cache
-        if let Err(e) = ctx.execute(&crt).args(["system", "prune", "-f"]).status_checked() {
+        if let Err(e) = ctx.execute(&crt).args(["system", "prune", "--force"]).status_checked() {
             error!("Running system prune failed: {}", e);
             success = false;
         }
