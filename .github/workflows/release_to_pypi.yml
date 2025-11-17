@@ -2,15 +2,20 @@ name: Update PyPi
 
 on:
   repository_dispatch:
-    types: [ release-created ]
+    types: [release-created]
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # TODO: make linux/windows/macos/sdist a matrix. See how other workflows do it.
   linux:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     strategy:
       matrix:
         target: [x86_64, x86, aarch64]
@@ -33,6 +38,7 @@ jobs:
 
   windows:
     runs-on: windows-latest
+    timeout-minutes: 60
     strategy:
       matrix:
         target: [x64, x86]
@@ -54,6 +60,7 @@ jobs:
 
   macos:
     runs-on: macos-latest
+    timeout-minutes: 60
     strategy:
       matrix:
         target: [x86_64, aarch64]
@@ -75,6 +82,7 @@ jobs:
 
   sdist:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -108,7 +116,7 @@ jobs:
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
         with:
-          subject-path: 'wheels-*/*'
+          subject-path: "wheels-*/*"
 
       - name: Publish to PyPI
         uses: PyO3/maturin-action@86b9d133d34bc1b40018696f782949dac11bd380 # v1.49.4
