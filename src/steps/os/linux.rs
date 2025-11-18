@@ -1336,7 +1336,12 @@ mod tests {
     fn test_bazzite() {
         test_template(include_str!("os_release/bazzite"), Distribution::FedoraImmutable);
     }
-
+    
+    #[test]
+    fn test_origami() {
+        test_template(include_str!("os_release/origami"), Distribution::FedoraImmutable);
+    }
+    
     #[test]
     fn test_cachyos() {
         test_template(include_str!("os_release/cachyos"), Distribution::Arch);
