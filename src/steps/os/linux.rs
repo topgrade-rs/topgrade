@@ -1168,7 +1168,6 @@ mod tests {
         test_template(include_str!("os_release/arch32"), Distribution::Arch);
     }
 
-
     #[test]
     fn test_aosc() {
         test_template(include_str!("os_release/aosc"), Distribution::AOSC);
