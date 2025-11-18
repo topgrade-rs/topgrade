@@ -1346,7 +1346,7 @@ mod tests {
     }
 
     #[test]
-    fn test_arch_linux() {
+    fn test_origami() {
         test_template(include_str!("os_release/origami"), Distribution::FedoraImmutable);
         test_template(include_str!("os_release/origami-nvidia"), Distribution::FedoraImmutable);
         test_template(include_str!("os_release/origami-test"), Distribution::FedoraImmutable);
