@@ -78,6 +78,8 @@ impl Distribution {
             Some("neon") => Distribution::KDENeon,
             Some("openmandriva") => Distribution::OpenMandriva,
             Some("pclinuxos") => Distribution::PCLinuxOS,
+            Some(id) if id.starts_with("origami") => Distribution::FedoraImmutable,
+
             _ => {
                 if let Some(name) = name {
                     if name.contains("Vanilla") {
@@ -1165,6 +1167,7 @@ mod tests {
         test_template(include_str!("os_release/arch"), Distribution::Arch);
         test_template(include_str!("os_release/arch32"), Distribution::Arch);
     }
+    
 
     #[test]
     fn test_aosc() {
@@ -1340,5 +1343,12 @@ mod tests {
     #[test]
     fn test_cachyos() {
         test_template(include_str!("os_release/cachyos"), Distribution::Arch);
+    }
+
+    #[test]
+    fn test_arch_linux() {
+        test_template(include_str!("os_release/origami"), Distribution::FedoraImmutable);
+        test_template(include_str!("os_release/origami-nvidia"), Distribution::FedoraImmutable);
+        test_template(include_str!("os_release/origami-test"), Distribution::FedoraImmutable);
     }
 }
