@@ -2,7 +2,7 @@
 name: Bug report
 about: Topgrade is misbehaving
 title: ''
-labels: 'C-bug'
+type: Bug
 assignees: ''
 
 ---
