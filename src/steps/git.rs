@@ -303,23 +303,18 @@ impl RepoStep {
         let before_revision = get_head_revision(&self.git, &repo);
         let is_fetch_only = ctx.config().git_fetch_only();
 
+        if ctx.config().verbose() {
+            let action = if is_fetch_only { t!("Fetching") } else { t!("Pulling") };
+            println!("{} {}", style(action).cyan().bold(), repo.as_ref().display());
+        }
+
         let mut command = AsyncCommand::new(&self.git);
+        command.stdin(Stdio::null()).current_dir(&repo);
 
         if is_fetch_only {
-            if ctx.config().verbose() {
-                println!("{} {}", style(t!("Fetching")).cyan().bold(), repo.as_ref().display());
-            }
-
-            command.stdin(Stdio::null()).current_dir(&repo).args(["fetch"]);
+            command.args(["fetch", "--recurse-submodules"]);
         } else {
-            if ctx.config().verbose() {
-                println!("{} {}", style(t!("Pulling")).cyan().bold(), repo.as_ref().display());
-            }
-
-            command
-                .stdin(Stdio::null())
-                .current_dir(&repo)
-                .args(["pull", "--ff-only"]);
+            command.args(["pull", "--ff-only"]);
         }
 
         if let Some(extra_arguments) = ctx.config().git_arguments() {
@@ -327,7 +322,6 @@ impl RepoStep {
         }
 
         let output = command.output().await?;
-
         let result = if is_fetch_only {
             output_checked_utf8(output)
         } else {
@@ -341,18 +335,16 @@ impl RepoStep {
             output_checked_utf8(output).and_then(|()| output_checked_utf8(submodule_output))
         }
         .wrap_err_with(|| {
-            format!(
-                "Failed to {} {}",
-                if is_fetch_only { "fetch" } else { "pull" },
-                repo.as_ref().display()
-            )
+            let action = if is_fetch_only { "fetch" } else { "pull" };
+            format!("Failed to {} {}", action, repo.as_ref().display())
         });
 
         if result.is_err() {
+            let action = if is_fetch_only { t!("fetching") } else { t!("pulling") };
             println!(
                 "{} {} {}",
                 style(t!("Failed")).red().bold(),
-                if is_fetch_only { t!("fetching") } else { t!("pulling") },
+                action,
                 repo.as_ref().display()
             );
         } else {
