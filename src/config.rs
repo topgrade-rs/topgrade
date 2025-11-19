@@ -204,9 +204,10 @@ pub struct Brew {
     fetch_head: Option<bool>,
 }
 
-#[derive(Debug, Deserialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Clone, Copy, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ArchPackageManager {
+    #[default]
     Autodetect,
     Aura,
     GarudaUpdate,
@@ -218,9 +219,10 @@ pub enum ArchPackageManager {
     Yay,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ContainerRuntime {
+    #[default] // defaults to a popular choice
     Docker,
     Podman,
 }
@@ -358,10 +360,11 @@ pub struct Misc {
     show_distribution_summary: Option<bool>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, ValueEnum)]
+#[derive(Clone, Copy, Debug, Deserialize, ValueEnum, Default)]
 #[clap(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum TmuxSessionMode {
+    #[default]
     AttachIfNotInSession,
     AttachAlways,
 }
@@ -956,7 +959,7 @@ impl Config {
             .containers
             .as_ref()
             .and_then(|containers| containers.runtime)
-            .unwrap_or(ContainerRuntime::Docker) // defaults to a popular choice
+            .unwrap_or_default()
     }
 
     /// Whether to run system prune for containers.
@@ -1037,7 +1040,7 @@ impl Config {
             .misc
             .as_ref()
             .and_then(|misc| misc.tmux_session_mode)
-            .unwrap_or(TmuxSessionMode::AttachIfNotInSession)
+            .unwrap_or_default()
     }
 
     /// Tell whether we should perform cleanup steps.
@@ -1291,7 +1294,7 @@ impl Config {
             .vim
             .as_ref()
             .and_then(|c| c.force_plug_update)
-            .unwrap_or_default()
+            .unwrap_or(false)
     }
 
     /// Whether to send a desktop notification at the beginning of every step
@@ -1364,7 +1367,7 @@ impl Config {
             .linux
             .as_ref()
             .and_then(|s| s.arch_package_manager)
-            .unwrap_or(ArchPackageManager::Autodetect)
+            .unwrap_or_default()
     }
 
     /// Extra yay arguments
