@@ -12,7 +12,6 @@ use clap::{crate_version, Parser};
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use console::Key;
-use etcetera::base_strategy::BaseStrategy;
 #[cfg(windows)]
 use etcetera::base_strategy::Windows;
 #[cfg(unix)]
@@ -23,13 +22,13 @@ use tracing::debug;
 
 use self::config::{CommandLineArgs, Config};
 use self::error::StepFailed;
-#[cfg(all(windows, feature = "self-update"))]
-use self::error::Upgraded;
+use self::runner::StepResult;
 #[allow(clippy::wildcard_imports)]
 use self::steps::{remote::*, *};
+use self::sudo::{Sudo, SudoCreateError, SudoKind};
 #[allow(clippy::wildcard_imports)]
 use self::terminal::*;
-use self::utils::{install_color_eyre, install_tracing, update_tracing};
+use self::utils::{install_color_eyre, install_tracing, is_elevated, update_tracing};
 
 mod breaking_changes;
 mod command;
@@ -38,7 +37,6 @@ mod ctrlc;
 mod error;
 mod execution_context;
 mod executor;
-mod report;
 mod runner;
 #[cfg(windows)]
 mod self_renamer;
@@ -123,7 +121,7 @@ fn run() -> Result<()> {
     debug!("Version: {}", crate_version!());
     debug!("OS: {}", env!("TARGET"));
     debug!("{:?}", env::args());
-    debug!("Binary path: {:?}", std::env::current_exe());
+    debug!("Binary path: {:?}", env::current_exe());
     debug!("self-update Feature Enabled: {:?}", cfg!(feature = "self-update"));
     debug!("Configuration: {:?}", config);
 
@@ -135,11 +133,34 @@ fn run() -> Result<()> {
         }
     }
 
+    let elevated = is_elevated();
+
+    #[cfg(unix)]
+    if !config.allow_root() && elevated {
+        print_warning(t!(
+            "Topgrade should not be run as root, it will run commands with sudo or equivalent where needed."
+        ));
+        if !prompt_yesno(&t!("Continue?"))? {
+            exit(1)
+        }
+    }
+
+    let sudo = match config.sudo_command() {
+        Some(kind) => Sudo::new(kind),
+        None if elevated => Sudo::new(SudoKind::Null),
+        None => Sudo::detect(),
+    };
+    debug!("Sudo: {:?}", sudo);
+
+    let (sudo, sudo_err) = match sudo {
+        Ok(sudo) => (Some(sudo), None),
+        Err(e) => (None, Some(e)),
+    };
+
     #[cfg(target_os = "linux")]
     let distribution = linux::Distribution::detect();
 
-    let sudo = config.sudo_command().map_or_else(sudo::Sudo::detect, sudo::Sudo::new);
-    let run_type = execution_context::RunType::new(config.dry_run());
+    let run_type = config.run_type();
     let ctx = execution_context::ExecutionContext::new(
         run_type,
         sudo,
@@ -158,24 +179,14 @@ fn run() -> Result<()> {
     if !should_skip() && first_run_of_major_release()? {
         print_breaking_changes();
 
-        if prompt_yesno("Confirmed?")? {
+        if prompt_yesno(&t!("Continue?"))? {
             write_keep_file()?;
         } else {
             exit(1);
         }
     }
 
-    // Self-Update step, this will execute only if:
-    // 1. the `self-update` feature is enabled
-    // 2. it is not disabled from configuration (env var/CLI opt/file)
-    #[cfg(feature = "self-update")]
-    {
-        let should_self_update = env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() && !config.no_self_update();
-
-        if should_self_update {
-            runner.execute(step::Step::SelfUpdate, "Self Update", || self_update::self_update(&ctx))?;
-        }
-    }
+    step::Step::SelfUpdate.run(&mut runner, &ctx)?;
 
     #[cfg(windows)]
     let _self_rename = if config.self_rename() {
@@ -184,42 +195,97 @@ fn run() -> Result<()> {
         None
     };
 
-    if let Some(commands) = config.pre_commands() {
-        for (name, command) in commands {
-            generic::run_custom_command(name, command, &ctx)?;
-        }
-    }
-
     if config.pre_sudo() {
         if let Some(sudo) = ctx.sudo() {
             sudo.elevate(&ctx)?;
         }
     }
 
-    for step in step::default_steps() {
-        step.run(&mut runner, &ctx)?
+    if let Some(commands) = config.pre_commands() {
+        for (name, command) in commands {
+            generic::run_custom_command(name, command, &ctx)?;
+        }
     }
 
-    if !runner.report().data().is_empty() {
+    for step in step::default_steps() {
+        match step.run(&mut runner, &ctx) {
+            Ok(()) => (),
+            Err(error)
+                if error
+                    .downcast_ref::<io::Error>()
+                    .is_some_and(|e| e.kind() == io::ErrorKind::Interrupted) =>
+            {
+                println!();
+                debug!("Interrupted (possibly with 'q' during retry prompt). Printing summary.");
+                break;
+            }
+            Err(error) => return Err(error),
+        }
+    }
+
+    let mut failed = false;
+
+    let report = runner.report();
+    if !report.is_empty() {
         print_separator(t!("Summary"));
 
-        for (key, result) in runner.report().data() {
+        let mut skipped_missing_sudo = false;
+
+        for (key, result) in report {
+            if !failed && result.failed() {
+                failed = true;
+            }
+            if let StepResult::SkippedMissingSudo = result {
+                skipped_missing_sudo = true;
+            }
             print_result(key, result);
         }
 
-        #[cfg(target_os = "linux")]
-        {
-            if let Ok(distribution) = &distribution {
-                distribution.show_summary();
+        if skipped_missing_sudo {
+            print_warning(t!(
+                "\nSome steps were skipped as sudo or equivalent could not be found."
+            ));
+            // Steps can only fail with SkippedMissingSudo if sudo is None,
+            // therefore we must have a sudo_err
+            match sudo_err.unwrap() {
+                SudoCreateError::CannotFindBinary => {
+                    #[cfg(unix)]
+                    print_warning(t!(
+                        "Install one of `sudo`, `doas`, `pkexec`, `run0` or `please` to run these steps."
+                    ));
+
+                    // if this windows version supported Windows Sudo, the error would have been WinSudoDisabled
+                    #[cfg(windows)]
+                    print_warning(t!("Install gsudo to run these steps."));
+                }
+                #[cfg(windows)]
+                SudoCreateError::WinSudoDisabled => {
+                    print_warning(t!(
+                        "Install gsudo or enable Windows Sudo to run these steps.\nFor Windows Sudo, the default 'In a new window' mode is not supported as it prevents Topgrade from waiting for commands to finish. Please configure it to use 'Inline' mode instead.\nGo to https://go.microsoft.com/fwlink/?linkid=2257346 to learn more."
+                    ));
+                }
+                #[cfg(windows)]
+                SudoCreateError::WinSudoNewWindowMode => {
+                    print_warning(t!(
+                        "Windows Sudo was found, but it is set to 'In a new window' mode, which prevents Topgrade from waiting for commands to finish. Please configure it to use 'Inline' mode instead.\nGo to https://go.microsoft.com/fwlink/?linkid=2257346 to learn more."
+                    ));
+                }
             }
         }
     }
 
-    let mut post_command_failed = false;
+    #[cfg(target_os = "linux")]
+    if config.show_distribution_summary() {
+        if let Ok(distribution) = &distribution {
+            distribution.show_summary();
+        }
+    }
+
     if let Some(commands) = config.post_commands() {
         for (name, command) in commands {
-            if generic::run_custom_command(name, command, &ctx).is_err() {
-                post_command_failed = true;
+            let result = generic::run_custom_command(name, command, &ctx);
+            if !failed && result.is_err() {
+                failed = true;
             }
         }
     }
@@ -243,8 +309,6 @@ fn run() -> Result<()> {
             break;
         }
     }
-
-    let failed = post_command_failed || runner.report().data().iter().any(|(_, result)| result.failed());
 
     if !config.skip_notify() {
         notify_desktop(
@@ -270,13 +334,6 @@ fn main() {
             exit(0);
         }
         Err(error) => {
-            #[cfg(all(windows, feature = "self-update"))]
-            {
-                if let Some(Upgraded(status)) = error.downcast_ref::<Upgraded>() {
-                    exit(status.code().unwrap());
-                }
-            }
-
             let skip_print = (error.downcast_ref::<StepFailed>().is_some())
                 || (error
                     .downcast_ref::<io::Error>()

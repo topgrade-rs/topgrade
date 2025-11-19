@@ -151,7 +151,7 @@ pub fn string_prepend_str(string: &mut String, s: &str) {
     *string = new_string;
 }
 
-#[cfg(target_family = "unix")]
+#[cfg(unix)]
 pub fn hostname() -> Result<String> {
     match nix::unistd::gethostname() {
         Ok(os_str) => Ok(os_str
@@ -161,12 +161,28 @@ pub fn hostname() -> Result<String> {
     }
 }
 
-#[cfg(target_family = "windows")]
+#[cfg(windows)]
 pub fn hostname() -> Result<String> {
     Command::new("hostname")
         .output_checked_utf8()
         .map_err(|err| SkipStep(t!("Failed to get hostname: {err}", err = err).to_string()).into())
         .map(|output| output.stdout.trim().to_owned())
+}
+
+#[cfg(unix)]
+pub fn is_elevated() -> bool {
+    let euid = nix::unistd::Uid::effective();
+    debug!("Running with euid: {euid}");
+    euid.is_root()
+}
+
+#[cfg(windows)]
+pub fn is_elevated() -> bool {
+    let elevated = is_elevated::is_elevated();
+    if elevated {
+        debug!("Detected elevated process");
+    }
+    elevated
 }
 
 pub mod merge_strategies {

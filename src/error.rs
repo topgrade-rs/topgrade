@@ -91,6 +91,15 @@ impl Display for UnsupportedSudo<'_> {
 }
 
 #[derive(Error, Debug)]
+pub struct MissingSudo();
+
+impl Display for MissingSudo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", t!("Could not find sudo"))
+    }
+}
+
+#[derive(Error, Debug)]
 pub struct DryRun();
 
 impl Display for DryRun {
@@ -105,16 +114,5 @@ pub struct SkipStep(pub String);
 impl Display for SkipStep {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
-    }
-}
-
-#[cfg(all(windows, feature = "self-update"))]
-#[derive(Error, Debug)]
-pub struct Upgraded(pub ExitStatus);
-
-#[cfg(all(windows, feature = "self-update"))]
-impl Display for Upgraded {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", t!("Topgrade Upgraded"))
     }
 }

@@ -11,10 +11,12 @@ use std::process::Command;
 use tracing::debug;
 
 pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = ctx.require_sudo()?;
     let port = require("port")?;
 
     print_separator("MacPorts");
+
+    let sudo = ctx.require_sudo()?;
+
     sudo.execute(ctx, &port)?.arg("selfupdate").status_checked()?;
     sudo.execute(ctx, &port)?
         .args(["-u", "upgrade", "outdated"])
@@ -36,7 +38,7 @@ pub fn run_mas(ctx: &ExecutionContext) -> Result<()> {
 pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
     print_separator(t!("macOS system update"));
 
-    let should_ask = !(ctx.config().yes(Step::System) || ctx.config().dry_run());
+    let should_ask = !(ctx.config().yes(Step::System) || ctx.run_type().dry());
     if should_ask {
         println!("{}", t!("Finding available software"));
         if system_update_available()? {
@@ -93,7 +95,7 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
     let xcodes = require("xcodes")?;
     print_separator("Xcodes");
 
-    let should_ask = !(ctx.config().yes(Step::Xcodes) || ctx.config().dry_run());
+    let should_ask = !(ctx.config().yes(Step::Xcodes) || ctx.run_type().dry());
 
     let releases = ctx.execute(&xcodes).args(["update"]).output_checked_utf8()?.stdout;
 

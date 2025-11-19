@@ -25,6 +25,7 @@ pub enum Step {
     Aqua,
     Asdf,
     Atom,
+    Atuin,
     Audit,
     AutoCpufreq,
     Bin,
@@ -52,6 +53,7 @@ pub enum Step {
     Dotnet,
     Elan,
     Emacs,
+    Falconf,
     Firmware,
     Flatpak,
     Flutter,
@@ -68,6 +70,7 @@ pub enum Step {
     Helix,
     Helm,
     HomeManager,
+    Hyprpm,
     // These names are miscapitalized on purpose, so the CLI name is
     //  `jetbrains_pycharm` instead of `jet_brains_py_charm`.
     JetbrainsAqua,
@@ -148,6 +151,7 @@ pub enum Step {
     Tlmgr,
     Tmux,
     Toolbx,
+    Typst,
     Uv,
     Vagrant,
     Vcpkg,
@@ -201,6 +205,11 @@ impl Step {
                     target_os = "dragonfly"
                 )))]
                 runner.execute(*self, "apm", || generic::run_apm(ctx))?
+            }
+            Atuin =>
+            {
+                #[cfg(unix)]
+                runner.execute(*self, "atuin", || unix::run_atuin(ctx))?
             }
             Audit => {
                 #[cfg(target_os = "dragonfly")]
@@ -297,6 +306,7 @@ impl Step {
             Dotnet => runner.execute(*self, ".NET", || generic::run_dotnet_upgrade(ctx))?,
             Elan => runner.execute(*self, "elan", || generic::run_elan(ctx))?,
             Emacs => runner.execute(*self, "Emacs", || emacs::Emacs::new().upgrade(ctx))?,
+            Falconf => runner.execute(*self, "falconf sync", || generic::run_falconf(ctx))?,
             Firmware =>
             {
                 #[cfg(target_os = "linux")]
@@ -337,6 +347,11 @@ impl Step {
             {
                 #[cfg(unix)]
                 runner.execute(*self, "home-manager", || unix::run_home_manager(ctx))?
+            }
+            Hyprpm =>
+            {
+                #[cfg(unix)]
+                runner.execute(*self, "hyprpm", || unix::run_hyprpm(ctx))?
             }
             JetbrainsAqua => runner.execute(*self, "JetBrains Aqua Plugins", || generic::run_jetbrains_aqua(ctx))?,
             JetbrainsClion => runner.execute(*self, "JetBrains CL", || generic::run_jetbrains_clion(ctx))?,
@@ -529,6 +544,9 @@ impl Step {
                 runner.execute(*self, "SDKMAN!", || unix::run_sdkman(ctx))?
             }
             SelfUpdate => {
+                // Self-Update step, this will execute only if:
+                // 1. the `self-update` feature is enabled
+                // 2. it is not disabled from configuration (env var/CLI opt/file)
                 #[cfg(feature = "self-update")]
                 {
                     if std::env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() && !ctx.config().no_self_update() {
@@ -597,11 +615,7 @@ impl Step {
                 #[cfg(target_os = "openbsd")]
                 runner.execute(*self, "OpenBSD Upgrade", || openbsd::upgrade_openbsd(ctx))?
             }
-            Tldr =>
-            {
-                #[cfg(unix)]
-                runner.execute(*self, "TLDR", || unix::run_tldr(ctx))?
-            }
+            Tldr => runner.execute(*self, "TLDR", || generic::run_tldr(ctx))?,
             Tlmgr => runner.execute(*self, "tlmgr", || generic::run_tlmgr_update(ctx))?,
             Tmux =>
             {
@@ -613,6 +627,7 @@ impl Step {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "toolbx", || toolbx::run_toolbx(ctx))?
             }
+            Typst => runner.execute(*self, "Typst", || generic::run_typst(ctx))?,
             Uv => runner.execute(*self, "uv", || generic::run_uv(ctx))?,
             Vagrant => {
                 if ctx.config().should_run(Vagrant) {
@@ -664,7 +679,7 @@ impl Step {
             WslUpdate =>
             {
                 #[cfg(windows)]
-                runner.execute(*self, "WSL", || windows::update_wsl(ctx))?
+                runner.execute(*self, "Update WSL", || windows::update_wsl(ctx))?
             }
             Xcodes =>
             {
@@ -756,7 +771,6 @@ pub(crate) fn default_steps() -> Vec<Step> {
         BunPackages,
         Shell,
         Tmux,
-        Tldr,
         Pearl,
         #[cfg(not(any(target_os = "macos", target_os = "android")))]
         GnomeShellExtensions,
@@ -764,6 +778,8 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Sdkman,
         Rcm,
         Maza,
+        Hyprpm,
+        Atuin,
     ]);
 
     #[cfg(not(any(
@@ -805,6 +821,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Pipupgrade,
         Ghcup,
         Stack,
+        Tldr,
         Tlmgr,
         Myrepos,
         Chezmoi,
@@ -871,9 +888,11 @@ pub(crate) fn default_steps() -> Vec<Step> {
         // JetBrains Space Desktop does not have a CLI
         JetbrainsWebstorm,
         Yazi,
+        Falconf,
         Powershell,
         CustomCommands,
         Vagrant,
+        Typst,
     ]);
 
     steps.shrink_to_fit();

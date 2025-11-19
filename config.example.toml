@@ -6,6 +6,13 @@
 
 
 [misc]
+# On Unix systems, Topgrade should not be run as root, it
+# will run commands with sudo or equivalent where needed.
+# Set this to true to suppress the warning and confirmation
+# prompt if Topgrade detects it is being run as root.
+# (default: false)
+# allow_root = false
+
 # Run `sudo -v` to cache credentials at the start of the run
 # This avoids a blocking password prompt in the middle of an unattended run
 # (default: false)
@@ -83,6 +90,11 @@
 # These are prepended to the `--log-filter` argument
 # See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
 # log_filters = ["topgrade::command=debug", "warn"]
+
+# Whether to show a distribution-specific summary if applicable, e.g. listing
+# Pacman backup configuration files (*.pacsave and *.pacnew)
+# (default: true)
+# show_distribution_summary = false
 
 
 # Commands to run before anything
@@ -216,6 +228,13 @@
 # enable = true
 
 
+[pkgfile]
+# Enable the pkgfile step (to update the pkgfile database).
+# Pkgfile is sometimes installed by default, but often not used and heavy to update.
+# (default: false)
+# enable = true
+
+
 [git]
 # How many repos to pull at max in parallel
 # max_concurrency = 5
@@ -266,6 +285,11 @@
 # (default: false)
 # winget_use_sudo = true
 
+
+[chezmoi]
+# Exclude encrypted files from update
+# (default: false)
+# exclude_encrypted = false
 
 [npm]
 # Use sudo if the NPM directory isn't owned by the current user
@@ -318,6 +342,10 @@
 # Specify the runtime to use for containers (default: "docker", allowed values: "docker", "podman")
 # runtime = "podman"
 
+# Run 'docker system prune' to clean up unused containers, networks, and build cache
+# (default: false)
+# system_prune = false
+
 [lensfun]
 # If disabled, Topgrade invokes `lensfun‑update‑data` without root privilege,
 # then the update will be only available to you. Otherwise, `sudo` is required,
@@ -369,3 +397,14 @@
 # during the pixi step
 # (default: false)
 # include_release_notes = false
+
+[doom]
+# If this is set to true, the `--aot` flag is added to `doom upgrade`,
+# which enables ahead-of-time native compilation of packages.
+# (default: false)
+# aot = true
+
+[rustup]
+# If set, updates only these channels.
+# (default: [] (all channels))
+# channels = ["stable"]

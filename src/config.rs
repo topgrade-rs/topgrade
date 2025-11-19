@@ -15,17 +15,17 @@ use indexmap::IndexMap;
 use merge::Merge;
 use regex::Regex;
 use regex_split::RegexSplit;
-use rust_i18n::t;
 use serde::Deserialize;
 use strum::IntoEnumIterator;
+use tracing::{debug, error};
 use which_crate::which;
 
 use super::utils::editor;
 use crate::command::CommandExt;
+use crate::execution_context::RunType;
 use crate::step::Step;
 use crate::sudo::SudoKind;
 use crate::utils::string_prepend_str;
-use tracing::{debug, error};
 
 // TODO: Add i18n to this. Tracking issue: https://github.com/topgrade-rs/topgrade/issues/859
 pub static EXAMPLE_CONFIG: &str = include_str!("../config.example.toml");
@@ -60,6 +60,7 @@ pub struct Containers {
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     ignored_containers: Option<Vec<String>>,
     runtime: Option<ContainerRuntime>,
+    system_prune: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -163,6 +164,13 @@ pub struct NPM {
 #[allow(clippy::upper_case_acronyms)]
 pub struct Deno {
     version: Option<String>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
+pub struct Chezmoi {
+    exclude_encrypted: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -297,6 +305,8 @@ pub struct Vim {
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Misc {
+    allow_root: Option<bool>,
+
     pre_sudo: Option<bool>,
 
     sudo_command: Option<SudoKind>,
@@ -346,6 +356,8 @@ pub struct Misc {
     no_self_update: Option<bool>,
 
     log_filters: Option<Vec<String>>,
+
+    show_distribution_summary: Option<bool>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, ValueEnum, Default)]
@@ -387,6 +399,24 @@ pub struct Zigup {
 #[serde(deny_unknown_fields)]
 pub struct VscodeConfig {
     profile: Option<String>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct DoomConfig {
+    aot: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct Rustup {
+    channels: Option<Vec<String>>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct Pkgfile {
+    enable: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -439,6 +469,9 @@ pub struct ConfigFile {
     npm: Option<NPM>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    chezmoi: Option<Chezmoi>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     yarn: Option<Yarn>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
@@ -473,6 +506,15 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     vscode: Option<VscodeConfig>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    doom: Option<DoomConfig>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    rustup: Option<Rustup>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    pkgfile: Option<Pkgfile>,
 }
 
 fn config_directory() -> PathBuf {
@@ -639,17 +681,6 @@ impl ConfigFile {
             }
         }
 
-        if let Some(paths) = result.git.as_mut().and_then(|git| git.repos.as_mut()) {
-            for path in paths.iter_mut() {
-                let expanded = shellexpand::tilde::<&str>(&path.as_ref()).into_owned();
-                debug!(
-                    "{}",
-                    t!("Path {path} expanded to {expanded}", path = path, expanded = expanded)
-                );
-                *path = expanded;
-            }
-        }
-
         debug!("Loaded configuration: {:?}", result);
         Ok(result)
     }
@@ -709,8 +740,14 @@ pub struct CommandLineArgs {
     cleanup: bool,
 
     /// Print what would be done
+    ///
+    /// Alias for --run-type dry
     #[arg(short = 'n', long = "dry-run")]
     dry_run: bool,
+
+    /// Pick between just running commands, running and logging commands, and just logging commands
+    #[arg(short = 'r', long = "run-type", value_enum, default_value_t)]
+    run_type: RunType,
 
     /// Do not ask to retry failed steps
     #[arg(long = "no-retry")]
@@ -769,6 +806,10 @@ pub struct CommandLineArgs {
     /// Show the reason for skipped steps
     #[arg(long = "show-skipped")]
     show_skipped: bool,
+
+    /// Suppress warning and confirmation prompt if running as root
+    #[arg(long = "allow-root")]
+    allow_root: bool,
 
     /// Tracing filter directives.
     ///
@@ -921,6 +962,15 @@ impl Config {
             .unwrap_or_default()
     }
 
+    /// Whether to run system prune for containers.
+    pub fn containers_system_prune(&self) -> bool {
+        self.config_file
+            .containers
+            .as_ref()
+            .and_then(|containers| containers.system_prune)
+            .unwrap_or(false)
+    }
+
     /// Tell whether the specified step should run.
     ///
     /// If the step appears either in the `--disable` command line argument
@@ -930,16 +980,21 @@ impl Config {
     }
 
     fn allowed_steps(opt: &CommandLineArgs, config_file: &ConfigFile) -> Vec<Step> {
+        // The enabled steps are
         let mut enabled_steps: Vec<Step> = Vec::new();
+        // Any steps that are passed with `--only`
         enabled_steps.extend(&opt.only);
 
+        // Plus any steps in the config file's `misc.only`
         if let Some(misc) = config_file.misc.as_ref() {
             if let Some(only) = misc.only.as_ref() {
                 enabled_steps.extend(only);
             }
         }
 
+        // If neither of those contain anything
         if enabled_steps.is_empty() {
+            // All steps are enabled
             enabled_steps.extend(Step::iter());
         }
 
@@ -951,6 +1006,7 @@ impl Config {
             }
         }
 
+        // All steps that are disabled are not enabled, except ones that are passed to `--only`
         enabled_steps.retain(|e| !disabled_steps.contains(e) || opt.only.contains(e));
         enabled_steps
     }
@@ -998,9 +1054,13 @@ impl Config {
                 .unwrap_or(false)
     }
 
-    /// Tell whether we are dry-running.
-    pub fn dry_run(&self) -> bool {
-        self.opt.dry_run
+    /// Get the [RunType] for the current execution
+    pub fn run_type(&self) -> RunType {
+        if self.opt.dry_run {
+            RunType::Dry
+        } else {
+            self.opt.run_type
+        }
     }
 
     /// Tell whether we should not attempt to retry anything.
@@ -1479,6 +1539,14 @@ impl Config {
                 .unwrap_or(true)
     }
 
+    pub fn rustup_channels(&self) -> Vec<String> {
+        self.config_file
+            .rustup
+            .as_ref()
+            .and_then(|rustup| rustup.channels.clone())
+            .unwrap_or_default()
+    }
+
     pub fn verbose(&self) -> bool {
         self.opt.verbose
     }
@@ -1538,18 +1606,35 @@ impl Config {
             .unwrap_or(true)
     }
 
+    pub fn allow_root(&self) -> bool {
+        self.opt.allow_root
+            || self
+                .config_file
+                .misc
+                .as_ref()
+                .and_then(|misc| misc.allow_root)
+                .unwrap_or(false)
+    }
+
     pub fn sudo_command(&self) -> Option<SudoKind> {
         self.config_file.misc.as_ref().and_then(|misc| misc.sudo_command)
     }
 
-    /// If `true`, `sudo` should be called after `pre_commands` in order to elevate at the
-    /// start of the session (and not in the middle).
+    /// If `true`, `sudo -v` should be called to cache credentials at the start of the run
     pub fn pre_sudo(&self) -> bool {
         self.config_file
             .misc
             .as_ref()
             .and_then(|misc| misc.pre_sudo)
             .unwrap_or(false)
+    }
+
+    pub fn show_distribution_summary(&self) -> bool {
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.show_distribution_summary)
+            .unwrap_or(true)
     }
 
     #[cfg(target_os = "linux")]
@@ -1711,6 +1796,14 @@ impl Config {
             .unwrap_or(false)
     }
 
+    pub fn chezmoi_exclude_encrypted(&self) -> bool {
+        self.config_file
+            .chezmoi
+            .as_ref()
+            .and_then(|chezmoi| chezmoi.exclude_encrypted)
+            .unwrap_or(false)
+    }
+
     pub fn vscode_profile(&self) -> Option<&str> {
         let vscode_cfg = self.config_file.vscode.as_ref()?;
         let profile = vscode_cfg.profile.as_ref()?;
@@ -1720,6 +1813,22 @@ impl Config {
         } else {
             Some(profile.as_str())
         }
+    }
+
+    pub fn doom_aot(&self) -> bool {
+        self.config_file
+            .doom
+            .as_ref()
+            .and_then(|doom| doom.aot)
+            .unwrap_or(false)
+    }
+
+    pub fn enable_pkgfile(&self) -> bool {
+        self.config_file
+            .pkgfile
+            .as_ref()
+            .and_then(|pkgfile| pkgfile.enable)
+            .unwrap_or(false)
     }
 }
 

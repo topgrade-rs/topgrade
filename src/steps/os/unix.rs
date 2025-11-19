@@ -1,6 +1,7 @@
-use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use color_eyre::eyre::{eyre, OptionExt};
+use etcetera::BaseStrategy;
 use home;
 use ini::Ini;
 #[cfg(target_os = "linux")]
@@ -9,22 +10,24 @@ use regex::Regex;
 use rust_i18n::t;
 use semver::Version;
 use std::ffi::OsStr;
-use std::fs;
+use std::io::Write;
 use std::os::unix::fs::MetadataExt;
 use std::path::Component;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::LazyLock;
 use std::{env::var, path::Path};
+use std::{fs, io};
 use tracing::{debug, warn};
 
 use crate::command::CommandExt;
 use crate::sudo::SudoExecuteOpts;
+use crate::XDG_DIRS;
 use crate::{output_changed_message, HOME_DIR};
 
 #[cfg(target_os = "linux")]
 use super::linux::Distribution;
-use crate::error::SkipStep;
+use crate::error::{SkipStep, StepFailed};
 use crate::execution_context::ExecutionContext;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use crate::executor::Executor;
@@ -199,10 +202,11 @@ pub fn run_oh_my_fish(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_pkgin(ctx: &ExecutionContext) -> Result<()> {
-    let sudo = ctx.require_sudo()?;
     let pkgin = require("pkgin")?;
 
     print_separator("Pkgin");
+
+    let sudo = ctx.require_sudo()?;
 
     let mut command = sudo.execute(ctx, &pkgin)?;
     command.arg("update");
@@ -407,17 +411,80 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
 pub fn run_guix(ctx: &ExecutionContext) -> Result<()> {
     let guix = require("guix")?;
 
-    let output = Command::new(&guix).arg("pull").output_checked_utf8();
-    debug!("guix pull output: {:?}", output);
-    let should_upgrade = output.is_ok();
-    debug!("Can Upgrade Guix: {:?}", should_upgrade);
-
     print_separator("Guix");
 
-    if should_upgrade {
-        return ctx.execute(&guix).args(["package", "-u"]).status_checked();
+    ctx.execute(&guix).arg("pull").status_checked()?;
+    ctx.execute(&guix).args(["package", "-u"]).status_checked()?;
+
+    Ok(())
+}
+
+struct NixVersion {
+    version_string: String,
+}
+
+impl NixVersion {
+    fn new(ctx: &ExecutionContext, nix: &Path) -> Result<Self> {
+        let version_output = ctx.execute(nix).arg("--version").output_checked_utf8()?;
+
+        debug!(
+            output=%version_output,
+            "`nix --version` output"
+        );
+
+        let version_string = version_output
+            .stdout
+            .lines()
+            .next()
+            .ok_or_else(|| eyre!("`nix --version` output is empty"))?
+            .to_string();
+
+        if version_string.is_empty() {
+            return Err(eyre!("`nix --version` output was empty"));
+        }
+
+        Ok(Self { version_string })
     }
-    Err(SkipStep(t!("Guix Pull Failed, Skipping").to_string()).into())
+
+    fn version(&self) -> Result<Version> {
+        static NIX_VERSION_REGEX: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"^nix \([^)]*\) ([0-9.]+)").expect("Nix version regex always compiles"));
+
+        let captures = NIX_VERSION_REGEX
+            .captures(&self.version_string)
+            .ok_or_else(|| eyre!(output_changed_message!("nix --version", "regex did not match")))?;
+        let raw_version = &captures[1];
+
+        debug!("Raw Nix version: {raw_version}");
+
+        // Nix 2.29.0 outputs "2.29" instead of "2.29.0", so we need to add that if necessary.
+        let corrected_raw_version = if raw_version.chars().filter(|&c| c == '.').count() == 1 {
+            &format!("{raw_version}.0")
+        } else {
+            raw_version
+        };
+
+        debug!("Corrected raw Nix version: {corrected_raw_version}");
+
+        let version = Version::parse(corrected_raw_version)
+            .wrap_err_with(|| output_changed_message!("nix --version", "Invalid version"))?;
+
+        debug!("Nix version: {:?}", version);
+
+        Ok(version)
+    }
+
+    fn is_lix(&self) -> bool {
+        let is_lix = self.version_string.contains("Lix");
+        debug!(?is_lix);
+        is_lix
+    }
+
+    fn is_determinate_nix(&self) -> bool {
+        let is_determinate_nix = self.version_string.contains("Determinate Nix");
+        debug!(?is_determinate_nix);
+        is_determinate_nix
+    }
 }
 
 pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
@@ -426,7 +493,11 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     let nix_env = require("nix-env")?;
     // TODO: Is None possible here?
     let profile_path = match home::home_dir() {
-        Some(home) => Path::new(&home).join(".nix-profile"),
+        Some(home) => XDG_DIRS
+            .state_dir()
+            .map(|d| d.join("nix/profile"))
+            .filter(|p| p.exists())
+            .unwrap_or(Path::new(&home).join(".nix-profile")),
         None => Path::new("/nix/var/nix/profiles/per-user/default").into(),
     };
     debug!("nix profile: {:?}", profile_path);
@@ -445,54 +516,11 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(nix_channel).arg("--update").status_checked()?;
 
-    let mut get_version_cmd = ctx.execute(&nix);
-    get_version_cmd.arg("--version");
-    let get_version_cmd_output = get_version_cmd.output_checked_utf8()?;
-    let get_version_cmd_first_line_stdout = get_version_cmd_output
-        .stdout
-        .lines()
-        .next()
-        .ok_or_else(|| eyre!("`nix --version` output is empty"))?;
-
-    let is_lix = get_version_cmd_first_line_stdout.contains("Lix");
-
-    debug!(
-        output=%get_version_cmd_output,
-        ?is_lix,
-        "`nix --version` output"
-    );
-
-    static NIX_VERSION_REGEX: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"^nix \([^)]*\) ([0-9.]+)").expect("Nix version regex always compiles"));
-
-    if get_version_cmd_first_line_stdout.is_empty() {
-        return Err(eyre!("`nix --version` output was empty"));
-    }
-
-    let captures = NIX_VERSION_REGEX
-        .captures(get_version_cmd_first_line_stdout)
-        .ok_or_else(|| eyre!(output_changed_message!("nix --version", "regex did not match")))?;
-    let raw_version = &captures[1];
-
-    debug!("Raw Nix version: {raw_version}");
-
-    // Nix 2.29.0 outputs "2.29" instead of "2.29.0", so we need to add that if necessary.
-    let corrected_raw_version = if raw_version.chars().filter(|&c| c == '.').count() == 1 {
-        &format!("{raw_version}.0")
-    } else {
-        raw_version
-    };
-
-    debug!("Corrected raw Nix version: {corrected_raw_version}");
-
-    let version = Version::parse(corrected_raw_version)
-        .wrap_err_with(|| output_changed_message!("nix --version", "Invalid version"))?;
-
-    debug!("Nix version: {:?}", version);
+    let nix_version = NixVersion::new(ctx, &nix)?;
 
     // Nix since 2.21.0 uses `--all --impure` rather than `.*` to upgrade all packages.
     // Lix is based on Nix 2.18, so it doesn't!
-    let packages = if version >= Version::new(2, 21, 0) && !is_lix {
+    let packages = if nix_version.version()? >= Version::new(2, 21, 0) && !nix_version.is_lix() {
         vec!["--all", "--impure"]
     } else {
         vec![".*"]
@@ -543,13 +571,32 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Nix (self-upgrade)"));
 
+    let nix_version = NixVersion::new(ctx, &nix)?;
+
+    if nix_version.is_determinate_nix() {
+        let nixd = require("determinate-nixd");
+        let nixd = match nixd {
+            Err(_) => {
+                println!("Found Determinate Nix, but could not find determinate-nixd");
+                return Err(StepFailed.into());
+            }
+            Ok(nixd) => nixd,
+        };
+
+        let sudo = ctx.require_sudo()?;
+        return sudo
+            .execute_opts(ctx, nixd, SudoExecuteOpts::new().login_shell())?
+            .arg("upgrade")
+            .status_checked();
+    }
+
     let multi_user = fs::metadata(&nix)?.uid() == 0;
     debug!("Multi user nix: {}", multi_user);
 
     let nix_args = nix_args();
     if multi_user {
         let sudo = ctx.require_sudo()?;
-        sudo.execute_opts(ctx, &nix, SudoExecuteOpts::new().interactive())?
+        sudo.execute_opts(ctx, &nix, SudoExecuteOpts::new().login_shell())?
             .args(nix_args)
             .arg("upgrade-nix")
             .status_checked()
@@ -757,6 +804,26 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(&mise).args(["plugins", "update"]).status_checked()?;
 
+    let output = ctx
+        .execute(&mise)
+        .args(["self-update"])
+        .output_checked_with(|_| Ok(()))?;
+    let status_code = output
+        .status
+        .code()
+        .ok_or_eyre("Couldn't get status code (terminated by signal)")?;
+    let stderr = std::str::from_utf8(&output.stderr).wrap_err("Expected output to be valid UTF-8")?;
+    if stderr.contains("mise is installed via a package manager") && status_code == 1 {
+        debug!("Mise self-update not available")
+    } else {
+        // Write the output
+        io::stdout().write_all(&output.stdout)?;
+        io::stderr().write_all(&output.stderr)?;
+        if status_code != 0 {
+            return Err(StepFailed.into());
+        }
+    }
+
     ctx.execute(&mise).arg("upgrade").status_checked()
 }
 
@@ -773,13 +840,6 @@ pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
     }
 
     cmd.status_checked()
-}
-
-pub fn run_tldr(ctx: &ExecutionContext) -> Result<()> {
-    let tldr = require("tldr")?;
-
-    print_separator("TLDR");
-    ctx.execute(tldr).arg("--update").status_checked()
 }
 
 pub fn run_pearl(ctx: &ExecutionContext) -> Result<()> {
@@ -893,6 +953,22 @@ pub fn run_maza(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("maza");
     ctx.execute(maza).arg("update").status_checked()
+}
+
+pub fn run_hyprpm(ctx: &ExecutionContext) -> Result<()> {
+    let hyprpm = require("hyprpm")?;
+
+    print_separator("hyprpm");
+
+    ctx.execute(hyprpm).arg("update").status_checked()
+}
+
+pub fn run_atuin(ctx: &ExecutionContext) -> Result<()> {
+    let atuin = require("atuin-update")?;
+
+    print_separator("atuin");
+
+    ctx.execute(atuin).status_checked()
 }
 
 pub fn reboot(ctx: &ExecutionContext) -> Result<()> {

@@ -16,7 +16,7 @@ use tracing::{debug, error};
 use which_crate::which;
 
 use crate::command::CommandExt;
-use crate::report::StepResult;
+use crate::runner::StepResult;
 
 static TERMINAL: LazyLock<Mutex<Terminal>> = LazyLock::new(|| Mutex::new(Terminal::new()));
 
@@ -173,6 +173,11 @@ impl Terminal {
                     StepResult::Success => format!("{}", style(t!("OK")).bold().green()),
                     StepResult::Failure => format!("{}", style(t!("FAILED")).bold().red()),
                     StepResult::Ignored => format!("{}", style(t!("IGNORED")).bold().yellow()),
+                    StepResult::SkippedMissingSudo => format!(
+                        "{}: {}",
+                        style(t!("SKIPPED")).bold().yellow(),
+                        t!("Could not find sudo")
+                    ),
                     StepResult::Skipped(reason) => format!("{}: {}", style(t!("SKIPPED")).bold().blue(), reason),
                 }
             ))
@@ -196,10 +201,11 @@ impl Terminal {
             }
         }
     }
+
     #[allow(unused_variables)]
-    fn should_retry(&mut self, interrupted: bool, step_name: &str) -> eyre::Result<bool> {
+    fn should_retry(&mut self, step_name: &str) -> eyre::Result<ShouldRetry> {
         if self.width.is_none() {
-            return Ok(false);
+            return Ok(ShouldRetry::No);
         }
 
         if self.set_title {
@@ -218,7 +224,7 @@ impl Terminal {
 
         let answer = loop {
             match self.term.read_key() {
-                Ok(Key::Char('y' | 'Y')) => break Ok(true),
+                Ok(Key::Char('y' | 'Y')) => break Ok(ShouldRetry::Yes),
                 Ok(Key::Char('s' | 'S')) => {
                     println!(
                         "\n\n{}\n",
@@ -227,16 +233,16 @@ impl Terminal {
                     if let Err(err) = run_shell().context("Failed to run shell") {
                         self.term.write_fmt(format_args!("{err:?}\n{prompt_inner}")).ok();
                     } else {
-                        break Ok(true);
+                        break Ok(ShouldRetry::Yes);
                     }
                 }
-                Ok(Key::Char('n' | 'N') | Key::Enter) => break Ok(false),
+                Ok(Key::Char('n' | 'N') | Key::Enter) => break Ok(ShouldRetry::No),
                 Err(e) => {
                     error!("Error reading from terminal: {}", e);
-                    break Ok(false);
+                    break Ok(ShouldRetry::No);
                 }
                 Ok(Key::Char('q' | 'Q')) => {
-                    return Err(io::Error::from(io::ErrorKind::Interrupted)).context("Quit from user input")
+                    break Ok(ShouldRetry::Quit);
                 }
                 _ => (),
             }
@@ -252,14 +258,21 @@ impl Terminal {
     }
 }
 
+#[derive(Clone, Copy)]
+pub enum ShouldRetry {
+    Yes,
+    No,
+    Quit,
+}
+
 impl Default for Terminal {
     fn default() -> Self {
         Self::new()
     }
 }
 
-pub fn should_retry(interrupted: bool, step_name: &str) -> eyre::Result<bool> {
-    TERMINAL.lock().unwrap().should_retry(interrupted, step_name)
+pub fn should_retry(step_name: &str) -> eyre::Result<ShouldRetry> {
+    TERMINAL.lock().unwrap().should_retry(step_name)
 }
 
 pub fn print_separator<P: AsRef<str>>(message: P) {
