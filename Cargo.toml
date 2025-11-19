@@ -17,7 +17,7 @@ readme = "README.md"
 home = "=0.5.11"
 etcetera = "=0.10.0"
 serde = { version = "~1.0", features = ["derive"] }
-toml = "=0.9.8"
+toml = { version = "=0.9.8", features = ["preserve_order"] }
 which_crate = { version = "~8.0", package = "which" }
 shellexpand = "~3.1"
 clap = { version = "~4.5", features = ["cargo", "derive"] }
