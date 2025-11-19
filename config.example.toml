@@ -245,7 +245,7 @@
 #     "~/.config/something"
 # ]
 
-# Don't pull/fetch the predefined git repos
+# Set to `false` to skip pulling/fetching the predefined git repos
 # pull_predefined = false
 
 # Arguments to pass Git when pulling/fetching Repositories
