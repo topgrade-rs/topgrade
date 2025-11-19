@@ -1,15 +1,17 @@
 use std::fmt::{Display, Formatter};
+use std::io;
+use std::io::Write;
 use std::path::Path;
 use std::process::Command;
 
-use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use color_eyre::eyre::{eyre, OptionExt};
 use tracing::{debug, error, warn};
 use wildmatch::WildMatch;
 
 use crate::command::CommandExt;
-use crate::error::{self, TopgradeError};
+use crate::error::{self, SkipStep, TopgradeError};
 use crate::terminal::print_separator;
 use crate::{execution_context::ExecutionContext, utils::require};
 use rust_i18n::t;
@@ -20,6 +22,9 @@ use rust_i18n::t;
 // the first place. This happens e.g. when the user tags an image locally
 // themselves or when using docker-compose.
 const NONEXISTENT_REPO: &str = "repository does not exist";
+
+// A string found in the output of docker when Docker Desktop is not running.
+const DOCKER_NOT_RUNNING: &str = "We recommend to activate the WSL integration in Docker Desktop settings.";
 
 /// Uniquely identifies a `Container`.
 #[derive(Debug)]
@@ -74,7 +79,7 @@ fn list_containers(crt: &Path, ignored_containers: Option<&Vec<String>>) -> Resu
     );
     let output = Command::new(crt)
         .args(["image", "ls", "--format", "{{.Repository}}:{{.Tag}} {{.ID}}"])
-        .output_checked_with_utf8(|_| Ok(()))?;
+        .output_checked_utf8()?;
 
     let mut retval = vec![];
     for line in output.stdout.lines() {
@@ -99,7 +104,12 @@ fn list_containers(crt: &Path, ignored_containers: Option<&Vec<String>>) -> Resu
 
         // line is of format: `Repository:Tag ImageID`, e.g., `nixos/nix:latest d80fea9c32b4`
         let split_res = line.split(' ').collect::<Vec<&str>>();
-        assert_eq!(split_res.len(), 2);
+        if split_res.len() != 2 {
+            return Err(eyre!(format!(
+                "Got erroneous output from `{} image ls --format \"{{.Repository}}:{{.Tag}} {{.ID}}\"; Expected line to split into 2 parts",
+                crt.display()
+            )));
+        }
         let (repo_tag, image_id) = (split_res[0], split_res[1]);
 
         if let Some(ref ignored_containers) = ignored_containers {
@@ -116,11 +126,16 @@ fn list_containers(crt: &Path, ignored_containers: Option<&Vec<String>>) -> Resu
         );
         let inspect_output = Command::new(crt)
             .args(["image", "inspect", image_id, "--format", "{{.Os}}/{{.Architecture}}"])
-            .output_checked_with_utf8(|_| Ok(()))?;
+            .output_checked_utf8()?;
         let mut platform = inspect_output.stdout;
         // truncate the tailing new line character
         platform.truncate(platform.len() - 1);
-        assert!(platform.contains('/'));
+        if !platform.contains('/') {
+            return Err(eyre!(format!(
+                "Got erroneous output from `{} image ls --format \"{{.Repository}}:{{.Tag}} {{.ID}}\"; Expected platform to contain '/'",
+                crt.display()
+            )));
+        }
 
         retval.push(Container::new(repo_tag.to_string(), platform));
     }
@@ -135,6 +150,41 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
     debug!("Using container runtime '{}'", crt.display());
 
     print_separator(t!("Containers"));
+
+    let output = Command::new(&crt).arg("--help").output_checked_with(|_| Ok(()))?;
+    let status_code = output
+        .status
+        .code()
+        .ok_or_eyre("Couldn't get status code (terminated by signal)")?;
+    let stdout = std::str::from_utf8(&output.stdout).wrap_err("Expected output to be valid UTF-8")?;
+    if stdout.contains(DOCKER_NOT_RUNNING) && status_code == 1 {
+        // Write the output
+        io::stdout().write_all(&output.stdout)?;
+        io::stderr().write_all(&output.stderr)?;
+        // Don't crash, but don't be silent either.
+        // This can happen in other ways than Docker Desktop not running, but even in those cases
+        //  we don't want to crash, since the containers step is enabled by default.
+        warn!(
+            "{} seems to be non-functional right now (see above). Is WSL integration enabled for Docker Desktop? Is Docker Desktop running?",
+            crt.display()
+        );
+        return Err(SkipStep(format!(
+            "{} seems to be non-functional right now. Possibly WSL integration is not enabled for Docker Desktop, or Docker Desktop is not running.",
+            crt.display()
+        )).into());
+    } else if !output.status.success() {
+        // Write the output
+        io::stdout().write_all(&output.stdout)?;
+        io::stderr().write_all(&output.stderr)?;
+        // If we saw the message, but the code is not 1 (e.g. 0, or a non-1 failure), crash, as we expect a 1.
+        // If we did not see the message, it's broken in some way we do not understand.
+        return Err(eyre!(
+            "{0} seems to be non-functional (`{0} --help` returned non-zero exit code {1})",
+            crt.display(),
+            status_code,
+        ));
+    }
+
     let mut success = true;
     let containers =
         list_containers(&crt, ctx.config().containers_ignored_tags()).context("Failed to list Docker containers")?;
@@ -174,7 +224,14 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
         }
     }
 
-    if ctx.config().cleanup() {
+    if ctx.config().containers_system_prune() {
+        // Run system prune to clean up unused containers, networks, and build cache
+        if let Err(e) = ctx.execute(&crt).args(["system", "prune", "--force"]).status_checked() {
+            error!("Running system prune failed: {}", e);
+            success = false;
+        }
+    // Only run `image prune` if we don't run `system prune`
+    } else if ctx.config().cleanup() {
         // Remove dangling images
         debug!("Removing dangling images");
         if let Err(e) = ctx.execute(&crt).args(["image", "prune", "-f"]).status_checked() {
