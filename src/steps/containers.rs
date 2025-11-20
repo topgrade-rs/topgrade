@@ -11,7 +11,7 @@ use tracing::{debug, error, warn};
 use wildmatch::WildMatch;
 
 use crate::command::CommandExt;
-use crate::error::{self, SkipStep, TopgradeError};
+use crate::error::{SkipStep, TopgradeError};
 use crate::terminal::print_separator;
 use crate::{execution_context::ExecutionContext, utils::require};
 use rust_i18n::t;
