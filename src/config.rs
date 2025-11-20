@@ -179,6 +179,7 @@ pub struct Chezmoi {
 pub struct Mise {
     bump: Option<bool>,
     interactive: Option<bool>,
+    jobs: Option<i32>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1821,6 +1822,10 @@ impl Config {
             .as_ref()
             .and_then(|mise| mise.bump)
             .unwrap_or(false)
+    }
+
+    pub fn mise_jobs(&self) -> i32 {
+        self.config_file.mise.as_ref().and_then(|mise| mise.jobs).unwrap_or(4)
     }
 
     pub fn mise_interactive(&self) -> bool {
