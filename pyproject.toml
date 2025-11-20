@@ -5,12 +5,19 @@ build-backend = "maturin"
 [project]
 name = "topgrade"
 dynamic = ["version"]
+description = "Upgrade all the things"
+readme = "README.md"
+license = "GPL-3.0-or-later"
 requires-python = ">=3.7"
 classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
+
+urls.bugs = "https://github.com/topgrade-rs/topgrade/issues"
+urls.homepage = "https://github.com/topgrade-rs/topgrade"
 
 
 [tool.maturin]
