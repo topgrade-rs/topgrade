@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.4.2](https://github.com/topgrade-rs/topgrade/compare/v16.4.1...v16.4.2) - 2025-11-20
+
+### Other
+
+- *(deps)* update dawidd6/action-homebrew-bump-formula action to v6 ([#1543](https://github.com/topgrade-rs/topgrade/pull/1543))
+
 ## [16.4.1](https://github.com/topgrade-rs/topgrade/compare/v16.4.0...v16.4.1) - 2025-11-20
 
 ### Other
