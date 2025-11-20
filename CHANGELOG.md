@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.4.1](https://github.com/topgrade-rs/topgrade/compare/v16.4.0...v16.4.1) - 2025-11-20
+
+### Other
+
+- refactor run_containers error handling ([#1541](https://github.com/topgrade-rs/topgrade/pull/1541))
+
 ## [16.4.0](https://github.com/topgrade-rs/topgrade/compare/v16.3.0...v16.4.0) - 2025-11-20
 
 ### Added
