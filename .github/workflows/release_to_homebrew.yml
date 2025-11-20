@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Bump formulae
-      uses: dawidd6/action-homebrew-bump-formula@3428a0601bba3173ec0bdcc945be23fa27aa4c31 # v5
+      uses: dawidd6/action-homebrew-bump-formula@c5ddc585e75f0f750a8b4f610688b4bec9e80915 # v6
       with:
         # Custom GitHub access token with only the 'public_repo' scope enabled
         token: ${{secrets.HOMEBREW_ACCESS_TOKEN}}
