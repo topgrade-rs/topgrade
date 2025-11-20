@@ -3,10 +3,10 @@
     <img alt="Topgrade" src="doc/topgrade_transparent.png" width="850px">
   </h1>
 
-  <a href="https://github.com/topgrade-rs/topgrade/releases"><img alt="GitHub Release" src="https://img.shields.io/github/release/topgrade-rs/topgrade.svg"></a>
-  <a href="https://crates.io/crates/topgrade"><img alt="crates.io" src="https://img.shields.io/crates/v/topgrade.svg"></a>
-  <a href="https://aur.archlinux.org/packages/topgrade"><img alt="AUR" src="https://img.shields.io/aur/version/topgrade.svg"></a>
-  <a href="https://formulae.brew.sh/formula/topgrade"><img alt="Homebrew" src="https://img.shields.io/homebrew/v/topgrade.svg"></a>
+<a href="https://github.com/topgrade-rs/topgrade/releases"><img alt="GitHub Release" src="https://img.shields.io/github/release/topgrade-rs/topgrade.svg"></a>
+<a href="https://crates.io/crates/topgrade"><img alt="crates.io" src="https://img.shields.io/crates/v/topgrade.svg"></a>
+<a href="https://aur.archlinux.org/packages/topgrade"><img alt="AUR" src="https://img.shields.io/aur/version/topgrade.svg"></a>
+<a href="https://formulae.brew.sh/formula/topgrade"><img alt="Homebrew" src="https://img.shields.io/homebrew/v/topgrade.svg"></a>
 
   <img alt="Demo" src="doc/topgrade_demo.gif">
 </div>
@@ -37,6 +37,8 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 - Windows ([Winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/)): [
   `winget install --id=topgrade-rs.topgrade  -e`](https://winstall.app/apps/topgrade-rs.topgrade)
 - macOS or Linux ([Homebrew](https://brew.sh/)): [`brew install topgrade`](https://formulae.brew.sh/formula/topgrade)
+- Fedora/RHEL/AlmaLinux/CentOS-Stream ([Copr](https://copr.fedorainfracloud.org/)): [
+  `sudo dnf copr enable lilay/topgrade && sudo dnf install topgrade`](https://copr.fedorainfracloud.org/coprs/lilay/topgrade/)
 
 ### Community-maintained
 
@@ -46,8 +48,6 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
   `scoop bucket add main && scoop install main/topgrade`](https://scoop.sh/#/apps?q=topgrade)
 - macOS ([MacPorts](https://www.macports.org/)): [
   `sudo port install topgrade`](https://ports.macports.org/port/topgrade/)
-- Fedora ([Copr](https://copr.fedorainfracloud.org/)): [
-  `dnf copr enable lilay/topgrade && dnf install topgrade`](https://copr.fedorainfracloud.org/coprs/lilay/topgrade/)
 - NixOS or Nix (nixpkgs): [topgrade](https://search.nixos.org/packages?show=topgrade)
 - Void Linux: [`sudo xbps-install -S topgrade`](https://voidlinux.org/packages/?arch=x86_64&q=topgrade)
 
