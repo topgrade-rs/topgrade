@@ -176,6 +176,14 @@ pub struct Chezmoi {
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
+pub struct Mise {
+    bump: Option<bool>,
+    interactive: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct Firmware {
     upgrade: Option<bool>,
 }
@@ -470,6 +478,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     chezmoi: Option<Chezmoi>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    mise: Option<Mise>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     yarn: Option<Yarn>,
@@ -1801,6 +1812,22 @@ impl Config {
             .chezmoi
             .as_ref()
             .and_then(|chezmoi| chezmoi.exclude_encrypted)
+            .unwrap_or(false)
+    }
+
+    pub fn mise_bump(&self) -> bool {
+        self.config_file
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.bump)
+            .unwrap_or(false)
+    }
+
+    pub fn mise_interactive(&self) -> bool {
+        self.config_file
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.interactive)
             .unwrap_or(false)
     }
 

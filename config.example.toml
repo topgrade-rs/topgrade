@@ -291,6 +291,16 @@
 # (default: false)
 # exclude_encrypted = false
 
+[mise]
+# Upgrades to the latest version available, bumping the version in mise.toml
+# (default: false)
+# bump = false
+
+# Run interactively
+# (default: false)
+# interactive = false
+
+
 [npm]
 # Use sudo if the NPM directory isn't owned by the current user
 # use_sudo = true
