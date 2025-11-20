@@ -824,7 +824,19 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
         }
     }
 
-    ctx.execute(&mise).arg("upgrade").status_checked()
+    let mut cmd = ctx.execute(&mise);
+
+    cmd.arg("upgrade");
+
+    if ctx.config().mise_interactive() {
+        cmd.arg("--interactive");
+    }
+
+    if ctx.config().mise_bump() {
+        cmd.arg("--bump");
+    }
+
+    cmd.status_checked()
 }
 
 pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
