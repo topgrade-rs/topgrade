@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.5.0](https://github.com/topgrade-rs/topgrade/compare/v16.4.2...v16.5.0) - 2025-11-21
+
+### Added
+
+- *(mise)* add support for parallel job configuration in mise ([#1548](https://github.com/topgrade-rs/topgrade/pull/1548))
+- *(brew)* add Homebrew cask support for Linux ([#1539](https://github.com/topgrade-rs/topgrade/pull/1539))
+- *(mise)* add mise configuration options for bump and interactive modes ([#1546](https://github.com/topgrade-rs/topgrade/pull/1546))
+
+### Other
+
+- *(deps)* update rust crate indexmap to v2.12.1 ([#1550](https://github.com/topgrade-rs/topgrade/pull/1550))
+- *(deps)* update actions/checkout action to v6 ([#1551](https://github.com/topgrade-rs/topgrade/pull/1551))
+- Add metadata to Python package for PyPI ([#1549](https://github.com/topgrade-rs/topgrade/pull/1549))
+- *(installation)* update copr repo info in readme ([#1545](https://github.com/topgrade-rs/topgrade/pull/1545))
+
 ## [16.4.2](https://github.com/topgrade-rs/topgrade/compare/v16.4.1...v16.4.2) - 2025-11-20
 
 ### Other
