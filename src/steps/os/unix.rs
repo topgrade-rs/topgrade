@@ -871,6 +871,10 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
         cmd.arg("--bump");
     }
 
+    if ctx.config().mise_jobs() != 4 {
+        cmd.args(["--jobs", &ctx.config().mise_jobs().to_string()]);
+    }
+
     cmd.status_checked()
 }
 
