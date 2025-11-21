@@ -179,7 +179,7 @@ pub struct Chezmoi {
 pub struct Mise {
     bump: Option<bool>,
     interactive: Option<bool>,
-    jobs: Option<i32>,
+    jobs: Option<u32>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
