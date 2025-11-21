@@ -81,7 +81,6 @@ impl BrewVariant {
     /// Execute an "internal" brew command, i.e. one that should always be run
     /// even when dry-running. Basically just a wrapper around [`Command::new`]
     /// that uses `arch` to run using the correct architecture if needed.
-    #[cfg(target_os = "macos")]
     fn execute_internal(self) -> Command {
         match self {
             BrewVariant::MacIntel if cfg!(target_arch = "aarch64") => {
@@ -365,12 +364,48 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
     Ok(())
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()> {
     let binary_name = require(variant.binary_name())?;
+
+    #[cfg(target_os = "macos")]
     if variant.is_path() && !BrewVariant::is_macos_custom(binary_name) {
         return Err(SkipStep(t!("Not a custom brew for macOS").to_string()).into());
     }
+
+    #[cfg(target_os = "linux")]
+    {
+        // Homebrew cask support was added in version 4.5.0
+        let version_output = Command::new(&binary_name).arg("--version").output_checked_utf8()?;
+
+        let version_line = version_output
+            .stdout
+            .lines()
+            .next()
+            .ok_or_else(|| eyre!(output_changed_message!("brew --version", "no output lines")))?;
+
+        let version_str = version_line.split_whitespace().nth(1).ok_or_else(|| {
+            eyre!(output_changed_message!(
+                "brew --version",
+                "Expected version after 'Homebrew'"
+            ))
+        })?;
+
+        let version = Version::parse(version_str)
+            .wrap_err_with(|| output_changed_message!("brew --version", "Invalid version"))?;
+
+        if version < Version::new(4, 5, 0) {
+            return Err(SkipStep(
+                t!(
+                    "Homebrew cask support on Linux requires Homebrew 4.5.0 or later (found {version})",
+                    version = version
+                )
+                .to_string(),
+            )
+            .into());
+        }
+    }
+
     print_separator(format!("{} - Cask", variant.step_title()));
 
     let cask_upgrade_exists = variant
