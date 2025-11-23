@@ -729,7 +729,7 @@ impl ConfigFile {
 // TODO: i18n of clap currently not easily possible. Waiting for https://github.com/clap-rs/clap/issues/380
 // Tracking issue for i18n: https://github.com/topgrade-rs/topgrade/issues/859
 #[derive(Parser, Debug)]
-#[command(name = "topgrade", version)]
+#[command(name = "topgrade", version, styles = clap_cargo::style::CLAP_STYLING)]
 pub struct CommandLineArgs {
     /// Edit the configuration file
     #[arg(long = "edit-config")]
