@@ -1125,7 +1125,7 @@ pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_auto_cpufreq(ctx: &ExecutionContext) -> Result<()> {
     let auto_cpu_freq = require("auto-cpufreq")?;
 
-    if auto_cpu_freq != PathBuf::from("/usr/local/bin/auto-cpufreq") 
+    if auto_cpu_freq != PathBuf::from("/usr/local/bin/auto-cpufreq")
         && auto_cpu_freq != PathBuf::from("/usr/local/sbin/auto-cpufreq")
     {
         return Err(SkipStep(String::from(
