@@ -1,6 +1,6 @@
 <div align="center">
   <h1>
-    <img alt="Topgrade" src="doc/topgrade_transparent.png" width="850px">
+    <img alt="Topgrade" src="https://github.com/topgrade-rs/topgrade/blob/main/doc/topgrade_transparent.png?raw=true" width="850px">
   </h1>
 
 <a href="https://github.com/topgrade-rs/topgrade/releases"><img alt="GitHub Release" src="https://img.shields.io/github/release/topgrade-rs/topgrade.svg"></a>
@@ -8,7 +8,7 @@
 <a href="https://aur.archlinux.org/packages/topgrade"><img alt="AUR" src="https://img.shields.io/aur/version/topgrade.svg"></a>
 <a href="https://formulae.brew.sh/formula/topgrade"><img alt="Homebrew" src="https://img.shields.io/homebrew/v/topgrade.svg"></a>
 
-  <img alt="Demo" src="doc/topgrade_demo.gif">
+  <img alt="Demo" src="https://github.com/topgrade-rs/topgrade/blob/main/doc/topgrade_demo.gif?raw=true">
 </div>
 
 ## Introduction
@@ -57,7 +57,7 @@ Just run `topgrade`.
 
 ## Configuration
 
-See `config.example.toml` for an example configuration file.
+See [`config.example.toml`](https://github.com/topgrade-rs/topgrade/blob/main/config.example.toml) for an example configuration file.
 
 ## Migration and Breaking Changes
 
@@ -117,7 +117,7 @@ its usage.
 
 ### Want to contribute?
 
-See [CONTRIBUTING.md](https://github.com/topgrade-rs/topgrade/blob/master/CONTRIBUTING.md)
+See [CONTRIBUTING.md](https://github.com/topgrade-rs/topgrade/blob/main/CONTRIBUTING.md)
 
 ## Discord server
 

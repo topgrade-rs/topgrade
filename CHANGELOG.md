@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.5.0](https://github.com/topgrade-rs/topgrade/compare/v16.4.2...v16.5.0) - 2025-11-26
+
+### Added
+
+- add colors to --help/-h ([#1553](https://github.com/topgrade-rs/topgrade/pull/1553))
+- *(mise)* add support for parallel job configuration in mise ([#1548](https://github.com/topgrade-rs/topgrade/pull/1548))
+- *(brew)* add Homebrew cask support for Linux ([#1539](https://github.com/topgrade-rs/topgrade/pull/1539))
+- *(mise)* add mise configuration options for bump and interactive modes ([#1546](https://github.com/topgrade-rs/topgrade/pull/1546))
+
+### Fixed
+
+- *(auto-cpufreq)* fix skipping on systems with merged bin/sbin ([#1556](https://github.com/topgrade-rs/topgrade/pull/1556))
+
+### Other
+
+- *(pre-commit)* autoupdate ([#1560](https://github.com/topgrade-rs/topgrade/pull/1560))
+- *(deps)* update release-plz/action digest to 1efcf74 ([#1561](https://github.com/topgrade-rs/topgrade/pull/1561))
+- *(deps)* lock file maintenance ([#1555](https://github.com/topgrade-rs/topgrade/pull/1555))
+- *(deps)* update github/codeql-action action to v4.31.5 ([#1559](https://github.com/topgrade-rs/topgrade/pull/1559))
+- *(deps)* update rust crate indexmap to v2.12.1 ([#1550](https://github.com/topgrade-rs/topgrade/pull/1550))
+- *(deps)* update actions/checkout action to v6 ([#1551](https://github.com/topgrade-rs/topgrade/pull/1551))
+- Add metadata to Python package for PyPI ([#1549](https://github.com/topgrade-rs/topgrade/pull/1549))
+- *(installation)* update copr repo info in readme ([#1545](https://github.com/topgrade-rs/topgrade/pull/1545))
+
 ## [16.4.2](https://github.com/topgrade-rs/topgrade/compare/v16.4.1...v16.4.2) - 2025-11-20
 
 ### Other
