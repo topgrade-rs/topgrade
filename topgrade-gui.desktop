@@ -13,4 +13,3 @@ Terminal=false
 Categories=System;Utility;
 Keywords=upgrade;update;system;package manager;
 StartupNotify=true
-

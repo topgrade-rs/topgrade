@@ -9,7 +9,7 @@ SYSTEM_WIDE=false
 if [[ "$1" == "--system-wide" ]]; then
     SYSTEM_WIDE=true
     if [[ $EUID -ne 0 ]]; then
-        echo "Erro: Instalação system-wide requer privilégios de root (use sudo)"
+        echo "Error: Instalação system-wide requer privilégios de root (use sudo)"
         exit 1
     fi
 fi
@@ -19,7 +19,7 @@ echo ""
 
 # Verificar se estamos no diretório correto
 if [[ ! -f "Cargo.toml" ]]; then
-    echo "Erro: Execute este script no diretório raiz do projeto topgrade"
+    echo "Error: Execute este script no diretório raiz do projeto topgrade"
     exit 1
 fi
 
@@ -34,8 +34,8 @@ cargo build --release --bin topgrade-gui --features gui
 echo "✓ Compilação concluída!"
 echo ""
 
-# Passo 2: Verificar e parar processos em execução
-echo "Passo 2: Verificando processos em execução..."
+# Passo 2: Verificar e parar processors em execução
+echo "Passo 2: Verificando processors em execução..."
 if pgrep -f "topgrade-gui" > /dev/null; then
     echo "⚠ topgrade-gui está em execução. Tentando encerrar..."
     pkill -f "topgrade-gui" || true
@@ -57,10 +57,10 @@ if [[ "$SYSTEM_WIDE" == true ]]; then
     if [[ -f /usr/local/bin/topgrade-gui ]]; then
         sudo cp /usr/local/bin/topgrade-gui /usr/local/bin/topgrade-gui.bak 2>/dev/null || true
     fi
-    
+
     # Remover versões antigas antes de instalar
     sudo rm -f /usr/local/bin/topgrade /usr/local/bin/topgrade-gui
-    
+
     sudo cp target/release/topgrade /usr/local/bin/
     sudo cp target/release/topgrade-gui /usr/local/bin/
     sudo chmod +x /usr/local/bin/topgrade
@@ -71,7 +71,7 @@ if [[ "$SYSTEM_WIDE" == true ]]; then
 else
     echo "Passo 3: Instalando binários localmente..."
     mkdir -p ~/.local/bin
-    
+
     # Fazer backup se existir
     if [[ -f ~/.local/bin/topgrade ]]; then
         cp ~/.local/bin/topgrade ~/.local/bin/topgrade.bak 2>/dev/null || true
@@ -79,22 +79,22 @@ else
     if [[ -f ~/.local/bin/topgrade-gui ]]; then
         cp ~/.local/bin/topgrade-gui ~/.local/bin/topgrade-gui.bak 2>/dev/null || true
     fi
-    
+
     # Remover versões antigas antes de instalar
     rm -f ~/.local/bin/topgrade ~/.local/bin/topgrade-gui
-    
+
     cp target/release/topgrade ~/.local/bin/
     cp target/release/topgrade-gui ~/.local/bin/
     chmod +x ~/.local/bin/topgrade
     chmod +x ~/.local/bin/topgrade-gui
-    
+
     # Adicionar ao PATH se necessário
     if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
         echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
         echo "✓ Adicionado ~/.local/bin ao PATH no ~/.bashrc"
-        echo "  Execute 'source ~/.bashrc' ou abra um novo terminal para usar os comandos"
+        echo "  Execute 'source ~/.bashrc' ou abra um novo terminal para usar os commandos"
     fi
-    
+
     BIN_DIR="$HOME/.local/bin"
     APP_DIR="$HOME/.local/share/applications"
     ICON_DIR="$HOME/.local/share/icons/hicolor/256x256/apps"
@@ -122,13 +122,13 @@ echo "Passo 5: Instalando ícone..."
 if [[ -f "doc/topgrade.png" ]]; then
     mkdir -p "$ICON_DIR"
     cp doc/topgrade.png "$ICON_DIR/topgrade.png"
-    
+
     if [[ "$SYSTEM_WIDE" == true ]]; then
         gtk-update-icon-cache /usr/share/icons/hicolor/ 2>/dev/null || true
     else
         gtk-update-icon-cache ~/.local/share/icons/hicolor/ 2>/dev/null || true
     fi
-    
+
     echo "✓ Ícone instalado"
 else
     echo "⚠ Aviso: Arquivo doc/topgrade.png não encontrado, pulando instalação do ícone"
@@ -170,4 +170,3 @@ echo "Você pode executar:"
 echo "  - CLI: topgrade"
 echo "  - GUI: topgrade-gui (ou pelo menu de aplicações)"
 echo ""
-

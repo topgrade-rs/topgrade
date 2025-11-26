@@ -155,4 +155,3 @@ sudo rm /usr/share/applications/topgrade-gui.desktop
 sudo rm /usr/share/icons/hicolor/256x256/apps/topgrade.png
 sudo update-desktop-database
 ```
-
