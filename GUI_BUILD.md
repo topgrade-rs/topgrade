@@ -2,22 +2,7 @@
 
 ## System Dependencies
 
-To build the GUI version of topgrade, you need to install the following system dependencies:
-
-### Ubuntu/Debian
-```bash
-sudo apt install libgtk-4-dev libgdk-pixbuf-2.0-dev libglib2.0-dev pkg-config
-```
-
-### Fedora/RHEL/CentOS
-```bash
-sudo dnf install gtk4-devel gdk-pixbuf2-devel glib2-devel pkg-config
-```
-
-### Arch Linux
-```bash
-sudo pacman -S gtk4 gdk-pixbuf2 glib2 pkg-config
-```
+**No system dependencies required!** The GUI uses `egui`, which is a pure Rust immediate mode GUI library that doesn't require any system libraries to be installed.
 
 ## Building
 
@@ -30,6 +15,8 @@ Or install it:
 ```bash
 cargo install --path . --bin topgrade-gui --features gui
 ```
+
+The binary will be available at `target/release/topgrade-gui` (or `target/debug/topgrade-gui` for debug builds).
 
 ## Desktop File Installation
 
@@ -59,3 +46,8 @@ sudo cp doc/topgrade.png /usr/share/icons/hicolor/256x256/apps/topgrade.png
 sudo gtk-update-icon-cache /usr/share/icons/hicolor/
 ```
 
+## Running
+
+You can run the GUI either:
+- From the command line: `topgrade-gui`
+- From your system's application menu (after installing the desktop file)

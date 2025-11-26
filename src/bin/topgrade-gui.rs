@@ -1,165 +1,95 @@
 #![cfg(unix)]
 #![cfg(feature = "gui")]
 
-use glib::MainContext;
-use gtk::prelude::*;
-use gtk::{glib, Application, ApplicationWindow, Button, ScrolledWindow, TextView, TextBuffer};
+use eframe::egui;
+use rust_i18n::{i18n, t};
 use std::env;
-use std::io::{BufRead, BufReader};
-use std::process::{Command, Stdio};
-use std::sync::{Arc, Mutex};
-use std::thread;
+use std::process::Command;
 
-const APP_ID: &str = "com.topgrade.gui";
+// Init i18n - carrega traduções do diretório locales
+// O macro i18n! compila as traduções no binário em tempo de compilação
+i18n!("locales", fallback = "en");
 
-fn main() -> glib::ExitCode {
-    let app = Application::builder().application_id(APP_ID).build();
-
-    app.connect_activate(build_ui);
-
-    app.run()
+struct TopgradeApp {
+    topgrade_path: String,
+    locale: String,
 }
 
-fn build_ui(app: &Application) {
-    // Create main window
-    let window = ApplicationWindow::builder()
-        .application(app)
-        .title("Topgrade")
-        .default_width(800)
-        .default_height(600)
-        .resizable(true)
-        .build();
-
-    // Create main container (vertical box)
-    let vbox = gtk::Box::builder()
-        .orientation(gtk::Orientation::Vertical)
-        .spacing(12)
-        .margin_start(12)
-        .margin_end(12)
-        .margin_top(12)
-        .margin_bottom(12)
-        .build();
-
-    // Create explanatory text
-    let explanation_label = gtk::Label::builder()
-        .label("Topgrade detects which tools you use and runs the appropriate commands to update them.\n\nThis includes package managers, programming language environments, and other tools.\n\nClick the button below to start the update process.")
-        .wrap(true)
-        .xalign(0.0)
-        .build();
-
-    // Create start button
-    let start_button = Button::builder()
-        .label("Iniciar Atualização")
-        .css_classes(&["suggested-action"])
-        .build();
-
-    // Create text view for output
-    let text_buffer = TextBuffer::builder().build();
-    let text_view = TextView::builder()
-        .buffer(&text_buffer)
-        .editable(false)
-        .monospace(true)
-        .css_classes(&["output-text"])
-        .build();
-
-    // Create scrolled window for text view
-    let scrolled_window = ScrolledWindow::builder()
-        .hscrollbar_policy(gtk::PolicyType::Automatic)
-        .vscrollbar_policy(gtk::PolicyType::Automatic)
-        .hexpand(true)
-        .vexpand(true)
-        .build();
-    scrolled_window.set_child(Some(&text_view));
-
-    // Store reference to text_view for auto-scrolling
-    let text_view_for_scroll = text_view.clone();
-
-    // Pack widgets
-    vbox.append(&explanation_label);
-    vbox.append(&start_button);
-    vbox.append(&scrolled_window);
-
-    // State for tracking if process is running
-    let is_running = Arc::new(Mutex::new(false));
-    let is_running_clone = Arc::clone(&is_running);
-    let text_buffer_clone = text_buffer.clone();
-    let start_button_clone = start_button.clone();
-    let text_view_scroll_clone = text_view_for_scroll.clone();
-
-    // Connect button click
-    start_button.connect_clicked(move |button| {
-        let is_running = Arc::clone(&is_running_clone);
-        let text_buffer = text_buffer_clone.clone();
-        let button_clone = button.clone();
-        let text_view_scroll = text_view_scroll_clone.clone();
-
-        // Check if already running
-        {
-            let mut running = is_running.lock().unwrap();
-            if *running {
-                return;
-            }
-            *running = true;
+impl Default for TopgradeApp {
+    fn default() -> Self {
+        Self {
+            topgrade_path: find_topgrade_executable(),
+            locale: String::new(), // Será configurado no main
         }
+    }
+}
 
-        // Disable button
-        button.set_sensitive(false);
-        button.set_label("Atualizando...");
-
-        // Clear previous output
-        text_buffer.set_text("");
-
-        // Append initial message
-        let initial_text = "Iniciando Topgrade...\n\n";
-        let end_iter = text_buffer.end_iter();
-        text_buffer.insert(&end_iter, initial_text);
-
-        // Find topgrade executable
-        let topgrade_path = find_topgrade_executable();
-
-        // Spawn thread to run topgrade
-        thread::spawn(move || {
-            let topgrade_path = topgrade_path.clone();
-            let text_buffer = text_buffer.clone();
-            let button = button_clone.clone();
-            let is_running = Arc::clone(&is_running);
-            let text_view_scroll = text_view_scroll_clone.clone();
-
-            match run_topgrade(&topgrade_path, text_buffer.clone(), text_view_scroll.clone()) {
-                Ok(exit_code) => {
-                    // Update UI in main thread
-                    let main_context = MainContext::default();
-                    main_context.invoke(move || {
-                        let end_iter = text_buffer.end_iter();
-                        if exit_code == 0 {
-                            text_buffer.insert(&end_iter, "\n\n✓ Atualização concluída com sucesso!\n");
-                        } else {
-                            text_buffer.insert(&end_iter, &format!("\n\n✗ Atualização concluída com código de saída: {}\n", exit_code));
-                        }
-                        // Scroll to bottom
-                        scroll_to_bottom(&text_view_scroll, &text_buffer);
-                        button.set_sensitive(true);
-                        button.set_label("Iniciar Atualização");
-                        *is_running.lock().unwrap() = false;
-                    });
+impl eframe::App for TopgradeApp {
+    fn update(&mut self, _ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::CentralPanel::default().show(_ctx, |ui| {
+            ui.vertical_centered(|ui| {
+                ui.add_space(20.0);
+                
+                // Title
+                ui.heading(t!("Topgrade GUI - Title"));
+                ui.add_space(10.0);
+                
+                // Explanation text
+                ui.label(t!("Topgrade GUI - Description"));
+                ui.add_space(20.0);
+                
+                // Start button
+                let button_text = t!("Topgrade GUI - Start Button");
+                
+                if ui.add(egui::Button::new(button_text).min_size(egui::vec2(200.0, 40.0))).clicked() {
+                    self.start_topgrade_external();
                 }
-                Err(e) => {
-                    let main_context = MainContext::default();
-                    main_context.invoke(move || {
-                        let end_iter = text_buffer.end_iter();
-                        text_buffer.insert(&end_iter, &format!("\n\n✗ Erro ao executar topgrade: {}\n", e));
-                        scroll_to_bottom(&text_view_scroll, &text_buffer);
-                        button.set_sensitive(true);
-                        button.set_label("Iniciar Atualização");
-                        *is_running.lock().unwrap() = false;
-                    });
-                }
-            }
+                
+                ui.add_space(10.0);
+                
+                // Info sobre terminal externo
+                ui.label(egui::RichText::new(t!("Topgrade GUI - External Terminal Info")).small().weak());
+            });
         });
-    });
+    }
+}
 
-    window.set_child(Some(&vbox));
-    window.present();
+impl TopgradeApp {
+    fn start_topgrade_external(&self) {
+        // Executar topgrade em terminal externo para permitir interação completa
+        // (senhas, confirmações, etc.)
+        let topgrade_path = self.topgrade_path.clone();
+        
+        // Tentar encontrar terminal disponível
+        let (terminal_cmd, args) = if which_crate::which("gnome-terminal").is_ok() {
+            ("gnome-terminal", vec!["--", "bash", "-c"])
+        } else if which_crate::which("xterm").is_ok() {
+            ("xterm", vec!["-e", "bash", "-c"])
+        } else if which_crate::which("x-terminal-emulator").is_ok() {
+            ("x-terminal-emulator", vec!["-e", "bash", "-c"])
+        } else if which_crate::which("konsole").is_ok() {
+            ("konsole", vec!["-e", "bash", "-c"])
+        } else if which_crate::which("tilix").is_ok() {
+            ("tilix", vec!["-e", "bash", "-c"])
+        } else {
+            eprintln!("Nenhum terminal encontrado. Execute topgrade manualmente no terminal.");
+            return;
+        };
+        
+        // Comando que executa topgrade e espera antes de fechar
+        // Usar tradução para a mensagem de fechar
+        let close_message = t!("Topgrade GUI - Press Enter to close");
+        let command = format!("LC_ALL={}; {} 2>&1; echo ''; echo '{}'; read", 
+                             self.locale, topgrade_path, close_message);
+        
+        if let Err(e) = Command::new(terminal_cmd)
+            .args(&args)
+            .arg(&command)
+            .spawn()
+        {
+            eprintln!("Erro ao abrir terminal: {}", e);
+        }
+    }
 }
 
 fn find_topgrade_executable() -> String {
@@ -167,9 +97,8 @@ fn find_topgrade_executable() -> String {
     if let Ok(path) = which_crate::which("topgrade") {
         return path.to_string_lossy().to_string();
     }
-
+    
     // If not found, try to use the current executable's directory
-    // If we're running as topgrade-gui, the topgrade binary should be in the same directory
     if let Ok(exe_path) = env::current_exe() {
         if let Some(parent) = exe_path.parent() {
             let topgrade_path = parent.join("topgrade");
@@ -177,87 +106,57 @@ fn find_topgrade_executable() -> String {
                 return topgrade_path.to_string_lossy().to_string();
             }
         }
+        
+        // Try to find in common build directories (for development)
+        if let Some(workspace_root) = exe_path.parent().and_then(|p| {
+            p.ancestors().find(|p| p.join("Cargo.toml").exists())
+        }) {
+            let debug_path = workspace_root.join("target/debug/topgrade");
+            if debug_path.exists() {
+                return debug_path.to_string_lossy().to_string();
+            }
+            let release_path = workspace_root.join("target/release/topgrade");
+            if release_path.exists() {
+                return release_path.to_string_lossy().to_string();
+            }
+        }
     }
-
-    // Fallback to just "topgrade" (will be found in PATH if installed system-wide)
+    
+    // Fallback to just "topgrade"
     "topgrade".to_string()
 }
 
-fn scroll_to_bottom(text_view: &TextView, text_buffer: &TextBuffer) {
-    let end_iter = text_buffer.end_iter();
-    text_view.scroll_to_iter(&end_iter, 0.0, false, 0.0, 0.0);
+fn main() -> Result<(), eframe::Error> {
+    // Detectar locale do sistema
+    let system_locale = sys_locale::get_locale().unwrap_or_else(|| "en".to_string());
+    
+    // Normalizar locale para o formato esperado pelo rust-i18n:
+    // 1. Remover .UTF-8, .utf8, etc.
+    // 2. Converter hífen (-) para underscore (_) porque o YAML usa pt_BR, não pt-BR
+    let mut normalized_locale = if let Some(dot_pos) = system_locale.find('.') {
+        system_locale[..dot_pos].to_string()
+    } else {
+        system_locale.clone()
+    };
+    
+    // Converter hífen para underscore (pt-BR -> pt_BR)
+    normalized_locale = normalized_locale.replace('-', "_");
+    
+    // Configurar locale normalizado
+    rust_i18n::set_locale(&normalized_locale);
+    
+    let options = eframe::NativeOptions {
+        initial_window_size: Some(egui::vec2(800.0, 600.0)),
+        ..Default::default()
+    };
+    
+    // Criar app e configurar locale
+    let mut app = TopgradeApp::default();
+    app.locale = normalized_locale.clone();
+    
+    eframe::run_native(
+        &t!("Topgrade GUI - Title"),
+        options,
+        Box::new(move |_cc| Box::new(app)),
+    )
 }
-
-fn run_topgrade(topgrade_path: &str, text_buffer: TextBuffer, text_view: TextView) -> Result<i32, String> {
-    let mut child = Command::new(topgrade_path)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| format!("Failed to spawn topgrade: {}", e))?;
-
-    let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
-    let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
-
-    let text_buffer_stdout = text_buffer.clone();
-    let text_buffer_stderr = text_buffer.clone();
-    let text_view_stdout = text_view.clone();
-    let text_view_stderr = text_view.clone();
-
-    // Spawn thread to read stdout
-    let stdout_handle = thread::spawn(move || {
-        let reader = BufReader::new(stdout);
-        let main_context = MainContext::default();
-        for line in reader.lines() {
-            match line {
-                Ok(line) => {
-                    let text_buffer = text_buffer_stdout.clone();
-                    let text_view = text_view_stdout.clone();
-                    main_context.invoke(move || {
-                        let end_iter = text_buffer.end_iter();
-                        text_buffer.insert(&end_iter, &format!("{}\n", line));
-                        // Auto-scroll to bottom
-                        scroll_to_bottom(&text_view, &text_buffer);
-                    });
-                }
-                Err(e) => {
-                    eprintln!("Error reading stdout: {}", e);
-                    break;
-                }
-            }
-        }
-    });
-
-    // Spawn thread to read stderr
-    let stderr_handle = thread::spawn(move || {
-        let reader = BufReader::new(stderr);
-        let main_context = MainContext::default();
-        for line in reader.lines() {
-            match line {
-                Ok(line) => {
-                    let text_buffer = text_buffer_stderr.clone();
-                    let text_view = text_view_stderr.clone();
-                    main_context.invoke(move || {
-                        let end_iter = text_buffer.end_iter();
-                        text_buffer.insert(&end_iter, &format!("{}\n", line));
-                        // Auto-scroll to bottom
-                        scroll_to_bottom(&text_view, &text_buffer);
-                    });
-                }
-                Err(e) => {
-                    eprintln!("Error reading stderr: {}", e);
-                    break;
-                }
-            }
-        }
-    });
-
-    // Wait for process to finish
-    let status = child.wait().map_err(|e| format!("Failed to wait for process: {}", e))?;
-
-    // Wait for reader threads to finish
-    stdout_handle.join().unwrap();
-    stderr_handle.join().unwrap();
-
-    Ok(status.code().unwrap_or(-1))
-}
-

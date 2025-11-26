@@ -87,9 +87,11 @@ assets = [
 nix = { version = "~0.30", features = ["hostname", "signal", "user"] }
 rust-ini = "~0.21"
 self_update_crate = { version = "~0.42", default-features = false, optional = true, package = "self_update", features = ["archive-tar", "compression-flate2", "rustls"] }
-gtk = { version = "0.18", optional = true }
-gdk-pixbuf = { version = "0.18", optional = true }
-glib = { version = "0.18", optional = true }
+eframe = { version = "0.22", optional = true }
+egui = { version = "0.22", optional = true }
+ansi-to-tui = { version = "0.1", optional = true }
+rust-i18n = { version = "3.0.1", optional = true }
+sys-locale = { version = "0.3.1", optional = true }
 
 [target.'cfg(windows)'.dependencies]
 is_elevated = "~0.1"
@@ -109,4 +111,4 @@ required-features = ["gui"]
 [features]
 default = []
 self-update = ["self_update_crate"]
-gui = ["gtk", "gdk-pixbuf", "glib"]
+gui = ["eframe", "egui", "rust-i18n", "sys-locale"]

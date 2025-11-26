@@ -7,6 +7,9 @@
 # Visual Studio Code
 .vscode/
 
+# Cursor IDE
+.cursor/
+
 # Generic build outputs
 /build
 

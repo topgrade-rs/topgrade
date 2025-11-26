@@ -1418,3 +1418,85 @@ _version: 2
   zh_CN: "ManDB 未启用"
   zh_TW: "ManDB 未啟用"
   de: "ManDB ist nicht aktiviert"
+
+"Topgrade GUI - Title":
+  en: "Topgrade"
+  pt_BR: "Topgrade"
+  es: "Topgrade"
+  fr: "Topgrade"
+  de: "Topgrade"
+
+"Topgrade GUI - Description":
+  en: "Topgrade detects which tools you use and runs the appropriate commands to update them.\n\nThis includes package managers, programming language environments, and other tools.\n\nClick the button below to start the update process."
+  pt_BR: "O Topgrade detecta quais ferramentas você usa e executa os comandos apropriados para atualizá-las.\n\nIsso inclui gerenciadores de pacotes, ambientes de linguagens de programação e outras ferramentas.\n\nClique no botão abaixo para iniciar o processo de atualização."
+  es: "Topgrade detecta qué herramientas usas y ejecuta los comandos apropiados para actualizarlas.\n\nEsto incluye gestores de paquetes, entornos de lenguajes de programación y otras herramientas.\n\nHaz clic en el botón de abajo para iniciar el proceso de actualización."
+  fr: "Topgrade détecte les outils que vous utilisez et exécute les commandes appropriées pour les mettre à jour.\n\nCela inclut les gestionnaires de paquets, les environnements de langages de programation et d'autres outils.\n\nCliquez sur le bouton ci-dessous pour démarrer le processus de mise à jour."
+  de: "Topgrade erkennt, welche Tools Sie verwenden und führt die entsprechenden Befehle aus, um sie zu aktualisieren.\n\nDies umfasst Paketmanager, Programmierumgebungen und andere Tools.\n\nKlicken Sie auf die Schaltfläche unten, um den Aktualisierungsprozess zu starten."
+
+"Topgrade GUI - Start Button":
+  en: "Start Update"
+  pt_BR: "Iniciar Atualização"
+  es: "Iniciar Actualización"
+  fr: "Démarrer la mise à jour"
+  de: "Aktualisierung starten"
+
+"Topgrade GUI - Updating":
+  en: "Updating..."
+  pt_BR: "Atualizando..."
+  es: "Actualizando..."
+  fr: "Mise à jour..."
+  de: "Aktualisierung läuft..."
+
+"Topgrade GUI - Output":
+  en: "Output:"
+  pt_BR: "Saída:"
+  es: "Salida:"
+  fr: "Sortie:"
+  de: "Ausgabe:"
+
+"Topgrade GUI - Starting":
+  en: "Starting Topgrade..."
+  pt_BR: "Iniciando Topgrade..."
+  es: "Iniciando Topgrade..."
+  fr: "Démarrage de Topgrade..."
+  de: "Topgrade wird gestartet..."
+
+"Topgrade GUI - Success":
+  en: "Update completed successfully!"
+  pt_BR: "Atualização concluída com sucesso!"
+  es: "¡Actualización completada con éxito!"
+  fr: "Mise à jour terminée avec succès!"
+  de: "Aktualisierung erfolgreich abgeschlossen!"
+
+"Topgrade GUI - Error":
+  en: "Error executing topgrade: {error}"
+  pt_BR: "Erro ao executar topgrade: %{error}"
+  es: "Error al ejecutar topgrade: %{error}"
+  fr: "Erreur lors de l'exécution de topgrade: %{error}"
+  de: "Fehler beim Ausführen von topgrade: %{error}"
+
+"Topgrade GUI - Exit Code":
+  en: "Update completed with exit code: {code}"
+  pt_BR: "Atualização concluída com código de saída: %{code}"
+  es: "Actualización completada con código de salida: %{code}"
+  fr: "Mise à jour terminée avec le code de sortie: %{code}"
+  de: "Aktualisierung mit Exit-Code abgeschlossen: %{code}"
+"Topgrade GUI - Use External Terminal":
+  en: "Use external terminal (allows user interaction)"
+  pt_BR: "Usar terminal externo (permite interação do usuário)"
+  es: "Usar terminal externo (permite interacción del usuario)"
+  fr: "Utiliser un terminal externe (permet l'interaction utilisateur)"
+  de: "Externes Terminal verwenden (ermöglicht Benutzerinteraktion)"
+
+"Topgrade GUI - External Terminal Help":
+  en: "When enabled, topgrade will run in an external terminal window where you can interact with prompts and enter passwords."
+  pt_BR: "Quando habilitado, o topgrade será executado em uma janela de terminal externa onde você pode interagir com prompts e inserir senhas."
+  es: "Cuando está habilitado, topgrade se ejecutará en una ventana de terminal externa donde puedes interactuar con prompts e ingresar contraseñas."
+  fr: "Lorsqu'il est activé, topgrade s'exécutera dans une fenêtre de terminal externe où vous pouvez interagir avec les invites et saisir des mots de passe."
+  de: "Wenn aktiviert, wird topgrade in einem externen Terminalfenster ausgeführt, in dem Sie mit Eingabeaufforderungen interagieren und Passwörter eingeben können."
+"Topgrade GUI - External Terminal Info":
+  en: "Topgrade will run in an external terminal window where you can interact with prompts and enter passwords."
+  pt_BR: "O Topgrade será executado em uma janela de terminal externa onde você pode interagir com prompts e inserir senhas."
+  es: "Topgrade se ejecutará en una ventana de terminal externa donde puedes interactuar con prompts e ingresar contraseñas."
+  fr: "Topgrade s'exécutera dans une fenêtre de terminal externe où vous pouvez interagir avec les invites et saisir des mots de passe."
+  de: "Topgrade wird in einem externen Terminalfenster ausgeführt, in dem Sie mit Eingabeaufforderungen interagieren und Passwörter eingeben können."
