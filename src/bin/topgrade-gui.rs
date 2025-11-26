@@ -83,7 +83,7 @@ impl TopgradeApp {
             return;
         };
 
-        // Comando que executa topgrade e espera antes de fechar
+        // Commando que executa topgrade e espera antes de fechar
         // Usar tradução para a mensagem de fechar
         let close_message = t!("Topgrade GUI - Press Enter to close");
         let command = format!(
@@ -92,7 +92,7 @@ impl TopgradeApp {
         );
 
         if let Err(e) = Command::new(terminal_cmd).args(&args).arg(&command).spawn() {
-            eprintln!("Erro ao abrir terminal: {}", e);
+            eprintln!("Error ao abrir terminal: {}", e);
         }
     }
 }
