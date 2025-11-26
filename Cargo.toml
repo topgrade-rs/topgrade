@@ -87,6 +87,9 @@ assets = [
 nix = { version = "~0.30", features = ["hostname", "signal", "user"] }
 rust-ini = "~0.21"
 self_update_crate = { version = "~0.42", default-features = false, optional = true, package = "self_update", features = ["archive-tar", "compression-flate2", "rustls"] }
+gtk = { version = "0.18", optional = true }
+gdk-pixbuf = { version = "0.18", optional = true }
+glib = { version = "0.18", optional = true }
 
 [target.'cfg(windows)'.dependencies]
 is_elevated = "~0.1"
@@ -98,6 +101,12 @@ windows-registry = "~0.6"
 [profile.release]
 lto = true
 
+[[bin]]
+name = "topgrade-gui"
+path = "src/bin/topgrade-gui.rs"
+required-features = ["gui"]
+
 [features]
 default = []
 self-update = ["self_update_crate"]
+gui = ["gtk", "gdk-pixbuf", "glib"]

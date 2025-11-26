@@ -1,0 +1,16 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Topgrade GUI
+Name[en]=Topgrade GUI
+Name[pt_BR]=Topgrade GUI
+Comment=Upgrade all the things with a graphical interface
+Comment[en]=Upgrade all the things with a graphical interface
+Comment[pt_BR]=Atualize tudo com uma interface gráfica
+Exec=topgrade-gui
+Icon=topgrade
+Terminal=false
+Categories=System;Utility;
+Keywords=upgrade;update;system;package manager;
+StartupNotify=true
+
