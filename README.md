@@ -57,7 +57,7 @@ Just run `topgrade`.
 
 ## Configuration
 
-See [`config.example.toml`](https://github.com/topgrade-rs/topgrade/blob/master/config.example.toml) for an example configuration file.
+See [`config.example.toml`](https://github.com/topgrade-rs/topgrade/blob/main/config.example.toml) for an example configuration file.
 
 ## Migration and Breaking Changes
 
@@ -117,7 +117,7 @@ its usage.
 
 ### Want to contribute?
 
-See [CONTRIBUTING.md](https://github.com/topgrade-rs/topgrade/blob/master/CONTRIBUTING.md)
+See [CONTRIBUTING.md](https://github.com/topgrade-rs/topgrade/blob/main/CONTRIBUTING.md)
 
 ## Discord server
 
