@@ -1425,6 +1425,9 @@ _version: 2
   es: "Topgrade"
   fr: "Topgrade"
   de: "Topgrade"
+  lt: "Topgrade"
+  zh_CN: "Topgrade"
+  zh_TW: "Topgrade"
 
 "Topgrade GUI - Description":
   en: "Topgrade detects which tools you use and runs the appropriate commands to update them.\n\nThis includes package managers, programming language environments, and other tools.\n\nClick the button below to start the update process."
@@ -1432,6 +1435,9 @@ _version: 2
   es: "Topgrade detecta qué herramientas usas y ejecuta los comandos apropiados para actualizarlas.\n\nEsto incluye gestores de paquetes, entornos de lenguajes de programación y otras herramientas.\n\nHaz clic en el botón de abajo para iniciar el proceso de actualización."
   fr: "Topgrade détecte les outils que vous utilisez et exécute les commandes appropriées pour les mettre à jour.\n\nCela inclut les gestionnaires de paquets, les environnements de langages de programation et d'autres outils.\n\nCliquez sur le bouton ci-dessous pour démarrer le processus de mise à jour."
   de: "Topgrade erkennt, welche Tools Sie verwenden und führt die entsprechenden Befehle aus, um sie zu aktualisieren.\n\nDies umfasst Paketmanager, Programmierumgebungen und andere Tools.\n\nKlicken Sie auf die Schaltfläche unten, um den Aktualisierungsprozess zu starten."
+  lt: "Topgrade aptinka, kokius įrankius naudojate, ir vykdo atitinkamas komandas juos atnaujinti.\n\nTai apima paketų tvarkyklės, programavimo kalbų aplinkas ir kitus įrankius.\n\nSpustelėkite mygtuką žemiau, kad pradėtumėte atnaujinimo procesą."
+  zh_CN: "Topgrade 检测您使用的工具并运行相应的命令来更新它们。\n\n这包括包管理器、编程语言环境和其他工具。\n\n点击下面的按钮开始更新过程。"
+  zh_TW: "Topgrade 偵測您使用的工具並執行相應的命令來更新它們。\n\n這包括套件管理器、程式語言環境和其他工具。\n\n點擊下面的按鈕開始更新過程。"
 
 "Topgrade GUI - Start Button":
   en: "Start Update"
@@ -1439,6 +1445,9 @@ _version: 2
   es: "Iniciar Actualización"
   fr: "Démarrer la mise à jour"
   de: "Aktualisierung starten"
+  lt: "Pradėti atnaujinimą"
+  zh_CN: "开始更新"
+  zh_TW: "開始更新"
 
 "Topgrade GUI - Updating":
   en: "Updating..."
@@ -1500,3 +1509,16 @@ _version: 2
   es: "Topgrade se ejecutará en una ventana de terminal externa donde puedes interactuar con prompts e ingresar contraseñas."
   fr: "Topgrade s'exécutera dans une fenêtre de terminal externe où vous pouvez interagir avec les invites et saisir des mots de passe."
   de: "Topgrade wird in einem externen Terminalfenster ausgeführt, in dem Sie mit Eingabeaufforderungen interagieren und Passwörter eingeben können."
+  lt: "Topgrade bus vykdomas išoriniame terminalo lange, kur galite sąveikauti su užklausomis ir įvesti slaptažodžius."
+  zh_CN: "Topgrade 将在外部终端窗口中运行，您可以在其中与提示交互并输入密码。"
+  zh_TW: "Topgrade 將在外部終端視窗中執行，您可以在其中與提示互動並輸入密碼。"
+
+"Topgrade GUI - Press Enter to close":
+  en: "Press Enter to close..."
+  pt_BR: "Pressione Enter para fechar..."
+  es: "Presiona Enter para cerrar..."
+  fr: "Appuyez sur Entrée pour fermer..."
+  de: "Drücken Sie Enter zum Schließen..."
+  lt: "Paspauskite Enter, kad uždarytumėte..."
+  zh_CN: "按 Enter 关闭..."
+  zh_TW: "按 Enter 關閉..."

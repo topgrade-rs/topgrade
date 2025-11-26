@@ -41,14 +41,21 @@ impl eframe::App for TopgradeApp {
                 // Start button
                 let button_text = t!("Topgrade GUI - Start Button");
 
-                if ui.add(egui::Button::new(button_text).min_size(egui::vec2(200.0, 40.0))).clicked() {
+                if ui
+                    .add(egui::Button::new(button_text).min_size(egui::vec2(200.0, 40.0)))
+                    .clicked()
+                {
                     self.start_topgrade_external();
                 }
 
                 ui.add_space(10.0);
 
                 // Info sobre terminal externo
-                ui.label(egui::RichText::new(t!("Topgrade GUI - External Terminal Info")).small().weak());
+                ui.label(
+                    egui::RichText::new(t!("Topgrade GUI - External Terminal Info"))
+                        .small()
+                        .weak(),
+                );
             });
         });
     }
@@ -76,18 +83,16 @@ impl TopgradeApp {
             return;
         };
 
-        // Commando que executa topgrade e espera antes de fechar
+        // Comando que executa topgrade e espera antes de fechar
         // Usar tradução para a mensagem de fechar
         let close_message = t!("Topgrade GUI - Press Enter to close");
-        let command = format!("LC_ALL={}; {} 2>&1; echo ''; echo '{}'; read",
-                             self.locale, topgrade_path, close_message);
+        let command = format!(
+            "LC_ALL={}; {} 2>&1; echo ''; echo '{}'; read",
+            self.locale, topgrade_path, close_message
+        );
 
-        if let Err(e) = Command::new(terminal_cmd)
-            .args(&args)
-            .arg(&command)
-            .spawn()
-        {
-            eprintln!("Error ao abrir terminal: {}", e);
+        if let Err(e) = Command::new(terminal_cmd).args(&args).arg(&command).spawn() {
+            eprintln!("Erro ao abrir terminal: {}", e);
         }
     }
 }
@@ -108,9 +113,10 @@ fn find_topgrade_executable() -> String {
         }
 
         // Try to find in common build directories (for development)
-        if let Some(workspace_root) = exe_path.parent().and_then(|p| {
-            p.ancestors().find(|p| p.join("Cargo.toml").exists())
-        }) {
+        if let Some(workspace_root) = exe_path
+            .parent()
+            .and_then(|p| p.ancestors().find(|p| p.join("Cargo.toml").exists()))
+        {
             let debug_path = workspace_root.join("target/debug/topgrade");
             if debug_path.exists() {
                 return debug_path.to_string_lossy().to_string();
@@ -154,9 +160,5 @@ fn main() -> Result<(), eframe::Error> {
     let mut app = TopgradeApp::default();
     app.locale = normalized_locale.clone();
 
-    eframe::run_native(
-        &t!("Topgrade GUI - Title"),
-        options,
-        Box::new(move |_cc| Box::new(app)),
-    )
+    eframe::run_native(&t!("Topgrade GUI - Title"), options, Box::new(move |_cc| Box::new(app)))
 }
