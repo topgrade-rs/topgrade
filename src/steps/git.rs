@@ -314,7 +314,7 @@ impl RepoStep {
         if is_fetch_only {
             command.args(["fetch", "--recurse-submodules"]);
         } else {
-            command.args(["pull", "--ff-only"]);
+            command.args(["pull", "--ff-only", "--recurse-submodules"]);
         }
 
         if let Some(extra_arguments) = ctx.config().git_arguments() {
@@ -322,19 +322,7 @@ impl RepoStep {
         }
 
         let output = command.output().await?;
-        let result = if is_fetch_only {
-            output_checked_utf8(output)
-        } else {
-            let submodule_output = AsyncCommand::new(&self.git)
-                .args(["submodule", "update", "--recursive"])
-                .current_dir(&repo)
-                .stdin(Stdio::null())
-                .output()
-                .await?;
-
-            output_checked_utf8(output).and_then(|()| output_checked_utf8(submodule_output))
-        }
-        .wrap_err_with(|| {
+        let result = output_checked_utf8(output).wrap_err_with(|| {
             let action = if is_fetch_only { "fetch" } else { "pull" };
             format!("Failed to {} {}", action, repo.as_ref().display())
         });
