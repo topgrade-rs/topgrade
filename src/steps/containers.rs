@@ -11,7 +11,7 @@ use tracing::{debug, error, warn};
 use wildmatch::WildMatch;
 
 use crate::command::CommandExt;
-use crate::error::{self, SkipStep, TopgradeError};
+use crate::error::{SkipStep, TopgradeError};
 use crate::terminal::print_separator;
 use crate::{execution_context::ExecutionContext, utils::require};
 use rust_i18n::t;
@@ -185,7 +185,6 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
         ));
     }
 
-    let mut success = true;
     let containers =
         list_containers(&crt, ctx.config().containers_ignored_tags()).context("Failed to list Docker containers")?;
     debug!("Containers to inspect: {:?}", containers);
@@ -220,29 +219,21 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
                 continue;
             }
 
-            success = false;
+            return Err(e);
         }
     }
 
     if ctx.config().containers_system_prune() {
         // Run system prune to clean up unused containers, networks, and build cache
-        if let Err(e) = ctx.execute(&crt).args(["system", "prune", "--force"]).status_checked() {
-            error!("Running system prune failed: {}", e);
-            success = false;
-        }
+        ctx.execute(&crt)
+            .args(["system", "prune", "--force"])
+            .status_checked()?
     // Only run `image prune` if we don't run `system prune`
     } else if ctx.config().cleanup() {
         // Remove dangling images
         debug!("Removing dangling images");
-        if let Err(e) = ctx.execute(&crt).args(["image", "prune", "-f"]).status_checked() {
-            error!("Removing dangling images failed: {}", e);
-            success = false;
-        }
+        ctx.execute(&crt).args(["image", "prune", "-f"]).status_checked()?
     }
 
-    if success {
-        Ok(())
-    } else {
-        Err(eyre!(error::StepFailed))
-    }
+    Ok(())
 }

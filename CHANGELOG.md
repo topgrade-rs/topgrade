@@ -7,6 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.5.0](https://github.com/topgrade-rs/topgrade/compare/v16.4.2...v16.5.0) - 2025-11-26
+
+### Added
+
+- add colors to --help/-h ([#1553](https://github.com/topgrade-rs/topgrade/pull/1553))
+- *(mise)* add support for parallel job configuration in mise ([#1548](https://github.com/topgrade-rs/topgrade/pull/1548))
+- *(brew)* add Homebrew cask support for Linux ([#1539](https://github.com/topgrade-rs/topgrade/pull/1539))
+- *(mise)* add mise configuration options for bump and interactive modes ([#1546](https://github.com/topgrade-rs/topgrade/pull/1546))
+
+### Fixed
+
+- *(auto-cpufreq)* fix skipping on systems with merged bin/sbin ([#1556](https://github.com/topgrade-rs/topgrade/pull/1556))
+
+### Other
+
+- *(pre-commit)* autoupdate ([#1560](https://github.com/topgrade-rs/topgrade/pull/1560))
+- *(deps)* update release-plz/action digest to 1efcf74 ([#1561](https://github.com/topgrade-rs/topgrade/pull/1561))
+- *(deps)* lock file maintenance ([#1555](https://github.com/topgrade-rs/topgrade/pull/1555))
+- *(deps)* update github/codeql-action action to v4.31.5 ([#1559](https://github.com/topgrade-rs/topgrade/pull/1559))
+- *(deps)* update rust crate indexmap to v2.12.1 ([#1550](https://github.com/topgrade-rs/topgrade/pull/1550))
+- *(deps)* update actions/checkout action to v6 ([#1551](https://github.com/topgrade-rs/topgrade/pull/1551))
+- Add metadata to Python package for PyPI ([#1549](https://github.com/topgrade-rs/topgrade/pull/1549))
+- *(installation)* update copr repo info in readme ([#1545](https://github.com/topgrade-rs/topgrade/pull/1545))
+
+## [16.4.2](https://github.com/topgrade-rs/topgrade/compare/v16.4.1...v16.4.2) - 2025-11-20
+
+### Other
+
+- *(deps)* update dawidd6/action-homebrew-bump-formula action to v6 ([#1543](https://github.com/topgrade-rs/topgrade/pull/1543))
+
+## [16.4.1](https://github.com/topgrade-rs/topgrade/compare/v16.4.0...v16.4.1) - 2025-11-20
+
+### Other
+
+- refactor run_containers error handling ([#1541](https://github.com/topgrade-rs/topgrade/pull/1541))
+
+## [16.4.0](https://github.com/topgrade-rs/topgrade/compare/v16.3.0...v16.4.0) - 2025-11-20
+
+### Added
+
+- *(os)* add Origami Linux support ([#1530](https://github.com/topgrade-rs/topgrade/pull/1530))
+- *(containers)* add option to run `system prune` ([#1523](https://github.com/topgrade-rs/topgrade/pull/1523))
+
+### Fixed
+
+- *(deps)* restore custom commands order ([#1535](https://github.com/topgrade-rs/topgrade/pull/1535))
+
+### Other
+
+- *(deps)* update clap, clap_builder, clap_complete ([#1540](https://github.com/topgrade-rs/topgrade/pull/1540))
+- *(deps)* update github/codeql-action action to v4.31.4 ([#1531](https://github.com/topgrade-rs/topgrade/pull/1531))
+- *(config)* add custom commands order test ([#1536](https://github.com/topgrade-rs/topgrade/pull/1536))
+- make Config methods more consistent by utilizing `#[derive(Default)]` ([#1534](https://github.com/topgrade-rs/topgrade/pull/1534))
+- *(issue templates)* use issue types ([#1533](https://github.com/topgrade-rs/topgrade/pull/1533))
+- *(deps)* lock file maintenance ([#1505](https://github.com/topgrade-rs/topgrade/pull/1505))
+- *(deps)* update actions/checkout digest to 93cb6ef ([#1526](https://github.com/topgrade-rs/topgrade/pull/1526))
+- *(deps)* update actions/checkout action to v5.0.1 ([#1527](https://github.com/topgrade-rs/topgrade/pull/1527))
+
 ## [16.3.0](https://github.com/topgrade-rs/topgrade/compare/v16.2.1...v16.3.0) - 2025-11-16
 
 ### Added

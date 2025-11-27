@@ -6,7 +6,7 @@ keywords = ["upgrade", "update"]
 license = "GPL-3.0-or-later"
 repository = "https://github.com/topgrade-rs/topgrade"
 rust-version = "1.84.1"
-version = "16.3.0"
+version = "16.5.0"
 authors = ["Roey Darwish Dror <roey.ghost@gmail.com>", "Thomas Schönauer <t.schoenauer@hgs-wt.at>"]
 exclude = ["doc/screenshot.gif", "BREAKINGCHANGES_dev.md"]
 edition = "2021"
@@ -51,6 +51,7 @@ serde_json = "1.0.145"
 ignore = "=0.4.23"
 globset = "=0.4.16"
 base64ct = "<1.8.0"
+clap-cargo = "0.15.2"
 
 [patch.crates-io]
 mac-notification-sys = { git = "https://github.com/h4llow3En/mac-notification-sys" }

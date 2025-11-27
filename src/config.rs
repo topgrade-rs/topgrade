@@ -178,6 +178,15 @@ pub struct Chezmoi {
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
+pub struct Mise {
+    bump: Option<bool>,
+    interactive: Option<bool>,
+    jobs: Option<u32>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct Firmware {
     upgrade: Option<bool>,
 }
@@ -474,6 +483,9 @@ pub struct ConfigFile {
     chezmoi: Option<Chezmoi>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    mise: Option<Mise>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     yarn: Option<Yarn>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
@@ -719,7 +731,7 @@ impl ConfigFile {
 // TODO: i18n of clap currently not easily possible. Waiting for https://github.com/clap-rs/clap/issues/380
 // Tracking issue for i18n: https://github.com/topgrade-rs/topgrade/issues/859
 #[derive(Parser, Debug)]
-#[command(name = "topgrade", version)]
+#[command(name = "topgrade", version, styles = clap_cargo::style::CLAP_STYLING)]
 pub struct CommandLineArgs {
     /// Edit the configuration file
     #[arg(long = "edit-config")]
@@ -1815,6 +1827,26 @@ impl Config {
             .unwrap_or(false)
     }
 
+    pub fn mise_bump(&self) -> bool {
+        self.config_file
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.bump)
+            .unwrap_or(false)
+    }
+
+    pub fn mise_jobs(&self) -> u32 {
+        self.config_file.mise.as_ref().and_then(|mise| mise.jobs).unwrap_or(4)
+    }
+
+    pub fn mise_interactive(&self) -> bool {
+        self.config_file
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.interactive)
+            .unwrap_or(false)
+    }
+
     pub fn vscode_profile(&self) -> Option<&str> {
         let vscode_cfg = self.config_file.vscode.as_ref()?;
         let profile = vscode_cfg.profile.as_ref()?;
@@ -1902,5 +1934,25 @@ mod test {
         let mut config = config();
         config.opt = CommandLineArgs::parse_from(["topgrade", "--remote-host-limit", "other_hostname"]);
         assert!(!config.should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"));
+    }
+
+    /// Ensure that custom commands are stored in insertion order.
+    #[test]
+    fn test_custom_commands_order() {
+        let toml_str = r#"
+[commands]
+z = "cmd_z"
+y = "cmd_y"
+x = "cmd_x"
+"#;
+        let order: Vec<_> = toml::from_str::<ConfigFile>(toml_str)
+            .expect("toml parse error")
+            .commands
+            .expect("commands field missing")
+            .keys()
+            .cloned()
+            .collect();
+
+        assert_eq!(order, vec!["z", "y", "x"]);
     }
 }

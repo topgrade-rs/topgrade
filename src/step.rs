@@ -225,7 +225,7 @@ impl Step {
             Bin => runner.execute(*self, "bin", || generic::bin_update(ctx))?,
             Bob => runner.execute(*self, "Bob", || generic::run_bob(ctx))?,
             BrewCask => {
-                #[cfg(target_os = "macos")]
+                #[cfg(any(target_os = "linux", target_os = "macos"))]
                 runner.execute(*self, "Brew Cask", || unix::run_brew_cask(ctx, unix::BrewVariant::Path))?;
                 #[cfg(target_os = "macos")]
                 runner.execute(*self, "Brew Cask (Intel)", || {
@@ -750,6 +750,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Restarts,
         Flatpak,
         BrewFormula,
+        BrewCask,
         Lure,
         Waydroid,
         AutoCpufreq,
