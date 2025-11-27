@@ -81,6 +81,8 @@ pub struct Git {
     repos: Option<Vec<String>>,
 
     pull_predefined: Option<bool>,
+
+    fetch_only: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1114,6 +1116,15 @@ impl Config {
     /// Extra Git arguments
     pub fn git_arguments(&self) -> Option<&String> {
         self.config_file.git.as_ref().and_then(|git| git.arguments.as_ref())
+    }
+
+    /// Only fetch repositories instead of pulling
+    pub fn git_fetch_only(&self) -> bool {
+        self.config_file
+            .git
+            .as_ref()
+            .and_then(|git| git.fetch_only)
+            .unwrap_or(false)
     }
 
     pub fn tmux_config(&self) -> Result<TmuxConfig> {
