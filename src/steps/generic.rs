@@ -1775,7 +1775,9 @@ pub fn run_jetbrains_idea(ctx: &ExecutionContext) -> Result<()> {
         require_one([
             "idea",
             "intellij-idea-ultimate-edition",
+            "intellij-idea-ultimate",
             "intellij-idea-community-edition",
+            "intellij-idea-community",
         ])?,
         "IntelliJ IDEA",
     )
