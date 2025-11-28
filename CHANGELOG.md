@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- *(deps)* downgrade mac-notifaction-sys to fix build failure ([#1571](https://github.com/topgrade-rs/topgrade/pull/1571))
+- *(deps)* downgrade mac-notification-sys to fix build failure ([#1571](https://github.com/topgrade-rs/topgrade/pull/1571))
 - Add more alternate names for Intellij IDEA ([#1570](https://github.com/topgrade-rs/topgrade/pull/1570))
 
 ### Other
