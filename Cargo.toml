@@ -52,7 +52,6 @@ ignore = "=0.4.23"
 globset = "=0.4.16"
 base64ct = "<1.8.0"
 clap-cargo = "0.15.2"
-mac-notification-sys = "=0.6.2"
 
 [package.metadata.generate-rpm]
 assets = [{ source = "target/release/topgrade", dest = "/usr/bin/topgrade" }]
@@ -92,6 +91,9 @@ parselnk = "~0.1"
 self_update_crate = { version = "~0.42", default-features = false, optional = true, package = "self_update", features = ["archive-zip", "compression-zip-deflate", "rustls"] }
 windows = { version = "~0.62", features = ["Win32_System_Console"] }
 windows-registry = "~0.6"
+
+[target.'cfg(macos)'.dependencies]
+mac-notification-sys = "=0.6.2"
 
 [profile.release]
 lto = true
