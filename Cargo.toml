@@ -93,7 +93,7 @@ windows = { version = "~0.62", features = ["Win32_System_Console"] }
 windows-registry = "~0.6"
 
 [target.'cfg(macos)'.dependencies]
-mac-notification-sys = "=0.6.2"
+mac-notification-sys = "=0.6.8"
 
 [profile.release]
 lto = true
