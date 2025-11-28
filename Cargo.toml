@@ -52,9 +52,7 @@ ignore = "=0.4.23"
 globset = "=0.4.16"
 base64ct = "<1.8.0"
 clap-cargo = "0.15.2"
-
-[patch.crates-io]
-mac-notification-sys = { git = "https://github.com/h4llow3En/mac-notification-sys" }
+mac-notification-sys = "=0.6.2"
 
 [package.metadata.generate-rpm]
 assets = [{ source = "target/release/topgrade", dest = "/usr/bin/topgrade" }]
