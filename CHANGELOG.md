@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.6.0](https://github.com/topgrade-rs/topgrade/compare/v16.5.0...v16.6.0) - 2025-11-28
+
+### Added
+
+- *(git)* add option to fetch instead of pull repositories ([#1371](https://github.com/topgrade-rs/topgrade/pull/1371))
+
+### Fixed
+
+- *(deps)* downgrade mac-notification-sys to fix build failure ([#1571](https://github.com/topgrade-rs/topgrade/pull/1571))
+- Add more alternate names for Intellij IDEA ([#1570](https://github.com/topgrade-rs/topgrade/pull/1570))
+
+### Other
+
+- *(deps)* update http, tower-http, tracing, zerocopy ([#1567](https://github.com/topgrade-rs/topgrade/pull/1567))
+- *(deps)* update swatinem/rust-cache action to v2.8.2 ([#1562](https://github.com/topgrade-rs/topgrade/pull/1562))
+- switch release_to_pypi.yml to trusted publishing ([#1566](https://github.com/topgrade-rs/topgrade/pull/1566))
+- README.md fixes ([#1564](https://github.com/topgrade-rs/topgrade/pull/1564))
+
 ## [16.5.0](https://github.com/topgrade-rs/topgrade/compare/v16.4.2...v16.5.0) - 2025-11-26
 
 ### Added
