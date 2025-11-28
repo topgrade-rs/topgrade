@@ -237,16 +237,30 @@ impl RepoStep {
         let mut cmd = Command::new(&self.git);
         cmd.stdin(Stdio::null())
             .current_dir(repo.as_ref())
-            .args(["remote", "show"]);
+            .args(["remote", "-v"]);
 
         let res = cmd.output_checked_utf8();
 
-        res.map(|output| output.stdout.lines().count() > 0)
-            .map_err(|e| {
-                error!("Error getting remotes for {}: {e}", repo.as_ref().display());
-                e
-            })
-            .ok()
+        res.map(|output| {
+            output
+                .stdout
+                .lines()
+                // remote lines always have: "<name>\t<url> (<fetch|push>)"
+                .any(|line| {
+                    // split into at least 2 fields: name + url
+                    let mut parts = line.split_whitespace();
+                    let name = parts.next();
+                    let url = parts.next();
+
+                    // Has both name AND url → configured remote
+                    name.is_some() && url.is_some()
+                })
+        })
+        .map_err(|e| {
+            error!("Error getting remotes for {}: {e}", repo.as_ref().display());
+            e
+        })
+        .ok()
     }
 
     /// Similar to `insert_if_repo`, with glob support.
