@@ -8,7 +8,7 @@ use std::time::Duration;
 use chrono::{Local, Timelike};
 use color_eyre::eyre;
 use color_eyre::eyre::Context;
-use console::{style, Key, Term};
+use console::{measure_text_width, style, Key, Term};
 use notify_rust::{Notification, Timeout};
 use rust_i18n::t;
 use tracing::{debug, error};
@@ -119,7 +119,7 @@ impl Terminal {
                                 2,
                                 min(80, width as usize)
                                     .checked_sub(4)
-                                    .and_then(|e| e.checked_sub(message.len()))
+                                    .and_then(|e| e.checked_sub(measure_text_width(&message)))
                                     .unwrap_or(0)
                             )
                         ))
