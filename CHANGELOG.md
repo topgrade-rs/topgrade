@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.6.1](https://github.com/topgrade-rs/topgrade/compare/v16.6.0...v16.6.1) - 2025-11-30
+
+### Fixed
+
+- *(git)* skip repos with remotes without configured urls ([#1573](https://github.com/topgrade-rs/topgrade/pull/1573))
+- use measure_text_width instead of byte count for header border calculation ([#1576](https://github.com/topgrade-rs/topgrade/pull/1576))
+
+### Other
+
+- *(deps)* update mac-notification-sys ([#1574](https://github.com/topgrade-rs/topgrade/pull/1574))
+
 ## [16.6.0](https://github.com/topgrade-rs/topgrade/compare/v16.5.0...v16.6.0) - 2025-11-28
 
 ### Added
