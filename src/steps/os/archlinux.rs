@@ -1,5 +1,3 @@
-use std::env::var_os;
-use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use color_eyre::eyre;
@@ -13,12 +11,6 @@ use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::utils::which;
 use crate::{config, output_changed_message};
-
-fn get_execution_path() -> OsString {
-    let mut path = OsString::from("/usr/bin:");
-    path.push(var_os("PATH").unwrap());
-    path
-}
 
 pub trait ArchPackageManager {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()>;
@@ -43,8 +35,7 @@ impl ArchPackageManager for YayParu {
             .arg("--pacman")
             .arg(&self.pacman)
             .arg("-Syu")
-            .args(ctx.config().yay_arguments().split_whitespace())
-            .env("PATH", get_execution_path());
+            .args(ctx.config().yay_arguments().split_whitespace());
 
         if ctx.config().yes(Step::System) {
             command.arg("--noconfirm");
@@ -81,10 +72,7 @@ impl ArchPackageManager for GarudaUpdate {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
         let mut command = ctx.execute(&self.executable);
 
-        command
-            .env("PATH", get_execution_path())
-            .env("UPDATE_AUR", "1")
-            .env("SKIP_MIRRORLIST", "1");
+        command.env("UPDATE_AUR", "1").env("SKIP_MIRRORLIST", "1");
 
         if ctx.config().yes(Step::System) {
             command.env("PACMAN_NOCONFIRM", "1");
@@ -114,8 +102,7 @@ impl ArchPackageManager for Trizen {
 
         command
             .arg("-Syu")
-            .args(ctx.config().trizen_arguments().split_whitespace())
-            .env("PATH", get_execution_path());
+            .args(ctx.config().trizen_arguments().split_whitespace());
 
         if ctx.config().yes(Step::System) {
             command.arg("--noconfirm");
@@ -151,7 +138,7 @@ impl ArchPackageManager for Pacman {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
         let sudo = ctx.require_sudo()?;
         let mut command = sudo.execute(ctx, &self.executable)?;
-        command.arg("-Syu").env("PATH", get_execution_path());
+        command.arg("-Syu");
         if ctx.config().yes(Step::System) {
             command.arg("--noconfirm");
         }
@@ -196,8 +183,7 @@ impl ArchPackageManager for Pikaur {
 
         command
             .arg("-Syu")
-            .args(ctx.config().pikaur_arguments().split_whitespace())
-            .env("PATH", get_execution_path());
+            .args(ctx.config().pikaur_arguments().split_whitespace());
 
         if ctx.config().yes(Step::System) {
             command.arg("--noconfirm");
@@ -235,8 +221,7 @@ impl ArchPackageManager for Pamac {
 
         command
             .arg("upgrade")
-            .args(ctx.config().pamac_arguments().split_whitespace())
-            .env("PATH", get_execution_path());
+            .args(ctx.config().pamac_arguments().split_whitespace());
 
         if ctx.config().yes(Step::System) {
             command.arg("--no-confirm");
