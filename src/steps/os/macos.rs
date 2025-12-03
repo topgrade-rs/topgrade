@@ -200,7 +200,7 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
 pub fn process_xcodes_releases(releases_filtered: Vec<String>, should_ask: bool, ctx: &ExecutionContext) -> Result<()> {
     let xcodes = require("xcodes")?;
 
-    if releases_filtered.last().map_or(true, |s| !s.contains("(Installed)")) && !releases_filtered.is_empty() {
+    if releases_filtered.last().is_none_or(|s| !s.contains("(Installed)")) && !releases_filtered.is_empty() {
         println!(
             "{} {}",
             t!("New Xcode release detected:"),
