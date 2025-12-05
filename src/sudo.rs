@@ -94,11 +94,7 @@ impl<'a> SudoExecuteOpts<'a> {
         // The `--env` arguments are set globally in `main.rs`, but sudo by default
         // does not pass these environment variables through unless explicitly told to.
         // So we add them here to the preserve_env list.
-        Self::default().extend_preserve_env_list(
-            ctx.config()
-                .env_variables()
-                .map(|(key, _value)| key),
-        )
+        Self::default().extend_preserve_env_list(ctx.config().env_variables().map(|(key, _value)| key))
     }
 
     /// Run the command inside a login shell.
