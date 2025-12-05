@@ -68,7 +68,7 @@ pub enum SudoPreserveEnv<'a> {
     /// Preserve all environment variables.
     All,
     /// Preserve only the specified environment variables.
-    Some(&'a [&'a str]),
+    Some(Vec<&'a str>),
     /// Preserve no environment variables.
     #[default]
     None,
@@ -90,8 +90,13 @@ pub struct SudoExecuteOpts<'a> {
 }
 
 impl<'a> SudoExecuteOpts<'a> {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(ctx: &'a ExecutionContext) -> Self {
+        Self::default().extend_preserve_env_list(
+            ctx.config()
+                .env_variables()
+                .iter()
+                .map(|env_str| env_str.split('=').next().unwrap()),
+        )
     }
 
     /// Run the command inside a login shell.
@@ -108,10 +113,21 @@ impl<'a> SudoExecuteOpts<'a> {
         self
     }
 
-    /// Preserve only the specified environment variables across the sudo call.
+    /// Preserve the specified environment variables across the sudo call.
+    ///
+    /// Can be called multiple times to add more variables.
     #[allow(unused)]
-    pub fn preserve_env_list(mut self, vars: &'a [&'a str]) -> Self {
-        self.preserve_env = SudoPreserveEnv::Some(vars);
+    pub fn extend_preserve_env_list<AnyStrIter, StrOrStrRef>(mut self, vars: AnyStrIter) -> Self
+    where
+        AnyStrIter: IntoIterator<Item = &'a StrOrStrRef>, // Zero-copy reference type, allowing &[&str], &Vec<String>, Vec<&str>, Iter<&str>
+        StrOrStrRef: AsRef<str> + ?Sized + 'a,            // coerced to str, &str, &String
+    {
+        let vars = vars.into_iter().map(|s| s.as_ref());
+        match self.preserve_env {
+            SudoPreserveEnv::All => {}
+            SudoPreserveEnv::Some(ref mut env_list) => env_list.extend(vars),
+            SudoPreserveEnv::None => self.preserve_env = SudoPreserveEnv::Some(vars.collect()),
+        }
         self
     }
 
@@ -341,7 +357,7 @@ impl Sudo {
 
     /// Execute a command with `sudo`.
     pub fn execute<S: AsRef<OsStr>>(&self, ctx: &ExecutionContext, command: S) -> Result<Executor> {
-        self.execute_opts(ctx, command, SudoExecuteOpts::new())
+        self.execute_opts(ctx, command, SudoExecuteOpts::new(ctx))
     }
 
     /// Execute a command with `sudo`, with custom options.
