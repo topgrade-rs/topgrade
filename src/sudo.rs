@@ -91,11 +91,13 @@ pub struct SudoExecuteOpts<'a> {
 
 impl<'a> SudoExecuteOpts<'a> {
     pub fn new(ctx: &'a ExecutionContext) -> Self {
+        // The `--env` arguments are set globally in `main.rs`, but sudo by default
+        // does not pass these environment variables through unless explicitly told to.
+        // So we add them here to the preserve_env list.
         Self::default().extend_preserve_env_list(
             ctx.config()
                 .env_variables()
-                .iter()
-                .map(|env_str| env_str.split('=').next().unwrap()),
+                .map(|(key, _value)| key),
         )
     }
 

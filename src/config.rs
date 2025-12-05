@@ -853,8 +853,13 @@ impl CommandLineArgs {
         self.show_config_reference
     }
 
-    pub fn env_variables(&self) -> &Vec<String> {
-        &self.env
+    pub fn env_variables(&self) -> impl Iterator<Item = (&str, &str)> {
+        self.env.iter().map(|s| {
+            let mut split = s.splitn(2, '=');
+            let key = split.next().unwrap_or("");
+            let value = split.next().unwrap_or("");
+            (key, value)
+        })
     }
 
     /// In Topgrade, filter directives come from 3 places:
@@ -1089,7 +1094,7 @@ impl Config {
     }
 
     /// List of user-defined environment variables
-    pub fn env_variables(&self) -> &Vec<String> {
+    pub fn env_variables(&self) -> impl Iterator<Item = (&str, &str)> {
         self.opt.env_variables()
     }
 
@@ -1970,7 +1975,7 @@ x = "cmd_x"
 
         let mut config = config();
         config.opt = CommandLineArgs::parse_from(["topgrade", "--env", "VAR1=foo", "--env", "VAR2=bar"]);
-        let env_vars = config.env_variables();
+        let env_vars: Vec<_> = config.env_variables().collect();
         assert_eq!(env_vars.len(), 2);
 
         let ctx = ExecutionContext::new(
