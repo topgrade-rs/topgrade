@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.6.1](https://github.com/topgrade-rs/topgrade/compare/v16.6.0...v16.6.1) - 2025-12-06
+
+### Fixed
+
+- *(uv)* update silenced error messages ([#1593](https://github.com/topgrade-rs/topgrade/pull/1593))
+- *(archlinux)* don't overwrite PATH ([#1586](https://github.com/topgrade-rs/topgrade/pull/1586))
+- *(git)* skip repos with remotes without configured urls ([#1573](https://github.com/topgrade-rs/topgrade/pull/1573))
+- use measure_text_width instead of byte count for header border calculation ([#1576](https://github.com/topgrade-rs/topgrade/pull/1576))
+
+### Other
+
+- *(deps)* update actions/checkout action to v6.0.1 ([#1583](https://github.com/topgrade-rs/topgrade/pull/1583))
+- *(deps)* update actions/checkout digest to 8e8c483 ([#1582](https://github.com/topgrade-rs/topgrade/pull/1582))
+- *(deps)* update dawidd6/action-homebrew-bump-formula action to v7 ([#1585](https://github.com/topgrade-rs/topgrade/pull/1585))
+- *(deps)* update github/codeql-action action to v4.31.6 ([#1578](https://github.com/topgrade-rs/topgrade/pull/1578))
+- *(deps)* lock file maintenance ([#1577](https://github.com/topgrade-rs/topgrade/pull/1577))
+- *(deps)* update mac-notification-sys ([#1574](https://github.com/topgrade-rs/topgrade/pull/1574))
+
 ## [16.6.0](https://github.com/topgrade-rs/topgrade/compare/v16.5.0...v16.6.0) - 2025-11-28
 
 ### Added
