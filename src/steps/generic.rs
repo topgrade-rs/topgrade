@@ -1511,7 +1511,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         //
         // We run `uv self update` directly, and ignore an error if it outputs:
         //
-        // "error: uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.\n"
+        // "error: uv was installed through an external package manager" [various continuations]
         //
         // or:
         //
@@ -1524,7 +1524,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         // These two error messages can both occur, in different situations.
 
         const ERROR_MSGS: [&str; 2] = [
-            "uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.",
+            "uv was installed through an external package manager",
             "Self-update is only available for uv binaries installed via the standalone installation scripts.",
         ];
 
