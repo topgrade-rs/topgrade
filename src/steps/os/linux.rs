@@ -1053,8 +1053,12 @@ pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
 
         print_separator(t!("Configuration update"));
         let sudo = ctx.require_sudo()?;
-        sudo.execute_opts(ctx, &pacdiff, SudoExecuteOpts::new().preserve_env_list(&["DIFFPROG"]))?
-            .status_checked()?;
+        sudo.execute_opts(
+            ctx,
+            &pacdiff,
+            SudoExecuteOpts::new(ctx).extend_preserve_env_list(&["DIFFPROG"]),
+        )?
+        .status_checked()?;
     }
 
     Ok(())
