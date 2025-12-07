@@ -249,14 +249,17 @@ pub fn run_aqua(ctx: &ExecutionContext) -> Result<()> {
     let aqua = Aqua::get(ctx)?.aqua_cli()?;
 
     print_separator("Aqua");
-    if ctx.run_type().dry() {
-        println!("{}", t!("Updating aqua ..."));
-        println!("{}", t!("Updating aqua installed cli tools ..."));
-        Ok(())
-    } else {
-        ctx.execute(&aqua).arg("update-aqua").status_checked()?;
-        ctx.execute(&aqua).arg("update").status_checked()
+
+    ctx.execute(&aqua).arg("update-aqua").status_checked()?;
+
+    // Don't run plain `aqua update` because it uses the current directory by default.
+    if let Ok(path) = env::var("AQUA_GLOBAL_CONFIG") {
+        ctx.execute(&aqua)
+            .args(["update", "--config", &path])
+            .status_checked()?;
     }
+
+    Ok(())
 }
 
 pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
