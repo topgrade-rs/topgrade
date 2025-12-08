@@ -249,14 +249,17 @@ pub fn run_aqua(ctx: &ExecutionContext) -> Result<()> {
     let aqua = Aqua::get(ctx)?.aqua_cli()?;
 
     print_separator("Aqua");
-    if ctx.run_type().dry() {
-        println!("{}", t!("Updating aqua ..."));
-        println!("{}", t!("Updating aqua installed cli tools ..."));
-        Ok(())
-    } else {
-        ctx.execute(&aqua).arg("update-aqua").status_checked()?;
-        ctx.execute(&aqua).arg("update").status_checked()
+
+    ctx.execute(&aqua).arg("update-aqua").status_checked()?;
+
+    // Don't run plain `aqua update` because it uses the current directory by default.
+    if let Ok(path) = env::var("AQUA_GLOBAL_CONFIG") {
+        ctx.execute(&aqua)
+            .args(["update", "--config", &path])
+            .status_checked()?;
     }
+
+    Ok(())
 }
 
 pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
@@ -1511,7 +1514,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         //
         // We run `uv self update` directly, and ignore an error if it outputs:
         //
-        // "error: uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.\n"
+        // "error: uv was installed through an external package manager" [various continuations]
         //
         // or:
         //
@@ -1524,7 +1527,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         // These two error messages can both occur, in different situations.
 
         const ERROR_MSGS: [&str; 2] = [
-            "uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.",
+            "uv was installed through an external package manager",
             "Self-update is only available for uv binaries installed via the standalone installation scripts.",
         ];
 

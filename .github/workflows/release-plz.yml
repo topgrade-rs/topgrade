@@ -25,7 +25,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       - name: Run release-plz
         id: release-plz
-        uses: release-plz/action@1efcf74dfcd6e500990dad806e286899ae384064 # v0.5
+        uses: release-plz/action@487eb7b5c085a664d5c5ca05f4159bd9b591182a # v0.5
         with:
           command: release
         env:
@@ -60,7 +60,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Run release-plz
-        uses: release-plz/action@1efcf74dfcd6e500990dad806e286899ae384064 # v0.5
+        uses: release-plz/action@487eb7b5c085a664d5c5ca05f4159bd9b591182a # v0.5
         with:
           command: release-pr
         env:
