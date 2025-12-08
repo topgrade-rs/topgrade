@@ -8,8 +8,8 @@ use std::{env, fmt, fs};
 
 use clap::{Parser, ValueEnum};
 use clap_complete::Shell;
-use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use color_eyre::eyre::{Context, OptionExt};
 use etcetera::base_strategy::BaseStrategy;
 use indexmap::IndexMap;
 use merge::Merge;
@@ -845,14 +845,10 @@ pub struct CommandLineArgs {
 }
 
 fn env_args_parser(arg: &str) -> Result<(String, String)> {
-    let parts: Vec<&str> = arg.splitn(2, '=').collect();
-    if parts.len() != 2 {
-        Err(color_eyre::eyre::eyre!(
-            "Environment variable must be in the format NAME=VALUE"
-        ))
-    } else {
-        Ok((parts[0].to_string(), parts[1].to_string()))
-    }
+    let (key, value) = arg
+        .split_once("=")
+        .ok_or_eyre("Environment variable must be in the format NAME=VALUE")?;
+    Ok((key.to_string(), value.to_string()))
 }
 
 impl CommandLineArgs {

@@ -2992,6 +2992,7 @@ dependencies = [
  "ignore",
  "indexmap",
  "is_elevated",
+ "itertools",
  "jetbrains-toolbox-updater",
  "merge",
  "nix",

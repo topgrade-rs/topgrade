@@ -9,6 +9,7 @@ use color_eyre::eyre;
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use itertools::Itertools;
 use rust_i18n::t;
 use serde::Deserialize;
 use strum::Display;
@@ -23,7 +24,6 @@ use crate::error::UnsupportedSudo;
 use crate::execution_context::ExecutionContext;
 use crate::executor::Executor;
 use crate::terminal::print_separator;
-use crate::utils::join_iter;
 use crate::utils::which;
 
 #[derive(Clone, Debug)]
@@ -410,6 +410,9 @@ impl Sudo {
         }
 
         let mut preserve_env = opts.preserve_env;
+        // The `--env` arguments are set globally in `main.rs`, but sudo by default
+        // does not pass these environment variables through unless explicitly told to.
+        // So we add them here to the preserve_env list.
         let cfg_env_vars = ctx.config().env_variables();
         if !cfg_env_vars.is_empty() {
             let cfg_env_var_keys = cfg_env_vars.iter().map(|(key, _value)| key.as_str());
@@ -439,7 +442,7 @@ impl Sudo {
             },
             SudoPreserveEnv::Some(vars) => match self.kind {
                 SudoKind::Sudo => {
-                    cmd.arg(format!("--preserve-env={}", join_iter(vars.iter(), ",")));
+                    cmd.arg(format!("--preserve-env={}", vars.iter().join(",")));
                 }
                 SudoKind::Run0 => {
                     for env in vars {
@@ -448,7 +451,7 @@ impl Sudo {
                 }
                 SudoKind::Please => {
                     cmd.arg("-a");
-                    cmd.arg(join_iter(vars.iter(), ","));
+                    cmd.arg(vars.iter().join(","));
                 }
                 SudoKind::Doas | SudoKind::WinSudo | SudoKind::Gsudo | SudoKind::Pkexec => {
                     return Err(UnsupportedSudo {
