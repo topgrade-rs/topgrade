@@ -1,6 +1,6 @@
 use std::env;
 use std::ffi::OsStr;
-use std::fmt::Debug;
+use std::fmt::{Debug, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -149,6 +149,23 @@ pub fn string_prepend_str(string: &mut String, s: &str) {
     new_string.push_str(s);
     new_string.push_str(string);
     *string = new_string;
+}
+
+pub fn join_iter(mut iterator: impl Iterator<Item = impl std::fmt::Display>, separator: &str) -> String {
+    match iterator.next() {
+        None => String::new(),
+        Some(first) => {
+            let (lower_bound, _) = iterator.size_hint();
+            let mut result = String::with_capacity(separator.len() * lower_bound);
+            // SAFETY: We only use this method with string-like types, which should be infallible to fmt().
+            write!(&mut result, "{}", first).unwrap();
+            for item in iterator {
+                result.push_str(separator);
+                write!(&mut result, "{}", item).unwrap();
+            }
+            result
+        }
+    }
 }
 
 #[cfg(unix)]

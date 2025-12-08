@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::ffi::OsStr;
 use std::path::Path;
 use std::path::PathBuf;
@@ -22,6 +23,7 @@ use crate::error::UnsupportedSudo;
 use crate::execution_context::ExecutionContext;
 use crate::executor::Executor;
 use crate::terminal::print_separator;
+use crate::utils::join_iter;
 use crate::utils::which;
 
 #[derive(Clone, Debug)]
@@ -68,7 +70,7 @@ pub enum SudoPreserveEnv<'a> {
     /// Preserve all environment variables.
     All,
     /// Preserve only the specified environment variables.
-    Some(&'a [&'a str]),
+    Some(HashSet<&'a str>),
     /// Preserve no environment variables.
     #[default]
     None,
@@ -111,7 +113,7 @@ impl<'a> SudoExecuteOpts<'a> {
     /// Preserve only the specified environment variables across the sudo call.
     #[allow(unused)]
     pub fn preserve_env_list(mut self, vars: &'a [&'a str]) -> Self {
-        self.preserve_env = SudoPreserveEnv::Some(vars);
+        self.preserve_env = SudoPreserveEnv::Some(vars.iter().copied().collect());
         self
     }
 
@@ -407,7 +409,18 @@ impl Sudo {
             cmd.arg("-d");
         }
 
-        match opts.preserve_env {
+        let mut preserve_env = opts.preserve_env;
+        let cfg_env_vars = ctx.config().env_variables();
+        if !cfg_env_vars.is_empty() {
+            let cfg_env_var_keys = cfg_env_vars.iter().map(|(key, _value)| key.as_str());
+            // merge the user-specified env vars with the opts.preserve_env
+            match preserve_env {
+                SudoPreserveEnv::All => {},
+                SudoPreserveEnv::Some(ref mut env_set) => env_set.extend(cfg_env_var_keys),
+                SudoPreserveEnv::None => preserve_env = SudoPreserveEnv::Some(cfg_env_var_keys.collect()),
+            }
+        }
+        match preserve_env {
             SudoPreserveEnv::All => match self.kind {
                 SudoKind::Sudo => {
                     cmd.arg("-E");
@@ -426,7 +439,7 @@ impl Sudo {
             },
             SudoPreserveEnv::Some(vars) => match self.kind {
                 SudoKind::Sudo => {
-                    cmd.arg(format!("--preserve-env={}", vars.join(",")));
+                    cmd.arg(format!("--preserve-env={}", join_iter(vars.iter(), ",")));
                 }
                 SudoKind::Run0 => {
                     for env in vars {
@@ -435,7 +448,7 @@ impl Sudo {
                 }
                 SudoKind::Please => {
                     cmd.arg("-a");
-                    cmd.arg(vars.join(","));
+                    cmd.arg(join_iter(vars.iter(), ","));
                 }
                 SudoKind::Doas | SudoKind::WinSudo | SudoKind::Gsudo | SudoKind::Pkexec => {
                     return Err(UnsupportedSudo {

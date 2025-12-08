@@ -1971,4 +1971,14 @@ x = "cmd_x"
 
         assert_eq!(order, vec!["z", "y", "x"]);
     }
+
+    #[test]
+    fn test_env_variable_parser() {
+        let mut config = config();
+        config.opt = CommandLineArgs::parse_from(["topgrade", "--env", "VAR1=foo", "--env", "VAR2=bar"]);
+        let env_vars = config.env_variables();
+        assert_eq!(env_vars.len(), 2);
+        assert_eq!(env_vars[0], ("VAR1".to_string(), "foo".to_string()));
+        assert_eq!(env_vars[1], ("VAR2".to_string(), "bar".to_string()));
+    }
 }
