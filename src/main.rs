@@ -94,7 +94,10 @@ fn run() -> Result<()> {
         return Ok(());
     }
 
-    for (var, value) in opt.env_variables() {
+    for env in opt.env_variables() {
+        let mut parts = env.split('=');
+        let var = parts.next().unwrap();
+        let value = parts.next().unwrap();
         env::set_var(var, value);
     }
 

@@ -853,13 +853,8 @@ impl CommandLineArgs {
         self.show_config_reference
     }
 
-    pub fn env_variables(&self) -> impl Iterator<Item = (&str, &str)> {
-        self.env.iter().map(|s| {
-            let mut split = s.splitn(2, '=');
-            let key = split.next().unwrap_or("");
-            let value = split.next().unwrap_or("");
-            (key, value)
-        })
+    pub fn env_variables(&self) -> &Vec<String> {
+        &self.env
     }
 
     /// In Topgrade, filter directives come from 3 places:
@@ -1091,11 +1086,6 @@ impl Config {
                 .as_ref()
                 .and_then(|misc| misc.no_retry)
                 .unwrap_or(false)
-    }
-
-    /// List of user-defined environment variables
-    pub fn env_variables(&self) -> impl Iterator<Item = (&str, &str)> {
-        self.opt.env_variables()
     }
 
     /// List of remote hosts to run Topgrade in
@@ -1964,44 +1954,5 @@ x = "cmd_x"
             .collect();
 
         assert_eq!(order, vec!["z", "y", "x"]);
-    }
-
-    #[test]
-    fn test_env_variables_passed_to_sudo() {
-        use crate::execution_context::{ExecutionContext, RunType};
-        #[cfg(target_os = "linux")]
-        use crate::steps::linux::Distribution;
-        use crate::sudo::{Sudo, SudoExecuteOpts, SudoKind, SudoPreserveEnv};
-
-        let mut config = config();
-        config.opt = CommandLineArgs::parse_from(["topgrade", "--env", "VAR1=foo", "--env", "VAR2=bar"]);
-        let env_vars: Vec<_> = config.env_variables().collect();
-        assert_eq!(env_vars.len(), 2);
-
-        let ctx = ExecutionContext::new(
-            RunType::Dry,
-            Some(Sudo::new(SudoKind::Null).unwrap()),
-            &config,
-            #[cfg(target_os = "linux")]
-            &Ok(Distribution::Debian),
-        );
-
-        let sudo_opts = SudoExecuteOpts::new(&ctx);
-        if let SudoPreserveEnv::Some(ref env_list) = sudo_opts.preserve_env {
-            assert!(env_list.contains(&"VAR1"));
-            assert!(env_list.contains(&"VAR2"));
-        } else {
-            assert!(false, "Expected some preserved env variables");
-        }
-
-        let sudo_opts = sudo_opts.extend_preserve_env_list(&["VAR3", "VAR4"]);
-        if let SudoPreserveEnv::Some(ref env_list) = sudo_opts.preserve_env {
-            assert!(env_list.contains(&"VAR1"));
-            assert!(env_list.contains(&"VAR2"));
-            assert!(env_list.contains(&"VAR3"));
-            assert!(env_list.contains(&"VAR4"));
-        } else {
-            assert!(false, "Expected some preserved env variables");
-        }
     }
 }
