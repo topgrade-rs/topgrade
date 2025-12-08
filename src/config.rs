@@ -780,8 +780,8 @@ pub struct CommandLineArgs {
     custom_commands: Vec<String>,
 
     /// Set environment variables
-    #[arg(long = "env", value_name = "NAME=VALUE", num_args = 1..)]
-    env: Vec<String>,
+    #[arg(long = "env", value_name = "NAME=VALUE", value_parser = env_args_parser, num_args = 1..)]
+    env: Vec<(String, String)>,
 
     /// Output debug logs. Alias for `--log-filter debug`.
     #[arg(short = 'v', long = "verbose")]
@@ -844,6 +844,17 @@ pub struct CommandLineArgs {
     pub no_self_update: bool,
 }
 
+fn env_args_parser(arg: &str) -> Result<(String, String)> {
+    let parts: Vec<&str> = arg.splitn(2, '=').collect();
+    if parts.len() != 2 {
+        Err(color_eyre::eyre::eyre!(
+            "Environment variable must be in the format NAME=VALUE"
+        ))
+    } else {
+        Ok((parts[0].to_string(), parts[1].to_string()))
+    }
+}
+
 impl CommandLineArgs {
     pub fn edit_config(&self) -> bool {
         self.edit_config
@@ -853,7 +864,7 @@ impl CommandLineArgs {
         self.show_config_reference
     }
 
-    pub fn env_variables(&self) -> &Vec<String> {
+    pub fn env_variables(&self) -> &Vec<(String, String)> {
         &self.env
     }
 
@@ -1086,6 +1097,11 @@ impl Config {
                 .as_ref()
                 .and_then(|misc| misc.no_retry)
                 .unwrap_or(false)
+    }
+
+    /// List of user-defined environment variables
+    pub fn env_variables(&self) -> &Vec<(String, String)> {
+        self.opt.env_variables()
     }
 
     /// List of remote hosts to run Topgrade in
