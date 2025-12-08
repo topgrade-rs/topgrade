@@ -415,7 +415,7 @@ impl Sudo {
             let cfg_env_var_keys = cfg_env_vars.iter().map(|(key, _value)| key.as_str());
             // merge the user-specified env vars with the opts.preserve_env
             match preserve_env {
-                SudoPreserveEnv::All => {},
+                SudoPreserveEnv::All => {}
                 SudoPreserveEnv::Some(ref mut env_set) => env_set.extend(cfg_env_var_keys),
                 SudoPreserveEnv::None => preserve_env = SudoPreserveEnv::Some(cfg_env_var_keys.collect()),
             }
