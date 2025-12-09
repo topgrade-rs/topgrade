@@ -8,8 +8,8 @@ use std::{env, fmt, fs};
 
 use clap::{Parser, ValueEnum};
 use clap_complete::Shell;
-use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use color_eyre::eyre::{Context, OptionExt};
 use etcetera::base_strategy::BaseStrategy;
 use indexmap::IndexMap;
 use merge::Merge;
@@ -780,8 +780,8 @@ pub struct CommandLineArgs {
     custom_commands: Vec<String>,
 
     /// Set environment variables
-    #[arg(long = "env", value_name = "NAME=VALUE", num_args = 1..)]
-    env: Vec<String>,
+    #[arg(long = "env", value_name = "NAME=VALUE", value_parser = env_args_parser, num_args = 1..)]
+    env: Vec<(String, String)>,
 
     /// Output debug logs. Alias for `--log-filter debug`.
     #[arg(short = 'v', long = "verbose")]
@@ -844,6 +844,13 @@ pub struct CommandLineArgs {
     pub no_self_update: bool,
 }
 
+fn env_args_parser(arg: &str) -> Result<(String, String)> {
+    let (key, value) = arg
+        .split_once("=")
+        .ok_or_eyre("Environment variable must be in the format NAME=VALUE")?;
+    Ok((key.to_string(), value.to_string()))
+}
+
 impl CommandLineArgs {
     pub fn edit_config(&self) -> bool {
         self.edit_config
@@ -853,7 +860,7 @@ impl CommandLineArgs {
         self.show_config_reference
     }
 
-    pub fn env_variables(&self) -> &Vec<String> {
+    pub fn env_variables(&self) -> &Vec<(String, String)> {
         &self.env
     }
 
@@ -1086,6 +1093,11 @@ impl Config {
                 .as_ref()
                 .and_then(|misc| misc.no_retry)
                 .unwrap_or(false)
+    }
+
+    /// List of user-defined environment variables
+    pub fn env_variables(&self) -> &Vec<(String, String)> {
+        self.opt.env_variables()
     }
 
     /// List of remote hosts to run Topgrade in
@@ -1954,5 +1966,15 @@ x = "cmd_x"
             .collect();
 
         assert_eq!(order, vec!["z", "y", "x"]);
+    }
+
+    #[test]
+    fn test_env_variable_parser() {
+        let mut config = config();
+        config.opt = CommandLineArgs::parse_from(["topgrade", "--env", "VAR1=foo", "--env", "VAR2=bar"]);
+        let env_vars = config.env_variables();
+        assert_eq!(env_vars.len(), 2);
+        assert_eq!(env_vars[0], ("VAR1".to_string(), "foo".to_string()));
+        assert_eq!(env_vars[1], ("VAR2".to_string(), "bar".to_string()));
     }
 }
