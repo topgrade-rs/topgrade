@@ -110,8 +110,7 @@ impl<'a> Runner<'a> {
                     let ignore_failure = self.ctx.config().ignore_failure(step);
 
                     // Decide whether to prompt the user
-                    let should_ask =
-                        interrupted  || matches!(retry_config, Retry::Ask) || ignore_failure;
+                    let should_ask = interrupted || matches!(retry_config, Retry::Ask) || ignore_failure;
 
                     let should_retry = if should_ask {
                         print_error(&key, format!("{e:?}"));
@@ -139,7 +138,7 @@ impl<'a> Runner<'a> {
                             }
                             break;
                         }
-                        ShouldRetry::Yes => ()
+                        ShouldRetry::Yes => (),
                     }
                 }
             }
