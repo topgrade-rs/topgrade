@@ -2019,4 +2019,149 @@ x = "cmd_x"
         assert_eq!(env_vars[0], ("VAR1".to_string(), "foo".to_string()));
         assert_eq!(env_vars[1], ("VAR2".to_string(), "bar".to_string()));
     }
+
+    // Retry configuration tests
+    #[test]
+    fn test_retry_default_is_ask() {
+        let config = config();
+        assert!(matches!(config.retry_config(), Retry::Ask));
+        assert!(!config.no_retry());
+    }
+
+    #[test]
+    fn test_retry_cli_no_retry_flag() {
+        let mut config = config();
+        config.opt = CommandLineArgs::parse_from(["topgrade", "--no-retry"]);
+        assert!(matches!(config.retry_config(), Retry::Disabled));
+        assert!(config.no_retry());
+    }
+
+    #[test]
+    fn test_retry_cli_retry_flag_default() {
+        let mut config = config();
+        config.opt = CommandLineArgs::parse_from(["topgrade", "--retry"]);
+        assert!(matches!(config.retry_config(), Retry::Enabled { max_attempts: 1 }));
+        assert!(!config.no_retry());
+    }
+
+    #[test]
+    fn test_retry_cli_retry_flag_with_count() {
+        let mut config = config();
+        config.opt = CommandLineArgs::parse_from(["topgrade", "--retry", "3"]);
+        assert!(matches!(config.retry_config(), Retry::Enabled { max_attempts: 3 }));
+        assert!(!config.no_retry());
+    }
+
+    #[test]
+    fn test_retry_cli_retry_zero_is_disabled() {
+        let mut config = config();
+        config.opt = CommandLineArgs::parse_from(["topgrade", "--retry", "0"]);
+        assert!(matches!(config.retry_config(), Retry::Disabled));
+        assert!(config.no_retry());
+    }
+
+    #[test]
+    fn test_retry_cli_overrides_no_retry() {
+        let mut config = config();
+        config.opt = CommandLineArgs::parse_from(["topgrade", "--no-retry", "--retry", "2"]);
+        assert!(matches!(config.retry_config(), Retry::Enabled { max_attempts: 2 }));
+        assert!(!config.no_retry());
+    }
+
+    #[test]
+    fn test_retry_no_retry_overrides_cli_retry() {
+        let mut config = config();
+        config.opt = CommandLineArgs::parse_from(["topgrade", "--retry", "2", "--no-retry"]);
+        assert!(matches!(config.retry_config(), Retry::Disabled));
+        assert!(config.no_retry());
+    }
+
+    #[test]
+    fn test_retry_config_file_retry_enabled() {
+        let toml_str = r#"
+[misc]
+retry = true
+"#;
+        let mut config = config();
+        config.config_file = toml::from_str::<ConfigFile>(toml_str).expect("toml parse error");
+        assert!(matches!(config.retry_config(), Retry::Enabled { max_attempts: 1 }));
+        assert!(!config.no_retry());
+    }
+
+    #[test]
+    fn test_retry_config_file_retry_with_count() {
+        let toml_str = r#"
+[misc]
+retry = true
+retry_count = 5
+"#;
+        let mut config = config();
+        config.config_file = toml::from_str::<ConfigFile>(toml_str).expect("toml parse error");
+        assert!(matches!(config.retry_config(), Retry::Enabled { max_attempts: 5 }));
+        assert!(!config.no_retry());
+    }
+
+    #[test]
+    fn test_retry_config_file_retry_count_zero() {
+        let toml_str = r#"
+[misc]
+retry = true
+retry_count = 0
+"#;
+        let mut config = config();
+        config.config_file = toml::from_str::<ConfigFile>(toml_str).expect("toml parse error");
+        assert!(matches!(config.retry_config(), Retry::Disabled));
+        assert!(config.no_retry());
+    }
+
+    #[test]
+    fn test_retry_config_file_no_retry() {
+        let toml_str = r#"
+[misc]
+no_retry = true
+"#;
+        let mut config = config();
+        config.config_file = toml::from_str::<ConfigFile>(toml_str).expect("toml parse error");
+        assert!(matches!(config.retry_config(), Retry::Disabled));
+        assert!(config.no_retry());
+    }
+
+    #[test]
+    fn test_retry_cli_overrides_config_file() {
+        let toml_str = r#"
+[misc]
+no_retry = true
+"#;
+        let mut config = config();
+        config.config_file = toml::from_str::<ConfigFile>(toml_str).expect("toml parse error");
+        config.opt = CommandLineArgs::parse_from(["topgrade", "--retry", "3"]);
+        assert!(matches!(config.retry_config(), Retry::Enabled { max_attempts: 3 }));
+        assert!(!config.no_retry());
+    }
+
+    #[test]
+    fn test_retry_cli_no_retry_overrides_config_file_retry() {
+        let toml_str = r#"
+[misc]
+retry = true
+retry_count = 2
+"#;
+        let mut config = config();
+        config.config_file = toml::from_str::<ConfigFile>(toml_str).expect("toml parse error");
+        config.opt = CommandLineArgs::parse_from(["topgrade", "--no-retry"]);
+        assert!(matches!(config.retry_config(), Retry::Disabled));
+        assert!(config.no_retry());
+    }
+
+    #[test]
+    fn test_retry_config_file_retry_false_is_ask() {
+        let toml_str = r#"
+[misc]
+retry = false
+"#;
+        let mut config = config();
+        config.config_file = toml::from_str::<ConfigFile>(toml_str).expect("toml parse error");
+        assert!(matches!(config.retry_config(), Retry::Ask));
+        assert!(!config.no_retry());
+    }
 }
