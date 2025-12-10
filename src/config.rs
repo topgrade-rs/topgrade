@@ -104,6 +104,13 @@ pub enum UpdatesAutoReboot {
     Ask,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum Retry {
+    Disabled,
+    Enabled { max_attempts: u32 },
+    Ask,
+}
+
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Windows {
@@ -346,6 +353,10 @@ pub struct Misc {
     assume_yes: Option<bool>,
 
     no_retry: Option<bool>,
+
+    retry: Option<bool>,
+
+    retry_count: Option<u32>,
 
     show_skipped: Option<bool>,
 
@@ -764,8 +775,12 @@ pub struct CommandLineArgs {
     run_type: RunType,
 
     /// Do not ask to retry failed steps
-    #[arg(long = "no-retry")]
+    #[arg(long = "no-retry", overrides_with = "retry")]
     no_retry: bool,
+
+    /// Auto retry failed steps up to COUNT times (default: 1)
+    #[arg(long = "retry", value_name = "COUNT", default_missing_value = "1", num_args = 0..=1, overrides_with = "no_retry")]
+    retry: Option<u32>,
 
     /// Do not perform upgrades for the given steps
     #[arg(long = "disable", value_name = "STEP", value_enum, num_args = 1..)]
@@ -1086,13 +1101,40 @@ impl Config {
 
     /// Tell whether we should not attempt to retry anything.
     pub fn no_retry(&self) -> bool {
-        self.opt.no_retry
-            || self
-                .config_file
-                .misc
-                .as_ref()
-                .and_then(|misc| misc.no_retry)
-                .unwrap_or(false)
+        matches!(self.retry_config(), Retry::Disabled)
+    }
+
+    /// Get retry config
+    pub fn retry_config(&self) -> Retry {
+        // --no-retry -> retry disabled
+        if self.opt.no_retry {
+            return Retry::Disabled;
+        }
+
+        // CLI overrides config file
+        if let Some(count) = self.opt.retry {
+            if count == 0 {
+                return Retry::Disabled;
+            }
+            return Retry::Enabled { max_attempts: count };
+        }
+
+        // Get settings from config file
+        if let Some(misc) = self.config_file.misc.as_ref() {
+            if let Some(true) = misc.retry {
+                let count = misc.retry_count.unwrap_or(1);
+                if count == 0 {
+                    return Retry::Disabled;
+                }
+                return Retry::Enabled { max_attempts: count };
+            }
+
+            if misc.no_retry.unwrap_or(false) {
+                return Retry::Disabled;
+            }
+        }
+
+        Retry::Ask
     }
 
     /// List of user-defined environment variables

@@ -5,6 +5,7 @@ use std::fmt::Debug;
 use std::io;
 use tracing::debug;
 
+use crate::config::Retry;
 use crate::ctrlc;
 use crate::error::{DryRun, MissingSudo, SkipStep};
 use crate::execution_context::ExecutionContext;
@@ -70,7 +71,18 @@ impl<'a> Runner<'a> {
             func()
         };
 
+        // Determine max retry attempts based on config
+        let retry_config = self.ctx.config().retry_config();
+        let mut max_attempts = match retry_config {
+            Retry::Enabled { max_attempts } => max_attempts.saturating_add(1), // +1 for initial attempt
+            _ => 1,
+        };
+
+        let mut attempt = 1;
         loop {
+            if attempt > max_attempts {
+                break;
+            }
             match func() {
                 Ok(()) => {
                     self.push_result(key, StepResult::Success);
@@ -96,14 +108,21 @@ impl<'a> Runner<'a> {
                     }
 
                     let ignore_failure = self.ctx.config().ignore_failure(step);
-                    let should_ask = interrupted || !(self.ctx.config().no_retry() || ignore_failure);
+
+                    // Decide whether to prompt the user
+                    let should_ask =
+                        interrupted  || matches!(retry_config, Retry::Ask) || ignore_failure;
+
                     let should_retry = if should_ask {
                         print_error(&key, format!("{e:?}"));
                         should_retry(key.as_ref())?
                     } else {
-                        ShouldRetry::No
+                        ShouldRetry::Yes
                     };
 
+                    if matches!(should_retry, ShouldRetry::Yes) && should_ask {
+                        max_attempts += 1;
+                    }
                     match should_retry {
                         ShouldRetry::No | ShouldRetry::Quit => {
                             self.push_result(
@@ -120,10 +139,12 @@ impl<'a> Runner<'a> {
                             }
                             break;
                         }
-                        ShouldRetry::Yes => (),
+                        ShouldRetry::Yes => ()
                     }
                 }
             }
+
+            attempt += 1;
         }
 
         Ok(())

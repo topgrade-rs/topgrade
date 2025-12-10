@@ -48,6 +48,11 @@
 # Don't ask for confirmations (no default value)
 # assume_yes = true
 
+# Automatic retry per failed step (default: undefined - prompt what to do on failure)
+# retry = true
+# retry_count = 1
+
+# DEPRECATED: Use 'retry = false' instead
 # Do not ask to retry failed steps (default: false)
 # no_retry = true
 
