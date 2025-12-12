@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.7.0](https://github.com/topgrade-rs/topgrade/compare/v16.6.1...v16.7.0) - 2025-12-12
+
+### Added
+
+- *(sudo)* propagate --env to sudo commands ([#1588](https://github.com/topgrade-rs/topgrade/pull/1588)) ([#1589](https://github.com/topgrade-rs/topgrade/pull/1589))
+- *(aqua)* run `aqua update --config $AQUA_GLOBAL_CONFIG` instead of `aqua update` ([#1596](https://github.com/topgrade-rs/topgrade/pull/1596))
+
+### Fixed
+
+- *(vscode)* fix parsing of different version format ([#1608](https://github.com/topgrade-rs/topgrade/pull/1608))
+
+### Other
+
+- *(deps)* update rust crate shell-words to v1.1.1 ([#1604](https://github.com/topgrade-rs/topgrade/pull/1604))
+- *(deps)* update itertools to 0.14.0 ([#1601](https://github.com/topgrade-rs/topgrade/pull/1601))
+- *(pre-commit)* autoupdate ([#1580](https://github.com/topgrade-rs/topgrade/pull/1580))
+- *(deps)* lock file maintenance ([#1597](https://github.com/topgrade-rs/topgrade/pull/1597))
+- *(deps)* update github/codeql-action action to v4.31.7 ([#1591](https://github.com/topgrade-rs/topgrade/pull/1591))
+- *(deps)* update release-plz/action digest to 487eb7b ([#1590](https://github.com/topgrade-rs/topgrade/pull/1590))
+
 ## [16.6.1](https://github.com/topgrade-rs/topgrade/compare/v16.6.0...v16.6.1) - 2025-12-06
 
 ### Fixed
