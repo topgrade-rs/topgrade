@@ -48,12 +48,12 @@
 # Don't ask for confirmations (no default value)
 # assume_yes = true
 
-# Automatic retry per failed step (default: undefined - prompt what to do on failure)
+# Automatic retry per failed step (default: false - ask what to do on failure)
+# retry_count = 0 -> automatically skip failed steps (no retries or asking)
 # retry = true
 # retry_count = 1
 
-# DEPRECATED: Use 'retry = false' instead
-# Do not ask to retry failed steps (default: false)
+# DEPRECATED: Use 'retry_count = 0' instead
 # no_retry = true
 
 # Show the reason for skipped steps (default: false)

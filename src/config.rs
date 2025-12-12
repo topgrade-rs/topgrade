@@ -775,7 +775,7 @@ pub struct CommandLineArgs {
     run_type: RunType,
 
     /// Do not ask to retry failed steps
-    #[arg(long = "no-retry")]
+    #[arg(long = "no-retry", hide = true)]
     no_retry: bool,
 
     /// Auto retry failed steps up to COUNT times (default: 1)
@@ -1106,18 +1106,18 @@ impl Config {
 
     /// Get retry config
     pub fn retry_config(&self) -> Retry {
-        // --retry
+        // --retry overrides --no-retry
         if let Some(count) = self.opt.retry {
             if count == 0 {
                 return Retry::Disabled;
             }
             return Retry::Enabled {
                 max_attempts: count,
-                skip_failed: self.opt.no_retry,
+                skip_failed: false,
             };
         }
 
-        // --no-retry without --retry
+        // --no-retry is an alias for --retry 0
         if self.opt.no_retry {
             return Retry::Disabled;
         }
@@ -2043,20 +2043,6 @@ x = "cmd_x"
     }
 
     #[test]
-    fn test_retry_cli_retry_flag_default() {
-        let mut config = config();
-        config.opt = CommandLineArgs::parse_from(["topgrade", "--retry"]);
-        assert!(matches!(
-            config.retry_config(),
-            Retry::Enabled {
-                max_attempts: 1,
-                skip_failed: false
-            }
-        ));
-        assert!(!config.no_retry());
-    }
-
-    #[test]
     fn test_retry_cli_retry_flag_with_count() {
         let mut config = config();
         config.opt = CommandLineArgs::parse_from(["topgrade", "--retry", "3"]);
@@ -2064,6 +2050,20 @@ x = "cmd_x"
             config.retry_config(),
             Retry::Enabled {
                 max_attempts: 3,
+                skip_failed: false
+            }
+        ));
+        assert!(!config.no_retry());
+    }
+
+    #[test]
+    fn test_retry_cli_retry_flag_default() {
+        let mut config = config();
+        config.opt = CommandLineArgs::parse_from(["topgrade", "--retry"]);
+        assert!(matches!(
+            config.retry_config(),
+            Retry::Enabled {
+                max_attempts: 1,
                 skip_failed: false
             }
         ));
@@ -2079,14 +2079,14 @@ x = "cmd_x"
     }
 
     #[test]
-    fn test_retry_with_no_retry_auto_continues() {
+    fn test_retry_takes_precedence_over_no_retry() {
         let mut config = config();
         config.opt = CommandLineArgs::parse_from(["topgrade", "--retry", "2", "--no-retry"]);
         assert!(matches!(
             config.retry_config(),
             Retry::Enabled {
                 max_attempts: 2,
-                skip_failed: true
+                skip_failed: false
             }
         ));
         assert!(!config.no_retry());
@@ -2216,7 +2216,7 @@ no_retry = true
     }
 
     #[test]
-    fn test_retry_cli_with_no_retry_overrides_config() {
+    fn test_retry_cli_overrides_config_no_retry_ignored() {
         let toml_str = r#"
 [misc]
 retry = true
@@ -2229,7 +2229,7 @@ retry_count = 5
             config.retry_config(),
             Retry::Enabled {
                 max_attempts: 2,
-                skip_failed: true
+                skip_failed: false
             }
         ));
         assert!(!config.no_retry());
