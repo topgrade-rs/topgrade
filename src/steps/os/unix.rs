@@ -375,7 +375,8 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()> {
-    require(variant.binary_name())?;
+    #[allow(unused_variables)]
+    let binary_name = require(variant.binary_name())?;
     let brew = Brew::new(variant);
 
     #[cfg(target_os = "macos")]
