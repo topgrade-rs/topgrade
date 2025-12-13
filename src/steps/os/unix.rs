@@ -62,13 +62,7 @@ fn brew_get_sudo() -> Option<String> {
                 .expect("failed to call getpwuid()")
                 .expect("this user should exist");
 
-            // let sudo_as_user = t!("sudo as user '{user}'", user = user.name);
-            // print_separator(format!("{} ({})", variant.step_title(), sudo_as_user));
-
             return Some(user.name);
-            // .current_dir("/tmp") // brew needs a writable current directory
-            // .arg("update")
-            // .status_checked()?;
         }
     }
     None
@@ -96,6 +90,8 @@ impl Brew {
         }
     }
 
+    // TODO: this is suboptimal, hopefully simplify with v17 refactor
+    //  + `impl Clone for Executor`
     /// Execute a brew command. Uses `arch` to run using the correct
     /// architecture on macOS if needed, and `sudo -Hu` to run as the
     /// correct user on Linux if needed.
@@ -125,6 +121,22 @@ impl Brew {
         cmd.args(it);
         Ok(cmd)
     }
+
+    fn step_title(&self) -> String {
+        let both_exists = BrewVariant::both_both_exist();
+        let step_title = match self.variant {
+            BrewVariant::MacArm if both_exists => "Brew (ARM)",
+            BrewVariant::MacIntel if both_exists => "Brew (Intel)",
+            _ => "Brew",
+        };
+
+        match &self.sudo {
+            Some(user) => {
+                format!("{} ({})", step_title, t!("sudo as user '{user}'", user = user))
+            }
+            None => step_title.to_string(),
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -153,15 +165,6 @@ impl BrewVariant {
 
     fn both_both_exist() -> bool {
         Path::new(INTEL_BREW).exists() && Path::new(ARM_BREW).exists()
-    }
-
-    pub fn step_title(self) -> &'static str {
-        let both_exists = Self::both_both_exist();
-        match self {
-            BrewVariant::MacArm if both_exists => "Brew (ARM)",
-            BrewVariant::MacIntel if both_exists => "Brew (Intel)",
-            _ => "Brew",
-        }
     }
 
     #[cfg(target_os = "macos")]
@@ -352,9 +355,12 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
         }
     }
 
-    print_separator(variant.step_title());
+    print_separator(brew.step_title());
 
     brew.execute(ctx)?.arg("update").status_checked()?;
+    // TODO: this had:
+    //  `.current_dir("/tmp") // brew needs a writable current directory`
+    //  but that only applied when sudo -Hu was used. Is it really needed?
 
     let mut command = brew.execute(ctx)?;
     command.args(["upgrade", "--formula"]);
@@ -420,7 +426,7 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
         }
     }
 
-    print_separator(format!("{} - Cask", variant.step_title()));
+    print_separator(format!("{} - Cask", brew.step_title()));
 
     // TODO: this should run even when dry-running, but that
     //  functionality was removed to reduce complexity when
