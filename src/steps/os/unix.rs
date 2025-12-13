@@ -4,8 +4,6 @@ use color_eyre::eyre::{eyre, OptionExt};
 use etcetera::BaseStrategy;
 use home;
 use ini::Ini;
-#[cfg(target_os = "linux")]
-use nix::unistd::Uid;
 use regex::Regex;
 use rust_i18n::t;
 use semver::Version;
@@ -35,11 +33,96 @@ use crate::step::Step;
 use crate::terminal::print_separator;
 use crate::utils::{require, PathExt};
 
+#[cfg(target_os = "linux")]
+fn brew_linux_sudo_uid() -> Option<u32> {
+    let linuxbrew_directory = "/home/linuxbrew/.linuxbrew";
+    if let Ok(metadata) = fs::metadata(linuxbrew_directory) {
+        let owner_id = metadata.uid();
+        let current_id = nix::unistd::Uid::effective();
+        // print debug these two values
+        debug!("linuxbrew_directory owner_id: {owner_id}, current_id: {current_id}");
+        return if owner_id == current_id.as_raw() {
+            None // no need for sudo if linuxbrew is owned by the current user
+        } else {
+            Some(owner_id) // otherwise use sudo to run brew as the owner
+        };
+    }
+    None
+}
+
+fn brew_get_sudo() -> Option<String> {
+    #[cfg(target_os = "linux")]
+    {
+        let sudo_uid = brew_linux_sudo_uid();
+        // if brew is owned by another user, execute "sudo -Hu <uid> brew update"
+        if let Some(user_id) = sudo_uid {
+            let uid = nix::unistd::Uid::from_raw(user_id);
+            let user = nix::unistd::User::from_uid(uid)
+                .expect("failed to call getpwuid()")
+                .expect("this user should exist");
+
+            // let sudo_as_user = t!("sudo as user '{user}'", user = user.name);
+            // print_separator(format!("{} ({})", variant.step_title(), sudo_as_user));
+
+            return Some(user.name);
+            // .current_dir("/tmp") // brew needs a writable current directory
+            // .arg("update")
+            // .status_checked()?;
+        }
+    }
+    None
+}
+
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 const INTEL_BREW: &str = "/usr/local/bin/brew";
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 const ARM_BREW: &str = "/opt/homebrew/bin/brew";
+
+#[derive(Clone, Debug)]
+pub struct Brew {
+    variant: BrewVariant,
+    sudo: Option<String>,
+}
+
+impl Brew {
+    fn new(variant: BrewVariant) -> Self {
+        Self {
+            variant,
+            sudo: brew_get_sudo(),
+        }
+    }
+
+    /// Execute a brew command. Uses `arch` to run using the correct
+    /// architecture on macOS if needed, and `sudo -Hu` to run as the
+    /// correct user on Linux if needed.
+    fn execute(&self, ctx: &ExecutionContext) -> Result<Executor> {
+        let mut args = vec![];
+        match self.variant {
+            BrewVariant::MacIntel if cfg!(target_arch = "aarch64") => {
+                args.extend(["arch", "-x86_64"]);
+            }
+            BrewVariant::MacArm if cfg!(target_arch = "x86_64") => {
+                args.extend(["arch", "-arm64e"]);
+            }
+            _ => {}
+        }
+        args.push(self.variant.binary_name());
+        let mut it = args.into_iter();
+
+        // SAFETY: guaranteed to contain at least one element, the binary_name
+        let program = it.next().unwrap();
+        let mut cmd = match &self.sudo {
+            None => ctx.execute(program),
+            Some(user) => {
+                let sudo = ctx.require_sudo()?;
+                sudo.execute_opts(ctx, program, SudoExecuteOpts::new().set_home().user(user))?
+            }
+        };
+        cmd.args(it);
+        Ok(cmd)
+    }
+}
 
 #[derive(Copy, Clone, Debug)]
 #[allow(dead_code)]
@@ -75,43 +158,6 @@ impl BrewVariant {
             BrewVariant::MacArm if both_exists => "Brew (ARM)",
             BrewVariant::MacIntel if both_exists => "Brew (Intel)",
             _ => "Brew",
-        }
-    }
-
-    /// Execute an "internal" brew command, i.e. one that should always be run
-    /// even when dry-running. Basically just a wrapper around [`Command::new`]
-    /// that uses `arch` to run using the correct architecture if needed.
-    fn execute_internal(self) -> Command {
-        match self {
-            BrewVariant::MacIntel if cfg!(target_arch = "aarch64") => {
-                let mut command = Command::new("arch");
-                command.arg("-x86_64").arg(self.binary_name());
-                command
-            }
-            BrewVariant::MacArm if cfg!(target_arch = "x86_64") => {
-                let mut command = Command::new("arch");
-                command.arg("-arm64e").arg(self.binary_name());
-                command
-            }
-            _ => Command::new(self.binary_name()),
-        }
-    }
-
-    /// Execute a brew command. Uses `arch` to run using the correct
-    /// architecture on macOS if needed.
-    fn execute(self, ctx: &ExecutionContext) -> Executor {
-        match self {
-            BrewVariant::MacIntel if cfg!(target_arch = "aarch64") => {
-                let mut command = ctx.execute("arch");
-                command.arg("-x86_64").arg(self.binary_name());
-                command
-            }
-            BrewVariant::MacArm if cfg!(target_arch = "x86_64") => {
-                let mut command = ctx.execute("arch");
-                command.arg("-arm64e").arg(self.binary_name());
-                command
-            }
-            _ => ctx.execute(self.binary_name()),
         }
     }
 
@@ -290,27 +336,11 @@ pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
-#[cfg(target_os = "linux")]
-pub fn brew_linux_sudo_uid() -> Option<u32> {
-    let linuxbrew_directory = "/home/linuxbrew/.linuxbrew";
-    if let Ok(metadata) = std::fs::metadata(linuxbrew_directory) {
-        let owner_id = metadata.uid();
-        let current_id = Uid::effective();
-        // print debug these two values
-        debug!("linuxbrew_directory owner_id: {}, current_id: {}", owner_id, current_id);
-        return if owner_id == current_id.as_raw() {
-            None // no need for sudo if linuxbrew is owned by the current user
-        } else {
-            Some(owner_id) // otherwise use sudo to run brew as the owner
-        };
-    }
-    None
-}
-
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()> {
     #[allow(unused_variables)]
     let binary_name = require(variant.binary_name())?;
+    let brew = Brew::new(variant);
 
     #[cfg(target_os = "macos")]
     {
@@ -319,32 +349,11 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
         }
     }
 
-    #[cfg(target_os = "linux")]
-    {
-        let sudo_uid = brew_linux_sudo_uid();
-        // if brew is owned by another user, execute "sudo -Hu <uid> brew update"
-        if let Some(user_id) = sudo_uid {
-            let uid = nix::unistd::Uid::from_raw(user_id);
-            let user = nix::unistd::User::from_uid(uid)
-                .expect("failed to call getpwuid()")
-                .expect("this user should exist");
-
-            let sudo_as_user = t!("sudo as user '{user}'", user = user.name);
-            print_separator(format!("{} ({})", variant.step_title(), sudo_as_user));
-
-            let sudo = ctx.require_sudo()?;
-            sudo.execute_opts(ctx, &binary_name, SudoExecuteOpts::new().set_home().user(&user.name))?
-                .current_dir("/tmp") // brew needs a writable current directory
-                .arg("update")
-                .status_checked()?;
-            return Ok(());
-        }
-    }
     print_separator(variant.step_title());
 
-    variant.execute(ctx).arg("update").status_checked()?;
+    brew.execute(ctx)?.arg("update").status_checked()?;
 
-    let mut command = variant.execute(ctx);
+    let mut command = brew.execute(ctx)?;
     command.args(["upgrade", "--formula"]);
 
     if ctx.config().brew_fetch_head() {
@@ -354,11 +363,11 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
     command.status_checked()?;
 
     if ctx.config().cleanup() {
-        variant.execute(ctx).arg("cleanup").status_checked()?;
+        brew.execute(ctx)?.arg("cleanup").status_checked()?;
     }
 
     if ctx.config().brew_autoremove() {
-        variant.execute(ctx).arg("autoremove").status_checked()?;
+        brew.execute(ctx)?.arg("autoremove").status_checked()?;
     }
 
     Ok(())
@@ -366,7 +375,8 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()> {
-    let binary_name = require(variant.binary_name())?;
+    require(variant.binary_name())?;
+    let brew = Brew::new(variant);
 
     #[cfg(target_os = "macos")]
     if variant.is_path() && !BrewVariant::is_macos_custom(binary_name) {
@@ -376,7 +386,7 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
     #[cfg(target_os = "linux")]
     {
         // Homebrew cask support was added in version 4.5.0
-        let version_output = Command::new(&binary_name).arg("--version").output_checked_utf8()?;
+        let version_output = brew.execute(ctx)?.arg("--version").output_checked_utf8()?;
 
         let version_line = version_output
             .stdout
@@ -408,8 +418,11 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
 
     print_separator(format!("{} - Cask", variant.step_title()));
 
-    let cask_upgrade_exists = variant
-        .execute_internal()
+    // TODO: this should run even when dry-running, but that
+    //  functionality was removed to reduce complexity when
+    //  implementing the sudo -Hu stuff.
+    let cask_upgrade_exists = brew
+        .execute(ctx)?
         .args(["--repository", "buo/cask-upgrade"])
         .output_checked_utf8()
         .map(|p| Path::new(p.stdout.trim()).exists())?;
@@ -434,10 +447,10 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
         }
     }
 
-    variant.execute(ctx).args(&brew_args).status_checked()?;
+    brew.execute(ctx)?.args(&brew_args).status_checked()?;
 
     if ctx.config().cleanup() {
-        variant.execute(ctx).arg("cleanup").status_checked()?;
+        brew.execute(ctx)?.arg("cleanup").status_checked()?;
     }
 
     Ok(())
