@@ -52,7 +52,7 @@ itertools = "0.14.0"
 ignore = "=0.4.23"
 globset = "=0.4.16"
 base64ct = "<1.8.0"
-clap-cargo = "0.15.2"
+clap-cargo = "0.18.0"
 
 [package.metadata.generate-rpm]
 assets = [{ source = "target/release/topgrade", dest = "/usr/bin/topgrade" }]
