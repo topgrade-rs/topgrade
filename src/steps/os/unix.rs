@@ -50,6 +50,7 @@ fn brew_linux_sudo_uid() -> Option<u32> {
     None
 }
 
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 fn brew_get_sudo() -> Option<String> {
     #[cfg(target_os = "linux")]
     {
@@ -80,11 +81,13 @@ const INTEL_BREW: &str = "/usr/local/bin/brew";
 const ARM_BREW: &str = "/opt/homebrew/bin/brew";
 
 #[derive(Clone, Debug)]
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 pub struct Brew {
     variant: BrewVariant,
     sudo: Option<String>,
 }
 
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 impl Brew {
     fn new(variant: BrewVariant) -> Self {
         Self {
