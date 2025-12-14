@@ -519,41 +519,54 @@ fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Resu
     let bin = require(bin_name)?;
 
     // VSCode has update command only since 1.86 version ("january 2024" update), disable the update for prior versions
-    // Use command `code --version` which returns 3 lines: version, git commit, instruction set. We parse only the first one
     //
+    // The output of `code --version` has two possible formats:
+    // 1. 3 lines: version, git commit, instruction set. We parse only the first one
+    //    This is confirmed on an install from the apt repository
+    // 2. 1 line: 'bin-name 1.2.3 (commit 123abc)', example: `code-insiders 1.106.0 (commit 48cdf17f0e856e1daca2ad2747814085a2453df0)`
+    //    See https://github.com/topgrade-rs/topgrade/issues/1605, confirmed from Microsoft website
     // This should apply to VSCodium as well.
-    let version: Result<Version> = match Command::new(&bin)
-        .arg("--version")
-        .output_checked_utf8()?
-        .stdout
-        .lines()
-        .next()
-    {
-        Some(item) => {
-            // Insiders versions have "-insider" suffix which we can simply ignore.
-            let item = item.trim_end_matches("-insider");
-            // Strip leading zeroes because `semver` does not allow them, but VSCodium uses them sometimes.
-            //  This is not the case for VSCode, but just in case, and it can't really cause any issues.
-            let item = item
-                .split('.')
-                .map(|s| if s == "0" { "0" } else { s.trim_start_matches('0') })
-                .collect::<Vec<_>>()
-                .join(".");
-            Version::parse(&item).map_err(std::convert::Into::into)
-        }
-        None => {
-            return Err(eyre!(output_changed_message!(
+
+    let version_output = Command::new(&bin).arg("--version").output_checked_utf8()?;
+
+    debug!(version_output.stdout);
+
+    let line = version_output.stdout.lines().next().ok_or_else(|| {
+        eyre!(output_changed_message!(
+            &format!("{bin_name} --version"),
+            "No first line"
+        ))
+    })?;
+
+    let version_string = if line.starts_with(bin_name) {
+        // Case 2
+        line.split_whitespace().nth(1).ok_or_else(|| {
+            eyre!(output_changed_message!(
                 &format!("{bin_name} --version"),
-                "No first line"
-            )))
-        }
+                format!("No version after '{bin_name}'")
+            ))
+        })?
+    } else {
+        // Case 1
+        // The whole line should be the version
+        // Insiders versions have "-insider" suffix which we can simply ignore.
+        line.trim_end_matches("-insider")
     };
 
-    // Raise any errors in parsing the version
-    //  The benefit of handling VSCodium versions so old that the version format is something
-    //  unexpected is outweighed by the benefit of failing fast on new breaking versions
-    let version =
-        version.wrap_err_with(|| output_changed_message!(&format!("{bin_name} --version"), "Invalid version"))?;
+    // Strip leading zeroes because `semver` does not allow them, but VSCodium uses them sometimes.
+    //  This is not the case for VSCode, but just in case, and it can't really cause any issues.
+    let version_string = version_string
+        .split('.')
+        .map(|s| if s == "0" { "0" } else { s.trim_start_matches('0') })
+        .collect::<Vec<_>>()
+        .join(".");
+
+    let version = Version::parse(&version_string)
+        // Raise any errors in parsing the version
+        //  The benefit of handling VSCodium versions so old that the version format is something
+        //  unexpected is outweighed by the benefit of failing fast on new breaking versions
+        .wrap_err_with(|| output_changed_message!(&format!("{bin_name} --version"), "Invalid version"))?;
+
     debug!("Detected {name} version as: {version}");
 
     if version < Version::new(1, 86, 0) {
