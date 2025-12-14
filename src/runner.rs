@@ -5,7 +5,6 @@ use std::fmt::Debug;
 use std::io;
 use tracing::debug;
 
-use crate::config::Retry;
 use crate::ctrlc;
 use crate::error::{DryRun, MissingSudo, SkipStep};
 use crate::execution_context::ExecutionContext;
@@ -73,14 +72,8 @@ impl<'a> Runner<'a> {
 
         // Determine max retry attempts based on config
         let retry_config = self.ctx.config().retry_config();
-        let (mut max_attempts, skip_failed) = match retry_config {
-            Retry::Enabled {
-                max_attempts,
-                skip_failed,
-            } => (max_attempts.saturating_add(1), skip_failed), // +1 for initial attempt
-            Retry::Disabled => (1, true), // No retry, auto-continue on failure
-            Retry::Ask => (1, false),     // No auto retry
-        };
+        // Total max attempts = 1 (initial) + auto_retry count
+        let mut max_attempts = retry_config.auto_retry.saturating_add(1);
 
         let mut attempt = 1;
         let mut last_error: Option<color_eyre::eyre::Error> = None;
@@ -90,11 +83,18 @@ impl<'a> Runner<'a> {
                 if let Some(e) = last_error {
                     let ignore_failure = self.ctx.config().ignore_failure(step);
 
-                    if skip_failed || ignore_failure {
-                        // Auto-continue without asking
-                        self.push_result(key, StepResult::Ignored);
+                    if !retry_config.ask_retry {
+                        // Auto-continue without asking (ask_retry = false)
+                        self.push_result(
+                            key,
+                            if ignore_failure {
+                                StepResult::Ignored
+                            } else {
+                                StepResult::Failure
+                            },
+                        );
                     } else {
-                        // Prompt what to do
+                        // Prompt what to do (ask_retry = true)
                         print_error(&key, format!("{e:?}"));
                         match should_retry(key.as_ref())? {
                             ShouldRetry::Yes => {
@@ -150,7 +150,9 @@ impl<'a> Runner<'a> {
                     let ignore_failure = self.ctx.config().ignore_failure(step);
 
                     // Decide whether to prompt the user
-                    let should_ask = interrupted || matches!(retry_config, Retry::Ask) || ignore_failure;
+                    let has_auto_retries_left = attempt < max_attempts;
+                    let should_ask =
+                        interrupted || ignore_failure || (!has_auto_retries_left && retry_config.ask_retry);
 
                     if should_ask {
                         print_error(&key, format!("{e:?}"));
