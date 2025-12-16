@@ -5,6 +5,7 @@ use jetbrains_toolbox_updater::{find_jetbrains_toolbox, update_jetbrains_toolbox
 use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
+use serde::Deserialize;
 use std::ffi::OsString;
 use std::iter::once;
 use std::path::PathBuf;
@@ -105,8 +106,9 @@ pub fn run_gem(ctx: &ExecutionContext) -> Result<()> {
     command.arg("update");
 
     if env::var_os("RBENV_SHELL").is_none() {
-        debug!("Detected rbenv. Avoiding --user-install");
         command.arg("--user-install");
+    } else {
+        debug!("Detected rbenv. Avoiding --user-install");
     }
 
     command.status_checked()
@@ -226,42 +228,49 @@ impl Aqua {
             Aqua::AquaCLI(_) => Err(SkipStep("Command `aqua` probably points to Aqua CLI".to_string()).into()),
         }
     }
-}
 
-fn get_aqua(ctx: &ExecutionContext) -> Result<Aqua> {
-    let aqua = require("aqua")?;
+    fn get(ctx: &ExecutionContext) -> Result<Self> {
+        let aqua = require("aqua")?;
 
-    // Check if `aqua --help` mentions "aqua". JetBrains Aqua does not, Aqua CLI does.
-    let output = ctx.execute(&aqua).arg("--help").output_checked()?;
+        // Check if `aqua --help` mentions "aqua". JetBrains Aqua does not, Aqua CLI does.
+        let output = ctx.execute(&aqua).arg("--help").output_checked()?;
 
-    if String::from_utf8(output.stdout)?.contains("aqua") {
-        debug!("Detected `aqua` as Aqua CLI");
-        Ok(Aqua::AquaCLI(aqua))
-    } else {
-        debug!("Detected `aqua` as JetBrains Aqua");
-        Ok(Aqua::JetBrainsAqua(aqua))
+        if String::from_utf8(output.stdout)?.contains("aqua") {
+            debug!("Detected `aqua` as Aqua CLI");
+            Ok(Self::AquaCLI(aqua))
+        } else {
+            debug!("Detected `aqua` as JetBrains Aqua");
+            Ok(Self::JetBrainsAqua(aqua))
+        }
     }
 }
 
 pub fn run_aqua(ctx: &ExecutionContext) -> Result<()> {
-    let aqua = get_aqua(ctx)?.aqua_cli()?;
+    let aqua = Aqua::get(ctx)?.aqua_cli()?;
 
     print_separator("Aqua");
-    if ctx.run_type().dry() {
-        println!("{}", t!("Updating aqua ..."));
-        println!("{}", t!("Updating aqua installed cli tools ..."));
-        Ok(())
-    } else {
-        ctx.execute(&aqua).arg("update-aqua").status_checked()?;
-        ctx.execute(&aqua).arg("update").status_checked()
+
+    ctx.execute(&aqua).arg("update-aqua").status_checked()?;
+
+    // Don't run plain `aqua update` because it uses the current directory by default.
+    if let Ok(path) = env::var("AQUA_GLOBAL_CONFIG") {
+        ctx.execute(&aqua)
+            .args(["update", "--config", &path])
+            .status_checked()?;
     }
+
+    Ok(())
 }
 
 pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
     let rustup = require("rustup")?;
 
     print_separator("rustup");
-    ctx.execute(rustup).arg("update").status_checked()
+
+    ctx.execute(rustup)
+        .arg("update")
+        .args(ctx.config().rustup_channels())
+        .status_checked()
 }
 
 pub fn run_rye(ctx: &ExecutionContext) -> Result<()> {
@@ -275,6 +284,17 @@ pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
     let elan = require("elan")?;
 
     print_separator("elan");
+
+    let version_output = ctx.execute(&elan).arg("--version").output_checked_utf8()?;
+    let version_string = version_output.stdout.split_whitespace().nth(1).ok_or_else(|| {
+        eyre!(output_changed_message!(
+            "elan --version",
+            "Expected version after 'elan '"
+        ))
+    })?;
+    let version = Version::parse(version_string)
+        .wrap_err_with(|| output_changed_message!("elan --version", "Invalid version"))?;
+    debug!("Detected elan version as: {}", version);
 
     let disabled_error_msg = "self-update is disabled";
     let executor_output = ctx.execute(&elan).args(["self", "update"]).output()?;
@@ -304,7 +324,12 @@ pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
         ExecutorOutput::Dry => { /* nothing needed because in a dry run */ }
     }
 
-    ctx.execute(&elan).arg("update").status_checked()
+    // In elan 4.0.0, `elan update` was removed, as toolchains are now updated automatically
+    if version < Version::new(4, 0, 0) {
+        ctx.execute(&elan).arg("update").status_checked()?;
+    }
+
+    Ok(())
 }
 
 pub fn run_juliaup(ctx: &ExecutionContext) -> Result<()> {
@@ -430,10 +455,10 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
     let is_root_install = false;
 
     let mut command = if is_root_install {
-        ctx.execute(&vcpkg)
-    } else {
         let sudo = ctx.require_sudo()?;
         sudo.execute(ctx, &vcpkg)?
+    } else {
+        ctx.execute(&vcpkg)
     };
 
     command.args(["upgrade", "--no-dry-run"]).status_checked()
@@ -494,41 +519,54 @@ fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Resu
     let bin = require(bin_name)?;
 
     // VSCode has update command only since 1.86 version ("january 2024" update), disable the update for prior versions
-    // Use command `code --version` which returns 3 lines: version, git commit, instruction set. We parse only the first one
     //
+    // The output of `code --version` has two possible formats:
+    // 1. 3 lines: version, git commit, instruction set. We parse only the first one
+    //    This is confirmed on an install from the apt repository
+    // 2. 1 line: 'bin-name 1.2.3 (commit 123abc)', example: `code-insiders 1.106.0 (commit 48cdf17f0e856e1daca2ad2747814085a2453df0)`
+    //    See https://github.com/topgrade-rs/topgrade/issues/1605, confirmed from Microsoft website
     // This should apply to VSCodium as well.
-    let version: Result<Version> = match Command::new(&bin)
-        .arg("--version")
-        .output_checked_utf8()?
-        .stdout
-        .lines()
-        .next()
-    {
-        Some(item) => {
-            // Insiders versions have "-insider" suffix which we can simply ignore.
-            let item = item.trim_end_matches("-insider");
-            // Strip leading zeroes because `semver` does not allow them, but VSCodium uses them sometimes.
-            //  This is not the case for VSCode, but just in case, and it can't really cause any issues.
-            let item = item
-                .split('.')
-                .map(|s| if s == "0" { "0" } else { s.trim_start_matches('0') })
-                .collect::<Vec<_>>()
-                .join(".");
-            Version::parse(&item).map_err(std::convert::Into::into)
-        }
-        None => {
-            return Err(eyre!(output_changed_message!(
+
+    let version_output = Command::new(&bin).arg("--version").output_checked_utf8()?;
+
+    debug!(version_output.stdout);
+
+    let line = version_output.stdout.lines().next().ok_or_else(|| {
+        eyre!(output_changed_message!(
+            &format!("{bin_name} --version"),
+            "No first line"
+        ))
+    })?;
+
+    let version_string = if line.starts_with(bin_name) {
+        // Case 2
+        line.split_whitespace().nth(1).ok_or_else(|| {
+            eyre!(output_changed_message!(
                 &format!("{bin_name} --version"),
-                "No first line"
-            )))
-        }
+                format!("No version after '{bin_name}'")
+            ))
+        })?
+    } else {
+        // Case 1
+        // The whole line should be the version
+        // Insiders versions have "-insider" suffix which we can simply ignore.
+        line.trim_end_matches("-insider")
     };
 
-    // Raise any errors in parsing the version
-    //  The benefit of handling VSCodium versions so old that the version format is something
-    //  unexpected is outweighed by the benefit of failing fast on new breaking versions
-    let version =
-        version.wrap_err_with(|| output_changed_message!(&format!("{bin_name} --version"), "Invalid version"))?;
+    // Strip leading zeroes because `semver` does not allow them, but VSCodium uses them sometimes.
+    //  This is not the case for VSCode, but just in case, and it can't really cause any issues.
+    let version_string = version_string
+        .split('.')
+        .map(|s| if s == "0" { "0" } else { s.trim_start_matches('0') })
+        .collect::<Vec<_>>()
+        .join(".");
+
+    let version = Version::parse(&version_string)
+        // Raise any errors in parsing the version
+        //  The benefit of handling VSCodium versions so old that the version format is something
+        //  unexpected is outweighed by the benefit of failing fast on new breaking versions
+        .wrap_err_with(|| output_changed_message!(&format!("{bin_name} --version"), "Invalid version"))?;
+
     debug!("Detected {name} version as: {version}");
 
     if version < Version::new(1, 86, 0) {
@@ -601,11 +639,11 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
     let conda = require("conda")?;
 
     let output = Command::new(&conda)
-        .args(["config", "--show", "auto_activate_base"])
+        .args(["config", "--show", "auto_activate"])
         .output_checked_utf8()?;
     debug!("Conda output: {}", output.stdout);
     if output.stdout.contains("False") {
-        return Err(SkipStep("auto_activate_base is set to False".to_string()).into());
+        return Err(SkipStep("auto_activate is set to False".to_string()).into());
     }
 
     print_separator("Conda");
@@ -858,13 +896,20 @@ pub fn run_ghcup_update(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(ghcup).arg("upgrade").status_checked()
 }
 
+pub fn run_tldr(ctx: &ExecutionContext) -> Result<()> {
+    let tldr = require("tldr")?;
+
+    print_separator("TLDR");
+
+    ctx.execute(tldr).arg("--update").status_checked()
+}
+
 pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
-    cfg_if::cfg_if! {
-        if #[cfg(any(target_os = "linux", target_os = "android"))] {
-            if !ctx.config().enable_tlmgr_linux() {
-                return Err(SkipStep(String::from("tlmgr must be explicitly enabled in the configuration to run in Android/Linux")).into());
-            }
-        }
+    if cfg!(any(target_os = "linux", target_os = "android")) && !ctx.config().enable_tlmgr_linux() {
+        return Err(SkipStep(String::from(
+            "tlmgr must be explicitly enabled in the configuration to run in Android/Linux",
+        ))
+        .into());
     }
 
     let tlmgr = require("tlmgr")?;
@@ -902,9 +947,17 @@ pub fn run_chezmoi_update(ctx: &ExecutionContext) -> Result<()> {
     let chezmoi = require("chezmoi")?;
     HOME_DIR.join(".local/share/chezmoi").require()?;
 
+    let mut cmd = ctx.execute(chezmoi);
+
     print_separator("chezmoi");
 
-    ctx.execute(chezmoi).arg("update").status_checked()
+    cmd.arg("update");
+
+    if ctx.config().chezmoi_exclude_encrypted() {
+        cmd.arg("--exclude=encrypted");
+    }
+
+    cmd.status_checked()
 }
 
 pub fn run_myrepos_update(ctx: &ExecutionContext) -> Result<()> {
@@ -961,23 +1014,19 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
     print_separator(t!("Composer"));
 
     if ctx.config().composer_self_update() {
-        cfg_if::cfg_if! {
-            if #[cfg(unix)] {
-                // If self-update fails without sudo then there's probably an update
-                let has_update = match ctx.execute(&composer).arg("self-update").output()? {
-                    ExecutorOutput::Wet(output) => !output.status.success(),
-                    _ => false
-                };
+        if cfg!(unix) {
+            // If self-update fails without sudo then there's probably an update
+            let has_update = match ctx.execute(&composer).arg("self-update").output()? {
+                ExecutorOutput::Wet(output) => !output.status.success(),
+                _ => false,
+            };
 
-                if has_update {
-                    let sudo = ctx.require_sudo()?;
-                    sudo.execute(ctx, &composer)?
-                       .arg("self-update")
-                       .status_checked()?;
-                }
-            } else {
-                ctx.execute(&composer).arg("self-update").status_checked()?;
+            if has_update {
+                let sudo = ctx.require_sudo()?;
+                sudo.execute(ctx, &composer)?.arg("self-update").status_checked()?;
             }
+        } else {
+            ctx.execute(&composer).arg("self-update").status_checked()?;
         }
     }
 
@@ -1099,25 +1148,25 @@ impl Hx {
             }
         }
     }
-}
 
-fn get_hx(ctx: &ExecutionContext) -> Result<Hx> {
-    let hx = require("hx")?;
+    fn get(ctx: &ExecutionContext) -> Result<Self> {
+        let hx = require("hx")?;
 
-    // Check if `hx --help` mentions "helix". Helix does, hx (hexdump alternative) doesn't.
-    let output = ctx.execute(&hx).arg("--help").output_checked()?;
+        // Check if `hx --help` mentions "helix". Helix does, hx (hexdump alternative) doesn't.
+        let output = ctx.execute(&hx).arg("--help").output_checked()?;
 
-    if String::from_utf8(output.stdout)?.contains("helix") {
-        debug!("Detected `hx` as Helix");
-        Ok(Hx::Helix(hx))
-    } else {
-        debug!("Detected `hx` as hx (hexdump alternative)");
-        Ok(Hx::HxHexdump)
+        if String::from_utf8(output.stdout)?.contains("helix") {
+            debug!("Detected `hx` as Helix");
+            Ok(Self::Helix(hx))
+        } else {
+            debug!("Detected `hx` as hx (hexdump alternative)");
+            Ok(Self::HxHexdump)
+        }
     }
 }
 
 pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
-    let helix = require("helix").or(get_hx(ctx)?.helix())?;
+    let helix = require("helix").or(Hx::get(ctx)?.helix())?;
 
     print_separator("Helix");
 
@@ -1243,7 +1292,34 @@ pub fn run_certbot(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_freshclam(ctx: &ExecutionContext) -> Result<()> {
     let freshclam = require("freshclam")?;
     print_separator(t!("Update ClamAV Database(FreshClam)"));
-    ctx.execute(freshclam).status_checked()
+
+    let output = ctx.execute(&freshclam).output()?;
+    let output = match output {
+        ExecutorOutput::Wet(output) => output,
+        ExecutorOutput::Dry => return Ok(()), // In a dry run, just exit after running without sudo
+    };
+
+    // Check if running without sudo was successful
+    if output.status.success() {
+        // Success, so write the output and exit
+        std::io::stdout().lock().write_all(&output.stdout).unwrap();
+        std::io::stderr().lock().write_all(&output.stderr).unwrap();
+        return Ok(());
+    }
+
+    // Since running without sudo failed (hopefully due to permission errors), try running with sudo.
+    debug!("`freshclam` (without sudo) resulted in error: {:?}", output);
+    let sudo = ctx.require_sudo()?;
+
+    match sudo.execute(ctx, freshclam)?.status_checked() {
+        Ok(()) => Ok(()), // Success! The output of only the sudo'ed process is written.
+        Err(err) => {
+            // Error! We add onto the error the output of running without sudo for more information.
+            Err(err.wrap_err(format!(
+                "Running `freshclam` with sudo failed as well as running without sudo. Output without sudo: {output:?}"
+            )))
+        }
+    }
 }
 
 /// Involve `pio upgrade` to update PlatformIO core.
@@ -1451,7 +1527,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         //
         // We run `uv self update` directly, and ignore an error if it outputs:
         //
-        // "error: uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.\n"
+        // "error: uv was installed through an external package manager" [various continuations]
         //
         // or:
         //
@@ -1464,7 +1540,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         // These two error messages can both occur, in different situations.
 
         const ERROR_MSGS: [&str; 2] = [
-            "uv was installed through an external package manager, and self-update is not available. Please use your package manager to update uv.",
+            "uv was installed through an external package manager",
             "Self-update is only available for uv binaries installed via the standalone installation scripts.",
         ];
 
@@ -1520,9 +1596,25 @@ pub fn run_zvm(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
     let bun = require("bun")?;
 
-    print_separator("Bun");
+    // From the official install script (both install.sh and install.ps1), Bun uses
+    // the path set in this variable as the install root, and its defaults to
+    // `$HOME/.bun`
+    //
+    // UNIX: https://bun.sh/install.sh
+    // Windows: https://bun.sh/install.ps1
+    let bun_install_env = env::var("BUN_INSTALL")
+        .map(PathBuf::from)
+        .unwrap_or(HOME_DIR.join(".bun"));
 
-    ctx.execute(bun).arg("upgrade").status_checked()
+    // If `bun` is a descendant of `bun_install_env`, then Bun is installed
+    // through the official script
+    if bun.is_descendant_of(&bun_install_env) {
+        print_separator("Bun");
+
+        ctx.execute(bun).arg("upgrade").status_checked()
+    } else {
+        Err(SkipStep("Not installed through the official script".to_string()).into())
+    }
 }
 
 pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
@@ -1564,7 +1656,7 @@ pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-pub fn run_jetbrains_toolbox(_ctx: &ExecutionContext) -> Result<()> {
+pub fn run_jetbrains_toolbox(ctx: &ExecutionContext) -> Result<()> {
     let installation = find_jetbrains_toolbox();
     match installation {
         Err(FindError::NotFound) => {
@@ -1586,6 +1678,11 @@ pub fn run_jetbrains_toolbox(_ctx: &ExecutionContext) -> Result<()> {
         }
         Ok(installation) => {
             print_separator("JetBrains Toolbox");
+
+            if ctx.run_type().dry() {
+                println!("Dry running jetbrains-toolbox-updater");
+                return Ok(());
+            }
 
             match update_jetbrains_toolbox(installation) {
                 Err(e) => {
@@ -1661,7 +1758,7 @@ pub fn run_android_studio(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_jetbrains_aqua(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, get_aqua(ctx)?.jetbrains_aqua()?, "Aqua")
+    run_jetbrains_ide(ctx, Aqua::get(ctx)?.jetbrains_aqua()?, "Aqua")
 }
 
 pub fn run_jetbrains_clion(ctx: &ExecutionContext) -> Result<()> {
@@ -1694,7 +1791,9 @@ pub fn run_jetbrains_idea(ctx: &ExecutionContext) -> Result<()> {
         require_one([
             "idea",
             "intellij-idea-ultimate-edition",
+            "intellij-idea-ultimate",
             "intellij-idea-community-edition",
+            "intellij-idea-community",
         ])?,
         "IntelliJ IDEA",
     )
@@ -1742,4 +1841,51 @@ pub fn run_yazi(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Yazi packages");
 
     ctx.execute(ya).args(["pkg", "upgrade"]).status_checked()
+}
+
+#[derive(Deserialize)]
+struct TypstInfo {
+    build: TypstBuild,
+}
+
+#[derive(Deserialize)]
+struct TypstBuild {
+    settings: TypstSettings,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+struct TypstSettings {
+    self_update: bool,
+}
+
+pub fn run_typst(ctx: &ExecutionContext) -> Result<()> {
+    let typst = require("typst")?;
+
+    let raw_info = ctx
+        .execute(&typst)
+        .args(["info", "-f", "json"])
+        .output_checked_utf8()?
+        .stdout;
+    let info: TypstInfo = serde_json::from_str(&raw_info).wrap_err_with(|| {
+        output_changed_message!(
+            "typst info -f json",
+            "json output invalid or does not contain .build.settings.self-update"
+        )
+    })?;
+    if !info.build.settings.self_update {
+        return Err(SkipStep("This build of typst does not have self-update enabled".to_string()).into());
+    }
+
+    print_separator("Typst");
+
+    ctx.execute(typst).args(["update"]).status_checked()
+}
+
+pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
+    let falconf = require("falconf")?;
+
+    print_separator("falconf sync");
+
+    ctx.execute(falconf).arg("sync").status_checked()
 }

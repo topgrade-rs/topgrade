@@ -28,7 +28,7 @@ use crate::XDG_DIRS;
 #[cfg(windows)]
 use crate::WINDOWS_DIRS;
 
-pub fn run_git_pull(ctx: &ExecutionContext) -> Result<()> {
+pub fn run_git_pull_or_fetch(ctx: &ExecutionContext) -> Result<()> {
     let mut repos = RepoStep::try_new()?;
     let config = ctx.config();
 
@@ -93,7 +93,7 @@ pub fn run_git_pull(ctx: &ExecutionContext) -> Result<()> {
     // Handle user-defined repos
     if let Some(custom_git_repos) = config.git_repos() {
         for git_repo in custom_git_repos {
-            repos.glob_insert(git_repo);
+            repos.glob_insert(&shellexpand::tilde(git_repo));
         }
     }
 
@@ -115,7 +115,7 @@ pub fn run_git_pull(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Git repositories"));
 
-    repos.pull_repos(ctx)
+    repos.pull_or_fetch_repos(ctx)
 }
 
 #[cfg(windows)]
@@ -237,16 +237,30 @@ impl RepoStep {
         let mut cmd = Command::new(&self.git);
         cmd.stdin(Stdio::null())
             .current_dir(repo.as_ref())
-            .args(["remote", "show"]);
+            .args(["remote", "-v"]);
 
         let res = cmd.output_checked_utf8();
 
-        res.map(|output| output.stdout.lines().count() > 0)
-            .map_err(|e| {
-                error!("Error getting remotes for {}: {e}", repo.as_ref().display());
-                e
-            })
-            .ok()
+        res.map(|output| {
+            output
+                .stdout
+                .lines()
+                // remote lines always have: "<name>\t<url> (<fetch|push>)"
+                .any(|line| {
+                    // split into at least 2 fields: name + url
+                    let mut parts = line.split_whitespace();
+                    let name = parts.next();
+                    let url = parts.next();
+
+                    // Has both name AND url → configured remote
+                    name.is_some() && url.is_some()
+                })
+        })
+        .map_err(|e| {
+            error!("Error getting remotes for {}: {e}", repo.as_ref().display());
+            e
+        })
+        .ok()
     }
 
     /// Similar to `insert_if_repo`, with glob support.
@@ -298,41 +312,41 @@ impl RepoStep {
         debug_assert!(_removed);
     }
 
-    /// Try to pull a repo.
-    async fn pull_repo<P: AsRef<Path>>(&self, ctx: &ExecutionContext<'_>, repo: P) -> Result<()> {
+    /// Try to pull a repo, or fetch it if `fetch_only` is enabled.
+    async fn pull_or_fetch_repo<P: AsRef<Path>>(&self, ctx: &ExecutionContext<'_>, repo: P) -> Result<()> {
         let before_revision = get_head_revision(&self.git, &repo);
+        let is_fetch_only = ctx.config().git_fetch_only();
 
         if ctx.config().verbose() {
-            println!("{} {}", style(t!("Pulling")).cyan().bold(), repo.as_ref().display());
+            let action = if is_fetch_only { t!("Fetching") } else { t!("Pulling") };
+            println!("{} {}", style(action).cyan().bold(), repo.as_ref().display());
         }
 
         let mut command = AsyncCommand::new(&self.git);
+        command.stdin(Stdio::null()).current_dir(&repo);
 
-        command
-            .stdin(Stdio::null())
-            .current_dir(&repo)
-            .args(["pull", "--ff-only"]);
+        if is_fetch_only {
+            command.args(["fetch", "--recurse-submodules"]);
+        } else {
+            command.args(["pull", "--ff-only", "--recurse-submodules"]);
+        }
 
         if let Some(extra_arguments) = ctx.config().git_arguments() {
             command.args(extra_arguments.split_whitespace());
         }
 
-        let pull_output = command.output().await?;
-        let submodule_output = AsyncCommand::new(&self.git)
-            .args(["submodule", "update", "--recursive"])
-            .current_dir(&repo)
-            .stdin(Stdio::null())
-            .output()
-            .await?;
-        let result = output_checked_utf8(pull_output)
-            .and_then(|()| output_checked_utf8(submodule_output))
-            .wrap_err_with(|| format!("Failed to pull {}", repo.as_ref().display()));
+        let output = command.output().await?;
+        let result = output_checked_utf8(output).wrap_err_with(|| {
+            let action = if is_fetch_only { "fetch" } else { "pull" };
+            format!("Failed to {} {}", action, repo.as_ref().display())
+        });
 
         if result.is_err() {
+            let action = if is_fetch_only { t!("fetching") } else { t!("pulling") };
             println!(
                 "{} {} {}",
                 style(t!("Failed")).red().bold(),
-                t!("pulling"),
+                action,
                 repo.as_ref().display()
             );
         } else {
@@ -366,16 +380,23 @@ impl RepoStep {
         result
     }
 
-    /// Pull the repositories specified in `self.repos`.
+    /// Pulls or fetches the repositories specified in `self.repos`, depending on `fetch_only`.
     ///
     /// # NOTE
     /// This function will create an async runtime and do the real job so the
     /// function itself is not async.
-    fn pull_repos(&self, ctx: &ExecutionContext) -> Result<()> {
+    fn pull_or_fetch_repos(&self, ctx: &ExecutionContext) -> Result<()> {
+        let is_fetch_only = ctx.config().git_fetch_only();
+
         if ctx.run_type().dry() {
-            self.repos
-                .iter()
-                .for_each(|repo| println!("{}", t!("Would pull {repo}", repo = repo.display())));
+            self.repos.iter().for_each(|repo| {
+                let message = if is_fetch_only {
+                    t!("Would fetch {repo}", repo = repo.display())
+                } else {
+                    t!("Would pull {repo}", repo = repo.display())
+                };
+                println!("{}", message);
+            });
 
             return Ok(());
         }
@@ -403,7 +424,7 @@ impl RepoStep {
                 }
                 _ => true, // repo has remotes or command to check for remotes has failed. proceed to pull anyway.
             })
-            .map(|repo| self.pull_repo(ctx, repo));
+            .map(|repo| self.pull_or_fetch_repo(ctx, repo));
 
         let stream_of_futures = if let Some(limit) = ctx.config().git_concurrency_limit() {
             iter(futures_iterator).buffer_unordered(limit).boxed()

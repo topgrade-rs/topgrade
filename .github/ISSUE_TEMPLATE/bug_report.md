@@ -2,7 +2,7 @@
 name: Bug report
 about: Topgrade is misbehaving
 title: ''
-labels: 'C-bug'
+type: Bug
 assignees: ''
 
 ---
@@ -14,52 +14,65 @@ Please make sure to
 before filing a new one!
 
 Questions labeled with `Optional` can be skipped.
--->
 
-<!--
 If you're here to report about a "No asset found" error, please make sure that
 an hour has been passed since the last release was made.
 -->
 
+## Checklist
+
+- [ ] I have searched the issue tracker for relevant or duplicate issues.
+
 ## Erroneous Behavior
+
 <!--
 What actually happened?
 -->
 
 ## Expected Behavior
+
 <!--
-Describe the expected behavior
+Describe the expected behavior.
 -->
 
 ## Steps to reproduce
+
 <!--
-A minimal example to reproduce the issue
+A minimal example to reproduce the issue.
 -->
 
 ## Possible Cause (Optional)
+
 <!--
 If you know the possible cause of the issue, please tell us.
 -->
 
 ## Problem persists without calling from topgrade
+
 <!--
-Execute the erroneous command directly to see if the problem persists
+Execute the erroneous command directly to see if the problem persists.
 -->
-- [ ] Yes
-- [ ] No
-
-## Did you run topgrade through `Remote Execution`
 
 - [ ] Yes
 - [ ] No
 
-If yes, does the issue still occur when you run topgrade directlly in your
-remote host
+## Ran through `Remote Execution`
+
+<!--
+Did you run topgrade through `Remote Execution`?
+-->
+
+- [ ] Yes
+- [ ] No
+
+If yes, does the issue still occur when you run topgrade directly in your
+remote host?
 
 - [ ] Yes
 - [ ] No
 
 ## Configuration file (Optional)
+
 <!--
 Paste your configuration file inside the code block if you think this issue is
 related to configuration.
@@ -70,6 +83,7 @@ related to configuration.
 ```
 
 ## Additional Details
+
 - Operation System/Version
   <!-- For example, Fedora Linux 38 -->
 
@@ -82,6 +96,7 @@ related to configuration.
 - Topgrade version (`topgrade -V`)
 
 ## Verbose Output (`topgrade -v`)
+
 <!--
 Paste the verbose output into the pre-tags
 -->

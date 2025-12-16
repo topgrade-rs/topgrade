@@ -91,6 +91,11 @@
 # See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
 # log_filters = ["topgrade::command=debug", "warn"]
 
+# Whether to show a distribution-specific summary if applicable, e.g. listing
+# Pacman backup configuration files (*.pacsave and *.pacnew)
+# (default: true)
+# show_distribution_summary = false
+
 
 # Commands to run before anything
 [pre_commands]
@@ -223,22 +228,31 @@
 # enable = true
 
 
+[pkgfile]
+# Enable the pkgfile step (to update the pkgfile database).
+# Pkgfile is sometimes installed by default, but often not used and heavy to update.
+# (default: false)
+# enable = true
+
+
 [git]
-# How many repos to pull at max in parallel
+# How many repos to pull or fetch at max in parallel
 # max_concurrency = 5
 
-# Additional git repositories to pull
+# Additional git repositories to pull or fetch
 # repos = [
 #     "~/src/*/",
 #     "~/.config/something"
 # ]
 
-# Don't pull the predefined git repos
+# Set to `false` to skip pulling/fetching the predefined git repos
 # pull_predefined = false
 
-# Arguments to pass Git when pulling Repositories
+# Arguments to pass Git when pulling/fetching Repositories
 # arguments = "--rebase --autostash"
 
+# Whether to perform a `git fetch` instead of `git pull`
+# fetch_only = false
 
 [windows]
 # Manually select Windows updates
@@ -272,6 +286,25 @@
 # before reporting an issue.
 # (default: false)
 # winget_use_sudo = true
+
+
+[chezmoi]
+# Exclude encrypted files from update
+# (default: false)
+# exclude_encrypted = false
+
+[mise]
+# Upgrades to the latest version available, bumping the version in mise.toml
+# (default: false)
+# bump = false
+
+# Number of jobs to run in parallel
+# (default: 4)
+# jobs = 4
+
+# Run interactively
+# (default: false)
+# interactive = false
 
 
 [npm]
@@ -325,6 +358,14 @@
 # Specify the runtime to use for containers (default: "docker", allowed values: "docker", "podman")
 # runtime = "podman"
 
+# Run 'docker system prune' to clean up unused containers, networks, and build cache
+# (default: false)
+# system_prune = false
+
+# Use sudo for updating containers. Necessary for non-rootless installs.
+# (default: false)
+# use_sudo = false
+
 [lensfun]
 # If disabled, Topgrade invokes `lensfun‑update‑data` without root privilege,
 # then the update will be only available to you. Otherwise, `sudo` is required,
@@ -376,3 +417,14 @@
 # during the pixi step
 # (default: false)
 # include_release_notes = false
+
+[doom]
+# If this is set to true, the `--aot` flag is added to `doom upgrade`,
+# which enables ahead-of-time native compilation of packages.
+# (default: false)
+# aot = true
+
+[rustup]
+# If set, updates only these channels.
+# (default: [] (all channels))
+# channels = ["stable"]
