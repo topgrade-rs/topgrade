@@ -143,6 +143,12 @@ impl Brew {
             None => step_title.to_string(),
         }
     }
+
+    #[cfg(target_os = "macos")]
+    fn is_macos_custom(&self) -> bool {
+        let path = self.path.as_os_str();
+        !(path == INTEL_BREW || path == ARM_BREW)
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -171,11 +177,6 @@ impl BrewVariant {
 
     fn both_both_exist() -> bool {
         Path::new(INTEL_BREW).exists() && Path::new(ARM_BREW).exists()
-    }
-
-    #[cfg(target_os = "macos")]
-    fn is_macos_custom(&self) -> bool {
-        !(self.binary_name().as_os_str() == INTEL_BREW || self.binary_name().as_os_str() == ARM_BREW)
     }
 }
 
@@ -354,7 +355,7 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
 
     #[cfg(target_os = "macos")]
     {
-        if variant.is_path() && !brew.variant.is_macos_custom() {
+        if variant.is_path() && !brew.is_macos_custom() {
             return Err(SkipStep(t!("Not a custom brew for macOS").to_string()).into());
         }
     }
@@ -391,7 +392,7 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
     let brew = Brew::new(variant)?;
 
     #[cfg(target_os = "macos")]
-    if variant.is_path() && !brew.variant.is_macos_custom() {
+    if variant.is_path() && !brew.is_macos_custom() {
         return Err(SkipStep(t!("Not a custom brew for macOS").to_string()).into());
     }
 
