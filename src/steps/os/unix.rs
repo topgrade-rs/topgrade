@@ -432,7 +432,7 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
 
     // TODO: this should run even when dry-running, but that
     //  functionality was removed to reduce complexity when
-    //  implementing the sudo -Hu stuff.
+    //  implementing the sudo -Hu stuff. Blocked by #1227.
     let cask_upgrade_exists = brew
         .execute(ctx)?
         .args(["--repository", "buo/cask-upgrade"])
