@@ -362,6 +362,10 @@
 # (default: false)
 # system_prune = false
 
+# Use sudo for updating containers. Necessary for non-rootless installs.
+# (default: false)
+# use_sudo = false
+
 [lensfun]
 # If disabled, Topgrade invokes `lensfun‑update‑data` without root privilege,
 # then the update will be only available to you. Otherwise, `sudo` is required,

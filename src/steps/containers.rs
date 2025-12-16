@@ -2,7 +2,6 @@ use std::fmt::{Display, Formatter};
 use std::io;
 use std::io::Write;
 use std::path::Path;
-use std::process::Command;
 
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
@@ -65,8 +64,8 @@ impl Display for Container {
 /// "REGISTRY/[PATH/]CONTAINER_NAME:TAG"
 ///
 /// Containers specified in `ignored_containers` will be filtered out.
-fn list_containers(crt: &Path, ignored_containers: Option<&Vec<String>>) -> Result<Vec<Container>> {
-    let ignored_containers = ignored_containers.map(|patterns| {
+fn list_containers(ctx: &ExecutionContext, crt: &Path) -> Result<Vec<Container>> {
+    let ignored_containers = ctx.config().containers_ignored_tags().map(|patterns| {
         patterns
             .iter()
             .map(|pattern| WildMatch::new(pattern))
@@ -77,9 +76,23 @@ fn list_containers(crt: &Path, ignored_containers: Option<&Vec<String>>) -> Resu
         "Querying '{} image ls --format \"{{{{.Repository}}}}:{{{{.Tag}}}}/{{{{.ID}}}}\"' for containers",
         crt.display()
     );
-    let output = Command::new(crt)
-        .args(["image", "ls", "--format", "{{.Repository}}:{{.Tag}} {{.ID}}"])
-        .output_checked_utf8()?;
+
+    let sudo = if ctx.config().containers_use_sudo() {
+        Some(ctx.require_sudo()?)
+    } else {
+        None
+    };
+
+    // TODO: This should run even when dry-running. Blocked by #1227.
+    let output = if let Some(sudo) = sudo {
+        sudo.execute(ctx, crt)?
+            .args(["image", "ls", "--format", "{{.Repository}}:{{.Tag}} {{.ID}}"])
+            .output_checked_utf8()?
+    } else {
+        ctx.execute(crt)
+            .args(["image", "ls", "--format", "{{.Repository}}:{{.Tag}} {{.ID}}"])
+            .output_checked_utf8()?
+    };
 
     let mut retval = vec![];
     for line in output.stdout.lines() {
@@ -124,9 +137,16 @@ fn list_containers(crt: &Path, ignored_containers: Option<&Vec<String>>) -> Resu
             crt.display(),
             image_id
         );
-        let inspect_output = Command::new(crt)
-            .args(["image", "inspect", image_id, "--format", "{{.Os}}/{{.Architecture}}"])
-            .output_checked_utf8()?;
+        // TODO: This should run even when dry-running. Blocked by #1227.
+        let inspect_output = if let Some(sudo) = sudo {
+            sudo.execute(ctx, crt)?
+                .args(["image", "inspect", image_id, "--format", "{{.Os}}/{{.Architecture}}"])
+                .output_checked_utf8()?
+        } else {
+            ctx.execute(crt)
+                .args(["image", "inspect", image_id, "--format", "{{.Os}}/{{.Architecture}}"])
+                .output_checked_utf8()?
+        };
         let mut platform = inspect_output.stdout;
         // truncate the tailing new line character
         platform.truncate(platform.len() - 1);
@@ -146,12 +166,21 @@ fn list_containers(crt: &Path, ignored_containers: Option<&Vec<String>>) -> Resu
 pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
     // Check what runtime is specified in the config
     let container_runtime = ctx.config().containers_runtime().to_string();
+    let use_sudo = ctx.config().containers_use_sudo();
     let crt = require(container_runtime)?;
     debug!("Using container runtime '{}'", crt.display());
 
     print_separator(t!("Containers"));
 
-    let output = Command::new(&crt).arg("--help").output_checked_with(|_| Ok(()))?;
+    let sudo = if use_sudo { Some(ctx.require_sudo()?) } else { None };
+
+    // TODO: This should run even when dry-running. Blocked by #1227.
+    let output = if let Some(sudo) = sudo {
+        sudo.execute(ctx, &crt)?.arg("--help").output_checked_with(|_| Ok(()))?
+    } else {
+        ctx.execute(&crt).arg("--help").output_checked_with(|_| Ok(()))?
+    };
+
     let status_code = output
         .status
         .code()
@@ -185,8 +214,7 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
         ));
     }
 
-    let containers =
-        list_containers(&crt, ctx.config().containers_ignored_tags()).context("Failed to list Docker containers")?;
+    let containers = list_containers(ctx, &crt).context("Failed to list Docker containers")?;
     debug!("Containers to inspect: {:?}", containers);
 
     for container in &containers {
@@ -197,7 +225,11 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
             args.push(container.platform.as_str());
         }
 
-        let mut exec = ctx.execute(&crt);
+        let mut exec = if let Some(sudo) = sudo {
+            sudo.execute(ctx, &crt)?
+        } else {
+            ctx.execute(&crt)
+        };
 
         if let Err(e) = exec.args(&args).status_checked() {
             error!("Pulling container '{}' failed: {}", container, e);
@@ -225,14 +257,26 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
 
     if ctx.config().containers_system_prune() {
         // Run system prune to clean up unused containers, networks, and build cache
-        ctx.execute(&crt)
-            .args(["system", "prune", "--force"])
-            .status_checked()?
+        if let Some(sudo) = sudo {
+            sudo.execute(ctx, &crt)?
+                .args(["system", "prune", "--force"])
+                .status_checked()?
+        } else {
+            ctx.execute(&crt)
+                .args(["system", "prune", "--force"])
+                .status_checked()?
+        }
     // Only run `image prune` if we don't run `system prune`
     } else if ctx.config().cleanup() {
         // Remove dangling images
         debug!("Removing dangling images");
-        ctx.execute(&crt).args(["image", "prune", "-f"]).status_checked()?
+        if let Some(sudo) = sudo {
+            sudo.execute(ctx, &crt)?
+                .args(["image", "prune", "-f"])
+                .status_checked()?
+        } else {
+            ctx.execute(&crt).args(["image", "prune", "-f"]).status_checked()?
+        }
     }
 
     Ok(())
