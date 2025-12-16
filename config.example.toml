@@ -362,7 +362,8 @@
 # (default: false)
 # system_prune = false
 
-# Use sudo for updating containers
+# Use sudo for updating containers. Necessary for non-rootless installs.
+# (default: false)
 # use_sudo = false
 
 [lensfun]
