@@ -61,6 +61,7 @@ pub struct Containers {
     ignored_containers: Option<Vec<String>>,
     runtime: Option<ContainerRuntime>,
     system_prune: Option<bool>,
+    use_sudo: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -989,6 +990,15 @@ impl Config {
             .containers
             .as_ref()
             .and_then(|containers| containers.system_prune)
+            .unwrap_or(false)
+    }
+
+    /// Whether to use sudo for container operations.
+    pub fn containers_use_sudo(&self) -> bool {
+        self.config_file
+            .containers
+            .as_ref()
+            .and_then(|containers| containers.use_sudo)
             .unwrap_or(false)
     }
 
