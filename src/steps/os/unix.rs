@@ -78,16 +78,18 @@ const ARM_BREW: &str = "/opt/homebrew/bin/brew";
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 pub struct Brew {
     variant: BrewVariant,
+    path: PathBuf,
     sudo: Option<String>,
 }
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 impl Brew {
-    fn new(variant: BrewVariant) -> Self {
-        Self {
+    fn new(variant: BrewVariant) -> Result<Self> {
+        Ok(Self {
             variant,
+            path: require(variant.binary_name())?,
             sudo: brew_get_sudo(),
-        }
+        })
     }
 
     // TODO: this is suboptimal, hopefully simplify with v17 refactor
@@ -106,10 +108,14 @@ impl Brew {
             }
             _ => {}
         }
-        args.push(self.variant.binary_name());
+        args.push(
+            self.path
+                .to_str()
+                .ok_or_eyre("brew path contains non-unicode characters")?,
+        );
         let mut it = args.into_iter();
 
-        // SAFETY: guaranteed to contain at least one element, the binary_name
+        // SAFETY: guaranteed to contain at least one element, the path
         let program = it.next().unwrap();
         let mut cmd = match &self.sudo {
             None => ctx.execute(program),
@@ -168,8 +174,8 @@ impl BrewVariant {
     }
 
     #[cfg(target_os = "macos")]
-    fn is_macos_custom(binary_name: PathBuf) -> bool {
-        !(binary_name.as_os_str() == INTEL_BREW || binary_name.as_os_str() == ARM_BREW)
+    fn is_macos_custom(&self) -> bool {
+        !(self.binary_name().as_os_str() == INTEL_BREW || self.binary_name().as_os_str() == ARM_BREW)
     }
 }
 
@@ -344,13 +350,11 @@ pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()> {
-    #[allow(unused_variables)]
-    let binary_name = require(variant.binary_name())?;
-    let brew = Brew::new(variant);
+    let brew = Brew::new(variant)?;
 
     #[cfg(target_os = "macos")]
     {
-        if variant.is_path() && !BrewVariant::is_macos_custom(binary_name) {
+        if variant.is_path() && !brew.variant.is_macos_custom() {
             return Err(SkipStep(t!("Not a custom brew for macOS").to_string()).into());
         }
     }
@@ -384,12 +388,10 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()> {
-    #[allow(unused_variables)]
-    let binary_name = require(variant.binary_name())?;
-    let brew = Brew::new(variant);
+    let brew = Brew::new(variant)?;
 
     #[cfg(target_os = "macos")]
-    if variant.is_path() && !BrewVariant::is_macos_custom(binary_name) {
+    if variant.is_path() && !brew.variant.is_macos_custom() {
         return Err(SkipStep(t!("Not a custom brew for macOS").to_string()).into());
     }
 
