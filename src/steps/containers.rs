@@ -83,6 +83,7 @@ fn list_containers(ctx: &ExecutionContext, crt: &Path) -> Result<Vec<Container>>
         None
     };
 
+    // TODO: This should run even when dry-running. Blocked by #1227.
     let output = if let Some(sudo) = sudo {
         sudo.execute(ctx, crt)?
             .args(["image", "ls", "--format", "{{.Repository}}:{{.Tag}} {{.ID}}"])
@@ -136,6 +137,7 @@ fn list_containers(ctx: &ExecutionContext, crt: &Path) -> Result<Vec<Container>>
             crt.display(),
             image_id
         );
+        // TODO: This should run even when dry-running. Blocked by #1227.
         let inspect_output = if let Some(sudo) = sudo {
             sudo.execute(ctx, crt)?
                 .args(["image", "inspect", image_id, "--format", "{{.Os}}/{{.Architecture}}"])
@@ -172,6 +174,7 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
 
     let sudo = if use_sudo { Some(ctx.require_sudo()?) } else { None };
 
+    // TODO: This should run even when dry-running. Blocked by #1227.
     let output = if let Some(sudo) = sudo {
         sudo.execute(ctx, &crt)?.arg("--help").output_checked_with(|_| Ok(()))?
     } else {
