@@ -15,3 +15,4 @@ jobs:
           identifier: topgrade-rs.topgrade
           repo: topgrade-rs/topgrade
           url: "https://github.com/topgrade-rs/topgrade/releases/download/v{VERSION}/topgrade-v{VERSION}-x86_64-pc-windows-msvc.zip"
+          custom-fork-owner: topgrade-rs
