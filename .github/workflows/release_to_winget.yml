@@ -2,18 +2,16 @@ name: Publish to WinGet
 
 on:
   repository_dispatch:
-    types: [ release-created ]
-
-permissions:
-  contents: read
+    types: [ release-assets-built ]
+  workflow_dispatch:
 
 jobs:
   publish:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
-      - uses: vedantmgoyal2009/winget-releaser@19e706d4c9121098010096f9c495a70a7518b30f # main
+      - uses: michidk/winget-updater@3045a0d80c3ac5eee06d38bbe4174df74119099c # v1.1.6
         with:
-          release-tag: ${{ github.event.client_payload.tag }}
+          komac-token: ${{ secrets.WINGET_TOKEN }}
           identifier: topgrade-rs.topgrade
-          max-versions-to-keep: 5 # keep only latest 5 versions
-          token: ${{ secrets.WINGET_TOKEN }}
+          repo: topgrade-rs/topgrade
+          url: "https://github.com/topgrade-rs/topgrade/releases/download/v{VERSION}/topgrade-v{VERSION}-x86_64-pc-windows-msvc.zip"
