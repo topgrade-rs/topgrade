@@ -399,6 +399,7 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
     #[cfg(target_os = "linux")]
     {
         // Homebrew cask support was added in version 4.5.0
+        // TODO: This should run even when dry-running. Blocked by #1227.
         let version_output = brew.execute(ctx)?.arg("--version").output_checked_utf8()?;
 
         let version_line = version_output
