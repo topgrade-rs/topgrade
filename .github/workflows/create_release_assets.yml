@@ -308,7 +308,6 @@ jobs:
           persist-credentials: false
 
       - name: Start OpenBSD VM
-        uses: jenseng/dynamic-uses@v1
         with:
           uses: vmactions/openbsd-vm@v1
           with: >
@@ -341,24 +340,6 @@ jobs:
 
       - name: Run tests
         run: cargo test
-
-      # Native build only to generate manpage and completions
-      - name: Build debug binary to create release assets
-        run: |
-          cargo build --all-features
-          echo "BIN=target/debug/topgrade" >> $GITHUB_ENV
-
-      - name: Create deployment directory
-        run: |
-          mkdir -p deployment/bsd
-          echo "DEPLOY_DIR=deployment/bsd" >> $GITHUB_ENV
-
-      - name: Generate man page and shell completions
-        run: |
-          "$BIN" --gen-manpage > "$DEPLOY_DIR/topgrade.1"
-          "$BIN" --gen-completion bash > "$DEPLOY_DIR/topgrade.bash"
-          "$BIN" --gen-completion fish > "$DEPLOY_DIR/topgrade.fish"
-          "$BIN" --gen-completion zsh > "$DEPLOY_DIR/_topgrade"
 
       - name: Build Release binary
         run: cargo build --release --all-features
