@@ -310,12 +310,10 @@ jobs:
       - name: Start OpenBSD VM
         with:
           uses: vmactions/openbsd-vm@v1
-          with: >
-            {
-              "arch": "x86_64",
-              "sync": "nfs",
-              "usesh": "true"
-            }
+          with:
+            arch: x86_64
+            sync: nfs
+            usesh: true
 
       - name: Install dependencies
         run: >
