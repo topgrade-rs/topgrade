@@ -18,6 +18,7 @@ classifiers = [
 
 urls.bugs = "https://github.com/topgrade-rs/topgrade/issues"
 urls.homepage = "https://github.com/topgrade-rs/topgrade"
+urls.discord = "https://discord.gg/Q8HGGWundY"
 
 
 [tool.maturin]
