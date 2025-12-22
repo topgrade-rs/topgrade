@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.7.1](https://github.com/topgrade-rs/topgrade/compare/v16.7.0...v16.7.1) - 2025-12-22
+
+### Fixed
+
+- *(deps)* update rust crate toml to v0.9.10 ([#1625](https://github.com/topgrade-rs/topgrade/pull/1625))
+
+### Other
+
+- *(release)* add OpenBSD release steps ([#1630](https://github.com/topgrade-rs/topgrade/pull/1630))
+- *(deps)* lock file maintenance ([#1631](https://github.com/topgrade-rs/topgrade/pull/1631))
+- *(deps)* pin async-lock to prevent MSRV bump ([#1635](https://github.com/topgrade-rs/topgrade/pull/1635))
+- *(deps)* pin async-lock to prevent MSRV bump ([#1633](https://github.com/topgrade-rs/topgrade/pull/1633))
+- *(deps)* pin async-lock to prevent MSRV bump ([#1632](https://github.com/topgrade-rs/topgrade/pull/1632))
+- *(deps)* update actions/attest-build-provenance action to v3.1.0 ([#1629](https://github.com/topgrade-rs/topgrade/pull/1629))
+- *(deps)* update lockfile ([#1628](https://github.com/topgrade-rs/topgrade/pull/1628))
+- *(deps)* update github/codeql-action action to v4.31.9 ([#1620](https://github.com/topgrade-rs/topgrade/pull/1620))
+- *(release)* fix winget releases ([#1623](https://github.com/topgrade-rs/topgrade/pull/1623))
+- *(release)* fix winget releases ([#1621](https://github.com/topgrade-rs/topgrade/pull/1621))
+
 ## [16.7.0](https://github.com/topgrade-rs/topgrade/compare/v16.6.1...v16.7.0) - 2025-12-17
 
 ### Added
