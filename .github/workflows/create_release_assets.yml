@@ -288,9 +288,82 @@ jobs:
         with:
           subject-path: assets/*
 
+  # Publish release files for OpenBSD
+  openbsd_build:
+    permissions:
+      id-token: write
+      contents: write
+      attestations: write
+    runs-on: ubuntu-latest
+    env:
+      tag: ${{ github.event.client_payload.tag }}
+
+    defaults:
+      run:
+        shell: openbsd {0}
+
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: false
+
+      - name: Start OpenBSD VM
+        uses: vmactions/openbsd-vm@v1
+        with:
+          arch: x86_64
+          sync: nfs
+          usesh: true
+
+      - name: Install dependencies
+        run: >
+          pkg_add -v
+          rust
+          git
+          gmake
+          bash
+
+      - name: Install Rust components
+        run: |
+          pkg_add -v rust-rustfmt rust-clippy
+
+      - name: Check format
+        run: cargo fmt --all -- --check
+
+      - name: Run clippy
+        run: cargo clippy --all-targets --locked -- -D warnings
+
+      - name: Run clippy (All features)
+        run: cargo clippy --all-targets --locked --all-features -- -D warnings
+
+      - name: Run tests
+        run: cargo test
+
+      - name: Build Release binary
+        run: cargo build --release --all-features
+
+      - name: Package OpenBSD release
+        run: |
+          mkdir -p assets
+          FILENAME=topgrade-${tag}-openbsd-x86_64
+          cp target/release/topgrade assets/topgrade
+          cd assets
+          tar -czf "$FILENAME.tar.gz" topgrade
+          rm topgrade
+          ls .
+
+      - name: Upload assets
+        run: gh release upload "${tag}" assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate artifact attestations
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+        with:
+          subject-path: assets/*
+
   triggers:
     runs-on: ubuntu-latest
-    needs: [ native_build, cross_build ]
+    needs: [ native_build, cross_build, openbsd_build ]
     env:
       tag: ${{ github.event.client_payload.tag }}
     steps:
