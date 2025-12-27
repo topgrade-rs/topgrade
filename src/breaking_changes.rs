@@ -4,17 +4,17 @@
 //!     1. The Topgrade being executed is a new major release
 //!     2. This is the first launch of that major release
 
-use crate::terminal::print_separator;
 #[cfg(windows)]
 use crate::WINDOWS_DIRS;
 #[cfg(unix)]
 use crate::XDG_DIRS;
+use crate::terminal::print_separator;
 use color_eyre::eyre::Result;
 use etcetera::base_strategy::BaseStrategy;
 use rust_i18n::t;
 use std::{
     env::var,
-    fs::{read_to_string, OpenOptions},
+    fs::{OpenOptions, read_to_string},
     io::Write,
     path::PathBuf,
     str::FromStr,
