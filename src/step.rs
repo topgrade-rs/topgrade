@@ -45,6 +45,7 @@ pub enum Step {
     Conda,
     ConfigUpdate,
     Containers,
+    Cursor,
     CustomCommands,
     DebGet,
     Deno,
@@ -277,6 +278,9 @@ impl Step {
                 runner.execute(*self, "config-update", || linux::run_config_update(ctx))?
             }
             Containers => runner.execute(*self, "Containers", || containers::run_containers(ctx))?,
+            Cursor => runner.execute(*self, "Cursor extensions", || {
+                generic::run_cursor_extensions_update(ctx)
+            })?,
             CustomCommands => {
                 if let Some(commands) = ctx.config().commands() {
                     for (name, command) in commands
@@ -801,6 +805,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Dotnet,
         Choosenim,
         Cargo,
+        Cursor,
         Flutter,
         Go,
         Emacs,
