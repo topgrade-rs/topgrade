@@ -20,6 +20,7 @@ use crate::utils::hostname;
 #[strum(serialize_all = "snake_case")]
 pub enum Step {
     AM,
+    Adless,
     AndroidStudio,
     AppMan,
     Aqua,
@@ -152,7 +153,6 @@ pub enum Step {
     Tlmgr,
     Tmux,
     Toolbx,
-    Typst,
     Uv,
     Vagrant,
     Vcpkg,
@@ -185,6 +185,7 @@ impl Step {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "am", || linux::run_am(ctx))?
             }
+            Adless => runner.execute(*self, "adless", || adless::run_adless(ctx))?,
             AndroidStudio => runner.execute(*self, "Android Studio Plugins", || generic::run_android_studio(ctx))?,
             AppMan =>
             {
@@ -631,7 +632,6 @@ impl Step {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "toolbx", || toolbx::run_toolbx(ctx))?
             }
-            Typst => runner.execute(*self, "Typst", || generic::run_typst(ctx))?,
             Uv => runner.execute(*self, "uv", || generic::run_uv(ctx))?,
             Vagrant => {
                 if ctx.config().should_run(Vagrant) {
@@ -777,6 +777,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Shell,
         Tmux,
         Pearl,
+        Adless,
         #[cfg(not(any(target_os = "macos", target_os = "android")))]
         GnomeShellExtensions,
         Pyenv,
@@ -898,7 +899,6 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Powershell,
         CustomCommands,
         Vagrant,
-        Typst,
     ]);
 
     steps.shrink_to_fit();
