@@ -254,11 +254,7 @@ pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
             }
             let ret_val = output.stdout.trim();
             debug!("Command return value: {}", ret_val);
-            if ret_val == "0" {
-                Ok(())
-            } else {
-                Err(())
-            }
+            if ret_val == "0" { Ok(()) } else { Err(()) }
         })?;
     println!(
         "{}",
