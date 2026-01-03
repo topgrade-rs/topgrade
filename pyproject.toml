@@ -8,6 +8,13 @@ dynamic = ["version"]
 description = "Upgrade all the things"
 readme = "README.md"
 license = "GPL-3.0-or-later"
+authors = [
+    { name = "Roey Darwish Dror", email = "roey.ghost@gmail.com" },
+    { name = "Thomas Schönauer", email = "t.schoenauer@hgs-wt.at" },
+]
+maintainers = [
+    { name = "GideonBear", email = "dig-sultry-sedate@duck.com" },
+]
 requires-python = ">=3.7"
 classifiers = [
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
