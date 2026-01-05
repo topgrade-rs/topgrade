@@ -3,6 +3,7 @@
     "extends": [
         "config:best-practices",
         ":semanticCommits",
+        ":semanticCommitTypeAll(chore)",
     ],
     lockFileMaintenance: {
         enabled: true,
