@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.8.0](https://github.com/topgrade-rs/topgrade/compare/v16.7.0...v16.8.0) - 2026-01-07
+
+### Added
+
+- *(cursor)* add cursor extension update support ([#1659](https://github.com/topgrade-rs/topgrade/pull/1659))
+
+### Fixed
+
+- *(deps)* update rust crate tempfile to ~3.24.0 ([#1646](https://github.com/topgrade-rs/topgrade/pull/1646))
+- *(deps)* update rust crate toml to v0.9.10 ([#1625](https://github.com/topgrade-rs/topgrade/pull/1625))
+
+### Other
+
+- *(deps)* update lockfile ([#1671](https://github.com/topgrade-rs/topgrade/pull/1671))
+- *(release)* fix OpenBSD release job ([#1639](https://github.com/topgrade-rs/topgrade/pull/1639))
+- *(pre-commit)* autoupdate ([#1668](https://github.com/topgrade-rs/topgrade/pull/1668))
+- *(deps)* lock file maintenance ([#1666](https://github.com/topgrade-rs/topgrade/pull/1666))
+- *(deps)* update rust crate tokio to ~1.49.0 ([#1663](https://github.com/topgrade-rs/topgrade/pull/1663))
+- *(renovate)* change semantic commit type to always be 'chore' ([#1665](https://github.com/topgrade-rs/topgrade/pull/1665))
+- fix category (os -> command-line-utlilities) in Cargo.toml ([#1664](https://github.com/topgrade-rs/topgrade/pull/1664))
+- remove deprecated authors field from Cargo.toml ([#1661](https://github.com/topgrade-rs/topgrade/pull/1661))
+- add authors and maintainers to pyproject.toml ([#1662](https://github.com/topgrade-rs/topgrade/pull/1662))
+- *(deps)* update rust crate clap_complete to v4.5.64 ([#1654](https://github.com/topgrade-rs/topgrade/pull/1654))
+- *(deps)* bump clap_complete ([#1657](https://github.com/topgrade-rs/topgrade/pull/1657))
+- *(pre-commit)* autoupdate ([#1655](https://github.com/topgrade-rs/topgrade/pull/1655))
+- *(deps)* update vmactions/openbsd-vm digest to 00753f2 ([#1649](https://github.com/topgrade-rs/topgrade/pull/1649))
+- *(deps)* lock file maintenance ([#1652](https://github.com/topgrade-rs/topgrade/pull/1652))
+- *(deps)* update rust crate serde_json to v1.0.148 ([#1650](https://github.com/topgrade-rs/topgrade/pull/1650))
+- *(deps)* update rust crate serde_json to v1.0.147 ([#1645](https://github.com/topgrade-rs/topgrade/pull/1645))
+- update bug_report issue template ([#1643](https://github.com/topgrade-rs/topgrade/pull/1643))
+- *(deps)* update rust crate serde_json to v1.0.146 ([#1640](https://github.com/topgrade-rs/topgrade/pull/1640))
+- add Discord link to Python package ([#1641](https://github.com/topgrade-rs/topgrade/pull/1641))
+- *(deps)* pin vmactions/openbsd-vm action to a17ab0b ([#1636](https://github.com/topgrade-rs/topgrade/pull/1636))
+- *(deps)* update actions/attest-build-provenance action to v3.1.0 ([#1637](https://github.com/topgrade-rs/topgrade/pull/1637))
+- *(release)* add OpenBSD release steps ([#1630](https://github.com/topgrade-rs/topgrade/pull/1630))
+- *(deps)* lock file maintenance ([#1631](https://github.com/topgrade-rs/topgrade/pull/1631))
+- *(deps)* pin async-lock to prevent MSRV bump ([#1635](https://github.com/topgrade-rs/topgrade/pull/1635))
+- *(deps)* pin async-lock to prevent MSRV bump ([#1633](https://github.com/topgrade-rs/topgrade/pull/1633))
+- *(deps)* pin async-lock to prevent MSRV bump ([#1632](https://github.com/topgrade-rs/topgrade/pull/1632))
+- *(deps)* update actions/attest-build-provenance action to v3.1.0 ([#1629](https://github.com/topgrade-rs/topgrade/pull/1629))
+- *(deps)* update lockfile ([#1628](https://github.com/topgrade-rs/topgrade/pull/1628))
+- *(deps)* update github/codeql-action action to v4.31.9 ([#1620](https://github.com/topgrade-rs/topgrade/pull/1620))
+- *(release)* fix winget releases ([#1623](https://github.com/topgrade-rs/topgrade/pull/1623))
+- *(release)* fix winget releases ([#1621](https://github.com/topgrade-rs/topgrade/pull/1621))
+
 ## [16.7.0](https://github.com/topgrade-rs/topgrade/compare/v16.6.1...v16.7.0) - 2025-12-17
 
 ### Added
