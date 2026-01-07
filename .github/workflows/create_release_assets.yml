@@ -93,7 +93,7 @@ jobs:
           FILENAME=topgrade-${tag}-$(default-target)
           mv target/release/topgrade assets
           cd assets
-          tar --format=ustar -czf $FILENAME.tar.gz topgrade
+          tar --format=ustar -czf "$FILENAME.tar.gz" topgrade
           rm topgrade
           ls .
         if: ${{ matrix.platform != 'windows-latest' }}
@@ -343,11 +343,12 @@ jobs:
 
       - name: Package OpenBSD release
         run: |
+          cargo install default-target
           mkdir -p assets
-          FILENAME=topgrade-${tag}-openbsd-x86_64
-          cp target/release/topgrade assets/topgrade
+          FILENAME=topgrade-${tag}-$(default-target)
+          mv target/release/topgrade assets
           cd assets
-          tar -czf "$FILENAME.tar.gz" topgrade
+          tar -F ustar -czf "$FILENAME.tar.gz" topgrade
           rm topgrade
           ls .
 
@@ -363,7 +364,10 @@ jobs:
 
   triggers:
     runs-on: ubuntu-latest
-    needs: [ native_build, cross_build, openbsd_build ]
+    # Don't wait for openbsd_build, because the workflows receiving this trigger (aur, winget)
+    #  don't use the openbsd binary, and because we don't want to fail the whole pipeline
+    #  when openbsd (which is not tested in CI) fails.
+    needs: [ native_build, cross_build ]
     env:
       tag: ${{ github.event.client_payload.tag }}
     steps:
