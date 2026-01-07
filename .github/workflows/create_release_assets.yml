@@ -348,7 +348,7 @@ jobs:
           FILENAME=topgrade-${tag}-$(default-target)
           mv target/release/topgrade assets
           cd assets
-          tar --format=ustar -czf "$FILENAME.tar.gz" topgrade
+          tar -F ustar -czf "$FILENAME.tar.gz" topgrade
           rm topgrade
           ls .
 
