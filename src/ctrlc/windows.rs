@@ -1,8 +1,8 @@
 //! A stub for Ctrl + C handling.
 use crate::ctrlc::interrupted::set_interrupted;
 use tracing::error;
+use windows::Win32::System::Console::{CTRL_C_EVENT, SetConsoleCtrlHandler};
 use windows::core::BOOL;
-use windows::Win32::System::Console::{SetConsoleCtrlHandler, CTRL_C_EVENT};
 
 extern "system" fn handler(ctrl_type: u32) -> BOOL {
     match ctrl_type {
