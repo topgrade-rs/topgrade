@@ -356,7 +356,8 @@ jobs:
           cd $GITHUB_WORKSPACE
           cargo install default-target
           mkdir -p assets
-          FILENAME=topgrade-${tag}-$(default-target)
+          # TODO: this should use the env var (${tag}), but can't because it's not set in the VM.
+          FILENAME=topgrade-${{ github.event.client_payload.tag }}-$(/root/.cargo/bin/default-target)
           mv target/release/topgrade assets
           cd assets
           tar -F ustar -czf "$FILENAME.tar.gz" topgrade
