@@ -327,22 +327,33 @@ jobs:
           pkg_add -v rust-rustfmt rust-clippy
 
       - name: Check format
-        run: cargo fmt --all -- --check
+        run: |
+          cd $GITHUB_WORKSPACE
+          cargo fmt --all -- --check
 
       - name: Run clippy
-        run: cargo clippy --all-targets --locked -- -D warnings
+        run: |
+          cd $GITHUB_WORKSPACE
+          cargo clippy --all-targets --locked -- -D warnings
 
       - name: Run clippy (All features)
-        run: cargo clippy --all-targets --locked --all-features -- -D warnings
+        run: |
+          cd $GITHUB_WORKSPACE
+          cargo clippy --all-targets --locked --all-features -- -D warnings
 
       - name: Run tests
-        run: cargo test
+        run: |
+          cd $GITHUB_WORKSPACE
+          cargo test
 
       - name: Build Release binary
-        run: cargo build --release --all-features
+        run: |
+          cd $GITHUB_WORKSPACE
+          cargo build --release --all-features
 
       - name: Package OpenBSD release
         run: |
+          cd $GITHUB_WORKSPACE
           cargo install default-target
           mkdir -p assets
           FILENAME=topgrade-${tag}-$(default-target)
@@ -353,6 +364,7 @@ jobs:
           ls .
 
       - name: Upload assets
+        shell: bash
         run: gh release upload "${tag}" assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
