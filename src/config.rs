@@ -105,6 +105,12 @@ pub enum UpdatesAutoReboot {
     Ask,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct RetryConfig {
+    pub auto_retry: u16,
+    pub ask_retry: bool,
+}
+
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Windows {
@@ -346,7 +352,9 @@ pub struct Misc {
 
     assume_yes: Option<bool>,
 
-    no_retry: Option<bool>,
+    ask_retry: Option<bool>,
+
+    auto_retry: Option<u16>,
 
     show_skipped: Option<bool>,
 
@@ -764,9 +772,17 @@ pub struct CommandLineArgs {
     #[arg(short = 'r', long = "run-type", value_enum, default_value_t)]
     run_type: RunType,
 
-    /// Do not ask to retry failed steps
-    #[arg(long = "no-retry")]
+    /// Do not ask to retry failed steps (same as --no-ask-retry, kept for legacy compatibility)
+    #[arg(long = "no-retry", hide = true)]
     no_retry: bool,
+
+    /// Whether to ask what to do after a step fails (default: true)
+    #[arg(long = "no-ask-retry")]
+    no_ask_retry: bool,
+
+    /// Auto retry failed steps up to COUNT times
+    #[arg(long = "auto-retry", value_name = "COUNT")]
+    auto_retry: Option<u16>,
 
     /// Do not perform upgrades for the given steps
     #[arg(long = "disable", value_name = "STEP", value_enum, num_args = 1..)]
@@ -1096,13 +1112,40 @@ impl Config {
 
     /// Tell whether we should not attempt to retry anything.
     pub fn no_retry(&self) -> bool {
-        self.opt.no_retry
-            || self
-                .config_file
-                .misc
-                .as_ref()
-                .and_then(|misc| misc.no_retry)
-                .unwrap_or(false)
+        let config = self.retry_config();
+        config.auto_retry == 0 && !config.ask_retry
+    }
+
+    /// Get retry config
+    pub fn retry_config(&self) -> RetryConfig {
+        let mut auto_retry: u16 = 0;
+        let mut ask_retry: bool = true;
+
+        // Get settings from config file
+        if let Some(misc) = self.config_file.misc.as_ref() {
+            if let Some(val) = misc.auto_retry {
+                auto_retry = val;
+            }
+            if let Some(val) = misc.ask_retry {
+                ask_retry = val;
+            }
+        }
+
+        // CLI options override config file
+        if let Some(count) = self.opt.auto_retry {
+            auto_retry = count;
+        }
+
+        if self.opt.no_ask_retry {
+            ask_retry = false;
+        }
+
+        // --no-retry is a hidden alias for --no-ask-retry (legacy option)
+        if self.opt.no_retry {
+            ask_retry = false;
+        }
+
+        RetryConfig { auto_retry, ask_retry }
     }
 
     /// List of user-defined environment variables

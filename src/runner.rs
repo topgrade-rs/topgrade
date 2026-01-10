@@ -70,7 +70,59 @@ impl<'a> Runner<'a> {
             func()
         };
 
+        // Determine max retry attempts based on config
+        let retry_config = self.ctx.config().retry_config();
+        // Total max attempts = 1 (initial) + auto_retry count
+        let mut max_attempts = retry_config.auto_retry.saturating_add(1);
+
+        let mut attempt = 1;
+        let mut last_error: Option<color_eyre::eyre::Error> = None;
+
         loop {
+            if attempt > max_attempts {
+                if let Some(e) = last_error {
+                    let ignore_failure = self.ctx.config().ignore_failure(step);
+
+                    if !retry_config.ask_retry {
+                        // Auto-continue without asking (ask_retry = false)
+                        self.push_result(
+                            key,
+                            if ignore_failure {
+                                StepResult::Ignored
+                            } else {
+                                StepResult::Failure
+                            },
+                        );
+                    } else {
+                        // Prompt what to do (ask_retry = true)
+                        print_error(&key, format!("{e:?}"));
+                        match should_retry(key.as_ref())? {
+                            ShouldRetry::Yes => {
+                                max_attempts += 1;
+                                last_error = None;
+                                continue;
+                            }
+                            ShouldRetry::Quit => {
+                                self.push_result(key, StepResult::Failure);
+                                return Err(io::Error::from(io::ErrorKind::Interrupted))
+                                    .context("Quit from user input");
+                            }
+                            ShouldRetry::No => {
+                                self.push_result(
+                                    key,
+                                    if ignore_failure {
+                                        StepResult::Ignored
+                                    } else {
+                                        StepResult::Failure
+                                    },
+                                );
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+
             match func() {
                 Ok(()) => {
                     self.push_result(key, StepResult::Success);
@@ -96,34 +148,42 @@ impl<'a> Runner<'a> {
                     }
 
                     let ignore_failure = self.ctx.config().ignore_failure(step);
-                    let should_ask = interrupted || !(self.ctx.config().no_retry() || ignore_failure);
-                    let should_retry = if should_ask {
-                        print_error(&key, format!("{e:?}"));
-                        should_retry(key.as_ref())?
-                    } else {
-                        ShouldRetry::No
-                    };
 
-                    match should_retry {
-                        ShouldRetry::No | ShouldRetry::Quit => {
-                            self.push_result(
-                                key,
-                                if ignore_failure {
-                                    StepResult::Ignored
-                                } else {
-                                    StepResult::Failure
-                                },
-                            );
-                            if let ShouldRetry::Quit = should_retry {
+                    // Decide whether to prompt the user
+                    let has_auto_retries_left = attempt < max_attempts;
+                    let should_ask =
+                        interrupted || ignore_failure || (!has_auto_retries_left && retry_config.ask_retry);
+
+                    if should_ask {
+                        print_error(&key, format!("{e:?}"));
+                        match should_retry(key.as_ref())? {
+                            ShouldRetry::Yes => {
+                                max_attempts += 1;
+                            }
+                            ShouldRetry::Quit => {
+                                self.push_result(key, StepResult::Failure);
                                 return Err(io::Error::from(io::ErrorKind::Interrupted))
                                     .context("Quit from user input");
                             }
-                            break;
+                            ShouldRetry::No => {
+                                self.push_result(
+                                    key,
+                                    if ignore_failure {
+                                        StepResult::Ignored
+                                    } else {
+                                        StepResult::Failure
+                                    },
+                                );
+                                break;
+                            }
                         }
-                        ShouldRetry::Yes => (),
+                    } else {
+                        // Store error and retry
+                        last_error = Some(e);
                     }
                 }
             }
+            attempt += 1;
         }
 
         Ok(())
