@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.8.1](https://github.com/topgrade-rs/topgrade/compare/v16.8.0...v16.8.1) - 2026-01-10
+
+### Other
+
+- *(installation)* add Pacstall Ubuntu package to README ([#1676](https://github.com/topgrade-rs/topgrade/pull/1676))
+- *(deps)* update rust crate toml to v0.9.11 ([#1675](https://github.com/topgrade-rs/topgrade/pull/1675))
+- *(release)* fix OpenBSD release job ([#1674](https://github.com/topgrade-rs/topgrade/pull/1674))
+- *(release)* fix OpenBSD release job ([#1672](https://github.com/topgrade-rs/topgrade/pull/1672))
+
 ## [16.8.0](https://github.com/topgrade-rs/topgrade/compare/v16.7.0...v16.8.0) - 2026-01-07
 
 ### Added
