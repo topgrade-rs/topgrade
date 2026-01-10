@@ -20,7 +20,8 @@ assignees: ''
 * Which exact commands should Topgrade run?
 * Does it have a `--dry-run` option? i.e., print what should be done and exit
 * Does it need the user to confirm the execution? And does it provide a `--yes`
-  option to skip this?
+  option to skip this step?
+* Can Topgrade extract the components that it updated to use in the summary?
 
 ## More information
 
