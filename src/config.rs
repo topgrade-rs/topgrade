@@ -421,6 +421,13 @@ pub struct DoomConfig {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct Cargo {
+    git: Option<bool>,
+    quiet: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 pub struct Rustup {
     channels: Option<Vec<String>>,
 }
@@ -524,6 +531,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     doom: Option<DoomConfig>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    cargo: Option<Cargo>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     rustup: Option<Rustup>,
@@ -1582,6 +1592,22 @@ impl Config {
                 .as_ref()
                 .and_then(|git| git.pull_predefined)
                 .unwrap_or(true)
+    }
+    
+    pub fn cargo_update_git(&self) -> bool {
+        self.config_file
+            .cargo
+            .as_ref()
+            .and_then(|cargo| cargo.git)
+            .unwrap_or(true)
+    }
+    
+    pub fn cargo_update_quiet(&self) -> bool {
+        self.config_file
+            .cargo
+            .as_ref()
+            .and_then(|cargo| cargo.quiet)
+            .unwrap_or(false)
     }
 
     pub fn rustup_channels(&self) -> Vec<String> {
