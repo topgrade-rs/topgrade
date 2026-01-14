@@ -71,7 +71,7 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     };
 
     let mut command = ctx.execute(cargo_update);
-    command.arg("install-update");
+    command.args(["install-update", "--all"]);
     if ctx.config().cargo_update_git() {
         command.arg("--git");
     }
