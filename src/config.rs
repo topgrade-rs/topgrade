@@ -1593,7 +1593,7 @@ impl Config {
                 .and_then(|git| git.pull_predefined)
                 .unwrap_or(true)
     }
-    
+
     pub fn cargo_update_git(&self) -> bool {
         self.config_file
             .cargo
@@ -1601,7 +1601,7 @@ impl Config {
             .and_then(|cargo| cargo.git)
             .unwrap_or(true)
     }
-    
+
     pub fn cargo_update_quiet(&self) -> bool {
         self.config_file
             .cargo
