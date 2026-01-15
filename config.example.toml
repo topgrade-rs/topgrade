@@ -424,6 +424,18 @@
 # (default: false)
 # aot = true
 
+[cargo]
+# If this is set to true, `cargo install-update` also updates git-originating packages.
+# (default: true)
+# git = false
+
+# If this is set to true, `cargo install-update` is run quietly.
+# (default: false)
+# quiet = true
+
+# Other options like `--locked` or `--jobs` can be passed to `cargo install`
+# using the `CARGO_INSTALL_OPTS` environment variable.
+
 [rustup]
 # If set, updates only these channels.
 # (default: [] (all channels))
