@@ -1,14 +1,20 @@
+name: Rust CI
+
 on:
   pull_request:
   push:
     branches:
       - main
 
-name: CI
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   CROSS_VER: '0.2.5'
   CARGO_NET_RETRY: 3
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: full
 
 permissions:
   contents: read
@@ -18,28 +24,24 @@ defaults:
     shell: bash
 
 jobs:
-  fmt:
-    name: Rustfmt
+  format:
+    name: Format (cargo fmt)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
 
-      - name: Run cargo fmt
-        env:
-          TERM: xterm-256color
-        run: |
-          rustup component add rustfmt
-          cargo fmt --all -- --check
+      - run: rustup component add rustfmt
+
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
 
   custom-checks:
     name: Custom checks
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
 
@@ -92,74 +94,92 @@ jobs:
             # exit 1
           fi
 
+  msrv:
+    name: MSRV check
+    needs: [ format, custom-checks ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+        with:
+          persist-credentials: false
+
+      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2
+
+      - name: Pin toolchain to MSRV
+        run: |
+          msrv=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[0].rust_version')
+          rustup override set "$msrv"
+
+      - name: Print toolchain version
+        run: rustc --version
+
+      - name: cargo check
+        run: cargo check --locked --all-features
+
   main:
-    needs: [ fmt, custom-checks ]
-    name: ${{ matrix.target_name }} (check, clippy)
+    needs: [ format, custom-checks ]
+    name: ${{ matrix.target_name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: x86_64-linux-android
-            target_name: Android
-            use_cross: true
+          - target_name: Linux
+            target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
 
-          - target: x86_64-unknown-freebsd
-            target_name: FreeBSD
-            use_cross: true
-            os: ubuntu-latest
+          - target_name: Windows
+            target: x86_64-pc-windows-msvc
+            os: windows-latest
 
-          - target: x86_64-unknown-linux-gnu
-            target_name: Linux
-            os: ubuntu-latest
-
-          - target: x86_64-apple-darwin
-            target_name: macOS-x86_64
-            os: macos-15-intel
-
-          - target: aarch64-apple-darwin
-            target_name: macOS-aarch64
+          - target_name: macOS-aarch64
+            target: aarch64-apple-darwin
             os: macos-latest
 
-          - target: x86_64-unknown-netbsd
-            target_name: NetBSD
+          - target_name: macOS-x86_64
+            target: x86_64-apple-darwin
+            os: macos-15-intel
+
+          - target_name: FreeBSD
+            target: x86_64-unknown-freebsd
             use_cross: true
             os: ubuntu-latest
 
-          - target: x86_64-pc-windows-msvc
-            target_name: Windows
-            os: windows-latest
+          - target_name: NetBSD
+            target: x86_64-unknown-netbsd
+            use_cross: true
+            os: ubuntu-latest
+
+          - target_name: Android
+            target: x86_64-linux-android
+            use_cross: true
+            os: ubuntu-latest
     env:
       cargo_cmd: ${{ matrix.use_cross == true && 'cross' || 'cargo' }}
       matrix_target: ${{ matrix.target }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
 
-      - name: Setup Rust Cache
-        uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
+      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
         with:
           prefix-key: ${{ matrix.target }}
 
       - name: Setup cross
         if: matrix.use_cross == true
-        run: |
-          curl -fL --retry 3 "https://github.com/cross-rs/cross/releases/download/v${CROSS_VER}/cross-x86_64-unknown-linux-musl.tar.gz" | tar vxz -C /usr/local/bin
+        run: curl -fL --retry 3 "https://github.com/cross-rs/cross/releases/download/v${CROSS_VER}/cross-x86_64-unknown-linux-musl.tar.gz" | tar vxz -C /usr/local/bin
 
-      - name: Run cargo/cross check
-        run: |
-          "${cargo_cmd}" check --locked --target "${matrix_target}"
+      - run: rustup component add clippy
 
-      - name: Run cargo/cross clippy
-        run: |
-          rustup component add clippy
-          "${cargo_cmd}" clippy --locked --target "${matrix_target}" --all-features -- -D warnings
+      - name: Print toolchain version
+        run: rustc --version
 
-      - name: Run cargo test
+      - name: cargo clippy
+        run: |
+          "${cargo_cmd}" clippy --locked --target "${matrix_target}" --all-features -- --deny warnings
+
+      - name: cargo test
         # ONLY run test with cargo
         if: matrix.use_cross == false
-        run: |
-          cargo test --locked --target "${matrix_target}"
+        run: cargo test --locked --target "${matrix_target}"

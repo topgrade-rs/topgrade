@@ -61,6 +61,10 @@ Just run `topgrade`.
 
 See [`config.example.toml`](https://github.com/topgrade-rs/topgrade/blob/main/config.example.toml) for an example configuration file.
 
+## MSRV
+
+Find the current MSRV in `Cargo.toml` under `rust-version`. This MSRV will only be bumped in a major release.
+
 ## Migration and Breaking Changes
 
 Whenever there is a **breaking change**, the major version number will be bumped,
