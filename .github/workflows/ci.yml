@@ -176,7 +176,8 @@ jobs:
         run: rustc --version
 
       - name: cargo clippy
-        run: "${cargo_cmd}" clippy --locked --target "${matrix_target}" --all-features -- --deny warnings
+        run: |
+          "${cargo_cmd}" clippy --locked --target "${matrix_target}" --all-features -- --deny warnings
 
       - name: cargo test
         # ONLY run test with cargo
