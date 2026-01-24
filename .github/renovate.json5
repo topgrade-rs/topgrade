@@ -5,6 +5,7 @@
         ":semanticCommits",
         ":semanticCommitTypeAll(chore)",
         ":maintainLockFilesWeekly",
+        ":prHourlyLimitNone",
     ],
     customManagers: [
         {
