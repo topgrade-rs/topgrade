@@ -15,6 +15,7 @@ use indexmap::IndexMap;
 use merge::Merge;
 use regex::Regex;
 use regex_split::RegexSplit;
+use rust_i18n::t;
 use serde::Deserialize;
 use strum::IntoEnumIterator;
 use tracing::{debug, error};
@@ -23,8 +24,9 @@ use which_crate::which;
 use super::utils::editor;
 use crate::command::CommandExt;
 use crate::execution_context::RunType;
-use crate::step::Step;
+use crate::step::{Step, DEPRECATED_STEPS};
 use crate::sudo::SudoKind;
+use crate::terminal::print_warning;
 use crate::utils::string_prepend_str;
 
 // TODO: Add i18n to this. Tracking issue: https://github.com/topgrade-rs/topgrade/issues/859
@@ -248,6 +250,15 @@ impl fmt::Display for ContainerRuntime {
     }
 }
 
+#[derive(Debug, Deserialize, Clone, Copy, Default, PartialEq)]
+#[serde(rename_all = "kebab-case")]
+pub enum NixHandler {
+    #[default]
+    Autodetect,
+    Nh,
+    Vanilla,
+}
+
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Linux {
@@ -276,6 +287,8 @@ pub struct Linux {
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     dnf_arguments: Option<String>,
+
+    nix_handler: Option<NixHandler>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     nix_arguments: Option<String>,
@@ -1033,10 +1046,15 @@ impl Config {
             }
         }
 
+        let step_is_deprecated = |x| DEPRECATED_STEPS.contains(&x);
+
         // If neither of those contain anything
         if enabled_steps.is_empty() {
             // All steps are enabled
             enabled_steps.extend(Step::iter());
+            // Handle deprecated steps. Disable automatically when not explicitly mentioned in the
+            // config, so that the warning doesn't print.
+            enabled_steps.retain(|x| !step_is_deprecated(*x));
         }
 
         let mut disabled_steps: Vec<Step> = Vec::new();
@@ -1045,6 +1063,15 @@ impl Config {
             if let Some(disabled) = misc.disable.as_ref() {
                 disabled_steps.extend(disabled);
             }
+        }
+
+        // When a deprecated step is mentioned,
+        for step in enabled_steps
+            .iter()
+            .chain(disabled_steps.iter())
+            .filter(|x| step_is_deprecated(**x))
+        {
+            print_warning(t!("`{step}` step is deprecated", step = format!("{step:?}")));
         }
 
         // All steps that are disabled are not enabled, except ones that are passed to `--only`
@@ -1464,6 +1491,15 @@ impl Config {
             .linux
             .as_ref()
             .and_then(|linux| linux.dnf_arguments.as_deref())
+    }
+
+    /// Get the handler to use for NixOS/home-manager
+    pub fn nix_handler(&self) -> NixHandler {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|s| s.nix_handler)
+            .unwrap_or_default()
     }
 
     /// Extra nix arguments

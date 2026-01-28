@@ -7,11 +7,13 @@ use rust_i18n::t;
 use tracing::{debug, warn};
 
 use crate::command::CommandExt;
+use crate::config::NixHandler;
 use crate::error::{SkipStep, TopgradeError};
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::steps::generic::is_wsl;
 use crate::steps::os::archlinux;
+use crate::steps::unix::{flake_dir, nh_switch};
 use crate::sudo::SudoExecuteOpts;
 use crate::terminal::{print_separator, prompt_yesno};
 use crate::utils::{require, require_one, which, PathExt};
@@ -799,15 +801,33 @@ fn upgrade_exherbo(ctx: &ExecutionContext) -> Result<()> {
 
 fn upgrade_nixos(ctx: &ExecutionContext) -> Result<()> {
     let sudo = ctx.require_sudo()?;
+    let has_nh = require("nh").is_ok();
+    let nix_handler = ctx.config().nix_handler();
 
-    let mut command = sudo.execute(ctx, "/run/current-system/sw/bin/nixos-rebuild")?;
-    command.args(["switch", "--upgrade"]);
+    let fallback_flake_path = flake_dir("NH_FLAKE");
+    let nixos_flake_path = flake_dir("NH_OS_FLAKE");
 
-    if let Some(args) = ctx.config().nix_arguments() {
-        command.args(args.split_whitespace());
+    match (nix_handler, has_nh) {
+        (NixHandler::Autodetect | NixHandler::Nh, true) => {
+            if nixos_flake_path.is_some() || fallback_flake_path.is_some() {
+                nh_switch(ctx, "os")?;
+            }
+        }
+        (NixHandler::Nh, false) => {
+            return Err(SkipStep(t!("linux.nix_handler = \"nh\" but nh is not available").into()).into())
+        }
+        _ => {
+            let mut command = sudo.execute(ctx, "/run/current-system/sw/bin/nixos-rebuild")?;
+            command.args(["switch", "--upgrade"]);
+
+            if let Some(args) = ctx.config().nix_arguments() {
+                command.args(args.split_whitespace());
+            }
+            command.status_checked()?;
+        }
     }
-    command.status_checked()?;
 
+    // TODO: maybe use `nh clean` when available&&wanted ?
     if ctx.config().cleanup() {
         sudo.execute(ctx, "/run/current-system/sw/bin/nix-collect-garbage")?
             .arg("-d")

@@ -14,6 +14,8 @@ use crate::steps::remote::vagrant;
 use crate::steps::*;
 use crate::utils::hostname;
 
+pub const DEPRECATED_STEPS: [Step; 1] = [Step::NixHelper];
+
 #[derive(ValueEnum, EnumString, VariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy, EnumCount)]
 #[clap(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -445,11 +447,6 @@ impl Step {
                 #[cfg(unix)]
                 runner.execute(*self, "nix upgrade-nix", || unix::run_nix_self_upgrade(ctx))?
             }
-            NixHelper =>
-            {
-                #[cfg(unix)]
-                runner.execute(*self, "nh", || unix::run_nix_helper(ctx))?
-            }
             Node => runner.execute(*self, "npm", || node::run_npm_upgrade(ctx))?,
             Opam => runner.execute(*self, "opam", || generic::run_opam_update(ctx))?,
             Pacdef =>
@@ -699,6 +696,7 @@ impl Step {
             Yazi => runner.execute(*self, "Yazi packages", || generic::run_yazi(ctx))?,
             Zigup => runner.execute(*self, "zigup", || generic::run_zigup(ctx))?,
             Zvm => runner.execute(*self, "ZVM", || generic::run_zvm(ctx))?,
+            _ => {}
         }
 
         Ok(())

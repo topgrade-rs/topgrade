@@ -16,10 +16,12 @@ use std::process::Command;
 use std::sync::LazyLock;
 use std::{env::var, path::Path};
 use std::{fs, io};
-use tracing::{debug, warn};
+use tracing::debug;
 
 use crate::command::CommandExt;
+use crate::config::NixHandler;
 use crate::sudo::SudoExecuteOpts;
+use crate::utils::require_one;
 use crate::XDG_DIRS;
 use crate::{output_changed_message, HOME_DIR};
 
@@ -731,79 +733,26 @@ fn nix_profile_dir(nix: &Path) -> Result<Option<PathBuf>> {
 
 /// Returns a directory from an environment variable, if and only if it is a directory which
 /// contains a flake.nix
-fn flake_dir(var: &'static str) -> Option<PathBuf> {
+pub(super) fn flake_dir(var: &'static str) -> Option<PathBuf> {
     std::env::var_os(var)
         .map(PathBuf::from)
         .take_if(|x| std::fs::exists(x.join("flake.nix")).is_ok_and(|x| x))
 }
 
-/// Update NixOS and home-manager through a flake using `nh`
-///
-/// See: https://github.com/viperML/nh
-pub fn run_nix_helper(ctx: &ExecutionContext) -> Result<()> {
+pub(super) fn nh_switch(ctx: &ExecutionContext, ty: &'static str) -> Result<()> {
     require("nix")?;
     let nix_helper = require("nh")?;
+    print_separator(format!("nh {ty}"));
 
-    let fallback_flake_path = flake_dir("NH_FLAKE");
-    let darwin_flake_path = flake_dir("NH_DARWIN_FLAKE");
-    let home_flake_path = flake_dir("NH_HOME_FLAKE");
-    let nixos_flake_path = flake_dir("NH_OS_FLAKE");
+    let mut cmd = ctx.execute(&nix_helper);
+    cmd.arg(ty);
+    cmd.arg("switch");
+    cmd.arg("-u");
 
-    let all_flake_paths: Vec<_> = [
-        fallback_flake_path.as_ref(),
-        darwin_flake_path.as_ref(),
-        home_flake_path.as_ref(),
-        nixos_flake_path.as_ref(),
-    ]
-    .into_iter()
-    .flatten()
-    .collect();
-
-    // if none of the paths exist AND contain a `flake.nix`, skip
-    if all_flake_paths.is_empty() {
-        if flake_dir("FLAKE").is_some() {
-            warn!(
-                "{}",
-                t!("You have a flake inside of $FLAKE. This is deprecated for nh.")
-            );
-        }
-        return Err(SkipStep(t!("nh cannot find any configured flakes").into()).into());
+    if !ctx.config().yes(Step::System) {
+        cmd.arg("--ask");
     }
-
-    let nh_switch = |ty: &'static str| -> Result<()> {
-        print_separator(format!("nh {ty}"));
-
-        let mut cmd = ctx.execute(&nix_helper);
-        cmd.arg(ty);
-        cmd.arg("switch");
-        cmd.arg("-u");
-
-        if !ctx.config().yes(Step::NixHelper) {
-            cmd.arg("--ask");
-        }
-        cmd.status_checked()?;
-        Ok(())
-    };
-
-    // We assume that if the user has set these variables, we can throw an error if nh cannot find
-    // a flake there. So we do not anymore perform an eval check to find out whether we should skip
-    // or not.
-    #[cfg(target_os = "macos")]
-    if darwin_flake_path.is_some() || fallback_flake_path.is_some() {
-        nh_switch("darwin")?;
-    }
-
-    if home_flake_path.is_some() || fallback_flake_path.is_some() {
-        nh_switch("home")?;
-    }
-
-    #[cfg(target_os = "linux")]
-    if matches!(Distribution::detect(), Ok(Distribution::NixOS))
-        && (nixos_flake_path.is_some() || fallback_flake_path.is_some())
-    {
-        nh_switch("os")?;
-    }
-
+    cmd.status_checked()?;
     Ok(())
 }
 
@@ -906,18 +855,43 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
-    let home_manager = require("home-manager")?;
+    require_one(["home-manager", "nh"])?;
+    let home_manager = require("home-manager");
+    let nix_helper = require("nh");
+    let nix_handler = ctx.config().nix_handler();
 
-    print_separator("home-manager");
+    match (home_manager.is_ok(), nix_helper.is_ok(), nix_handler) {
+        (_, true, NixHandler::Autodetect | NixHandler::Nh) => {
+            let fallback_flake_path = flake_dir("NH_FLAKE");
+            let home_flake_path = flake_dir("NH_HOME_FLAKE");
 
-    let mut cmd = ctx.execute(home_manager);
-    cmd.arg("switch");
+            if home_flake_path.is_some() || fallback_flake_path.is_some() {
+                nh_switch(ctx, "home")?;
+            } else if nix_handler == NixHandler::Nh {
+                return Err(SkipStep(
+                    t!("home_manager: nh was requested but neither $NH_FLAKE nor $NH_HOME_FLAKE were set").into(),
+                )
+                .into());
+            }
 
-    if let Some(extra_args) = ctx.config().home_manager() {
-        cmd.args(extra_args);
+            Ok(())
+        }
+        (_, false, NixHandler::Nh) => Err(nix_helper.expect_err("checked !nh.is_ok()")),
+        (false, _, NixHandler::Vanilla) => Err(home_manager.expect_err("checked !home_manager.is_ok()")),
+        (false, false, _) => unreachable!("require_one called"),
+        _ => {
+            print_separator("home-manager");
+
+            let mut cmd = ctx.execute(home_manager.unwrap());
+            cmd.arg("switch");
+
+            if let Some(extra_args) = ctx.config().home_manager() {
+                cmd.args(extra_args);
+            }
+
+            cmd.status_checked()
+        }
     }
-
-    cmd.status_checked()
 }
 
 pub fn run_pearl(ctx: &ExecutionContext) -> Result<()> {
