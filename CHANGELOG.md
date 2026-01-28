@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.9.0](https://github.com/topgrade-rs/topgrade/compare/v16.8.0...v16.9.0) - 2026-01-28
+
+### Added
+
+- *(cargo)* add `git` and `quiet` options ([#1685](https://github.com/topgrade-rs/topgrade/pull/1685))
+
+### Other
+
+- *(deps)* update actions/attest-build-provenance action to v3.2.0 ([#1703](https://github.com/topgrade-rs/topgrade/pull/1703))
+- *(deps)* update vmactions/openbsd-vm digest to f5b9bc1 ([#1706](https://github.com/topgrade-rs/topgrade/pull/1706))
+- *(renovate)* disable rate-limiting ([#1697](https://github.com/topgrade-rs/topgrade/pull/1697))
+- *(renovate)* disable rate-limiting ([#1696](https://github.com/topgrade-rs/topgrade/pull/1696))
+- *(deps)* update dependency rust to v1.93.0 ([#1695](https://github.com/topgrade-rs/topgrade/pull/1695))
+- *(renovate)* add rust-toolchain updating ([#1694](https://github.com/topgrade-rs/topgrade/pull/1694))
+- pin toolchain to stable instead of MSRV, add MSRV testing, simplify CI workflow ([#1690](https://github.com/topgrade-rs/topgrade/pull/1690))
+- *(pre-commit)* autoupdate ([#1687](https://github.com/topgrade-rs/topgrade/pull/1687))
+- *(renovate)* use preset for lockfile config ([#1684](https://github.com/topgrade-rs/topgrade/pull/1684))
+- *(pre-commit)* autoupdate ([#1682](https://github.com/topgrade-rs/topgrade/pull/1682))
+- *(deps)* update github/codeql-action action to v4.31.10 ([#1680](https://github.com/topgrade-rs/topgrade/pull/1680))
+- *(deb)* update copyright
+- *(deps)* unpin toml
+- *(installation)* add Pacstall Ubuntu package to README ([#1676](https://github.com/topgrade-rs/topgrade/pull/1676))
+- *(deps)* update rust crate toml to v0.9.11 ([#1675](https://github.com/topgrade-rs/topgrade/pull/1675))
+- *(release)* fix OpenBSD release job ([#1674](https://github.com/topgrade-rs/topgrade/pull/1674))
+- *(release)* fix OpenBSD release job ([#1672](https://github.com/topgrade-rs/topgrade/pull/1672))
+
 ## [16.8.0](https://github.com/topgrade-rs/topgrade/compare/v16.7.0...v16.8.0) - 2026-01-07
 
 ### Added
