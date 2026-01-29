@@ -1120,24 +1120,13 @@ impl Config {
         }
     }
 
-    /// Tell whether we should not attempt to retry anything.
-    pub fn no_retry(&self) -> bool {
-        let config = self.retry_config();
-        config.auto_retry == 0 && !config.ask_retry
-    }
-
-    /// Get retry config
-    pub fn retry_config(&self) -> RetryConfig {
-        let mut auto_retry: u16 = 0;
-        let mut ask_retry: bool = true;
-
+    /// Get the auto retry count for failed steps
+    pub fn auto_retry(&self) -> u16 {
         // Get settings from config file
+        let mut auto_retry: u16 = 0;
         if let Some(misc) = self.config_file.misc.as_ref() {
             if let Some(val) = misc.auto_retry {
                 auto_retry = val;
-            }
-            if let Some(val) = misc.ask_retry {
-                ask_retry = val;
             }
         }
 
@@ -1146,6 +1135,21 @@ impl Config {
             auto_retry = count;
         }
 
+        auto_retry
+    }
+
+    /// Determine whether to ask for retry after a step fails
+    pub fn ask_retry(&self) -> bool {
+        let mut ask_retry: bool = true;
+
+        // Get settings from config
+        if let Some(misc) = self.config_file.misc.as_ref() {
+            if let Some(val) = misc.ask_retry {
+                ask_retry = val;
+            }
+        }
+
+        // CLI options override config
         if self.opt.no_ask_retry {
             ask_retry = false;
         }
@@ -1155,7 +1159,20 @@ impl Config {
             ask_retry = false;
         }
 
-        RetryConfig { auto_retry, ask_retry }
+        ask_retry
+    }
+
+    /// Tell whether we should not attempt to retry anything.
+    pub fn no_retry(&self) -> bool {
+        self.auto_retry() == 0 && !self.ask_retry()
+    }
+
+    /// Get retry config
+    pub fn retry_config(&self) -> RetryConfig {
+        RetryConfig {
+            auto_retry: self.auto_retry(),
+            ask_retry: self.ask_retry(),
+        }
     }
 
     /// List of user-defined environment variables
