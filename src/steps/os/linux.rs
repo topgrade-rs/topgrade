@@ -13,7 +13,7 @@ use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::steps::generic::is_wsl;
 use crate::steps::os::archlinux;
-use crate::steps::unix::{flake_dir, nh_switch};
+use crate::steps::unix::{can_nh_switch, nh_switch, NhSwitchArgs};
 use crate::sudo::SudoExecuteOpts;
 use crate::terminal::{print_separator, prompt_yesno};
 use crate::utils::{require, require_one, which, PathExt};
@@ -801,38 +801,20 @@ fn upgrade_exherbo(ctx: &ExecutionContext) -> Result<()> {
 
 fn upgrade_nixos(ctx: &ExecutionContext) -> Result<()> {
     let sudo = ctx.require_sudo()?;
-    let has_nh = require("nh").is_ok();
     let nix_handler = ctx.config().nix_handler();
+    let nh_switch_args = NhSwitchArgs {
+        step: "system",
+        installable_type: "os",
+        specific_var: "NH_OS_FLAKE",
+        print_separator: false,
+    };
+    let can_nh_switch = can_nh_switch(&nh_switch_args);
 
-    let specific_var = "NH_OS_FLAKE";
-    let has_flake = flake_dir("NH_FLAKE").is_some() || flake_dir(specific_var).is_some();
-
-    match (nix_handler, has_nh) {
-        (NixHandler::Autodetect | NixHandler::Nh, true) if has_flake => {
-            nh_switch(ctx, "os")?;
+    match (nix_handler, can_nh_switch) {
+        (NixHandler::Autodetect | NixHandler::Nh, Ok(nh)) => {
+            nh_switch(ctx, &nh, &nh_switch_args)?;
         }
-        (NixHandler::Nh, true) if !has_flake => {
-            return Err(SkipStep(
-                t!(
-                    "{step}: linux.nix_handler = \"nh\", but neither $NH_FLAKE nor ${specific_var} were set",
-                    step = "system",
-                    specific_var = specific_var
-                )
-                .into(),
-            )
-            .into());
-        }
-        (NixHandler::Nh, false) => {
-            return Err(SkipStep(
-                t!(
-                    "linux.nix_handler = \"{value}\", but {resulting_tool} is not available",
-                    value = "nh",
-                    resulting_tool = "nh"
-                )
-                .into(),
-            )
-            .into());
-        }
+        (NixHandler::Nh, Err(e)) => return Err(e),
         _ => {
             let mut command = sudo.execute(ctx, "/run/current-system/sw/bin/nixos-rebuild")?;
             command.args(["switch", "--upgrade"]);

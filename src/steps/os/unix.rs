@@ -739,12 +739,50 @@ pub(super) fn flake_dir(var: &'static str) -> Option<PathBuf> {
         .take_if(|x| std::fs::exists(x.join("flake.nix")).is_ok_and(|x| x))
 }
 
-pub(super) fn nh_switch(ctx: &ExecutionContext, installable_type: &'static str) -> Result<()> {
-    require("nix")?;
-    let nix_helper = require("nh")?;
+pub(super) struct NhSwitchArgs<'a> {
+    pub step: &'a str,
+    pub installable_type: &'a str,
+    pub specific_var: &'a str,
+    pub print_separator: bool,
+}
 
-    let mut cmd = ctx.execute(&nix_helper);
-    cmd.arg(installable_type);
+pub(super) fn can_nh_switch(args: &NhSwitchArgs<'static>) -> Result<PathBuf> {
+    let nix_helper = require("nh");
+
+    if nix_helper.is_err() {
+        return Err(SkipStep(
+            t!(
+                "linux.nix_handler = \"{value}\", but {resulting_tool} is not available",
+                value = "nh",
+                resulting_tool = "nh"
+            )
+            .into(),
+        )
+        .into());
+    };
+
+    if flake_dir("NH_FLAKE").is_none() && flake_dir(args.specific_var).is_none() {
+        return Err(SkipStep(
+            t!(
+                "{step}: linux.nix_handler = \"nh\", but neither $NH_FLAKE nor ${specific_var} were set",
+                step = args.step,
+                specific_var = args.specific_var
+            )
+            .into(),
+        )
+        .into());
+    }
+
+    nix_helper
+}
+
+pub(super) fn nh_switch(ctx: &ExecutionContext, nh: &PathBuf, args: &NhSwitchArgs<'static>) -> Result<()> {
+    if args.print_separator {
+        print_separator(format!("nh {}", args.installable_type));
+    }
+
+    let mut cmd = ctx.execute(nh);
+    cmd.arg(args.installable_type);
     cmd.arg("switch");
     cmd.arg("-u");
 
@@ -856,36 +894,19 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
     require_one(["home-manager", "nh"])?;
     let home_manager = require("home-manager");
-    let nix_helper = require("nh");
     let nix_handler = ctx.config().nix_handler();
+    let nh_switch_args = NhSwitchArgs {
+        step: "home_manager",
+        installable_type: "home",
+        specific_var: "NH_HOME_FLAKE",
+        print_separator: true,
+    };
+    let can_nh_switch = can_nh_switch(&nh_switch_args);
 
-    let specific_var = "NH_HOME_FLAKE";
-    let has_flake = flake_dir("NH_FLAKE").is_some() || flake_dir(specific_var).is_some();
-
-    match (home_manager.is_ok(), nix_helper.is_ok(), nix_handler) {
-        (_, true, NixHandler::Autodetect | NixHandler::Nh) if has_flake => {
-            print_separator("nh home");
-            nh_switch(ctx, "home")
-        }
-        (_, true, NixHandler::Nh) if !has_flake => Err(SkipStep(
-            t!(
-                "{step}: linux.nix_handler = \"nh\", but neither $NH_FLAKE nor ${specific_var} were set",
-                step = "home_manager",
-                specific_var = specific_var
-            )
-            .into(),
-        )
-        .into()),
-        (_, false, NixHandler::Nh) => Err(SkipStep(
-            t!(
-                "linux.nix_handler = \"{value}\", but {resulting_tool} is not available",
-                value = "nh",
-                resulting_tool = "nh"
-            )
-            .into(),
-        )
-        .into()),
-        (false, _, NixHandler::Vanilla) => Err(SkipStep(
+    match (home_manager.is_ok(), nix_handler, can_nh_switch) {
+        (_, NixHandler::Autodetect | NixHandler::Nh, Ok(nh)) => nh_switch(ctx, &nh, &nh_switch_args),
+        (_, NixHandler::Nh, Err(e)) => Err(e),
+        (false, NixHandler::Vanilla, _) => Err(SkipStep(
             t!(
                 "linux.nix_handler = \"{value}\", but {resulting_tool} is not available",
                 value = "vanilla",
@@ -894,7 +915,6 @@ pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
             .into(),
         )
         .into()),
-        (false, false, _) => unreachable!("require_one called"),
         _ => {
             print_separator("home-manager");
 
