@@ -33,7 +33,7 @@ jobs:
     env:
       tag: ${{ github.event.client_payload.tag }}
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
@@ -93,7 +93,7 @@ jobs:
           FILENAME=topgrade-${tag}-$(default-target)
           mv target/release/topgrade assets
           cd assets
-          tar --format=ustar -czf $FILENAME.tar.gz topgrade
+          tar --format=ustar -czf "$FILENAME.tar.gz" topgrade
           rm topgrade
           ls .
         if: ${{ matrix.platform != 'windows-latest' }}
@@ -137,7 +137,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate artifact attestations
-        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
         with:
           subject-path: assets/*
 
@@ -169,7 +169,7 @@ jobs:
       matrix_target: ${{ matrix.target }}
       tag: ${{ github.event.client_payload.tag }}
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
@@ -284,12 +284,102 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate artifact attestations
-        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
+        with:
+          subject-path: assets/*
+
+  # Publish release files for OpenBSD
+  openbsd_build:
+    permissions:
+      id-token: write
+      contents: write
+      attestations: write
+    runs-on: ubuntu-latest
+    env:
+      tag: ${{ github.event.client_payload.tag }}
+
+    defaults:
+      run:
+        shell: openbsd {0}
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Start OpenBSD VM
+        uses: vmactions/openbsd-vm@f5b9bc1261c3d4eed9639fcae0cf5dcc5374ca0c # v1
+        with:
+          arch: x86_64
+          sync: nfs
+          usesh: true
+
+      - name: Install dependencies
+        run: >
+          pkg_add -v
+          rust
+          git
+          gmake
+          bash
+
+      - name: Install Rust components
+        run: |
+          pkg_add -v rust-rustfmt rust-clippy
+
+      - name: Check format
+        run: |
+          cd $GITHUB_WORKSPACE
+          cargo fmt --all -- --check
+
+      - name: Run clippy
+        run: |
+          cd $GITHUB_WORKSPACE
+          cargo clippy --all-targets --locked -- -D warnings
+
+      - name: Run clippy (All features)
+        run: |
+          cd $GITHUB_WORKSPACE
+          cargo clippy --all-targets --locked --all-features -- -D warnings
+
+      - name: Run tests
+        run: |
+          cd $GITHUB_WORKSPACE
+          cargo test
+
+      - name: Build Release binary
+        run: |
+          cd $GITHUB_WORKSPACE
+          cargo build --release --all-features
+
+      - name: Package OpenBSD release
+        run: |
+          cd $GITHUB_WORKSPACE
+          cargo install default-target
+          mkdir -p assets
+          # TODO: this should use the env var (${tag}), but can't because it's not set in the VM.
+          FILENAME=topgrade-${{ github.event.client_payload.tag }}-$(/root/.cargo/bin/default-target)
+          mv target/release/topgrade assets
+          cd assets
+          tar -F ustar -czf "$FILENAME.tar.gz" topgrade
+          rm topgrade
+          ls .
+
+      - name: Upload assets
+        shell: bash
+        run: gh release upload "${tag}" assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate artifact attestations
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
         with:
           subject-path: assets/*
 
   triggers:
     runs-on: ubuntu-latest
+    # Don't wait for openbsd_build, because the workflows receiving this trigger (aur, winget)
+    #  don't use the openbsd binary, and because we don't want to fail the whole pipeline
+    #  when openbsd (which is not tested in CI) fails.
     needs: [ native_build, cross_build ]
     env:
       tag: ${{ github.event.client_payload.tag }}

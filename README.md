@@ -48,6 +48,8 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
   `scoop bucket add main && scoop install main/topgrade`](https://scoop.sh/#/apps?q=topgrade)
 - macOS ([MacPorts](https://www.macports.org/)): [
   `sudo port install topgrade`](https://ports.macports.org/port/topgrade/)
+- Ubuntu ([Pacstall](https://pacstall.dev/)):
+  [`pacstall -I topgrade-bin`](https://github.com/pacstall/pacstall-programs/blob/master/packages/topgrade-bin/topgrade-bin.pacscript)
 - NixOS or Nix (nixpkgs): [topgrade](https://search.nixos.org/packages?show=topgrade)
 - Void Linux: [`sudo xbps-install -S topgrade`](https://voidlinux.org/packages/?arch=x86_64&q=topgrade)
 
@@ -58,6 +60,10 @@ Just run `topgrade`.
 ## Configuration
 
 See [`config.example.toml`](https://github.com/topgrade-rs/topgrade/blob/main/config.example.toml) for an example configuration file.
+
+## MSRV
+
+Find the current MSRV in `Cargo.toml` under `rust-version`. This MSRV will only be bumped in a major release.
 
 ## Migration and Breaking Changes
 

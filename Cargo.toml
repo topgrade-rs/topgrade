@@ -1,13 +1,12 @@
 [package]
 name = "topgrade"
 description = "Upgrade all the things"
-categories = ["os"]
+categories = ["command-line-utilities"]
 keywords = ["upgrade", "update"]
 license = "GPL-3.0-or-later"
 repository = "https://github.com/topgrade-rs/topgrade"
 rust-version = "1.84.1"
-version = "16.6.1"
-authors = ["Roey Darwish Dror <roey.ghost@gmail.com>", "Thomas Schönauer <t.schoenauer@hgs-wt.at>"]
+version = "16.8.0"
 exclude = ["doc/screenshot.gif", "BREAKINGCHANGES_dev.md"]
 edition = "2021"
 
@@ -17,7 +16,7 @@ readme = "README.md"
 home = "=0.5.11"
 etcetera = "=0.10.0"
 serde = { version = "~1.0", features = ["derive"] }
-toml = { version = "=0.9.8", features = ["preserve_order"] }
+toml = { version = "~0.9.11", features = ["preserve_order"] }
 which_crate = { version = "~8.0", package = "which" }
 shellexpand = "~3.1"
 clap = { version = "~4.5", features = ["cargo", "derive"] }
@@ -29,8 +28,8 @@ chrono = "~0.4"
 glob = "~0.3"
 strum = { version = "~0.27", features = ["derive"] }
 thiserror = "~2.0"
-tempfile = "~3.23"
-tokio = { version = "~1.48", features = ["process", "rt-multi-thread"] }
+tempfile = "~3.24.0"
+tokio = { version = "~1.49.0", features = ["process", "rt-multi-thread"] }
 futures = "~0.3"
 regex = "~1.12"
 semver = "~1.0"
@@ -52,6 +51,7 @@ itertools = "0.14.0"
 ignore = "=0.4.23"
 globset = "=0.4.16"
 base64ct = "<1.8.0"
+async-lock = "=3.4.1"
 clap-cargo = "0.15.2"
 
 [package.metadata.generate-rpm]
@@ -63,7 +63,7 @@ git = "*"
 [package.metadata.deb]
 name = "topgrade"
 maintainer = "Chris Gelatt <kreeblah@gmail.com>"
-copyright = "2024, Topgrade Team"
+copyright = "2026, Topgrade Team"
 license-file = ["LICENSE", "0"]
 depends = "$auto"
 extended-description = "Keeping your system up to date usually involves invoking multiple package managers. This results in big, non-portable shell one-liners saved in your shell. To remedy this, Topgrade detects which tools you use and runs the appropriate commands to update them."

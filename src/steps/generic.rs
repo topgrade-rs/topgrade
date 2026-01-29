@@ -70,9 +70,15 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep(message).into());
     };
 
-    ctx.execute(cargo_update)
-        .args(["install-update", "--git", "--all"])
-        .status_checked()?;
+    let mut command = ctx.execute(cargo_update);
+    command.args(["install-update", "--all"]);
+    if ctx.config().cargo_update_git() {
+        command.arg("--git");
+    }
+    if ctx.config().cargo_update_quiet() {
+        command.arg("--quiet");
+    }
+    command.status_checked()?;
 
     if ctx.config().cleanup() {
         let cargo_cache = require("cargo-cache")
@@ -469,6 +475,7 @@ enum VSCodeVariant {
     CodeInsiders,
     Codium,
     CodiumInsiders,
+    Cursor,
 }
 
 impl VSCodeVariant {
@@ -478,6 +485,7 @@ impl VSCodeVariant {
             VSCodeVariant::CodeInsiders => "VSCode Insiders",
             VSCodeVariant::Codium => "VSCodium",
             VSCodeVariant::CodiumInsiders => "VSCodium Insiders",
+            VSCodeVariant::Cursor => "Cursor",
         }
     }
 
@@ -487,6 +495,7 @@ impl VSCodeVariant {
             VSCodeVariant::CodeInsiders => "code-insiders",
             VSCodeVariant::Codium => "codium",
             VSCodeVariant::CodiumInsiders => "codium-insiders",
+            VSCodeVariant::Cursor => "cursor",
         }
     }
 
@@ -496,12 +505,13 @@ impl VSCodeVariant {
             VSCodeVariant::CodeInsiders => "Visual Studio Code Insiders extensions",
             VSCodeVariant::Codium => "VSCodium extensions",
             VSCodeVariant::CodiumInsiders => "VSCodium Insiders extensions",
+            VSCodeVariant::Cursor => "Cursor extensions",
         }
     }
 
     fn supports_profiles(&self) -> bool {
         match self {
-            VSCodeVariant::Code | VSCodeVariant::CodeInsiders => true,
+            VSCodeVariant::Code | VSCodeVariant::CodeInsiders | VSCodeVariant::Cursor => true,
             VSCodeVariant::Codium | VSCodeVariant::CodiumInsiders => false,
         }
     }
@@ -606,6 +616,10 @@ pub fn run_vscode_insiders_extensions_update(ctx: &ExecutionContext) -> Result<(
 
 pub fn run_vscodium_insiders_extensions_update(ctx: &ExecutionContext) -> Result<()> {
     run_vscode_compatible(VSCodeVariant::CodiumInsiders, ctx)
+}
+
+pub fn run_cursor_extensions_update(ctx: &ExecutionContext) -> Result<()> {
+    run_vscode_compatible(VSCodeVariant::Cursor, ctx)
 }
 
 pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {

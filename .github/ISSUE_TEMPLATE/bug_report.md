@@ -32,7 +32,7 @@ What actually happened?
 ## Expected Behavior
 
 <!--
-Describe the expected behavior.
+Describe the expected behavior. If this bug appeared with a new version of Topgrade, please state the last version of Topgrade that had the expected behavior.
 -->
 
 ## Steps to reproduce
