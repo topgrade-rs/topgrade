@@ -1162,11 +1162,6 @@ impl Config {
         ask_retry
     }
 
-    /// Tell whether we should not attempt to retry anything.
-    pub fn no_retry(&self) -> bool {
-        self.auto_retry() == 0 && !self.ask_retry()
-    }
-
     /// Get retry config
     pub fn retry_config(&self) -> RetryConfig {
         RetryConfig {
