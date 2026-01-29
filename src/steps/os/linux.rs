@@ -804,17 +804,34 @@ fn upgrade_nixos(ctx: &ExecutionContext) -> Result<()> {
     let has_nh = require("nh").is_ok();
     let nix_handler = ctx.config().nix_handler();
 
-    let fallback_flake_path = flake_dir("NH_FLAKE");
-    let nixos_flake_path = flake_dir("NH_OS_FLAKE");
+    let specific_var = "NH_OS_FLAKE";
+    let has_flake = flake_dir("NH_FLAKE").is_some() || flake_dir(specific_var).is_some();
 
     match (nix_handler, has_nh) {
-        (NixHandler::Autodetect | NixHandler::Nh, true) => {
-            if nixos_flake_path.is_some() || fallback_flake_path.is_some() {
-                nh_switch(ctx, "os")?;
-            }
+        (NixHandler::Autodetect | NixHandler::Nh, true) if has_flake => {
+            nh_switch(ctx, "os")?;
+        }
+        (NixHandler::Nh, true) if !has_flake => {
+            return Err(SkipStep(
+                t!(
+                    "{step}: linux.nix_handler = \"nh\", but neither $NH_FLAKE nor ${specific_var} were set",
+                    step = "system",
+                    specific_var = specific_var
+                )
+                .into(),
+            )
+            .into());
         }
         (NixHandler::Nh, false) => {
-            return Err(SkipStep(t!("linux.nix_handler = \"nh\" but nh is not available").into()).into())
+            return Err(SkipStep(
+                t!(
+                    "linux.nix_handler = \"{value}\", but {resulting_tool} is not available",
+                    value = "nh",
+                    resulting_tool = "nh"
+                )
+                .into(),
+            )
+            .into());
         }
         _ => {
             let mut command = sudo.execute(ctx, "/run/current-system/sw/bin/nixos-rebuild")?;

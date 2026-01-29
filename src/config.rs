@@ -288,8 +288,6 @@ pub struct Linux {
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     dnf_arguments: Option<String>,
 
-    nix_handler: Option<NixHandler>,
-
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     nix_arguments: Option<String>,
 
@@ -383,6 +381,8 @@ pub struct Misc {
     log_filters: Option<Vec<String>>,
 
     show_distribution_summary: Option<bool>,
+
+    nix_handler: Option<NixHandler>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, ValueEnum, Default)]
@@ -1496,7 +1496,7 @@ impl Config {
     /// Get the handler to use for NixOS/home-manager
     pub fn nix_handler(&self) -> NixHandler {
         self.config_file
-            .linux
+            .misc
             .as_ref()
             .and_then(|s| s.nix_handler)
             .unwrap_or_default()
