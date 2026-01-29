@@ -1122,7 +1122,8 @@ impl Config {
 
     /// Get the auto retry count for failed steps
     pub fn auto_retry(&self) -> u16 {
-        self.opt.auto_retry
+        self.opt
+            .auto_retry
             .or_else(|| self.config_file.misc.as_ref().and_then(|misc| misc.auto_retry))
             .unwrap_or(0)
     }
