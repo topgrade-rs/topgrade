@@ -1122,44 +1122,26 @@ impl Config {
 
     /// Get the auto retry count for failed steps
     pub fn auto_retry(&self) -> u16 {
-        // Get settings from config file
-        let mut auto_retry: u16 = 0;
-        if let Some(misc) = self.config_file.misc.as_ref() {
-            if let Some(val) = misc.auto_retry {
-                auto_retry = val;
-            }
-        }
-
-        // CLI options override config file
-        if let Some(count) = self.opt.auto_retry {
-            auto_retry = count;
-        }
-
-        auto_retry
+        self.opt.auto_retry
+            .or_else(|| self.config_file.misc.as_ref().and_then(|misc| misc.auto_retry))
+            .unwrap_or(0)
     }
 
     /// Determine whether to ask for retry after a step fails
     pub fn ask_retry(&self) -> bool {
-        let mut ask_retry: bool = true;
-
-        // Get settings from config
-        if let Some(misc) = self.config_file.misc.as_ref() {
-            if let Some(val) = misc.ask_retry {
-                ask_retry = val;
-            }
-        }
-
-        // CLI options override config
         if self.opt.no_ask_retry {
-            ask_retry = false;
+            return false;
         }
 
-        // --no-retry is a hidden alias for --no-ask-retry (legacy option)
         if self.opt.no_retry {
-            ask_retry = false;
+            return false;
         }
 
-        ask_retry
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.ask_retry)
+            .unwrap_or(true)
     }
 
     /// Get retry config
