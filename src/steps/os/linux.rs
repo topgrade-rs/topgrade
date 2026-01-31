@@ -7,11 +7,13 @@ use rust_i18n::t;
 use tracing::{debug, warn};
 
 use crate::command::CommandExt;
+use crate::config::NixHandler;
 use crate::error::{SkipStep, TopgradeError};
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::steps::generic::is_wsl;
 use crate::steps::os::archlinux;
+use crate::steps::unix::{can_nh_switch, nh_switch, NhSwitchArgs};
 use crate::sudo::SudoExecuteOpts;
 use crate::terminal::{print_separator, prompt_yesno};
 use crate::utils::{require, require_one, which, PathExt};
@@ -799,15 +801,32 @@ fn upgrade_exherbo(ctx: &ExecutionContext) -> Result<()> {
 
 fn upgrade_nixos(ctx: &ExecutionContext) -> Result<()> {
     let sudo = ctx.require_sudo()?;
+    let nix_handler = ctx.config().nix_handler();
+    let nh_switch_args = NhSwitchArgs {
+        step: "system",
+        installable_type: "os",
+        specific_var: "NH_OS_FLAKE",
+        print_separator: false,
+    };
+    let can_nh_switch = can_nh_switch(&nh_switch_args);
 
-    let mut command = sudo.execute(ctx, "/run/current-system/sw/bin/nixos-rebuild")?;
-    command.args(["switch", "--upgrade"]);
+    match (nix_handler, can_nh_switch) {
+        (NixHandler::Autodetect | NixHandler::Nh, Ok(nh)) => {
+            nh_switch(ctx, &nh, &nh_switch_args)?;
+        }
+        (NixHandler::Nh, Err(e)) => return Err(e),
+        _ => {
+            let mut command = sudo.execute(ctx, "/run/current-system/sw/bin/nixos-rebuild")?;
+            command.args(["switch", "--upgrade"]);
 
-    if let Some(args) = ctx.config().nix_arguments() {
-        command.args(args.split_whitespace());
+            if let Some(args) = ctx.config().nix_arguments() {
+                command.args(args.split_whitespace());
+            }
+            command.status_checked()?;
+        }
     }
-    command.status_checked()?;
 
+    // TODO: maybe use `nh clean` when available&&wanted ?
     if ctx.config().cleanup() {
         sudo.execute(ctx, "/run/current-system/sw/bin/nix-collect-garbage")?
             .arg("-d")

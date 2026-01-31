@@ -16,10 +16,12 @@ use std::process::Command;
 use std::sync::LazyLock;
 use std::{env::var, path::Path};
 use std::{fs, io};
-use tracing::{debug, warn};
+use tracing::debug;
 
 use crate::command::CommandExt;
+use crate::config::NixHandler;
 use crate::sudo::SudoExecuteOpts;
+use crate::utils::require_one;
 use crate::XDG_DIRS;
 use crate::{output_changed_message, HOME_DIR};
 
@@ -731,79 +733,63 @@ fn nix_profile_dir(nix: &Path) -> Result<Option<PathBuf>> {
 
 /// Returns a directory from an environment variable, if and only if it is a directory which
 /// contains a flake.nix
-fn flake_dir(var: &'static str) -> Option<PathBuf> {
+pub(super) fn flake_dir(var: &'static str) -> Option<PathBuf> {
     std::env::var_os(var)
         .map(PathBuf::from)
         .take_if(|x| std::fs::exists(x.join("flake.nix")).is_ok_and(|x| x))
 }
 
-/// Update NixOS and home-manager through a flake using `nh`
-///
-/// See: https://github.com/viperML/nh
-pub fn run_nix_helper(ctx: &ExecutionContext) -> Result<()> {
-    require("nix")?;
-    let nix_helper = require("nh")?;
+pub(super) struct NhSwitchArgs<'a> {
+    pub step: &'a str,
+    pub installable_type: &'a str,
+    pub specific_var: &'a str,
+    pub print_separator: bool,
+}
 
-    let fallback_flake_path = flake_dir("NH_FLAKE");
-    let darwin_flake_path = flake_dir("NH_DARWIN_FLAKE");
-    let home_flake_path = flake_dir("NH_HOME_FLAKE");
-    let nixos_flake_path = flake_dir("NH_OS_FLAKE");
+pub(super) fn can_nh_switch(args: &NhSwitchArgs<'static>) -> Result<PathBuf> {
+    let nix_helper = require("nh");
 
-    let all_flake_paths: Vec<_> = [
-        fallback_flake_path.as_ref(),
-        darwin_flake_path.as_ref(),
-        home_flake_path.as_ref(),
-        nixos_flake_path.as_ref(),
-    ]
-    .into_iter()
-    .flatten()
-    .collect();
-
-    // if none of the paths exist AND contain a `flake.nix`, skip
-    if all_flake_paths.is_empty() {
-        if flake_dir("FLAKE").is_some() {
-            warn!(
-                "{}",
-                t!("You have a flake inside of $FLAKE. This is deprecated for nh.")
-            );
-        }
-        return Err(SkipStep(t!("nh cannot find any configured flakes").into()).into());
-    }
-
-    let nh_switch = |ty: &'static str| -> Result<()> {
-        print_separator(format!("nh {ty}"));
-
-        let mut cmd = ctx.execute(&nix_helper);
-        cmd.arg(ty);
-        cmd.arg("switch");
-        cmd.arg("-u");
-
-        if !ctx.config().yes(Step::NixHelper) {
-            cmd.arg("--ask");
-        }
-        cmd.status_checked()?;
-        Ok(())
+    if nix_helper.is_err() {
+        return Err(SkipStep(
+            t!(
+                "linux.nix_handler = \"{value}\", but {resulting_tool} is not available",
+                value = "nh",
+                resulting_tool = "nh"
+            )
+            .into(),
+        )
+        .into());
     };
 
-    // We assume that if the user has set these variables, we can throw an error if nh cannot find
-    // a flake there. So we do not anymore perform an eval check to find out whether we should skip
-    // or not.
-    #[cfg(target_os = "macos")]
-    if darwin_flake_path.is_some() || fallback_flake_path.is_some() {
-        nh_switch("darwin")?;
+    if flake_dir("NH_FLAKE").is_none() && flake_dir(args.specific_var).is_none() {
+        return Err(SkipStep(
+            t!(
+                "{step}: linux.nix_handler = \"nh\", but neither $NH_FLAKE nor ${specific_var} were set",
+                step = args.step,
+                specific_var = args.specific_var
+            )
+            .into(),
+        )
+        .into());
     }
 
-    if home_flake_path.is_some() || fallback_flake_path.is_some() {
-        nh_switch("home")?;
+    nix_helper
+}
+
+pub(super) fn nh_switch(ctx: &ExecutionContext, nh: &PathBuf, args: &NhSwitchArgs<'static>) -> Result<()> {
+    if args.print_separator {
+        print_separator(format!("nh {}", args.installable_type));
     }
 
-    #[cfg(target_os = "linux")]
-    if matches!(Distribution::detect(), Ok(Distribution::NixOS))
-        && (nixos_flake_path.is_some() || fallback_flake_path.is_some())
-    {
-        nh_switch("os")?;
-    }
+    let mut cmd = ctx.execute(nh);
+    cmd.arg(args.installable_type);
+    cmd.arg("switch");
+    cmd.arg("-u");
 
+    if !ctx.config().yes(Step::System) {
+        cmd.arg("--ask");
+    }
+    cmd.status_checked()?;
     Ok(())
 }
 
@@ -906,18 +892,42 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
-    let home_manager = require("home-manager")?;
+    require_one(["home-manager", "nh"])?;
+    let home_manager = require("home-manager");
+    let nix_handler = ctx.config().nix_handler();
+    let nh_switch_args = NhSwitchArgs {
+        step: "home_manager",
+        installable_type: "home",
+        specific_var: "NH_HOME_FLAKE",
+        print_separator: true,
+    };
+    let can_nh_switch = can_nh_switch(&nh_switch_args);
 
-    print_separator("home-manager");
+    match (home_manager.is_ok(), nix_handler, can_nh_switch) {
+        (_, NixHandler::Autodetect | NixHandler::Nh, Ok(nh)) => nh_switch(ctx, &nh, &nh_switch_args),
+        (_, NixHandler::Nh, Err(e)) => Err(e),
+        (false, NixHandler::Vanilla, _) => Err(SkipStep(
+            t!(
+                "linux.nix_handler = \"{value}\", but {resulting_tool} is not available",
+                value = "vanilla",
+                resulting_tool = "home-manager"
+            )
+            .into(),
+        )
+        .into()),
+        _ => {
+            print_separator("home-manager");
 
-    let mut cmd = ctx.execute(home_manager);
-    cmd.arg("switch");
+            let mut cmd = ctx.execute(home_manager.unwrap());
+            cmd.arg("switch");
 
-    if let Some(extra_args) = ctx.config().home_manager() {
-        cmd.args(extra_args);
+            if let Some(extra_args) = ctx.config().home_manager() {
+                cmd.args(extra_args);
+            }
+
+            cmd.status_checked()
+        }
     }
-
-    cmd.status_checked()
 }
 
 pub fn run_pearl(ctx: &ExecutionContext) -> Result<()> {
