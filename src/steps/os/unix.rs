@@ -553,8 +553,6 @@ impl NixVersion {
 
 pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     let nix = require("nix")?;
-    let nix_channel = require("nix-channel")?;
-    let nix_env = require("nix-env")?;
     // TODO: Is None possible here?
     let profile_path = match home::home_dir() {
         Some(home) => XDG_DIRS
@@ -567,8 +565,6 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     debug!("nix profile: {:?}", profile_path);
     let manifest_json_path = profile_path.join("manifest.json");
 
-    print_separator("Nix");
-
     #[cfg(target_os = "macos")]
     {
         if require("darwin-rebuild").is_ok() {
@@ -577,8 +573,6 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
             );
         }
     }
-
-    ctx.execute(nix_channel).arg("--update").status_checked()?;
 
     let nix_version = NixVersion::new(ctx, &nix)?;
 
@@ -590,7 +584,20 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
         vec![".*"]
     };
 
+    // nix-channel might not be available and isn't always necessary to perform profile updates
+    let nix_channel_result = if let Ok(nix_channel) = require("nix-channel") {
+        print_separator("Nix Channels");
+        ctx.execute(nix_channel).arg("--update").status_checked()
+    } else {
+        Ok(())
+    };
+
     if Path::new(&manifest_json_path).exists() {
+        // nix-channel doesn't have to succeed when upgrading nix profiles, just warn about it
+        if let Err(e) = nix_channel_result {
+            warn!("`nix-channel --update` failed: {e}");
+        }
+        print_separator("Nix Profiles");
         ctx.execute(nix)
             .args(nix_args())
             .arg("profile")
@@ -599,6 +606,11 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
             .arg("--verbose")
             .status_checked()
     } else {
+        // a successful nix-channel run is expected to perform nix-env upgrades
+        nix_channel_result?;
+        let nix_env = require("nix-env")?;
+        print_separator("Nix");
+
         let mut command = ctx.execute(nix_env);
         command.arg("--upgrade");
         if let Some(args) = ctx.config().nix_env_arguments() {
