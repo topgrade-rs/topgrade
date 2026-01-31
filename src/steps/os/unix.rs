@@ -582,7 +582,7 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
         vec![".*"]
     };
 
-    // nix-channel might not be available and isn't always nessecary to perform profile updates
+    // nix-channel might not be available and isn't always necessary to perform profile updates
     let nix_channel_result = if let Ok(nix_channel) = require("nix-channel") {
         print_separator("Nix Channels");
         ctx.execute(nix_channel).arg("--update").status_checked()
