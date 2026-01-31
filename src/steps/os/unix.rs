@@ -16,7 +16,7 @@ use std::process::Command;
 use std::sync::LazyLock;
 use std::{env::var, path::Path};
 use std::{fs, io};
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::command::CommandExt;
 use crate::config::NixHandler;
