@@ -811,11 +811,16 @@ fn upgrade_nixos(ctx: &ExecutionContext) -> Result<()> {
     let can_nh_switch = can_nh_switch(&nh_switch_args);
 
     match (nix_handler, can_nh_switch) {
+        // nh is available and we want it
         (NixHandler::Autodetect | NixHandler::Nh, Ok(nh)) => {
             nh_switch(ctx, &nh, &nh_switch_args)?;
         }
+        // nh is not available but we need it
         (NixHandler::Nh, Err(e)) => return Err(e),
-        _ => {
+        // nh is not available and we don't need it, so we fall back
+        (NixHandler::Autodetect, Err(_))
+        // We need vanilla
+        | (NixHandler::Vanilla, _) => {
             let mut command = sudo.execute(ctx, "/run/current-system/sw/bin/nixos-rebuild")?;
             command.args(["switch", "--upgrade"]);
 
