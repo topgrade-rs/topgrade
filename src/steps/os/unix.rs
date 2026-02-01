@@ -915,10 +915,13 @@ pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
     };
     let can_nh_switch = can_nh_switch(&nh_switch_args);
 
-    match (home_manager.is_ok(), nix_handler, can_nh_switch) {
+    match (home_manager, nix_handler, can_nh_switch) {
+        // nh is available and we want it
         (_, NixHandler::Autodetect | NixHandler::Nh, Ok(nh)) => nh_switch(ctx, &nh, &nh_switch_args),
+        // nh is not available but we need it
         (_, NixHandler::Nh, Err(e)) => Err(e),
-        (false, NixHandler::Vanilla, _) => Err(SkipStep(
+        // home-manager is not available but we need it
+        (Err(_), NixHandler::Vanilla, _) => Err(SkipStep(
             t!(
                 "linux.nix_handler = \"{value}\", but {resulting_tool} is not available",
                 value = "vanilla",
@@ -927,10 +930,13 @@ pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
             .into(),
         )
         .into()),
-        _ => {
+        // nh is not available and we don't need it, so we fall back
+        (Ok(home_manager), NixHandler::Autodetect, Err(_))
+        // We need home-manager
+        | (Ok(home_manager), NixHandler::Vanilla, _) => {
             print_separator("home-manager");
 
-            let mut cmd = ctx.execute(home_manager.unwrap());
+            let mut cmd = ctx.execute(home_manager);
             cmd.arg("switch");
 
             if let Some(extra_args) = ctx.config().home_manager() {
@@ -939,6 +945,7 @@ pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
 
             cmd.status_checked()
         }
+        (Err(_), _, Err(_)) => unreachable!("require_one([\"home-manager\", \"nh\"])?; was called, so either tool must be available"),
     }
 }
 
