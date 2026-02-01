@@ -392,6 +392,8 @@ pub enum TmuxSessionMode {
     #[default]
     AttachIfNotInSession,
     AttachAlways,
+    ReattachIfNotInSession,
+    ReattachAlways,
 }
 
 pub struct TmuxConfig {
