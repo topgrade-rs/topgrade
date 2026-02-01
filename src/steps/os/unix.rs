@@ -945,8 +945,7 @@ pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
 
             cmd.status_checked()
         }
-        // Unreachable because of require_one
-        (Err(_), _, Err(_)) => unreachable!(),
+        (Err(_), _, Err(_)) => unreachable!("require_one([\"home-manager\", \"nh\"])?; was called, so either tool must be available"),
     }
 }
 
