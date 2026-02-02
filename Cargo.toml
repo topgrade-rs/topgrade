@@ -48,7 +48,7 @@ indexmap = { version = "2.9.0", features = ["serde"] }
 serde_json = "1.0.145"
 itertools = "0.14.0"
 # Temporary transitive dependency pins
-ignore = "=0.4.23"
+ignore = "=0.4.25"
 globset = "=0.4.16"
 base64ct = "<1.8.0"
 async-lock = "=3.4.1"
