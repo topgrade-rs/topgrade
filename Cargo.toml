@@ -39,7 +39,7 @@ tracing = { version = "~0.1", features = ["attributes", "log"] }
 tracing-subscriber = { version = "~0.3.20", features = ["env-filter", "time"] }
 merge = "~0.1"
 regex-split = "~0.1"
-notify-rust = "~4.11"
+notify-rust = "~4.12.0"
 wildmatch = "2.3.0"
 rust-i18n = "3.0.1"
 sys-locale = "0.3.1"
