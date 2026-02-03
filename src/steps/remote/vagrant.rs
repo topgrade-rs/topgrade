@@ -1,5 +1,4 @@
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::{fmt::Display, rc::Rc, str::FromStr};
 
 use color_eyre::eyre::Result;
@@ -57,10 +56,12 @@ struct Vagrant {
 }
 
 impl Vagrant {
-    fn get_boxes(&self, directory: &str) -> Result<Vec<VagrantBox>> {
+    fn get_boxes(&self, ctx: &ExecutionContext, directory: &str) -> Result<Vec<VagrantBox>> {
         let path: Rc<Path> = Path::new(directory).into();
 
-        let output = Command::new(&self.path)
+        let output = ctx
+            .execute(&self.path)
+            .always()
             .arg("status")
             .current_dir(directory)
             .output_checked_utf8()?;
@@ -163,7 +164,7 @@ pub fn collect_boxes(ctx: &ExecutionContext) -> Result<Vec<VagrantBox>> {
     let mut result = Vec::new();
 
     for directory in directories {
-        match vagrant.get_boxes(directory) {
+        match vagrant.get_boxes(ctx, directory) {
             Ok(mut boxes) => {
                 result.append(&mut boxes);
             }
@@ -210,7 +211,9 @@ pub fn upgrade_vagrant_boxes(ctx: &ExecutionContext) -> Result<()> {
     let vagrant = utils::require("vagrant")?;
     print_separator(t!("Vagrant boxes"));
 
-    let outdated = Command::new(&vagrant)
+    let outdated = ctx
+        .execute(&vagrant)
+        .always()
         .args(["box", "outdated", "--global"])
         .output_checked_utf8()?;
 

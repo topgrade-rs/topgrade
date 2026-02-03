@@ -2,7 +2,7 @@
 use std::env::var;
 use std::ffi::OsStr;
 use std::process::Command;
-use std::sync::{LazyLock, Mutex};
+use std::sync::{Mutex, OnceLock};
 
 use clap::ValueEnum;
 use color_eyre::eyre::Result;
@@ -56,7 +56,7 @@ pub struct ExecutionContext<'a> {
     under_ssh: bool,
     #[cfg(target_os = "linux")]
     distribution: &'a Result<Distribution>,
-    powershell: LazyLock<Option<Powershell>>,
+    powershell: OnceLock<Option<Powershell>>,
 }
 
 impl<'a> ExecutionContext<'a> {
@@ -75,7 +75,7 @@ impl<'a> ExecutionContext<'a> {
             under_ssh,
             #[cfg(target_os = "linux")]
             distribution,
-            powershell: LazyLock::new(Powershell::new),
+            powershell: OnceLock::new(),
         }
     }
 
@@ -126,10 +126,13 @@ impl<'a> ExecutionContext<'a> {
     }
 
     pub fn powershell(&self) -> &Option<Powershell> {
-        &self.powershell
+        self.powershell.get_or_init(|| Powershell::new(self))
     }
 
     pub fn require_powershell(&self) -> Result<&Powershell> {
-        require_option(self.powershell.as_ref(), t!("Powershell is not installed").to_string())
+        require_option(
+            self.powershell().as_ref(),
+            t!("Powershell is not installed").to_string(),
+        )
     }
 }

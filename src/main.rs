@@ -292,7 +292,7 @@ fn run() -> Result<()> {
         loop {
             match get_key() {
                 Ok(Key::Char('s' | 'S')) => {
-                    run_shell().context("Failed to execute shell")?;
+                    run_shell(&ctx).context("Failed to execute shell")?;
                 }
                 Ok(Key::Char('r' | 'R')) => {
                     println!("{}", t!("Rebooting..."));

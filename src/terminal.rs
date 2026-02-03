@@ -1,7 +1,6 @@
 use std::cmp::{max, min};
 use std::env;
 use std::io::{self, Write};
-use std::process::Command;
 use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 
@@ -16,6 +15,7 @@ use tracing::{debug, error};
 use which_crate::which;
 
 use crate::command::CommandExt;
+use crate::execution_context::ExecutionContext;
 use crate::runner::StepResult;
 
 static TERMINAL: LazyLock<Mutex<Terminal>> = LazyLock::new(|| Mutex::new(Terminal::new()));
@@ -30,8 +30,8 @@ pub fn shell() -> &'static str {
     which("pwsh").map(|_| "pwsh").unwrap_or("powershell")
 }
 
-pub fn run_shell() -> eyre::Result<()> {
-    Command::new(shell()).env("IN_TOPGRADE", "1").status_checked()
+pub fn run_shell(ctx: &ExecutionContext) -> eyre::Result<()> {
+    ctx.execute(shell()).env("IN_TOPGRADE", "1").status_checked()
 }
 
 struct Terminal {
@@ -203,7 +203,7 @@ impl Terminal {
     }
 
     #[allow(unused_variables)]
-    fn should_retry(&mut self, step_name: &str) -> eyre::Result<ShouldRetry> {
+    fn should_retry(&mut self, ctx: &ExecutionContext, step_name: &str) -> eyre::Result<ShouldRetry> {
         if self.width.is_none() {
             return Ok(ShouldRetry::No);
         }
@@ -230,7 +230,7 @@ impl Terminal {
                         "\n\n{}\n",
                         t!("Dropping you to shell. Fix what you need and then exit the shell.")
                     );
-                    if let Err(err) = run_shell().context("Failed to run shell") {
+                    if let Err(err) = run_shell(ctx).context("Failed to run shell") {
                         self.term.write_fmt(format_args!("{err:?}\n{prompt_inner}")).ok();
                     } else {
                         break Ok(ShouldRetry::Yes);
@@ -271,8 +271,8 @@ impl Default for Terminal {
     }
 }
 
-pub fn should_retry(step_name: &str) -> eyre::Result<ShouldRetry> {
-    TERMINAL.lock().unwrap().should_retry(step_name)
+pub fn should_retry(ctx: &ExecutionContext, step_name: &str) -> eyre::Result<ShouldRetry> {
+    TERMINAL.lock().unwrap().should_retry(ctx, step_name)
 }
 
 pub fn print_separator<P: AsRef<str>>(message: P) {

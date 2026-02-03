@@ -1,5 +1,4 @@
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use color_eyre::eyre::Result;
 use ini::Ini;
@@ -185,7 +184,7 @@ impl Distribution {
 fn update_bedrock(ctx: &ExecutionContext) -> Result<()> {
     let brl = require("brl")?;
 
-    let output = Command::new(&brl).arg("list").output_checked_utf8()?;
+    let output = ctx.execute(&brl).always().arg("list").output_checked_utf8()?;
     debug!("brl list: {:?} {:?}", output.stdout, output.stderr);
 
     for distribution in output.stdout.trim().lines() {
