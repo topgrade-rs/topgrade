@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::process::Command;
 
 #[cfg(windows)]
 use color_eyre::eyre::eyre;
@@ -8,6 +7,7 @@ use tracing::debug;
 
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
+use crate::executor::Executor;
 use crate::terminal;
 use crate::utils::{which, PathExt};
 
@@ -18,7 +18,7 @@ pub struct Powershell {
 }
 
 impl Powershell {
-    pub fn new() -> Option<Self> {
+    pub fn new(ctx: &ExecutionContext) -> Option<Self> {
         if terminal::is_dumb() {
             return None;
         }
@@ -34,7 +34,7 @@ impl Powershell {
                 profile: None,
                 is_pwsh,
             };
-            ret.set_profile();
+            ret.set_profile(ctx);
             ret
         })
     }
@@ -43,9 +43,9 @@ impl Powershell {
         self.profile.as_ref()
     }
 
-    fn set_profile(&mut self) {
+    fn set_profile(&mut self, ctx: &ExecutionContext) {
         let profile = self
-            .build_command_internal("Split-Path $PROFILE")
+            .build_command_internal(ctx, "Split-Path $PROFILE")
             .output_checked_utf8()
             .map(|output| output.stdout.trim().to_string())
             .and_then(|s| PathBuf::from(s).require())
@@ -59,8 +59,8 @@ impl Powershell {
     }
 
     /// Builds an "internal" powershell command
-    pub fn build_command_internal(&self, cmd: &str) -> Command {
-        let mut command = Command::new(&self.path);
+    pub fn build_command_internal(&self, ctx: &ExecutionContext, cmd: &str) -> Executor {
+        let mut command = ctx.execute(&self.path).always();
 
         command.args(["-NoProfile", "-Command"]);
         command.arg(cmd);
@@ -92,7 +92,7 @@ impl Powershell {
         #[cfg(windows)]
         {
             // Check execution policy and return early if it's not set correctly
-            self.execution_policy_args_if_needed()?;
+            self.execution_policy_args_if_needed(ctx)?;
         }
 
         command.args(["-NoProfile", "-Command"]);
@@ -108,8 +108,8 @@ impl Powershell {
     }
 
     #[cfg(windows)]
-    fn execution_policy_args_if_needed(&self) -> Result<()> {
-        if !self.is_execution_policy_set("RemoteSigned") {
+    fn execution_policy_args_if_needed(&self, ctx: &ExecutionContext) -> Result<()> {
+        if !self.is_execution_policy_set(ctx, "RemoteSigned") {
             Err(eyre!(
                 "PowerShell execution policy is too restrictive. \
                 Please run 'Set-ExecutionPolicy RemoteSigned -Scope CurrentUser' in PowerShell \
@@ -121,7 +121,7 @@ impl Powershell {
     }
 
     #[cfg(windows)]
-    fn is_execution_policy_set(&self, policy: &str) -> bool {
+    fn is_execution_policy_set(&self, ctx: &ExecutionContext, policy: &str) -> bool {
         // These policies are ordered from most restrictive to least restrictive
         let valid_policies = ["Restricted", "AllSigned", "RemoteSigned", "Unrestricted", "Bypass"];
 
@@ -129,7 +129,7 @@ impl Powershell {
         let target_idx = valid_policies.iter().position(|&p| p == policy);
 
         let current_policy = self
-            .build_command_internal("Get-ExecutionPolicy")
+            .build_command_internal(ctx, "Get-ExecutionPolicy")
             .output_checked_utf8()
             .map(|output| output.stdout.trim().to_string());
 
@@ -148,10 +148,10 @@ impl Powershell {
     }
 
     #[cfg(windows)]
-    pub fn has_module(&self, module_name: &str) -> bool {
+    pub fn has_module(&self, ctx: &ExecutionContext, module_name: &str) -> bool {
         let cmd = format!("Get-Module -ListAvailable {}", module_name);
 
-        self.build_command_internal(&cmd)
+        self.build_command_internal(ctx, &cmd)
             .output_checked()
             .map(|output| !output.stdout.trim_ascii().is_empty())
             .unwrap_or(false)

@@ -202,7 +202,6 @@ impl Terminal {
         }
     }
 
-    #[allow(unused_variables)]
     fn should_retry(&mut self, step_name: &str) -> eyre::Result<ShouldRetry> {
         if self.width.is_none() {
             return Ok(ShouldRetry::No);

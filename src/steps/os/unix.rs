@@ -12,7 +12,6 @@ use std::io::Write;
 use std::os::unix::fs::MetadataExt;
 use std::path::Component;
 use std::path::PathBuf;
-use std::process::Command;
 use std::sync::LazyLock;
 use std::{env::var, path::Path};
 use std::{fs, io};
@@ -185,19 +184,22 @@ impl BrewVariant {
 pub fn run_fisher(ctx: &ExecutionContext) -> Result<()> {
     let fish = require("fish")?;
 
-    Command::new(&fish)
+    ctx.execute(&fish)
+        .always()
         .args(["-c", "type -t fisher"])
         .output_checked_utf8()
         .map(|_| ())
         .map_err(|_| SkipStep(t!("`fisher` is not defined in `fish`").to_string()))?;
 
-    Command::new(&fish)
+    ctx.execute(&fish)
+        .always()
         .args(["-c", "echo \"$__fish_config_dir/fish_plugins\""])
         .output_checked_utf8()
         .and_then(|output| Path::new(&output.stdout.trim()).require().map(|_| ()))
         .map_err(|err| SkipStep(t!("`fish_plugins` path doesn't exist: {err}", err = err).to_string()))?;
 
-    Command::new(&fish)
+    ctx.execute(&fish)
+        .always()
         .args(["-c", "fish_update_completions"])
         .output_checked_utf8()
         .map(|_| ())
@@ -207,6 +209,7 @@ pub fn run_fisher(ctx: &ExecutionContext) -> Result<()> {
 
     let version_str = ctx
         .execute(&fish)
+        .always()
         .args(["-c", "fisher --version"])
         .output_checked_utf8()?
         .stdout;
@@ -317,7 +320,9 @@ pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
         var("XDG_CURRENT_DESKTOP").ok().filter(|p| p.contains("GNOME")),
         t!("Desktop does not appear to be GNOME").to_string(),
     )?;
-    let output = Command::new("gdbus")
+    let output = ctx
+        .execute("gdbus")
+        .always()
         .args([
             "call",
             "--session",
@@ -401,8 +406,7 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
     #[cfg(target_os = "linux")]
     {
         // Homebrew cask support was added in version 4.5.0
-        // TODO: This should run even when dry-running. Blocked by #1227.
-        let version_output = brew.execute(ctx)?.arg("--version").output_checked_utf8()?;
+        let version_output = brew.execute(ctx)?.always().arg("--version").output_checked_utf8()?;
 
         let version_line = version_output
             .stdout
@@ -434,11 +438,9 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
 
     print_separator(format!("{} - Cask", brew.step_title()));
 
-    // TODO: this should run even when dry-running, but that
-    //  functionality was removed to reduce complexity when
-    //  implementing the sudo -Hu stuff. Blocked by #1227.
     let cask_upgrade_exists = brew
         .execute(ctx)?
+        .always()
         .args(["--repository", "buo/cask-upgrade"])
         .output_checked_utf8()
         .map(|p| Path::new(p.stdout.trim()).exists())?;
@@ -489,7 +491,7 @@ struct NixVersion {
 
 impl NixVersion {
     fn new(ctx: &ExecutionContext, nix: &Path) -> Result<Self> {
-        let version_output = ctx.execute(nix).arg("--version").output_checked_utf8()?;
+        let version_output = ctx.execute(nix).always().arg("--version").output_checked_utf8()?;
 
         debug!(
             output=%version_output,
@@ -825,7 +827,7 @@ pub fn run_asdf(ctx: &ExecutionContext) -> Result<()> {
     // asdf (>= 0.15.0) won't support the self-update command
     //
     // https://github.com/topgrade-rs/topgrade/issues/1007
-    let version_output = Command::new(&asdf).arg("version").output_checked_utf8()?;
+    let version_output = ctx.execute(&asdf).always().arg("version").output_checked_utf8()?;
     // Example output
     //
     // ```
