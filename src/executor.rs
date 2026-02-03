@@ -3,7 +3,7 @@ use std::ffi::{OsStr, OsString};
 use std::fmt::Debug;
 use std::iter;
 use std::path::Path;
-use std::process::{Child, Command, ExitStatus, Output};
+use std::process::{Child, Command, ExitStatus, Output, Stdio};
 
 use color_eyre::eyre::Result;
 use rust_i18n::t;
@@ -22,6 +22,20 @@ pub enum Executor {
 }
 
 impl Executor {
+    /// Convert this executor to always run, even in dry-run mode.
+    ///
+    /// Use this for read-only commands that detect environment, check versions, or query
+    /// configuration. These commands need to run even during dry-run to make correct decisions.
+    ///
+    /// This converts `Dry` to `Wet` (which executes), while leaving `Wet` and
+    /// `Damp` unchanged.
+    pub fn always(self) -> Self {
+        match self {
+            Executor::Dry(c) => Executor::Wet(c.into_command()),
+            other => other,
+        }
+    }
+
     /// Get the name of the program being run.
     ///
     /// Will give weird results for non-UTF-8 programs; see `to_string_lossy()`.
@@ -78,6 +92,22 @@ impl Executor {
     }
 
     #[allow(dead_code)]
+    /// See `std::process::Command::stdin`
+    pub fn stdin<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Executor {
+        let stdio = cfg.into();
+        match self {
+            Executor::Wet(c) | Executor::Damp(c) => {
+                c.stdin(stdio);
+            }
+            Executor::Dry(c) => {
+                c.stdin = Some(stdio);
+            }
+        }
+
+        self
+    }
+
+    #[allow(dead_code)]
     /// See `std::process::Command::remove_env`
     pub fn env_remove<K>(&mut self, key: K) -> &mut Executor
     where
@@ -87,7 +117,9 @@ impl Executor {
             Executor::Wet(c) | Executor::Damp(c) => {
                 c.env_remove(key);
             }
-            Executor::Dry(_) => (),
+            Executor::Dry(c) => {
+                c.env_removals.push(key.as_ref().to_os_string());
+            }
         }
 
         self
@@ -104,7 +136,9 @@ impl Executor {
             Executor::Wet(c) | Executor::Damp(c) => {
                 c.env(key, val);
             }
-            Executor::Dry(_) => (),
+            Executor::Dry(c) => {
+                c.envs.push((key.as_ref().to_os_string(), val.as_ref().to_os_string()));
+            }
         }
 
         self
@@ -191,6 +225,9 @@ pub struct DryCommand {
     program: OsString,
     args: Vec<OsString>,
     directory: Option<OsString>,
+    envs: Vec<(OsString, OsString)>,
+    env_removals: Vec<OsString>,
+    stdin: Option<Stdio>,
 }
 
 impl DryCommand {
@@ -199,7 +236,29 @@ impl DryCommand {
             program: program.as_ref().to_os_string(),
             args: Vec::new(),
             directory: None,
+            envs: Vec::new(),
+            env_removals: Vec::new(),
+            stdin: None,
         }
+    }
+
+    /// Convert this dry command into a real Command that will execute.
+    fn into_command(self) -> Command {
+        let mut cmd = Command::new(&self.program);
+        cmd.args(&self.args);
+        if let Some(dir) = &self.directory {
+            cmd.current_dir(dir);
+        }
+        for (key, val) in &self.envs {
+            cmd.env(key, val);
+        }
+        for key in &self.env_removals {
+            cmd.env_remove(key);
+        }
+        if let Some(stdin) = self.stdin {
+            cmd.stdin(stdin);
+        }
+        cmd
     }
 }
 
@@ -274,5 +333,104 @@ fn log_command<
 
     if let Some(d) = dir {
         println!("  {}", t!("in {directory}", directory = d.as_ref().display()));
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    /// Test that a Dry executor converted with .always() actually executes the command.
+    #[test]
+    fn test_dry_always_executes() {
+        let (program, args) = if cfg!(windows) {
+            ("cmd", vec!["/C", "echo", "hello"])
+        } else {
+            ("echo", vec!["hello"])
+        };
+
+        let mut dry = DryCommand::new(program);
+        for arg in args {
+            dry.args.push(arg.into());
+        }
+
+        let executor = Executor::Dry(dry);
+        let mut executor = executor.always();
+        assert!(matches!(executor, Executor::Wet(_)));
+
+        let output = executor.output().unwrap();
+        match output {
+            ExecutorOutput::Wet(o) => {
+                assert!(o.status.success());
+                assert_eq!(String::from_utf8_lossy(&o.stdout).trim(), "hello");
+            }
+            ExecutorOutput::Dry => panic!("Expected Wet output after .always()"),
+        }
+    }
+
+    #[test]
+    fn test_dry_stdin_persistence() {
+        use std::io::{Seek, Write};
+
+        let (program, args): (&str, Vec<&str>) = if cfg!(windows) {
+            ("powershell", vec!["-NoProfile", "-Command", "$input | Write-Output"])
+        } else {
+            ("cat", vec![])
+        };
+
+        let mut dry = DryCommand::new(program);
+        for arg in args {
+            dry.args.push(arg.into());
+        }
+
+        let mut tmpfile = tempfile::tempfile().expect("Failed to create temp file");
+        write!(tmpfile, "stdin_test_value").expect("Failed to write to temp file");
+        tmpfile.seek(std::io::SeekFrom::Start(0)).expect("Failed to seek");
+
+        let mut executor = Executor::Dry(dry);
+        executor.stdin(Stdio::from(tmpfile));
+        let mut executor = executor.always();
+
+        let output = executor.output().expect("Failed to execute");
+        match output {
+            ExecutorOutput::Wet(o) => {
+                assert!(o.status.success());
+                let stdout = String::from_utf8_lossy(&o.stdout);
+                assert!(
+                    stdout.contains("stdin_test_value"),
+                    "Stdin not persisted through always(): got '{}'",
+                    stdout.trim()
+                );
+            }
+            ExecutorOutput::Dry => panic!("Expected Wet output after .always()"),
+        }
+    }
+
+    /// Test that env vars set on a Dry executor are preserved when converted with .always().
+    #[test]
+    fn test_dry_env_persistence() {
+        let (program, args) = if cfg!(windows) {
+            ("cmd", vec!["/C", "echo %TEST_VAR%"])
+        } else {
+            ("sh", vec!["-c", "echo $TEST_VAR"])
+        };
+
+        let mut dry = DryCommand::new(program);
+        for arg in args {
+            dry.args.push(arg.into());
+        }
+        dry.envs.push(("TEST_VAR".into(), "preserved_value".into()));
+
+        let executor = Executor::Dry(dry);
+        let mut executor = executor.always();
+
+        let output = executor.output().unwrap();
+        match output {
+            ExecutorOutput::Wet(o) => {
+                assert!(o.status.success());
+                assert_eq!(String::from_utf8_lossy(&o.stdout).trim(), "preserved_value");
+            }
+            ExecutorOutput::Dry => panic!("Expected Wet output after .always()"),
+        }
     }
 }
