@@ -80,6 +80,7 @@ impl<'a> ExecutionContext<'a> {
     }
 
     /// Create an instance of `Executor` that should run `program`.
+    #[allow(clippy::disallowed_methods)]
     pub fn execute<S: AsRef<OsStr>>(&self, program: S) -> Executor {
         match self.run_type {
             RunType::Dry => Executor::Dry(DryCommand::new(program)),

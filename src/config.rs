@@ -736,6 +736,7 @@ impl ConfigFile {
         let command = which(&editor[0])?;
         let args: Vec<&String> = editor.iter().skip(1).collect();
 
+        #[allow(clippy::disallowed_methods)]
         Command::new(command)
             .args(args)
             .arg(config_path)
