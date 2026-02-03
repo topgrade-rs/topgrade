@@ -97,7 +97,7 @@ impl<'a> Runner<'a> {
         // Determine max retry attempts based on config
         let retry_config = self.ctx.config().retry_config();
         // Total max attempts = 1 (initial) + auto_retry count
-        let mut max_attempts = retry_config.auto_retry.saturating_add(1);
+        let max_attempts = retry_config.auto_retry.saturating_add(1);
 
         let mut attempt = 1;
 
@@ -136,7 +136,6 @@ impl<'a> Runner<'a> {
                     if should_prompt {
                         match self.handle_retry_prompt(&key, &e, ignore_failure)? {
                             RetryDecision::Retry => {
-                                max_attempts += 1;
                                 continue;
                             }
                             RetryDecision::Quit => {
@@ -149,9 +148,11 @@ impl<'a> Runner<'a> {
                                 break;
                             }
                         }
-                    } else {
-                        // Store error and retry
+                    } else if has_auto_retries_left {
                         attempt += 1;
+                    } else {
+                        self.push_result(key, StepResult::Failure);
+                        break;
                     }
                 }
             }

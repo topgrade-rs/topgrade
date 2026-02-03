@@ -356,6 +356,9 @@ pub struct Misc {
 
     auto_retry: Option<u16>,
 
+    /// TODO: Remove this in favor of ask_retry = false
+    no_retry: Option<bool>,
+
     show_skipped: Option<bool>,
 
     run_in_tmux: Option<bool>,
@@ -1135,6 +1138,16 @@ impl Config {
         }
 
         if self.opt.no_retry {
+            return false;
+        }
+
+        if self
+            .config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.no_retry)
+            .unwrap_or(false)
+        {
             return false;
         }
 
