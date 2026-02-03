@@ -7,7 +7,6 @@ use color_eyre::eyre::Result;
 use rust_i18n::t;
 use std::collections::HashSet;
 use std::fs;
-use std::process::Command;
 use tracing::debug;
 
 pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
@@ -41,7 +40,7 @@ pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
     let should_ask = !(ctx.config().yes(Step::System) || ctx.run_type().dry());
     if should_ask {
         println!("{}", t!("Finding available software"));
-        if system_update_available()? {
+        if system_update_available(ctx)? {
             let answer = prompt_yesno(t!("A system update is available. Do you wish to install it?").as_ref())?;
             if !answer {
                 return Ok(());
@@ -63,8 +62,12 @@ pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
     command.status_checked()
 }
 
-fn system_update_available() -> Result<bool> {
-    let output = Command::new("softwareupdate").arg("--list").output_checked_utf8()?;
+fn system_update_available(ctx: &ExecutionContext) -> Result<bool> {
+    let output = ctx
+        .execute("softwareupdate")
+        .always()
+        .arg("--list")
+        .output_checked_utf8()?;
 
     debug!("{:?}", output);
 
@@ -77,7 +80,9 @@ pub fn run_sparkle(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Sparkle");
 
     for application in (fs::read_dir("/Applications")?).flatten() {
-        let probe = Command::new(&sparkle)
+        let probe = ctx
+            .execute(&sparkle)
+            .always()
             .args(["--probe", "--application"])
             .arg(application.path())
             .output_checked_utf8();
@@ -154,7 +159,12 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
         process_xcodes_releases(releases_regular, should_ask, ctx)?;
     }
 
-    let releases_new = ctx.execute(&xcodes).args(["list"]).output_checked_utf8()?.stdout;
+    let releases_new = ctx
+        .execute(&xcodes)
+        .always()
+        .args(["list"])
+        .output_checked_utf8()?
+        .stdout;
 
     let releases_gm_new_installed: HashSet<_> = releases_new
         .lines()

@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::process::Command;
 
 use color_eyre::eyre::Result;
 
@@ -11,7 +10,7 @@ use crate::utils::PathExt;
 
 /// <https://github.com/Gelio/go-global-update>
 pub fn run_go_global_update(ctx: &ExecutionContext) -> Result<()> {
-    let go_global_update = require_go_bin("go-global-update")?;
+    let go_global_update = require_go_bin(ctx, "go-global-update")?;
 
     print_separator("go-global-update");
 
@@ -20,7 +19,7 @@ pub fn run_go_global_update(ctx: &ExecutionContext) -> Result<()> {
 
 /// <https://github.com/nao1215/gup>
 pub fn run_go_gup(ctx: &ExecutionContext) -> Result<()> {
-    let gup = require_go_bin("gup")?;
+    let gup = require_go_bin(ctx, "gup")?;
 
     print_separator("gup");
 
@@ -28,7 +27,7 @@ pub fn run_go_gup(ctx: &ExecutionContext) -> Result<()> {
 }
 
 /// Get the path of a Go binary.
-fn require_go_bin(name: &str) -> Result<PathBuf> {
+fn require_go_bin(ctx: &ExecutionContext, name: &str) -> Result<PathBuf> {
     utils::require(name).or_else(|_| {
         let go = utils::require("go")?;
         // TODO: Does this work? `go help gopath` says that:
@@ -37,7 +36,7 @@ fn require_go_bin(name: &str) -> Result<PathBuf> {
         // > On Windows, the value is a semicolon-separated string.
         // > On Plan 9, the value is a list.
         // Should we also fallback to the env variable?
-        let gopath_output = Command::new(go).args(["env", "GOPATH"]).output_checked_utf8()?;
+        let gopath_output = ctx.execute(go).always().args(["env", "GOPATH"]).output_checked_utf8()?;
         let gopath = gopath_output.stdout.trim();
 
         PathBuf::from(gopath).join("bin").join(name).require()

@@ -258,7 +258,11 @@ impl ArchPackageManager for Aura {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
         use semver::Version;
 
-        let version_cmd_output = ctx.execute(&self.executable).arg("--version").output_checked_utf8()?;
+        let version_cmd_output = ctx
+            .execute(&self.executable)
+            .always()
+            .arg("--version")
+            .output_checked_utf8()?;
         // Output will be something like: "aura x.x.x\n"
         let version_cmd_stdout = version_cmd_output.stdout;
         let version_str = version_cmd_stdout.trim_start_matches("aura ").trim_end();

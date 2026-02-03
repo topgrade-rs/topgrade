@@ -2,7 +2,6 @@ use std::env;
 use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use color_eyre::eyre::Result;
 use rust_i18n::t;
@@ -17,6 +16,7 @@ use tracing_subscriber::{registry, EnvFilter};
 use crate::command::CommandExt;
 use crate::config::DEFAULT_LOG_LEVEL;
 use crate::error::SkipStep;
+use crate::execution_context::ExecutionContext;
 
 pub trait PathExt
 where
@@ -163,10 +163,8 @@ pub fn hostname() -> Result<String> {
 
 #[cfg(windows)]
 pub fn hostname() -> Result<String> {
-    Command::new("hostname")
-        .output_checked_utf8()
+    std::env::var("COMPUTERNAME")
         .map_err(|err| SkipStep(t!("Failed to get hostname: {err}", err = err).to_string()).into())
-        .map(|output| output.stdout.trim().to_owned())
 }
 
 #[cfg(unix)]
@@ -248,8 +246,8 @@ pub mod merge_strategies {
 ///
 /// We do this check through `python -V`, a shim will just give `Python` with
 /// no version number.
-pub fn check_is_python_2_or_shim(python: PathBuf) -> Result<PathBuf> {
-    let output = Command::new(&python).arg("-V").output_checked_utf8()?;
+pub fn check_is_python_2_or_shim(ctx: &ExecutionContext, python: PathBuf) -> Result<PathBuf> {
+    let output = ctx.execute(&python).always().arg("-V").output_checked_utf8()?;
     // "Python x.x.x\n"
     let stdout = output.stdout;
     // ["Python"] or ["Python", "x.x.x"], the newline char is trimmed.

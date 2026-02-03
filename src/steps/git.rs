@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::io;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output, Stdio};
+use std::process::{Output, Stdio};
 
 use color_eyre::eyre::Context;
 use color_eyre::eyre::{eyre, Result};
@@ -40,60 +40,61 @@ pub fn run_git_pull_or_fetch(ctx: &ExecutionContext) -> Result<()> {
                 let emacs = Emacs::new();
                 if !emacs.is_doom() {
                     if let Some(directory) = emacs.directory() {
-                        repos.insert_if_repo(directory);
+                        repos.insert_if_repo(ctx, directory);
                     }
                 }
-                repos.insert_if_repo(HOME_DIR.join(".doom.d"));
+                repos.insert_if_repo(ctx, HOME_DIR.join(".doom.d"));
             }
 
             if config.should_run(Step::Vim) {
-                repos.insert_if_repo(HOME_DIR.join(".vim"));
-                repos.insert_if_repo(HOME_DIR.join(".config/nvim"));
+                repos.insert_if_repo(ctx, HOME_DIR.join(".vim"));
+                repos.insert_if_repo(ctx, HOME_DIR.join(".config/nvim"));
             }
 
-            repos.insert_if_repo(HOME_DIR.join(".ideavimrc"));
-            repos.insert_if_repo(HOME_DIR.join(".intellimacs"));
+            repos.insert_if_repo(ctx, HOME_DIR.join(".ideavimrc"));
+            repos.insert_if_repo(ctx, HOME_DIR.join(".intellimacs"));
 
             if config.should_run(Step::Rcm) {
-                repos.insert_if_repo(HOME_DIR.join(".dotfiles"));
+                repos.insert_if_repo(ctx, HOME_DIR.join(".dotfiles"));
             }
 
             if let Some(powershell) = ctx.powershell() {
                 if let Some(profile) = powershell.profile() {
-                    repos.insert_if_repo(profile);
+                    repos.insert_if_repo(ctx, profile);
                 }
             }
         }
 
         #[cfg(unix)]
         {
-            repos.insert_if_repo(crate::steps::zsh::zshrc());
+            repos.insert_if_repo(ctx, crate::steps::zsh::zshrc());
             if config.should_run(Step::Tmux) {
-                repos.insert_if_repo(HOME_DIR.join(".tmux"));
+                repos.insert_if_repo(ctx, HOME_DIR.join(".tmux"));
             }
-            repos.insert_if_repo(HOME_DIR.join(".config/fish"));
-            repos.insert_if_repo(XDG_DIRS.config_dir().join("openbox"));
-            repos.insert_if_repo(XDG_DIRS.config_dir().join("bspwm"));
-            repos.insert_if_repo(XDG_DIRS.config_dir().join("i3"));
-            repos.insert_if_repo(XDG_DIRS.config_dir().join("sway"));
+            repos.insert_if_repo(ctx, HOME_DIR.join(".config/fish"));
+            repos.insert_if_repo(ctx, XDG_DIRS.config_dir().join("openbox"));
+            repos.insert_if_repo(ctx, XDG_DIRS.config_dir().join("bspwm"));
+            repos.insert_if_repo(ctx, XDG_DIRS.config_dir().join("i3"));
+            repos.insert_if_repo(ctx, XDG_DIRS.config_dir().join("sway"));
         }
 
         #[cfg(windows)]
         {
             repos.insert_if_repo(
+                ctx,
                 WINDOWS_DIRS
                     .cache_dir()
                     .join("Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState"),
             );
 
-            super::os::windows::insert_startup_scripts(&mut repos).ok();
+            super::os::windows::insert_startup_scripts(ctx, &mut repos).ok();
         }
     }
 
     // Handle user-defined repos
     if let Some(custom_git_repos) = config.git_repos() {
         for git_repo in custom_git_repos {
-            repos.glob_insert(&shellexpand::tilde(git_repo));
+            repos.glob_insert(ctx, &shellexpand::tilde(git_repo));
         }
     }
 
@@ -139,8 +140,9 @@ fn output_checked_utf8(output: Output) -> Result<()> {
     }
 }
 
-fn get_head_revision<P: AsRef<Path>>(git: &Path, repo: P) -> Option<String> {
-    Command::new(git)
+fn get_head_revision<P: AsRef<Path>>(ctx: &ExecutionContext, git: &Path, repo: P) -> Option<String> {
+    ctx.execute(git)
+        .always()
         .stdin(Stdio::null())
         .current_dir(repo.as_ref())
         .args(["rev-parse", "HEAD"])
@@ -173,7 +175,7 @@ impl RepoStep {
     }
 
     /// Try to get the root of the repo specified in `path`.
-    pub fn get_repo_root<P: AsRef<Path>>(&self, path: P) -> Option<PathBuf> {
+    pub fn get_repo_root<P: AsRef<Path>>(&self, ctx: &ExecutionContext, path: P) -> Option<PathBuf> {
         match path.as_ref().canonicalize() {
             Ok(mut path) => {
                 debug_assert!(path.exists());
@@ -197,7 +199,9 @@ impl RepoStep {
                     path_string
                 };
 
-                let output = Command::new(&self.git)
+                let output = ctx
+                    .execute(&self.git)
+                    .always()
                     .stdin(Stdio::null())
                     .current_dir(path)
                     .args(["rev-parse", "--show-toplevel"])
@@ -223,8 +227,8 @@ impl RepoStep {
     /// Check if `path` is a git repo, if yes, add it to `self.repos`.
     ///
     /// Return the check result.
-    pub fn insert_if_repo<P: AsRef<Path>>(&mut self, path: P) -> bool {
-        if let Some(repo) = self.get_repo_root(path) {
+    pub fn insert_if_repo<P: AsRef<Path>>(&mut self, ctx: &ExecutionContext, path: P) -> bool {
+        if let Some(repo) = self.get_repo_root(ctx, path) {
             self.repos.insert(repo);
             true
         } else {
@@ -233,8 +237,8 @@ impl RepoStep {
     }
 
     /// Check if `repo` has a remote.
-    fn has_remotes<P: AsRef<Path>>(&self, repo: P) -> Option<bool> {
-        let mut cmd = Command::new(&self.git);
+    fn has_remotes<P: AsRef<Path>>(&self, ctx: &ExecutionContext, repo: P) -> Option<bool> {
+        let mut cmd = ctx.execute(&self.git).always();
         cmd.stdin(Stdio::null())
             .current_dir(repo.as_ref())
             .args(["remote", "-v"]);
@@ -264,7 +268,7 @@ impl RepoStep {
     }
 
     /// Similar to `insert_if_repo`, with glob support.
-    pub fn glob_insert(&mut self, pattern: &str) {
+    pub fn glob_insert(&mut self, ctx: &ExecutionContext, pattern: &str) {
         if let Ok(glob) = glob_with(pattern, self.glob_match_options) {
             let mut last_git_repo: Option<PathBuf> = None;
             for entry in glob {
@@ -280,7 +284,7 @@ impl RepoStep {
                                 continue;
                             }
                         }
-                        if self.insert_if_repo(&path) {
+                        if self.insert_if_repo(ctx, &path) {
                             last_git_repo = Some(path);
                         }
                     }
@@ -314,7 +318,7 @@ impl RepoStep {
 
     /// Try to pull a repo, or fetch it if `fetch_only` is enabled.
     async fn pull_or_fetch_repo<P: AsRef<Path>>(&self, ctx: &ExecutionContext<'_>, repo: P) -> Result<()> {
-        let before_revision = get_head_revision(&self.git, &repo);
+        let before_revision = get_head_revision(ctx, &self.git, &repo);
         let is_fetch_only = ctx.config().git_fetch_only();
 
         if ctx.config().verbose() {
@@ -350,13 +354,14 @@ impl RepoStep {
                 repo.as_ref().display()
             );
         } else {
-            let after_revision = get_head_revision(&self.git, repo.as_ref());
+            let after_revision = get_head_revision(ctx, &self.git, repo.as_ref());
 
             match (&before_revision, &after_revision) {
                 (Some(before), Some(after)) if before != after => {
                     println!("{} {}", style(t!("Changed")).yellow().bold(), repo.as_ref().display());
 
-                    Command::new(&self.git)
+                    ctx.execute(&self.git)
+                        .always()
                         .stdin(Stdio::null())
                         .current_dir(&repo)
                         .args([
@@ -412,7 +417,7 @@ impl RepoStep {
         let futures_iterator = self
             .repos
             .iter()
-            .filter(|repo| match self.has_remotes(repo) {
+            .filter(|repo| match self.has_remotes(ctx, repo) {
                 Some(false) => {
                     println!(
                         "{} {} {}",

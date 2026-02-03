@@ -9,7 +9,6 @@ use serde::Deserialize;
 use std::ffi::OsString;
 use std::iter::once;
 use std::path::PathBuf;
-use std::process::Command;
 use std::sync::LazyLock;
 use std::{env, path::Path};
 use std::{fs, io::Write};
@@ -26,15 +25,15 @@ use crate::terminal::{print_separator, shell};
 use crate::utils::{check_is_python_2_or_shim, require, require_one, require_option, which, PathExt};
 use crate::HOME_DIR;
 use crate::{
-    error::{SkipStep, StepFailed, TopgradeError},
+    error::{DryRun, SkipStep, StepFailed, TopgradeError},
     terminal::print_warning,
 };
 
 #[cfg(target_os = "linux")]
 pub fn is_wsl() -> Result<bool> {
-    let output = Command::new("uname").arg("-r").output_checked_utf8()?.stdout;
-    debug!("Uname output: {}", output);
-    Ok(output.contains("microsoft"))
+    let output = std::fs::read_to_string("/proc/version").unwrap_or_default();
+    debug!("Proc version output: {}", output);
+    Ok(output.to_lowercase().contains("microsoft"))
 }
 
 #[cfg(not(target_os = "linux"))]
@@ -145,9 +144,10 @@ pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_haxelib_update(ctx: &ExecutionContext) -> Result<()> {
     let haxelib = require("haxelib")?;
 
-    let haxelib_dir =
-        PathBuf::from(std::str::from_utf8(&Command::new(&haxelib).arg("config").output_checked()?.stdout)?.trim())
-            .require()?;
+    let haxelib_dir = PathBuf::from(
+        std::str::from_utf8(&ctx.execute(&haxelib).always().arg("config").output_checked()?.stdout)?.trim(),
+    )
+    .require()?;
 
     let directory_writable = tempfile_in(&haxelib_dir).is_ok();
     debug!("{:?} writable: {}", haxelib_dir, directory_writable);
@@ -239,7 +239,7 @@ impl Aqua {
         let aqua = require("aqua")?;
 
         // Check if `aqua --help` mentions "aqua". JetBrains Aqua does not, Aqua CLI does.
-        let output = ctx.execute(&aqua).arg("--help").output_checked()?;
+        let output = ctx.execute(&aqua).always().arg("--help").output_checked()?;
 
         if String::from_utf8(output.stdout)?.contains("aqua") {
             debug!("Detected `aqua` as Aqua CLI");
@@ -291,7 +291,7 @@ pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("elan");
 
-    let version_output = ctx.execute(&elan).arg("--version").output_checked_utf8()?;
+    let version_output = ctx.execute(&elan).always().arg("--version").output_checked_utf8()?;
     let version_string = version_output.stdout.split_whitespace().nth(1).ok_or_else(|| {
         eyre!(output_changed_message!(
             "elan --version",
@@ -537,7 +537,7 @@ fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Resu
     //    See https://github.com/topgrade-rs/topgrade/issues/1605, confirmed from Microsoft website
     // This should apply to VSCodium as well.
 
-    let version_output = Command::new(&bin).arg("--version").output_checked_utf8()?;
+    let version_output = ctx.execute(&bin).always().arg("--version").output_checked_utf8()?;
 
     debug!(version_output.stdout);
 
@@ -630,7 +630,9 @@ pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
 
     // pipx version 1.4.0 introduced a new command argument `pipx upgrade-all --quiet`
     // (see https://pipx.pypa.io/stable/docs/#pipx-upgrade-all)
-    let version_str = Command::new(&pipx)
+    let version_str = ctx
+        .execute(&pipx)
+        .always()
         .args(["--version"])
         .output_checked_utf8()
         .map(|s| s.stdout.trim().to_owned());
@@ -652,7 +654,9 @@ pub fn run_pipxu_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
     let conda = require("conda")?;
 
-    let output = Command::new(&conda)
+    let output = ctx
+        .execute(&conda)
+        .always()
         .args(["config", "--show", "auto_activate"])
         .output_checked_utf8()?;
     debug!("Conda output: {}", output.stdout);
@@ -707,11 +711,12 @@ pub fn run_pixi_update(ctx: &ExecutionContext) -> Result<()> {
 
     // Check if `pixi --help` mentions self-update, if yes, self-update must be enabled.
     // pixi self-update --help works regardless of whether the feature is enabled.
-    let top_level_help_output = ctx.execute(&pixi).arg("--help").output_checked_utf8()?;
+    let top_level_help_output = ctx.execute(&pixi).always().arg("--help").output_checked_utf8()?;
 
     if top_level_help_output.stdout.contains("self-update") {
         let self_update_help_output = ctx
             .execute(&pixi)
+            .always()
             .args(["self-update", "--help"])
             .output_checked_utf8()?;
         let mut cmd = ctx.execute(&pixi);
@@ -758,8 +763,8 @@ pub fn run_miktex_packages_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
-    let py = require("python").and_then(check_is_python_2_or_shim);
-    let py3 = require("python3").and_then(check_is_python_2_or_shim);
+    let py = require("python").and_then(|p| check_is_python_2_or_shim(ctx, p));
+    let py3 = require("python3").and_then(|p| check_is_python_2_or_shim(ctx, p));
 
     let python3 = match (py, py3) {
         // prefer `python` if it is available and is a valid Python 3.
@@ -770,13 +775,16 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
         }
     };
 
-    Command::new(&python3)
+    ctx.execute(&python3)
+        .always()
         .args(["-m", "pip"])
         .output_checked_utf8()
         .map_err(|_| SkipStep("pip does not exist".to_string()))?;
 
     let check_extern_managed_script = "import sysconfig; from os import path; print('Y') if path.isfile(path.join(sysconfig.get_path('stdlib'), 'EXTERNALLY-MANAGED')) else print('N')";
-    let output = Command::new(&python3)
+    let output = ctx
+        .execute(&python3)
+        .always()
         .args(["-c", check_extern_managed_script])
         .output_checked_utf8()?;
     let stdout = output.stdout.trim();
@@ -786,7 +794,9 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
         _ => unreachable!("unexpected output from `check_extern_managed_script`"),
     };
 
-    let allow_break_sys_pkg = match Command::new(&python3)
+    let allow_break_sys_pkg = match ctx
+        .execute(&python3)
+        .always()
         .args(["-m", "pip", "config", "get", "global.break-system-packages"])
         .output_checked_utf8()
     {
@@ -930,7 +940,8 @@ pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
     let kpsewhich = require("kpsewhich")?;
     let tlmgr_directory = {
         let mut d = PathBuf::from(
-            &Command::new(kpsewhich)
+            ctx.execute(kpsewhich)
+                .always()
                 .arg("-var-value=SELFAUTOPARENT")
                 .output_checked_utf8()?
                 .stdout
@@ -1007,7 +1018,9 @@ pub fn run_custom_command(name: &str, command: &str, ctx: &ExecutionContext) -> 
 
 pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
     let composer = require("composer")?;
-    let composer_home = Command::new(&composer)
+    let composer_home = ctx
+        .execute(&composer)
+        .always()
         .args(["global", "config", "--absolute", "--quiet", "home"])
         .output_checked_utf8()
         .map_err(|e| SkipStep(t!("Error getting the composer directory: {error}", error = e).to_string()))
@@ -1065,6 +1078,7 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
     // (This is expected when a dotnet runtime is installed but no SDK.)
     let output = match ctx
         .execute(&dotnet)
+        .always()
         .args(["tool", "list", "--global"])
         // dotnet will print a greeting message on its first run, from this question:
         // https://stackoverflow.com/q/70493706/14092446
@@ -1167,7 +1181,7 @@ impl Hx {
         let hx = require("hx")?;
 
         // Check if `hx --help` mentions "helix". Helix does, hx (hexdump alternative) doesn't.
-        let output = ctx.execute(&hx).arg("--help").output_checked()?;
+        let output = ctx.execute(&hx).always().arg("--help").output_checked()?;
 
         if String::from_utf8(output.stdout)?.contains("helix") {
             debug!("Detected `hx` as Helix");
@@ -1222,7 +1236,11 @@ pub fn spicetify_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_ghcli_extensions_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let gh = require("gh")?;
-    let result = Command::new(&gh).args(["extensions", "list"]).output_checked_utf8();
+    let result = ctx
+        .execute(&gh)
+        .always()
+        .args(["extensions", "list"])
+        .output_checked_utf8();
     if result.is_err() {
         debug!("GH result {:?}", result);
         return Err(SkipStep(t!("GH failed").to_string()).into());
@@ -1460,7 +1478,7 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
 
         let check_official_install_script =
             "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
-        let mut command = Command::new(&interp);
+        let mut command = ctx.execute(&interp).always();
         if let Some(args) = interp_args {
             command.arg(args);
         }
@@ -1495,7 +1513,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
     // To check if this feature is enabled or not, different version of `uv` need
     // different approaches, we need to know the version first and handle them
     // separately.
-    let uv_version_output = ctx.execute(&uv_exec).arg("--version").output_checked_utf8()?;
+    let uv_version_output = ctx.execute(&uv_exec).always().arg("--version").output_checked_utf8()?;
     // Multiple possible output formats are possible according to uv source code
     //
     // https://github.com/astral-sh/uv/blob/6b7f60c1eaa840c2e933a0fb056ab46f99c991a5/crates/uv-cli/src/version.rs#L28-L42
@@ -1530,7 +1548,12 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         // For uv before version 0.4.25 (exclusive), the `self` sub-command only
         // exists under the `self-update` feature, we run `uv self --help` to check
         // the feature gate.
-        let self_update_feature_enabled = ctx.execute(&uv_exec).args(["self", "--help"]).output_checked().is_ok();
+        let self_update_feature_enabled = ctx
+            .execute(&uv_exec)
+            .always()
+            .args(["self", "--help"])
+            .output_checked()
+            .is_ok();
 
         if self_update_feature_enabled {
             ctx.execute(&uv_exec).args(["self", "update"]).status_checked()?;
@@ -1566,7 +1589,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
             .expect("this should be ok regardless of this child process's exit code");
         let output = match output {
             ExecutorOutput::Wet(wet) => wet,
-            ExecutorOutput::Dry => unreachable!("the whole function returns when we run `uv --version` under dry-run"),
+            ExecutorOutput::Dry => return Err(DryRun().into()),
         };
         let stderr = std::str::from_utf8(&output.stderr).expect("output should be UTF-8 encoded");
 
@@ -1883,6 +1906,7 @@ pub fn run_typst(ctx: &ExecutionContext) -> Result<()> {
 
     let raw_info = ctx
         .execute(&typst)
+        .always()
         .args(["info", "-f", "json"])
         .output_checked_utf8()?
         .stdout;

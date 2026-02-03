@@ -83,13 +83,14 @@ fn list_containers(ctx: &ExecutionContext, crt: &Path) -> Result<Vec<Container>>
         None
     };
 
-    // TODO: This should run even when dry-running. Blocked by #1227.
     let output = if let Some(sudo) = sudo {
         sudo.execute(ctx, crt)?
+            .always()
             .args(["image", "ls", "--format", "{{.Repository}}:{{.Tag}} {{.ID}}"])
             .output_checked_utf8()?
     } else {
         ctx.execute(crt)
+            .always()
             .args(["image", "ls", "--format", "{{.Repository}}:{{.Tag}} {{.ID}}"])
             .output_checked_utf8()?
     };
@@ -137,13 +138,14 @@ fn list_containers(ctx: &ExecutionContext, crt: &Path) -> Result<Vec<Container>>
             crt.display(),
             image_id
         );
-        // TODO: This should run even when dry-running. Blocked by #1227.
         let inspect_output = if let Some(sudo) = sudo {
             sudo.execute(ctx, crt)?
+                .always()
                 .args(["image", "inspect", image_id, "--format", "{{.Os}}/{{.Architecture}}"])
                 .output_checked_utf8()?
         } else {
             ctx.execute(crt)
+                .always()
                 .args(["image", "inspect", image_id, "--format", "{{.Os}}/{{.Architecture}}"])
                 .output_checked_utf8()?
         };
@@ -174,11 +176,16 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
 
     let sudo = if use_sudo { Some(ctx.require_sudo()?) } else { None };
 
-    // TODO: This should run even when dry-running. Blocked by #1227.
     let output = if let Some(sudo) = sudo {
-        sudo.execute(ctx, &crt)?.arg("--help").output_checked_with(|_| Ok(()))?
+        sudo.execute(ctx, &crt)?
+            .always()
+            .arg("--help")
+            .output_checked_with(|_| Ok(()))?
     } else {
-        ctx.execute(&crt).arg("--help").output_checked_with(|_| Ok(()))?
+        ctx.execute(&crt)
+            .always()
+            .arg("--help")
+            .output_checked_with(|_| Ok(()))?
     };
 
     let status_code = output
