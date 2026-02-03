@@ -243,6 +243,7 @@ impl DryCommand {
     }
 
     /// Convert this dry command into a real Command that will execute.
+    #[allow(clippy::disallowed_methods)]
     fn into_command(self) -> Command {
         let mut cmd = Command::new(&self.program);
         cmd.args(&self.args);
