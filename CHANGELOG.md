@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.9.0](https://github.com/topgrade-rs/topgrade/compare/v16.8.0...v16.9.0) - 2026-02-03
+
+### Added
+
+- *(system,home_manager)* integrate nh into nix-based updaters ([#1712](https://github.com/topgrade-rs/topgrade/pull/1712))
+- *(cargo)* add `git` and `quiet` options ([#1685](https://github.com/topgrade-rs/topgrade/pull/1685))
+
+### Fixed
+
+- add missing import ([#1718](https://github.com/topgrade-rs/topgrade/pull/1718))
+- *(nix)* make nix-{channel,env} optional for flake-enabled systems ([#1716](https://github.com/topgrade-rs/topgrade/pull/1716))
+
+### Other
+
+- *(pre-commit)* autoupdate ([#1723](https://github.com/topgrade-rs/topgrade/pull/1723))
+- *(deps)* update github/codeql-action action to v4.32.1 ([#1722](https://github.com/topgrade-rs/topgrade/pull/1722))
+- *(deps)* update vmactions/openbsd-vm digest to a23337e ([#1720](https://github.com/topgrade-rs/topgrade/pull/1720))
+- *(deps)* update rust crate notify-rust to ~4.12.0 ([#1721](https://github.com/topgrade-rs/topgrade/pull/1721))
+- *(system,home-manager)* make matches more explicit ([#1719](https://github.com/topgrade-rs/topgrade/pull/1719))
+- *(pre-commit)* autoupdate ([#1704](https://github.com/topgrade-rs/topgrade/pull/1704))
+- *(deps)* update release-plz/action digest to e592230 ([#1698](https://github.com/topgrade-rs/topgrade/pull/1698))
+- *(deps)* update actions/checkout action to v6.0.2 ([#1699](https://github.com/topgrade-rs/topgrade/pull/1699))
+- *(deps)* update github/codeql-action action to v4.32.0 ([#1700](https://github.com/topgrade-rs/topgrade/pull/1700))
+- *(deps)* update actions/attest-build-provenance action to v3.2.0 ([#1703](https://github.com/topgrade-rs/topgrade/pull/1703))
+- *(deps)* update vmactions/openbsd-vm digest to f5b9bc1 ([#1706](https://github.com/topgrade-rs/topgrade/pull/1706))
+- *(renovate)* disable rate-limiting ([#1697](https://github.com/topgrade-rs/topgrade/pull/1697))
+- *(renovate)* disable rate-limiting ([#1696](https://github.com/topgrade-rs/topgrade/pull/1696))
+- *(deps)* update dependency rust to v1.93.0 ([#1695](https://github.com/topgrade-rs/topgrade/pull/1695))
+- *(renovate)* add rust-toolchain updating ([#1694](https://github.com/topgrade-rs/topgrade/pull/1694))
+- pin toolchain to stable instead of MSRV, add MSRV testing, simplify CI workflow ([#1690](https://github.com/topgrade-rs/topgrade/pull/1690))
+- *(pre-commit)* autoupdate ([#1687](https://github.com/topgrade-rs/topgrade/pull/1687))
+- *(renovate)* use preset for lockfile config ([#1684](https://github.com/topgrade-rs/topgrade/pull/1684))
+- *(pre-commit)* autoupdate ([#1682](https://github.com/topgrade-rs/topgrade/pull/1682))
+- *(deps)* update github/codeql-action action to v4.31.10 ([#1680](https://github.com/topgrade-rs/topgrade/pull/1680))
+- *(deb)* update copyright
+- *(deps)* unpin toml
+- *(installation)* add Pacstall Ubuntu package to README ([#1676](https://github.com/topgrade-rs/topgrade/pull/1676))
+- *(deps)* update rust crate toml to v0.9.11 ([#1675](https://github.com/topgrade-rs/topgrade/pull/1675))
+- *(release)* fix OpenBSD release job ([#1674](https://github.com/topgrade-rs/topgrade/pull/1674))
+- *(release)* fix OpenBSD release job ([#1672](https://github.com/topgrade-rs/topgrade/pull/1672))
+
 ## [16.8.0](https://github.com/topgrade-rs/topgrade/compare/v16.7.0...v16.8.0) - 2026-01-07
 
 ### Added
