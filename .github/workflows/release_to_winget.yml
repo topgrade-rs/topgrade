@@ -7,6 +7,8 @@ on:
 
 jobs:
   publish:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: michidk/winget-updater@3045a0d80c3ac5eee06d38bbe4174df74119099c # v1.1.6
