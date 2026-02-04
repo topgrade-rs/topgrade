@@ -789,11 +789,11 @@ pub struct CommandLineArgs {
     #[arg(long = "no-retry", hide = true)]
     no_retry: bool,
 
-    /// Whether to ask what to do after a step fails (default: true)
+    /// Do not ask what to do after a step fails
     #[arg(long = "no-ask-retry")]
     no_ask_retry: bool,
 
-    /// Auto retry failed steps up to COUNT times
+    /// Automatically retry failed steps up to COUNT times
     #[arg(long = "auto-retry", value_name = "COUNT")]
     auto_retry: Option<u16>,
 
