@@ -7,6 +7,8 @@
 <a href="https://crates.io/crates/topgrade"><img alt="crates.io" src="https://img.shields.io/crates/v/topgrade.svg"></a>
 <a href="https://aur.archlinux.org/packages/topgrade"><img alt="AUR" src="https://img.shields.io/aur/version/topgrade.svg"></a>
 <a href="https://formulae.brew.sh/formula/topgrade"><img alt="Homebrew" src="https://img.shields.io/homebrew/v/topgrade.svg"></a>
+<br>
+<a href="https://discord.gg/Q8HGGWundY"><img alt="Discord" src="https://img.shields.io/badge/Discord-%235865F2.svg?logo=discord&logoColor=white"></a>
 
   <img alt="Demo" src="https://github.com/topgrade-rs/topgrade/blob/main/doc/topgrade_demo.gif?raw=true">
 </div>
