@@ -131,7 +131,7 @@ impl<'a> Runner<'a> {
                     // Decide whether to prompt the user
                     let has_auto_retries_left = attempt < max_attempts;
                     let should_prompt =
-                        interrupted || ignore_failure || (!has_auto_retries_left && retry_config.ask_retry);
+                        interrupted || !ignore_failure || (!has_auto_retries_left && retry_config.ask_retry);
 
                     if should_prompt {
                         match self.handle_retry_prompt(&key, &e, ignore_failure)? {
@@ -151,7 +151,11 @@ impl<'a> Runner<'a> {
                     } else if has_auto_retries_left {
                         attempt += 1;
                     } else {
-                        self.push_result(key, StepResult::Failure);
+                        if ignore_failure {
+                            self.push_result(key, StepResult::Ignored);
+                        } else {
+                            self.push_result(key, StepResult::Failure);
+                        }
                         break;
                     }
                 }
