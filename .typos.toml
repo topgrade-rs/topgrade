@@ -8,6 +8,7 @@ extend-exclude = [
   "locales/**",
   # Include only English locale files - TODO: Split locales/app.yml into a Separate english File
   # "!locales/en/**"
+  "CHANGELOG.md",  # Contains commit hashes and verbatim commit messages
 ]
 
 [default]
