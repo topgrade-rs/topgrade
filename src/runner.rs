@@ -94,10 +94,8 @@ impl<'a> Runner<'a> {
             func()
         };
 
-        // Determine max retry attempts based on config
-        let retry_config = self.ctx.config().retry_config();
         // Total max attempts = 1 (initial) + auto_retry count
-        let max_attempts = retry_config.auto_retry.saturating_add(1);
+        let max_attempts = self.ctx.config().auto_retry().saturating_add(1);
 
         let mut attempt = 1;
 
@@ -131,7 +129,7 @@ impl<'a> Runner<'a> {
                     // Decide whether to prompt the user
                     let has_auto_retries_left = attempt < max_attempts;
                     let should_prompt =
-                        interrupted || !ignore_failure || (!has_auto_retries_left && retry_config.ask_retry);
+                        interrupted || !ignore_failure || (!has_auto_retries_left);
 
                     if should_prompt {
                         match self.handle_retry_prompt(&key, &e, ignore_failure)? {

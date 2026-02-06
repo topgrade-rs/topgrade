@@ -105,12 +105,6 @@ pub enum UpdatesAutoReboot {
     Ask,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct RetryConfig {
-    pub auto_retry: u16,
-    pub ask_retry: bool,
-}
-
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Windows {
@@ -1156,14 +1150,6 @@ impl Config {
             .as_ref()
             .and_then(|misc| misc.ask_retry)
             .unwrap_or(true)
-    }
-
-    /// Get retry config
-    pub fn retry_config(&self) -> RetryConfig {
-        RetryConfig {
-            auto_retry: self.auto_retry(),
-            ask_retry: self.ask_retry(),
-        }
     }
 
     /// List of user-defined environment variables
