@@ -9,7 +9,6 @@ use serde::Deserialize;
 use std::ffi::OsString;
 use std::iter::once;
 use std::path::PathBuf;
-use std::process::Command;
 use std::sync::LazyLock;
 use std::{env, path::Path};
 use std::{fs, io::Write};
@@ -32,9 +31,9 @@ use crate::{
 
 #[cfg(target_os = "linux")]
 pub fn is_wsl() -> Result<bool> {
-    let output = Command::new("uname").arg("-r").output_checked_utf8()?.stdout;
-    debug!("Uname output: {}", output);
-    Ok(output.contains("microsoft"))
+    let output = std::fs::read_to_string("/proc/version").unwrap_or_default();
+    debug!("Proc version output: {}", output);
+    Ok(output.to_lowercase().contains("microsoft"))
 }
 
 #[cfg(not(target_os = "linux"))]
@@ -145,9 +144,10 @@ pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_haxelib_update(ctx: &ExecutionContext) -> Result<()> {
     let haxelib = require("haxelib")?;
 
-    let haxelib_dir =
-        PathBuf::from(std::str::from_utf8(&Command::new(&haxelib).arg("config").output_checked()?.stdout)?.trim())
-            .require()?;
+    let haxelib_dir = PathBuf::from(
+        std::str::from_utf8(&ctx.execute(&haxelib).always().arg("config").output_checked()?.stdout)?.trim(),
+    )
+    .require()?;
 
     let directory_writable = tempfile_in(&haxelib_dir).is_ok();
     debug!("{:?} writable: {}", haxelib_dir, directory_writable);
@@ -537,7 +537,7 @@ fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Resu
     //    See https://github.com/topgrade-rs/topgrade/issues/1605, confirmed from Microsoft website
     // This should apply to VSCodium as well.
 
-    let version_output = Command::new(&bin).arg("--version").output_checked_utf8()?;
+    let version_output = ctx.execute(&bin).always().arg("--version").output_checked_utf8()?;
 
     debug!(version_output.stdout);
 
@@ -630,7 +630,9 @@ pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
 
     // pipx version 1.4.0 introduced a new command argument `pipx upgrade-all --quiet`
     // (see https://pipx.pypa.io/stable/docs/#pipx-upgrade-all)
-    let version_str = Command::new(&pipx)
+    let version_str = ctx
+        .execute(&pipx)
+        .always()
         .args(["--version"])
         .output_checked_utf8()
         .map(|s| s.stdout.trim().to_owned());
@@ -652,7 +654,9 @@ pub fn run_pipxu_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
     let conda = require("conda")?;
 
-    let output = Command::new(&conda)
+    let output = ctx
+        .execute(&conda)
+        .always()
         .args(["config", "--show", "auto_activate"])
         .output_checked_utf8()?;
     debug!("Conda output: {}", output.stdout);
@@ -758,8 +762,8 @@ pub fn run_miktex_packages_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
-    let py = require("python").and_then(check_is_python_2_or_shim);
-    let py3 = require("python3").and_then(check_is_python_2_or_shim);
+    let py = require("python").and_then(|p| check_is_python_2_or_shim(ctx, p));
+    let py3 = require("python3").and_then(|p| check_is_python_2_or_shim(ctx, p));
 
     let python3 = match (py, py3) {
         // prefer `python` if it is available and is a valid Python 3.
@@ -770,13 +774,16 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
         }
     };
 
-    Command::new(&python3)
+    ctx.execute(&python3)
+        .always()
         .args(["-m", "pip"])
         .output_checked_utf8()
         .map_err(|_| SkipStep("pip does not exist".to_string()))?;
 
     let check_extern_managed_script = "import sysconfig; from os import path; print('Y') if path.isfile(path.join(sysconfig.get_path('stdlib'), 'EXTERNALLY-MANAGED')) else print('N')";
-    let output = Command::new(&python3)
+    let output = ctx
+        .execute(&python3)
+        .always()
         .args(["-c", check_extern_managed_script])
         .output_checked_utf8()?;
     let stdout = output.stdout.trim();
@@ -786,7 +793,9 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
         _ => unreachable!("unexpected output from `check_extern_managed_script`"),
     };
 
-    let allow_break_sys_pkg = match Command::new(&python3)
+    let allow_break_sys_pkg = match ctx
+        .execute(&python3)
+        .always()
         .args(["-m", "pip", "config", "get", "global.break-system-packages"])
         .output_checked_utf8()
     {
@@ -930,7 +939,8 @@ pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
     let kpsewhich = require("kpsewhich")?;
     let tlmgr_directory = {
         let mut d = PathBuf::from(
-            &Command::new(kpsewhich)
+            ctx.execute(kpsewhich)
+                .always()
                 .arg("-var-value=SELFAUTOPARENT")
                 .output_checked_utf8()?
                 .stdout
@@ -1007,7 +1017,9 @@ pub fn run_custom_command(name: &str, command: &str, ctx: &ExecutionContext) -> 
 
 pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
     let composer = require("composer")?;
-    let composer_home = Command::new(&composer)
+    let composer_home = ctx
+        .execute(&composer)
+        .always()
         .args(["global", "config", "--absolute", "--quiet", "home"])
         .output_checked_utf8()
         .map_err(|e| SkipStep(t!("Error getting the composer directory: {error}", error = e).to_string()))
@@ -1222,7 +1234,11 @@ pub fn spicetify_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_ghcli_extensions_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let gh = require("gh")?;
-    let result = Command::new(&gh).args(["extensions", "list"]).output_checked_utf8();
+    let result = ctx
+        .execute(&gh)
+        .always()
+        .args(["extensions", "list"])
+        .output_checked_utf8();
     if result.is_err() {
         debug!("GH result {:?}", result);
         return Err(SkipStep(t!("GH failed").to_string()).into());
@@ -1460,7 +1476,7 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
 
         let check_official_install_script =
             "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
-        let mut command = Command::new(&interp);
+        let mut command = ctx.execute(&interp);
         if let Some(args) = interp_args {
             command.arg(args);
         }

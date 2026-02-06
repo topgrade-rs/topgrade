@@ -99,7 +99,7 @@ impl<'a> Runner<'a> {
                     let should_ask = interrupted || !(self.ctx.config().no_retry() || ignore_failure);
                     let should_retry = if should_ask {
                         print_error(&key, format!("{e:?}"));
-                        should_retry(key.as_ref())?
+                        should_retry(self.ctx, key.as_ref())?
                     } else {
                         ShouldRetry::No
                     };

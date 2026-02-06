@@ -2,7 +2,6 @@ use std::fmt::Display;
 #[cfg(target_os = "linux")]
 use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
-use std::process::Command;
 
 use crate::HOME_DIR;
 use color_eyre::eyre::Result;
@@ -42,14 +41,15 @@ impl Display for NPMVariant {
 }
 
 #[allow(clippy::upper_case_acronyms)]
-struct NPM {
+struct NPM<'a> {
     command: PathBuf,
     variant: NPMVariant,
+    ctx: &'a ExecutionContext<'a>,
 }
 
-impl NPM {
-    fn new(command: PathBuf, variant: NPMVariant) -> Self {
-        Self { command, variant }
+impl<'a> NPM<'a> {
+    fn new(command: PathBuf, variant: NPMVariant, ctx: &'a ExecutionContext<'a>) -> Self {
+        Self { command, variant, ctx }
     }
 
     /// Is the “NPM” version larger than 8.11.0?
@@ -75,27 +75,32 @@ impl NPM {
     #[cfg(target_os = "linux")]
     fn root(&self) -> Result<PathBuf> {
         let args = ["root", self.global_location_arg()];
-        Command::new(&self.command)
+        self.ctx
+            .execute(&self.command)
+            .always()
             .args(args)
             .output_checked_utf8()
             .map(|s| PathBuf::from(s.stdout.trim()))
     }
 
     fn version(&self) -> Result<Version> {
-        let version_str = Command::new(&self.command)
+        let version_str = self
+            .ctx
+            .execute(&self.command)
+            .always()
             .args(["--version"])
             .output_checked_utf8()
             .map(|s| s.stdout.trim().to_owned());
         Version::parse(&version_str?).map_err(std::convert::Into::into)
     }
 
-    fn upgrade(&self, ctx: &ExecutionContext, use_sudo: bool) -> Result<()> {
+    fn upgrade(&self, use_sudo: bool) -> Result<()> {
         let args = ["update", self.global_location_arg()];
         if use_sudo {
-            let sudo = ctx.require_sudo()?;
-            sudo.execute(ctx, &self.command)?.args(args).status_checked()?;
+            let sudo = self.ctx.require_sudo()?;
+            sudo.execute(self.ctx, &self.command)?.args(args).status_checked()?;
         } else {
-            ctx.execute(&self.command).args(args).status_checked()?;
+            self.ctx.execute(&self.command).args(args).status_checked()?;
         }
 
         Ok(())
@@ -115,13 +120,14 @@ impl NPM {
     }
 }
 
-struct Yarn {
+struct Yarn<'a> {
     command: PathBuf,
+    ctx: &'a ExecutionContext<'a>,
 }
 
-impl Yarn {
-    fn new(command: PathBuf) -> Self {
-        Self { command }
+impl<'a> Yarn<'a> {
+    fn new(command: PathBuf, ctx: &'a ExecutionContext<'a>) -> Self {
+        Self { command, ctx }
     }
 
     fn has_global_subcmd(&self) -> bool {
@@ -130,7 +136,12 @@ impl Yarn {
         //
         // As “yarn dlx” don't need to “upgrade”, we
         // ignore the whole task if Yarn is 2.x or above.
-        let version = Command::new(&self.command).args(["--version"]).output_checked_utf8();
+        let version = self
+            .ctx
+            .execute(&self.command)
+            .always()
+            .args(["--version"])
+            .output_checked_utf8();
 
         matches!(version, Ok(ver) if ver.stdout.starts_with('1') || ver.stdout.starts_with('0'))
     }
@@ -138,20 +149,22 @@ impl Yarn {
     #[cfg(target_os = "linux")]
     fn root(&self) -> Result<PathBuf> {
         let args = ["global", "dir"];
-        Command::new(&self.command)
+        self.ctx
+            .execute(&self.command)
+            .always()
             .args(args)
             .output_checked_utf8()
             .map(|s| PathBuf::from(s.stdout.trim()))
     }
 
-    fn upgrade(&self, ctx: &ExecutionContext, use_sudo: bool) -> Result<()> {
+    fn upgrade(&self, use_sudo: bool) -> Result<()> {
         let args = ["global", "upgrade"];
 
         if use_sudo {
-            let sudo = ctx.require_sudo()?;
-            sudo.execute(ctx, &self.command)?.args(args).status_checked()?;
+            let sudo = self.ctx.require_sudo()?;
+            sudo.execute(self.ctx, &self.command)?.args(args).status_checked()?;
         } else {
-            ctx.execute(&self.command).args(args).status_checked()?;
+            self.ctx.execute(&self.command).args(args).status_checked()?;
         }
 
         Ok(())
@@ -171,19 +184,20 @@ impl Yarn {
     }
 }
 
-struct Deno {
+struct Deno<'a> {
     command: PathBuf,
+    ctx: &'a ExecutionContext<'a>,
 }
 
-impl Deno {
-    fn new(command: PathBuf) -> Self {
-        Self { command }
+impl<'a> Deno<'a> {
+    fn new(command: PathBuf, ctx: &'a ExecutionContext<'a>) -> Self {
+        Self { command, ctx }
     }
 
-    fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
+    fn upgrade(&self) -> Result<()> {
         let mut args = vec![];
 
-        let version = ctx.config().deno_version();
+        let version = self.ctx.config().deno_version();
         if let Some(version) = version {
             let bin_version = self.version()?;
 
@@ -232,7 +246,11 @@ impl Deno {
             }
         }
 
-        ctx.execute(&self.command).arg("upgrade").args(args).status_checked()?;
+        self.ctx
+            .execute(&self.command)
+            .arg("upgrade")
+            .args(args)
+            .status_checked()?;
         Ok(())
     }
 
@@ -245,7 +263,10 @@ impl Deno {
     /// deno -V # deno 1.6.0
     /// ```
     fn version(&self) -> Result<Version> {
-        let version_str = Command::new(&self.command)
+        let version_str = self
+            .ctx
+            .execute(&self.command)
+            .always()
             .args(["-V"])
             .output_checked_utf8()
             .map(|s| s.stdout.trim().to_owned().split_off(5)); // remove "deno " prefix
@@ -282,39 +303,39 @@ fn should_use_sudo_yarn(yarn: &Yarn, ctx: &ExecutionContext) -> Result<bool> {
 }
 
 pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let npm = require("npm").map(|b| NPM::new(b, NPMVariant::Npm))?;
+    let npm = require("npm").map(|b| NPM::new(b, NPMVariant::Npm, ctx))?;
 
     print_separator(t!("Node Package Manager"));
 
     #[cfg(target_os = "linux")]
     {
-        npm.upgrade(ctx, should_use_sudo(&npm, ctx)?)
+        npm.upgrade(should_use_sudo(&npm, ctx)?)
     }
 
     #[cfg(not(target_os = "linux"))]
     {
-        npm.upgrade(ctx, false)
+        npm.upgrade(false)
     }
 }
 
 pub fn run_pnpm_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let pnpm = require("pnpm").map(|b| NPM::new(b, NPMVariant::Pnpm))?;
+    let pnpm = require("pnpm").map(|b| NPM::new(b, NPMVariant::Pnpm, ctx))?;
 
     print_separator(t!("Performant Node Package Manager"));
 
     #[cfg(target_os = "linux")]
     {
-        pnpm.upgrade(ctx, should_use_sudo(&pnpm, ctx)?)
+        pnpm.upgrade(should_use_sudo(&pnpm, ctx)?)
     }
 
     #[cfg(not(target_os = "linux"))]
     {
-        pnpm.upgrade(ctx, false)
+        pnpm.upgrade(false)
     }
 }
 
 pub fn run_yarn_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let yarn = require("yarn").map(Yarn::new)?;
+    let yarn = require("yarn").map(|b| Yarn::new(b, ctx))?;
 
     if !yarn.has_global_subcmd() {
         debug!("Yarn is 2.x or above, skipping global upgrade");
@@ -325,17 +346,17 @@ pub fn run_yarn_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     #[cfg(target_os = "linux")]
     {
-        yarn.upgrade(ctx, should_use_sudo_yarn(&yarn, ctx)?)
+        yarn.upgrade(should_use_sudo_yarn(&yarn, ctx)?)
     }
 
     #[cfg(not(target_os = "linux"))]
     {
-        yarn.upgrade(ctx, false)
+        yarn.upgrade(false)
     }
 }
 
 pub fn deno_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let deno = require("deno").map(Deno::new)?;
+    let deno = require("deno").map(|b| Deno::new(b, ctx))?;
     let deno_dir = HOME_DIR.join(".deno");
 
     if !deno.command.canonicalize()?.is_descendant_of(&deno_dir) {
@@ -344,7 +365,7 @@ pub fn deno_upgrade(ctx: &ExecutionContext) -> Result<()> {
     }
 
     print_separator("Deno");
-    deno.upgrade(ctx)
+    deno.upgrade()
 }
 
 /// There is no `volta upgrade` command, so we need to upgrade each package

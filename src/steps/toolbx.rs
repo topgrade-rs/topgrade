@@ -5,11 +5,13 @@ use crate::step::Step;
 use crate::terminal::print_separator;
 use crate::{execution_context::ExecutionContext, utils::require};
 use std::path::Path;
-use std::{path::PathBuf, process::Command};
+use std::path::PathBuf;
 use tracing::debug;
 
-fn list_toolboxes(toolbx: &Path) -> Result<Vec<String>> {
-    let output = Command::new(toolbx)
+fn list_toolboxes(ctx: &ExecutionContext, toolbx: &Path) -> Result<Vec<String>> {
+    let output = ctx
+        .execute(toolbx)
+        .always()
         .args(["list", "--containers"])
         .output_checked_utf8()?;
 
@@ -32,7 +34,7 @@ pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
     let toolbx = require("toolbox")?;
 
     print_separator("Toolbx");
-    let toolboxes = list_toolboxes(&toolbx)?;
+    let toolboxes = list_toolboxes(ctx, &toolbx)?;
     debug!("Toolboxes to inspect: {:?}", toolboxes);
 
     let mut topgrade_path = PathBuf::from("/run/host");
