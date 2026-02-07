@@ -154,11 +154,14 @@ impl<'a> Runner<'a> {
                     } else if has_auto_retries_left {
                         attempt += 1;
                     } else {
-                        self.push_result(key, if ignore_failure {
-                            StepResult::Ignored
-                        } else {
-							StepResult::Failure
-						});
+                        self.push_result(
+                            key,
+                            if ignore_failure {
+                                StepResult::Ignored
+                            } else {
+                                StepResult::Failure
+                            },
+                        );
                         break;
                     }
                 }
