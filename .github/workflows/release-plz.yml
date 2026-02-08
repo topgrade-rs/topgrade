@@ -21,8 +21,6 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install Rust toolchain
-        # NOTE: Must pin to SHA from master branch history per dtolnay/rust-toolchain docs
-        # to avoid garbage collection. Do not pin to SHAs from feature branches.
         uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # master
         with:
           toolchain: stable
@@ -61,8 +59,6 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install Rust toolchain
-        # NOTE: Must pin to SHA from master branch history per dtolnay/rust-toolchain docs
-        # to avoid garbage collection. Do not pin to SHAs from feature branches.
         uses: dtolnay/rust-toolchain@f7ccc83f9ed1e5b9c81d8a67d7ad1a747e22a561 # master
         with:
           toolchain: stable
