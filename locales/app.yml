@@ -104,14 +104,14 @@ _version: 2
   zh_CN: "Topgrade 已在新的 tmux 会话中启动"
   zh_TW: "Topgrade 已啟動新 tmux 程式"
   de: "Topgrade in einer neuen tmux-Sitzung gestartet"
-"Topgrade upgraded to {version}:\n":
-  en: "Topgrade upgraded to %{version}:\n"
-  lt: "Topgrade atnaujintas iki %{version}:\n"
-  es: "Topgrade actualizado a %{version}:\n"
-  fr: "Topgrade mis à jour vers %{version}:\n"
-  zh_CN: "已将 Topgrade 更新至 %{version}: \n"
-  zh_TW: "已將 Topgrade 更新至 %{version}：\n"
-  de: "Topgrade auf Version %{version} aktualisiert:\n"
+"Topgrade upgraded from {from_version} to {to_version}:\n":
+  en: "Topgrade upgraded from %{from_version} to %{to_version}:\n"
+  lt: "Topgrade atnaujintas nuo %{from_version} iki %{to_version}:\n"
+  es: "Topgrade actualizado de %{from_version} a %{to_version}:\n"
+  fr: "Topgrade mis à jour de %{from_version} vers %{to_version}:\n"
+  zh_CN: "已将 Topgrade 从 %{from_version} 更新至 %{to_version}: \n"
+  zh_TW: "已將 Topgrade 從 %{from_version} 更新至 %{to_version}：\n"
+  de: "Topgrade von Version %{from_version} auf %{to_version} aktualisiert:\n"
 "Topgrade is up-to-date":
   en: "Topgrade is up-to-date"
   lt: "Topgrade yra naujausia"
