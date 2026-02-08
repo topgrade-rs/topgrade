@@ -41,7 +41,14 @@ pub fn self_update(ctx: &ExecutionContext) -> Result<()> {
             .update_extended()?;
 
         if let UpdateStatus::Updated(release) = &result {
-            println!("{}", t!("Topgrade upgraded from {from_version} to {to_version}:\n", from_version = current_version, to_version = release.version));
+            println!(
+                "{}",
+                t!(
+                    "Topgrade upgraded from {from_version} to {to_version}:\n",
+                    from_version = current_version,
+                    to_version = release.version
+                )
+            );
             if let Some(body) = &release.body {
                 println!("{body}");
             }
