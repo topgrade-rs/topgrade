@@ -131,7 +131,7 @@ impl<'a> Runner<'a> {
                     let should_prompt = if interrupted {
                         // If interrupted, always prompt
                         true
-                    } else if attempt < max_attempts {
+                    } else if has_auto_retries_left {
                         // If not interrupted, auto-retry if we want to
                         attempt += 1;
                         continue;
