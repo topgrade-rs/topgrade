@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [16.10.0](https://github.com/topgrade-rs/topgrade/compare/v16.9.0...v16.10.0) - 2026-02-08
+
+### Added
+
+- show version range in self-update message ([#1752](https://github.com/topgrade-rs/topgrade/pull/1752))
+- *(uv)* run uv python upgrade ([#1747](https://github.com/topgrade-rs/topgrade/pull/1747))
+- `--auto-retry [<COUNT>]` flag and `--no-retry` deprecation ([#1603](https://github.com/topgrade-rs/topgrade/pull/1603))
+
+### Fixed
+
+- *(vim)* AstroNvim - wait for AstroUpdateCompleted and finish. ([#1744](https://github.com/topgrade-rs/topgrade/pull/1744))
+
+### Other
+
+- *(deps)* update vmactions/openbsd-vm digest to d6c29ce ([#1751](https://github.com/topgrade-rs/topgrade/pull/1751))
+- *(deps)* update pyo3/maturin-action action to v1.50.0 ([#1743](https://github.com/topgrade-rs/topgrade/pull/1743))
+- *(msrv)* run msrv check on multiple platforms ([#1749](https://github.com/topgrade-rs/topgrade/pull/1749))
+- format release_to_homebrew.yml workflow ([#1748](https://github.com/topgrade-rs/topgrade/pull/1748))
+- remove hard to read condition in retry logic ([#1745](https://github.com/topgrade-rs/topgrade/pull/1745))
+- *(typos)* ignore CHANGELOG.md ([#1742](https://github.com/topgrade-rs/topgrade/pull/1742))
+- *(deps)* update release-plz/action digest to 52440b5 ([#1740](https://github.com/topgrade-rs/topgrade/pull/1740))
+- *(deps)* update actions/checkout digest to de0fac2 ([#1726](https://github.com/topgrade-rs/topgrade/pull/1726))
+- *(deps)* update release-plz/action digest to 20b2393 ([#1733](https://github.com/topgrade-rs/topgrade/pull/1733))
+- *(deps)* update vmactions/openbsd-vm digest to 271a1ba ([#1736](https://github.com/topgrade-rs/topgrade/pull/1736))
+- *(deps)* update github/codeql-action action to v4.32.2 ([#1737](https://github.com/topgrade-rs/topgrade/pull/1737))
+- *(readme)* add Discord badge ([#1728](https://github.com/topgrade-rs/topgrade/pull/1728))
+- *(pre-commit)* switch to typos mirror to fix autoupdates ([#1734](https://github.com/topgrade-rs/topgrade/pull/1734))
+- fix CodeQL missing permissions in winget workflow ([#1732](https://github.com/topgrade-rs/topgrade/pull/1732))
+- *(deb)* simplify config and remove revision ([#1724](https://github.com/topgrade-rs/topgrade/pull/1724))
+
 ## [16.9.0](https://github.com/topgrade-rs/topgrade/compare/v16.8.0...v16.9.0) - 2026-02-03
 
 ### Added
