@@ -27,6 +27,7 @@ pub fn self_update(ctx: &ExecutionContext) -> Result<()> {
         let current_exe = env::current_exe();
 
         let target = self_update_crate::get_target();
+        let current_version = self_update_crate::cargo_crate_version!();
         let result = Update::configure()
             .repo_owner("topgrade-rs")
             .repo_name("topgrade")
@@ -34,13 +35,13 @@ pub fn self_update(ctx: &ExecutionContext) -> Result<()> {
             .bin_name(if cfg!(windows) { "topgrade.exe" } else { "topgrade" })
             .show_output(true)
             .show_download_progress(true)
-            .current_version(self_update_crate::cargo_crate_version!())
+            .current_version(current_version)
             .no_confirm(assume_yes)
             .build()?
             .update_extended()?;
 
         if let UpdateStatus::Updated(release) = &result {
-            println!("{}", t!("Topgrade upgraded to {version}:\n", version = release.version));
+            println!("{}", t!("Topgrade upgraded from {from_version} to {to_version}:\n", from_version = current_version, to_version = release.version));
             if let Some(body) = &release.body {
                 println!("{body}");
             }
