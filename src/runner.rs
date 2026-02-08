@@ -1,7 +1,7 @@
 use color_eyre::eyre::{Result, WrapErr};
 use rust_i18n::t;
 use std::borrow::Cow;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use std::io;
 use tracing::debug;
 
@@ -12,7 +12,7 @@ use crate::step::Step;
 use crate::terminal::{print_error, print_warning, should_retry, ShouldRetry};
 
 pub enum StepResult {
-    Success,
+    Success(Option<UpdatedComponents>),
     Failure,
     Ignored,
     SkippedMissingSudo,
@@ -24,7 +24,7 @@ impl StepResult {
         use StepResult::*;
 
         match self {
-            Success | Ignored | Skipped(_) | SkippedMissingSudo => false,
+            Success(_) | Ignored | Skipped(_) | SkippedMissingSudo => false,
             Failure => true,
         }
     }
@@ -37,6 +37,61 @@ enum RetryDecision {
 }
 
 type Report<'a> = Vec<(Cow<'a, str>, StepResult)>;
+
+pub struct UpdatedComponents(Vec<UpdatedComponent>);
+
+impl UpdatedComponents {
+    pub fn new(updated: Vec<UpdatedComponent>) -> Self {
+        Self(updated)
+    }
+}
+
+impl Display for UpdatedComponents {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.0.as_slice() {
+            [] => write!(f, "No updates found"),
+            components => {
+                writeln!(f, "Updated:")?;
+                let updates = components
+                    .iter()
+                    .map(|c| format!("- {c}"))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                write!(f, "{updates}")?;
+                Ok(())
+            }
+        }
+    }
+}
+
+pub struct UpdatedComponent {
+    name: String,
+    from_version: Option<String>,
+    to_version: Option<String>,
+}
+
+impl UpdatedComponent {
+    pub fn new(name: String, from_version: Option<String>, to_version: Option<String>) -> Self {
+        Self {
+            name,
+            from_version,
+            to_version,
+        }
+    }
+}
+
+impl Display for UpdatedComponent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match (&self.from_version, &self.to_version) {
+            (None, None) => write!(f, "{}", self.name),
+            (None, Some(to_version)) => write!(f, "{} to {}", self.name, to_version),
+            (Some(from_version), None) => write!(f, "{} from {}", self.name, from_version),
+            (Some(from_version), Some(to_version)) => {
+                write!(f, "{} from {} to {}", self.name, from_version, to_version)
+            }
+        }
+    }
+}
 
 pub struct Runner<'a> {
     ctx: &'a ExecutionContext<'a>,
@@ -79,6 +134,22 @@ impl<'a> Runner<'a> {
         K: Into<Cow<'a, str>> + Debug,
         F: Fn() -> Result<()>,
     {
+        self._execute(step, key, || func().map(|()| None))
+    }
+
+    pub fn execute_with_updated<K, F>(&mut self, step: Step, key: K, func: F) -> Result<()>
+    where
+        K: Into<Cow<'a, str>> + Debug,
+        F: Fn() -> Result<Vec<UpdatedComponent>>,
+    {
+        self._execute(step, key, || func().map(Some))
+    }
+
+    fn _execute<K, F>(&mut self, step: Step, key: K, func: F) -> Result<()>
+    where
+        K: Into<Cow<'a, str>> + Debug,
+        F: Fn() -> Result<Option<Vec<UpdatedComponent>>>,
+    {
         if !self.ctx.config().should_run(step) {
             return Ok(());
         }
@@ -101,8 +172,8 @@ impl<'a> Runner<'a> {
 
         loop {
             match func() {
-                Ok(()) => {
-                    self.push_result(key, StepResult::Success);
+                Ok(updated) => {
+                    self.push_result(key, StepResult::Success(updated.map(UpdatedComponents::new)));
                     break;
                 }
                 Err(e) if e.downcast_ref::<DryRun>().is_some() => break,
