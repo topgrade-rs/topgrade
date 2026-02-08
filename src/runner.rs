@@ -30,6 +30,12 @@ impl StepResult {
     }
 }
 
+enum RetryDecision {
+    Retry,
+    Quit,
+    Continue(StepResult),
+}
+
 type Report<'a> = Vec<(Cow<'a, str>, StepResult)>;
 
 pub struct Runner<'a> {
@@ -42,6 +48,24 @@ impl<'a> Runner<'a> {
         Runner {
             ctx,
             report: Vec::new(),
+        }
+    }
+
+    fn handle_retry_prompt(
+        &self,
+        key: &str,
+        error: &color_eyre::eyre::Error,
+        ignore_failure: bool,
+    ) -> Result<RetryDecision> {
+        print_error(key, format!("{error:?}"));
+        match should_retry(key)? {
+            ShouldRetry::Yes => Ok(RetryDecision::Retry),
+            ShouldRetry::Quit => Ok(RetryDecision::Quit),
+            ShouldRetry::No => Ok(RetryDecision::Continue(if ignore_failure {
+                StepResult::Ignored
+            } else {
+                StepResult::Failure
+            })),
         }
     }
 
@@ -70,6 +94,11 @@ impl<'a> Runner<'a> {
             func()
         };
 
+        // Total max attempts = 1 (initial) + auto_retry count
+        let max_attempts = self.ctx.config().auto_retry().saturating_add(1);
+
+        let mut attempt = 1;
+
         loop {
             match func() {
                 Ok(()) => {
@@ -96,31 +125,44 @@ impl<'a> Runner<'a> {
                     }
 
                     let ignore_failure = self.ctx.config().ignore_failure(step);
-                    let should_ask = interrupted || !(self.ctx.config().no_retry() || ignore_failure);
-                    let should_retry = if should_ask {
-                        print_error(&key, format!("{e:?}"));
-                        should_retry(key.as_ref())?
-                    } else {
-                        ShouldRetry::No
-                    };
 
-                    match should_retry {
-                        ShouldRetry::No | ShouldRetry::Quit => {
-                            self.push_result(
-                                key,
-                                if ignore_failure {
-                                    StepResult::Ignored
-                                } else {
-                                    StepResult::Failure
-                                },
-                            );
-                            if let ShouldRetry::Quit = should_retry {
+                    // Decide whether to prompt the user
+                    let has_auto_retries_left = attempt < max_attempts;
+                    let should_prompt =
+						// If interrupted, always prompt
+                        interrupted
+                            // Otherwise, only prompt when we don't want to auto-retry, are configured
+                            //  to prompt, and don't ignore failure for this step (when we ignore_failure,
+                            //  we don't prompt regardless of ask_retry)
+                            || (!has_auto_retries_left && self.ctx.config().ask_retry() && !ignore_failure);
+
+                    if should_prompt {
+                        match self.handle_retry_prompt(&key, &e, ignore_failure)? {
+                            RetryDecision::Retry => {
+                                continue;
+                            }
+                            RetryDecision::Quit => {
+                                self.push_result(key, StepResult::Failure);
                                 return Err(io::Error::from(io::ErrorKind::Interrupted))
                                     .context("Quit from user input");
                             }
-                            break;
+                            RetryDecision::Continue(result) => {
+                                self.push_result(key, result);
+                                break;
+                            }
                         }
-                        ShouldRetry::Yes => (),
+                    } else if has_auto_retries_left {
+                        attempt += 1;
+                    } else {
+                        self.push_result(
+                            key,
+                            if ignore_failure {
+                                StepResult::Ignored
+                            } else {
+                                StepResult::Failure
+                            },
+                        );
+                        break;
                     }
                 }
             }
