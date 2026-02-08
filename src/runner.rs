@@ -127,14 +127,20 @@ impl<'a> Runner<'a> {
                     let ignore_failure = self.ctx.config().ignore_failure(step);
 
                     // Decide whether to prompt the user
-                    let has_auto_retries_left = attempt < max_attempts;
-                    let should_prompt =
-						// If interrupted, always prompt
-                        interrupted
-                            // Otherwise, only prompt when we don't want to auto-retry, are configured
-                            //  to prompt, and don't ignore failure for this step (when we ignore_failure,
-                            //  we don't prompt regardless of ask_retry)
-                            || (!has_auto_retries_left && self.ctx.config().ask_retry() && !ignore_failure);
+                    let should_prompt = if interrupted {
+                        // If interrupted, always prompt
+                        true
+                    } else if attempt < max_attempts {
+                        // If not interrupted, auto-retry if we want to
+                        attempt += 1;
+                        continue;
+                    } else if ignore_failure {
+                        // If ignore_failure, never prompt (except when interrupted)
+                        false
+                    } else {
+                        // Otherwise, prompt when we are configured to prompt
+                        self.ctx.config().ask_retry()
+                    };
 
                     if should_prompt {
                         match self.handle_retry_prompt(&key, &e, ignore_failure)? {
@@ -151,8 +157,6 @@ impl<'a> Runner<'a> {
                                 break;
                             }
                         }
-                    } else if has_auto_retries_left {
-                        attempt += 1;
                     } else {
                         self.push_result(
                             key,
