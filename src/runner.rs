@@ -127,6 +127,7 @@ impl<'a> Runner<'a> {
                     let ignore_failure = self.ctx.config().ignore_failure(step);
 
                     // Decide whether to prompt the user
+                    let has_auto_retries_left = attempt < max_attempts;
                     let should_prompt = if interrupted {
                         // If interrupted, always prompt
                         true
