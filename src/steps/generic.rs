@@ -1489,7 +1489,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
     let uv_exec = require("uv")?;
     print_separator("uv");
 
-    // 1. Run `uv self update` if the `uv` binary is built with the `self-update`
+    // Run `uv self update` if the `uv` binary is built with the `self-update`
     //    cargo feature enabled.
     //
     // To check if this feature is enabled or not, different version of `uv` need
@@ -1585,13 +1585,18 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         }
     };
 
-    // 2. Update the installed tools
+    // Update the installed tools
     ctx.execute(&uv_exec)
         .args(["tool", "upgrade", "--all"])
         .status_checked()?;
 
+    // Update uv-managed Python installations from uv>=0.10.0
+    if version >= Version::new(0, 10, 0) {
+        ctx.execute(&uv_exec).args(["python", "upgrade"]).status_checked()?;
+    }
+
     if ctx.config().cleanup() {
-        // 3. Prune cache
+        // Prune cache
         ctx.execute(&uv_exec).args(["cache", "prune"]).status_checked()?;
     }
 

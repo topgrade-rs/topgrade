@@ -95,15 +95,38 @@ jobs:
           fi
 
   msrv:
-    name: MSRV check
     needs: [ format, custom-checks ]
-    runs-on: ubuntu-latest
+    name: MSRV check (${{ matrix.target_name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target_name: Linux
+            target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+
+          - target_name: Windows
+            target: x86_64-pc-windows-msvc
+            os: windows-latest
+
+          - target_name: macOS-aarch64
+            target: aarch64-apple-darwin
+            os: macos-latest
+
+          - target_name: macOS-x86_64
+            target: x86_64-apple-darwin
+            os: macos-15-intel
+
+          # Ignores the cross-compiled targets for simplicity; they contain a minimal amount of code anyway.
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
 
       - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2
+        with:
+          key: ${{ matrix.target }}
 
       - name: Pin toolchain to MSRV
         run: |
@@ -164,7 +187,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # v2.8.2
         with:
-          prefix-key: ${{ matrix.target }}
+          key: ${{ matrix.target }}
 
       - name: Setup cross
         if: matrix.use_cross == true

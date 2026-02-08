@@ -48,7 +48,13 @@
 # Don't ask for confirmations (no default value)
 # assume_yes = true
 
-# Do not ask to retry failed steps (default: false)
+# Whether to ask what to do after a step fails (default: true)
+# ask_retry = true
+
+# Number of times to automatically retry a step when it fails (default: 0)
+# auto_retry = 0
+
+# Same as ask_retry = false (default: false) - legacy
 # no_retry = true
 
 # Show the reason for skipped steps (default: false)

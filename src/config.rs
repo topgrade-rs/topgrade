@@ -357,6 +357,11 @@ pub struct Misc {
 
     assume_yes: Option<bool>,
 
+    ask_retry: Option<bool>,
+
+    auto_retry: Option<u16>,
+
+    /// TODO: Remove this in favor of ask_retry = false
     no_retry: Option<bool>,
 
     show_skipped: Option<bool>,
@@ -787,9 +792,17 @@ pub struct CommandLineArgs {
     #[arg(short = 'r', long = "run-type", value_enum, default_value_t)]
     run_type: RunType,
 
-    /// Do not ask to retry failed steps
-    #[arg(long = "no-retry")]
+    /// Do not ask to retry failed steps (same as --no-ask-retry, kept for legacy compatibility)
+    #[arg(long = "no-retry", hide = true)]
     no_retry: bool,
+
+    /// Do not ask what to do after a step fails
+    #[arg(long = "no-ask-retry")]
+    no_ask_retry: bool,
+
+    /// Automatically retry failed steps up to COUNT times
+    #[arg(long = "auto-retry", value_name = "COUNT")]
+    auto_retry: Option<u16>,
 
     /// Do not perform upgrades for the given steps
     #[arg(long = "disable", value_name = "STEP", value_enum, num_args = 1..)]
@@ -1131,15 +1144,39 @@ impl Config {
         }
     }
 
-    /// Tell whether we should not attempt to retry anything.
-    pub fn no_retry(&self) -> bool {
-        self.opt.no_retry
-            || self
-                .config_file
-                .misc
-                .as_ref()
-                .and_then(|misc| misc.no_retry)
-                .unwrap_or(false)
+    /// Get the auto retry count for failed steps
+    pub fn auto_retry(&self) -> u16 {
+        self.opt
+            .auto_retry
+            .or_else(|| self.config_file.misc.as_ref().and_then(|misc| misc.auto_retry))
+            .unwrap_or(0)
+    }
+
+    /// Determine whether to ask for retry after a step fails
+    pub fn ask_retry(&self) -> bool {
+        if self.opt.no_ask_retry {
+            return false;
+        }
+
+        if self.opt.no_retry {
+            return false;
+        }
+
+        if self
+            .config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.no_retry)
+            .unwrap_or(false)
+        {
+            return false;
+        }
+
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.ask_retry)
+            .unwrap_or(true)
     }
 
     /// List of user-defined environment variables

@@ -11,12 +11,12 @@ jobs:
   homebrew-publish:
     runs-on: ubuntu-latest
     steps:
-    - name: Bump formulae
-      uses: dawidd6/action-homebrew-bump-formula@1446dca236b0440c6f02723a3f14f13be2c04ab0 # v7
-      with:
-        # Custom GitHub access token with only the 'public_repo' scope enabled
-        token: ${{secrets.HOMEBREW_ACCESS_TOKEN}}
-        formula: topgrade
-        tag: ${{ github.event.client_payload.tag }}
-        # We cannot use an org because org forks cannot give push access to maintainers, which Homebrew requires.
-        # org: topgrade-rs
+      - name: Bump formulae
+        uses: dawidd6/action-homebrew-bump-formula@1446dca236b0440c6f02723a3f14f13be2c04ab0 # v7
+        with:
+          # Custom GitHub access token with only the 'public_repo' scope enabled
+          token: ${{ secrets.HOMEBREW_ACCESS_TOKEN }}
+          formula: topgrade
+          tag: ${{ github.event.client_payload.tag }}
+          # We cannot use an org because org forks cannot give push access to maintainers, which Homebrew requires.
+          # org: topgrade-rs
