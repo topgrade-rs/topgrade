@@ -53,6 +53,7 @@ globset = "=0.4.16"
 base64ct = "<1.8.0"
 async-lock = "=3.4.1"
 clap-cargo = "0.15.2"
+edit = "0.1.5"
 
 [package.metadata.generate-rpm]
 assets = [{ source = "target/release/topgrade", dest = "/usr/bin/topgrade" }]

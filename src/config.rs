@@ -3,7 +3,6 @@
 use std::fs::{write, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::{env, fmt, fs};
 
 use clap::{Parser, ValueEnum};
@@ -19,10 +18,7 @@ use rust_i18n::t;
 use serde::Deserialize;
 use strum::IntoEnumIterator;
 use tracing::{debug, error};
-use which_crate::which;
 
-use super::utils::editor;
-use crate::command::CommandExt;
 use crate::execution_context::RunType;
 use crate::step::{Step, DEPRECATED_STEPS};
 use crate::sudo::SudoKind;
@@ -730,18 +726,9 @@ impl ConfigFile {
 
     fn edit() -> Result<()> {
         let config_path = Self::ensure()?.0;
-        let editor = editor();
-        debug!("Editor: {:?}", editor);
+        debug!("Editing config file: {:?}", config_path);
 
-        let command = which(&editor[0])?;
-        let args: Vec<&String> = editor.iter().skip(1).collect();
-
-        #[allow(clippy::disallowed_methods)]
-        Command::new(command)
-            .args(args)
-            .arg(config_path)
-            .status_checked()
-            .context("Failed to open configuration file editor")
+        edit::edit_file(&config_path).context("Failed to open configuration file editor")
     }
 
     /// [Misc] was added later, here we check if it is present in the config file and add it if not
