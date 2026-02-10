@@ -11,7 +11,7 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: michidk/winget-updater@3045a0d80c3ac5eee06d38bbe4174df74119099c # v1.1.6
+      - uses: michidk/winget-updater@d2e9ce38251edda66e37724af400506240502d35 # v1.1.7
         with:
           komac-token: ${{ secrets.WINGET_TOKEN }}
           identifier: topgrade-rs.topgrade
