@@ -46,6 +46,8 @@ mod step;
 mod steps;
 mod sudo;
 mod terminal;
+#[cfg(unix)]
+mod tmux;
 mod utils;
 
 pub(crate) static HOME_DIR: LazyLock<PathBuf> = LazyLock::new(|| home::home_dir().expect("No home directory"));
