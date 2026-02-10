@@ -370,7 +370,10 @@ pub struct Misc {
 
     notify_each_step: Option<bool>,
 
+    /// Deprecated: use `notify_end = "never"` instead
     skip_notify: Option<bool>,
+
+    notify_end: Option<NotifyEnd>,
 
     bashit_branch: Option<String>,
 
@@ -393,6 +396,20 @@ pub enum TmuxSessionMode {
     #[default]
     AttachIfNotInSession,
     AttachAlways,
+}
+
+/// Controls when the end-of-run desktop notification is sent.
+#[derive(Clone, Copy, Debug, Deserialize, ValueEnum, Default)]
+#[clap(rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum NotifyEnd {
+    /// Always send a notification (default)
+    #[default]
+    Always,
+    /// Never send a notification
+    Never,
+    /// Only send a notification if there were failures
+    OnFailure,
 }
 
 pub struct TmuxConfig {
@@ -816,9 +833,13 @@ pub struct CommandLineArgs {
     #[arg(short = 'k', long = "keep")]
     keep_at_end: bool,
 
-    /// Skip sending a notification at the end of a run
-    #[arg(long = "skip-notify")]
+    /// Skip sending a notification at the end of a run (deprecated: use --notify-end never)
+    #[arg(long = "skip-notify", hide = true)]
     skip_notify: bool,
+
+    /// When to send a notification at the end of a run
+    #[arg(long = "notify-end", value_enum, default_value_t)]
+    notify_end: NotifyEnd,
 
     /// Say yes to package manager's prompt
     #[arg(
@@ -1243,13 +1264,28 @@ impl Config {
         self.opt.keep_at_end || env::var("TOPGRADE_KEEP_END").is_ok()
     }
 
-    /// Skip sending a notification at the end of a run
-    pub fn skip_notify(&self) -> bool {
-        if let Some(yes) = self.config_file.misc.as_ref().and_then(|misc| misc.skip_notify) {
-            return yes;
+    /// When to send a notification at the end of a run
+    pub fn notify_end(&self) -> NotifyEnd {
+        let skip_notify = self
+            .config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.skip_notify)
+            .unwrap_or(self.opt.skip_notify);
+
+        let notify_end = self
+            .config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.notify_end)
+            .unwrap_or(self.opt.notify_end);
+
+        // TODO: deprecate skip_notify
+        if skip_notify {
+            return NotifyEnd::Never;
         }
 
-        self.opt.skip_notify
+        notify_end
     }
 
     /// Whether to set the terminal title

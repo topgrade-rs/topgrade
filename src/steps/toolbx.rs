@@ -55,7 +55,8 @@ pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
             "--only",
             "system",
             "--no-self-update",
-            "--skip-notify",
+            "--notify-end",
+            "never",
         ];
         if ctx.config().yes(Step::Toolbx) {
             args.push("--yes");
