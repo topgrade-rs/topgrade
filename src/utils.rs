@@ -1,4 +1,3 @@
-use std::env;
 use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
@@ -80,14 +79,6 @@ pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBuf> {
             None
         }
     }
-}
-
-pub fn editor() -> Vec<String> {
-    env::var("EDITOR")
-        .unwrap_or_else(|_| String::from(if cfg!(windows) { "notepad" } else { "vi" }))
-        .split_whitespace()
-        .map(std::borrow::ToOwned::to_owned)
-        .collect()
 }
 
 pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
