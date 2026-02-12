@@ -309,7 +309,13 @@ fn run() -> Result<()> {
         }
     }
 
-    if !config.skip_notify() {
+    let should_notify = match config.notify_end() {
+        config::NotifyEnd::Always => true,
+        config::NotifyEnd::Never => false,
+        config::NotifyEnd::OnFailure => failed,
+    };
+
+    if should_notify {
         notify_desktop(
             if failed {
                 t!("Topgrade finished with errors")

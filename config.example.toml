@@ -76,7 +76,11 @@
 # Send a notification for every step (default: false)
 # notify_each_step = false
 
-# Skip sending a notification at the end of a run (default: false)
+# When to send a notification at the end of a run
+# (default: "always", allowed values: "always", "never", "on_failure")
+# notify_end = "on_failure"
+
+# Deprecated: use `notify_end = "never"` instead (default: false)
 # skip_notify = true
 
 # The Bash-it branch to update (default: "stable")
