@@ -7,3 +7,4 @@
    `misc.nix_handler`.
 3. Since the `nix_helper` step is gone and `nix-darwin` support is otherwise
    untested, `nh darwin` support has been removed for the time being as well.
+4. The `helix_grammars` step doesn't use `helix` anymore, and instead directly uses `hx` to install the grammars.
