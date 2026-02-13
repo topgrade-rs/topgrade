@@ -1194,7 +1194,7 @@ impl Hx {
 }
 
 pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
-    let helix = require("helix").or(Hx::get(ctx)?.helix())?;
+    let helix = Hx::get(ctx)?.helix()?;
 
     print_separator("Helix");
 
