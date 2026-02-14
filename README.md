@@ -129,5 +129,5 @@ See [CONTRIBUTING.md](https://github.com/topgrade-rs/topgrade/blob/main/CONTRIBU
 
 ## Discord server
 
-You're welcome to [join](https://discord.gg/Q8HGGWundY) our Discord server if you want.
+You're welcome to [join](https://discord.gg/Q8HGGWundY) our Discord server if you want
 to discuss Topgrade!
