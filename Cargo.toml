@@ -28,7 +28,7 @@ chrono = "~0.4"
 glob = "~0.3"
 strum = { version = "~0.27", features = ["derive"] }
 thiserror = "~2.0"
-tempfile = "~3.24.0"
+tempfile = "~3.25.0"
 tokio = { version = "~1.49.0", features = ["process", "rt-multi-thread"] }
 futures = "~0.3"
 regex = "~1.12"
