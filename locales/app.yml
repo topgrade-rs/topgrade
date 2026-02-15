@@ -1450,3 +1450,11 @@ _version: 2
   zh_CN: "ManDB 未启用"
   zh_TW: "ManDB 未啟用"
   de: "ManDB ist nicht aktiviert"
+"Neither `hx` nor `helix` command points to Helix Editor":
+  en: "Neither `hx` nor `helix` command points to Helix Editor"
+  lt: "Nei `hx`, nei `helix` komanda nenurodo į Helix redaktorių"
+  es: "Ni el comando `hx` ni `helix` apuntan al editor Helix"
+  fr: "Ni la commande `hx` ni `helix` ne pointe vers l'éditeur Helix"
+  zh_CN: "`hx` 和 `helix` 命令均未指向 Helix 编辑器"
+  zh_TW: "`hx` 和 `helix` 命令均未指向 Helix 編輯器"
+  de: "Weder der Befehl `hx` noch `helix` verweist auf den Helix-Editor"
