@@ -1225,7 +1225,8 @@ impl Helix {
 pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
     let helix = Hx::get(ctx)
         .and_then(|hx| hx.helix())
-        .or_else(|_| Helix::get(ctx)?.helix_editor())?;
+        .or_else(|_| Helix::get(ctx).and_then(|h| h.helix_editor()))
+        .map_err(|_| SkipStep(t!("Neither `hx` nor `helix` command points to Helix Editor").to_string()))?;
 
     print_separator("Helix");
 
