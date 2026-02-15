@@ -572,7 +572,8 @@ fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
     if matches!(kind, Nala) {
         command.arg("upgrade");
     } else {
-        command.arg("dist-upgrade");
+        let apt_command = ctx.config().apt_command();
+        command.arg(apt_command);
     };
     if ctx.config().yes(Step::System) {
         command.arg("-y");
