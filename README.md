@@ -18,7 +18,7 @@
 > **Note**
 > This is a fork of [topgrade by r-darwish](https://github.com/r-darwish/topgrade) to keep it maintained.
 
-Keeping your system up to date usually involves invoking multiple package managers.
+Keeping your system up-to-date usually involves invoking multiple package managers.
 This results in big, non-portable shell one-liners saved in your shell.
 To remedy this, **Topgrade** detects which tools you use and runs the appropriate commands to update them.
 
@@ -87,22 +87,22 @@ it when updated to a major release.
 1. `CONFIG_DIR/topgrade.toml`
 2. `CONFIG_DIR/topgrade/topgrade.toml`
 
-If the file with higher priority is present, no matter it is valid or not, the other configuration files will be
+If the file with higher priority is present, no matter if it is valid or not, the other configuration files will be
 ignored.
 
-On the first run(no configuration file exists), `topgrade` will create a configuration file at
+On the first run (provided that no configuration file exists), `topgrade` will create a configuration file at
 `CONFIG_DIR/topgrade.toml` for you.
 
 ### Custom Commands
 
-Custom commands can be defined in the config file which can be run before, during, or after the inbuilt commands, as
+Custom commands can be defined in the configuration file, which can be run before, during, or after the inbuilt commands, as
 required.
-By default, the custom commands are run using a new shell according to the `$SHELL` environment variable on unix (falls
-back to `sh`) or `pwsh` on windows (falls back to `powershell`).
+By default, the custom commands are run using a new shell according to the `$SHELL` environment variable on Unix (falls
+back to `sh`) or `pwsh` on Windows (falls back to `powershell`).
 
-On unix, if you want to run your command using an interactive shell, for example to source your shell's rc files, you
+On Unix, if you want to run your command using an interactive shell, for example to source your shell's RC files, you
 can add `-i` at the start of your custom command.
-But note that this requires the command to exit the shell correctly or else the shell will hang indefinitely.
+Although note that this requires the command to exit the shell correctly, or else the shell will hang indefinitely.
 
 ## Remote Execution
 
@@ -129,5 +129,5 @@ See [CONTRIBUTING.md](https://github.com/topgrade-rs/topgrade/blob/main/CONTRIBU
 
 ## Discord server
 
-Welcome to [join](https://discord.gg/Q8HGGWundY) our Discord server if you want
+You're welcome to [join](https://discord.gg/Q8HGGWundY) our Discord server if you want
 to discuss Topgrade!
