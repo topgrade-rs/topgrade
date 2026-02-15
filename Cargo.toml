@@ -37,7 +37,7 @@ shell-words = "~1.1"
 color-eyre = "~0.6"
 tracing = { version = "~0.1", features = ["attributes", "log"] }
 tracing-subscriber = { version = "~0.3.20", features = ["env-filter", "time"] }
-merge = "~0.1"
+merge = "~0.2.0"
 regex-split = "~0.1"
 notify-rust = "~4.12.0"
 wildmatch = "2.3.0"
