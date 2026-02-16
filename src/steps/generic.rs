@@ -1193,8 +1193,40 @@ impl Hx {
     }
 }
 
+enum Helix {
+    HelixEditor(PathBuf),
+    HelixDB,
+}
+
+impl Helix {
+    fn helix_editor(self) -> Result<PathBuf> {
+        match self {
+            Helix::HelixEditor(hx) => Ok(hx),
+            Helix::HelixDB => Err(SkipStep("Command `helix` probably points to Helix DB".to_string()).into()),
+        }
+    }
+
+    fn get(ctx: &ExecutionContext) -> Result<Self> {
+        let helix = require("helix")?;
+
+        // Check if `helix --help` mentions "--grammar". Helix Editor does, Helix DB doesn't.
+        let output = ctx.execute(&helix).always().arg("--help").output_checked()?;
+
+        if String::from_utf8(output.stdout)?.contains("--grammar") {
+            debug!("Detected `helix` as Helix Editor");
+            Ok(Self::HelixEditor(helix))
+        } else {
+            debug!("Detected `helix` as Helix DB");
+            Ok(Self::HelixDB)
+        }
+    }
+}
+
 pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
-    let helix = require("helix").or(Hx::get(ctx)?.helix())?;
+    let helix = Hx::get(ctx)
+        .and_then(|hx| hx.helix())
+        .or_else(|_| Helix::get(ctx).and_then(|h| h.helix_editor()))
+        .map_err(|_| SkipStep(t!("Neither `hx` nor `helix` command points to Helix Editor").to_string()))?;
 
     print_separator("Helix");
 
