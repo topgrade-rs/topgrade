@@ -20,6 +20,12 @@ repos:
   rev: v1.43.3
   hooks:
   - id: typos
+    args:
+      - --write-changes
+      - --force-exclude
+      - --exclude=src/steps/os/os_release/**
+      - --exclude=locales/**
+      - --exclude=CHANGELOG.md  # Contains commit hashes and verbatim commit messages
 
 
 ci:
