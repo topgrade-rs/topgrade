@@ -81,7 +81,7 @@ assets = [
 ]
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "~0.30", features = ["hostname", "signal", "user"] }
+nix = { version = "~0.31.0", features = ["hostname", "signal", "user"] }
 rust-ini = "~0.21"
 self_update_crate = { version = "~0.42", default-features = false, optional = true, package = "self_update", features = ["archive-tar", "compression-flate2", "rustls"] }
 
