@@ -308,7 +308,7 @@ jobs:
           persist-credentials: false
 
       - name: Start OpenBSD VM
-        uses: vmactions/openbsd-vm@d6c29ce1b4d9620b1f472e0022c106703387358f # v1
+        uses: vmactions/openbsd-vm@9a8e4351a4a0dc6238e7c69276dcbf6c03bea576 # v1
         with:
           arch: x86_64
           sync: nfs
