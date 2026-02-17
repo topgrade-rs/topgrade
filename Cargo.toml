@@ -13,7 +13,7 @@ edition = "2021"
 readme = "README.md"
 
 [dependencies]
-home = "=0.5.11"
+home = "=0.5.12"
 etcetera = "=0.10.0"
 serde = { version = "~1.0", features = ["derive"] }
 toml = { version = "~1.0.0", features = ["preserve_order"] }
