@@ -5,10 +5,10 @@ use std::path::PathBuf;
 
 #[cfg(windows)]
 use color_eyre::eyre;
-#[cfg(windows)]
-use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+#[cfg(windows)]
+use color_eyre::eyre::eyre;
 use itertools::Itertools;
 use rust_i18n::t;
 use serde::Deserialize;
