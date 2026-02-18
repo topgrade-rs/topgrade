@@ -236,6 +236,8 @@
 # Extra Home Manager arguments
 # home_manager_arguments = ["--flake", "file"]
 
+# subcommand to use for apt variants != nala (dist-upgrade (default) or upgrade)
+# apt_command = "dist-upgrade"
 
 [mandb]
 # Enable the mandb step (to update manual entries).
