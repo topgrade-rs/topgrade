@@ -1209,15 +1209,18 @@ impl Helix {
     fn get(ctx: &ExecutionContext) -> Result<Self> {
         let helix = require("helix")?;
 
-        // Check if `helix --help` mentions "--grammar". Helix Editor does, Helix DB doesn't.
         let output = ctx.execute(&helix).always().arg("--help").output_checked()?;
+        let stdout = String::from_utf8(output.stdout)?;
 
-        if String::from_utf8(output.stdout)?.contains("--grammar") {
+        // Helix Editor's `--help` mentions "--grammar", HelixDB's mentions "helix.toml".
+        if stdout.contains("--grammar") {
             debug!("Detected `helix` as Helix Editor");
             Ok(Self::HelixEditor(helix))
-        } else {
+        } else if stdout.contains("helix.toml") {
             debug!("Detected `helix` as Helix DB");
             Ok(Self::HelixDB(helix))
+        } else {
+            Err(SkipStep("Command `helix` is neither Helix Editor nor HelixDB".to_string()).into())
         }
     }
 
