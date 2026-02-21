@@ -1195,14 +1195,14 @@ impl Hx {
 
 enum Helix {
     HelixEditor(PathBuf),
-    HelixDB,
+    HelixDB(PathBuf),
 }
 
 impl Helix {
     fn helix_editor(self) -> Result<PathBuf> {
         match self {
             Helix::HelixEditor(hx) => Ok(hx),
-            Helix::HelixDB => Err(SkipStep("Command `helix` probably points to Helix DB".to_string()).into()),
+            Helix::HelixDB(_) => Err(SkipStep("Command `helix` probably points to Helix DB".to_string()).into()),
         }
     }
 
@@ -1217,7 +1217,16 @@ impl Helix {
             Ok(Self::HelixEditor(helix))
         } else {
             debug!("Detected `helix` as Helix DB");
-            Ok(Self::HelixDB)
+            Ok(Self::HelixDB(helix))
+        }
+    }
+
+    fn helix_db(self) -> Result<PathBuf> {
+        match self {
+            Helix::HelixDB(hx) => Ok(hx),
+            Helix::HelixEditor(_) => {
+                Err(SkipStep("Command `helix` points to Helix Editor, not HelixDB".to_string()).into())
+            }
         }
     }
 }
@@ -1241,6 +1250,20 @@ pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
         .with_context(|| "Failed to build helix grammars!")?;
 
     Ok(())
+}
+
+pub fn run_helix_db(ctx: &ExecutionContext) -> Result<()> {
+    // HelixDB versions before v2.3.0 use self_update without `.no_confirm()`,
+    // so it prompts for confirmation without a `--yes` option.
+    if ctx.config().yes(Step::HelixDb) {
+        return Err(SkipStep(t!("Skipped in --yes").to_string()).into());
+    }
+
+    let helix = Helix::get(ctx)?.helix_db()?;
+
+    print_separator("HelixDB");
+
+    ctx.execute(helix).arg("update").status_checked()
 }
 
 pub fn run_raco_update(ctx: &ExecutionContext) -> Result<()> {
