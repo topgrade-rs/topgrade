@@ -1256,12 +1256,6 @@ pub fn run_helix_grammars(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_helix_db(ctx: &ExecutionContext) -> Result<()> {
-    // HelixDB versions before v2.3.0 use self_update without `.no_confirm()`,
-    // so it prompts for confirmation without a `--yes` option.
-    if ctx.config().yes(Step::HelixDb) {
-        return Err(SkipStep(t!("Skipped in --yes").to_string()).into());
-    }
-
     let helix = Helix::get(ctx)?.helix_db()?;
 
     print_separator("HelixDB");
