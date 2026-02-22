@@ -6,7 +6,7 @@ keywords = ["upgrade", "update"]
 license = "GPL-3.0-or-later"
 repository = "https://github.com/topgrade-rs/topgrade"
 rust-version = "1.84.1"
-version = "16.9.0"
+version = "16.10.0"
 exclude = ["doc/screenshot.gif", "BREAKINGCHANGES_dev.md"]
 edition = "2021"
 
