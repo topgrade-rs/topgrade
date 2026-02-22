@@ -71,6 +71,7 @@ pub enum Step {
     Guix,
     Haxelib,
     Helix,
+    HelixDb,
     Helm,
     HomeManager,
     Hyprpm,
@@ -348,6 +349,7 @@ impl Step {
             }
             Haxelib => runner.execute(*self, "haxelib", || generic::run_haxelib_update(ctx))?,
             Helix => runner.execute(*self, "helix", || generic::run_helix_grammars(ctx))?,
+            HelixDb => runner.execute(*self, "HelixDB", || generic::run_helix_db(ctx))?,
             Helm => runner.execute(*self, "helm", || generic::run_helm_repo_update(ctx))?,
             HomeManager =>
             {
@@ -833,6 +835,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Vim,
         Kakoune,
         Helix,
+        HelixDb,
         Node,
         Yarn,
         Pnpm,
