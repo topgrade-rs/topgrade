@@ -1206,6 +1206,15 @@ impl Helix {
         }
     }
 
+    fn helix_db(self) -> Result<PathBuf> {
+        match self {
+            Helix::HelixDB(hx) => Ok(hx),
+            Helix::HelixEditor(_) => {
+                Err(SkipStep("Command `helix` points to Helix Editor, not HelixDB".to_string()).into())
+            }
+        }
+    }
+
     fn get(ctx: &ExecutionContext) -> Result<Self> {
         let helix = require("helix")?;
 
@@ -1221,15 +1230,6 @@ impl Helix {
             Ok(Self::HelixDB(helix))
         } else {
             Err(SkipStep("Command `helix` is neither Helix Editor nor HelixDB".to_string()).into())
-        }
-    }
-
-    fn helix_db(self) -> Result<PathBuf> {
-        match self {
-            Helix::HelixDB(hx) => Ok(hx),
-            Helix::HelixEditor(_) => {
-                Err(SkipStep("Command `helix` points to Helix Editor, not HelixDB".to_string()).into())
-            }
         }
     }
 }
