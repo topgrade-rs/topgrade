@@ -1977,6 +1977,14 @@ pub fn run_typst(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(typst).args(["update"]).status_checked()
 }
 
+pub fn run_claude_code(ctx: &ExecutionContext) -> Result<()> {
+    let claude = require("claude")?;
+
+    print_separator("Claude Code");
+
+    ctx.execute(claude).arg("update").status_checked()
+}
+
 pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
     let falconf = require("falconf")?;
 
