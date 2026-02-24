@@ -3,28 +3,26 @@
 use std::fs::{write, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::{env, fmt, fs};
 
 use clap::{Parser, ValueEnum};
 use clap_complete::Shell;
-use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use color_eyre::eyre::{Context, OptionExt};
 use etcetera::base_strategy::BaseStrategy;
 use indexmap::IndexMap;
 use merge::Merge;
 use regex::Regex;
 use regex_split::RegexSplit;
+use rust_i18n::t;
 use serde::Deserialize;
 use strum::IntoEnumIterator;
 use tracing::{debug, error};
-use which_crate::which;
 
-use super::utils::editor;
-use crate::command::CommandExt;
 use crate::execution_context::RunType;
-use crate::step::Step;
+use crate::step::{Step, DEPRECATED_STEPS};
 use crate::sudo::SudoKind;
+use crate::terminal::print_warning;
 use crate::utils::string_prepend_str;
 
 // TODO: Add i18n to this. Tracking issue: https://github.com/topgrade-rs/topgrade/issues/859
@@ -60,6 +58,8 @@ pub struct Containers {
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     ignored_containers: Option<Vec<String>>,
     runtime: Option<ContainerRuntime>,
+    system_prune: Option<bool>,
+    use_sudo: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -80,6 +80,8 @@ pub struct Git {
     repos: Option<Vec<String>>,
 
     pull_predefined: Option<bool>,
+
+    fetch_only: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -175,6 +177,15 @@ pub struct Chezmoi {
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
+pub struct Mise {
+    bump: Option<bool>,
+    interactive: Option<bool>,
+    jobs: Option<u32>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct Firmware {
     upgrade: Option<bool>,
 }
@@ -203,9 +214,10 @@ pub struct Brew {
     fetch_head: Option<bool>,
 }
 
-#[derive(Debug, Deserialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Clone, Copy, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ArchPackageManager {
+    #[default]
     Autodetect,
     Aura,
     GarudaUpdate,
@@ -217,9 +229,10 @@ pub enum ArchPackageManager {
     Yay,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ContainerRuntime {
+    #[default] // defaults to a popular choice
     Docker,
     Podman,
 }
@@ -231,6 +244,15 @@ impl fmt::Display for ContainerRuntime {
             ContainerRuntime::Podman => write!(f, "podman"),
         }
     }
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, Default, PartialEq)]
+#[serde(rename_all = "kebab-case")]
+pub enum NixHandler {
+    #[default]
+    Autodetect,
+    Nh,
+    Vanilla,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -331,6 +353,11 @@ pub struct Misc {
 
     assume_yes: Option<bool>,
 
+    ask_retry: Option<bool>,
+
+    auto_retry: Option<u16>,
+
+    /// TODO: Remove this in favor of ask_retry = false
     no_retry: Option<bool>,
 
     show_skipped: Option<bool>,
@@ -343,7 +370,10 @@ pub struct Misc {
 
     notify_each_step: Option<bool>,
 
+    /// Deprecated: use `notify_end = "never"` instead
     skip_notify: Option<bool>,
+
+    notify_end: Option<NotifyEnd>,
 
     bashit_branch: Option<String>,
 
@@ -355,14 +385,31 @@ pub struct Misc {
     log_filters: Option<Vec<String>>,
 
     show_distribution_summary: Option<bool>,
+
+    nix_handler: Option<NixHandler>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, ValueEnum)]
+#[derive(Clone, Copy, Debug, Deserialize, ValueEnum, Default)]
 #[clap(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum TmuxSessionMode {
+    #[default]
     AttachIfNotInSession,
     AttachAlways,
+}
+
+/// Controls when the end-of-run desktop notification is sent.
+#[derive(Clone, Copy, Debug, Deserialize, ValueEnum, Default)]
+#[clap(rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum NotifyEnd {
+    /// Always send a notification (default)
+    #[default]
+    Always,
+    /// Never send a notification
+    Never,
+    /// Only send a notification if there were failures
+    OnFailure,
 }
 
 pub struct TmuxConfig {
@@ -401,6 +448,13 @@ pub struct VscodeConfig {
 #[serde(deny_unknown_fields)]
 pub struct DoomConfig {
     aot: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct Cargo {
+    git: Option<bool>,
+    quiet: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -468,6 +522,9 @@ pub struct ConfigFile {
     chezmoi: Option<Chezmoi>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    mise: Option<Mise>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     yarn: Option<Yarn>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
@@ -505,6 +562,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     doom: Option<DoomConfig>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    cargo: Option<Cargo>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     rustup: Option<Rustup>,
@@ -683,17 +743,9 @@ impl ConfigFile {
 
     fn edit() -> Result<()> {
         let config_path = Self::ensure()?.0;
-        let editor = editor();
-        debug!("Editor: {:?}", editor);
+        debug!("Editing config file: {:?}", config_path);
 
-        let command = which(&editor[0])?;
-        let args: Vec<&String> = editor.iter().skip(1).collect();
-
-        Command::new(command)
-            .args(args)
-            .arg(config_path)
-            .status_checked()
-            .context("Failed to open configuration file editor")
+        edit::edit_file(&config_path).context("Failed to open configuration file editor")
     }
 
     /// [Misc] was added later, here we check if it is present in the config file and add it if not
@@ -713,7 +765,7 @@ impl ConfigFile {
 // TODO: i18n of clap currently not easily possible. Waiting for https://github.com/clap-rs/clap/issues/380
 // Tracking issue for i18n: https://github.com/topgrade-rs/topgrade/issues/859
 #[derive(Parser, Debug)]
-#[command(name = "topgrade", version)]
+#[command(name = "topgrade", version, styles = clap_cargo::style::CLAP_STYLING)]
 pub struct CommandLineArgs {
     /// Edit the configuration file
     #[arg(long = "edit-config")]
@@ -745,9 +797,17 @@ pub struct CommandLineArgs {
     #[arg(short = 'r', long = "run-type", value_enum, default_value_t)]
     run_type: RunType,
 
-    /// Do not ask to retry failed steps
-    #[arg(long = "no-retry")]
+    /// Do not ask to retry failed steps (same as --no-ask-retry, kept for legacy compatibility)
+    #[arg(long = "no-retry", hide = true)]
     no_retry: bool,
+
+    /// Do not ask what to do after a step fails
+    #[arg(long = "no-ask-retry")]
+    no_ask_retry: bool,
+
+    /// Automatically retry failed steps up to COUNT times
+    #[arg(long = "auto-retry", value_name = "COUNT")]
+    auto_retry: Option<u16>,
 
     /// Do not perform upgrades for the given steps
     #[arg(long = "disable", value_name = "STEP", value_enum, num_args = 1..)]
@@ -762,8 +822,8 @@ pub struct CommandLineArgs {
     custom_commands: Vec<String>,
 
     /// Set environment variables
-    #[arg(long = "env", value_name = "NAME=VALUE", num_args = 1..)]
-    env: Vec<String>,
+    #[arg(long = "env", value_name = "NAME=VALUE", value_parser = env_args_parser, num_args = 1..)]
+    env: Vec<(String, String)>,
 
     /// Output debug logs. Alias for `--log-filter debug`.
     #[arg(short = 'v', long = "verbose")]
@@ -773,9 +833,13 @@ pub struct CommandLineArgs {
     #[arg(short = 'k', long = "keep")]
     keep_at_end: bool,
 
-    /// Skip sending a notification at the end of a run
-    #[arg(long = "skip-notify")]
+    /// Skip sending a notification at the end of a run (deprecated: use --notify-end never)
+    #[arg(long = "skip-notify", hide = true)]
     skip_notify: bool,
+
+    /// When to send a notification at the end of a run
+    #[arg(long = "notify-end", value_enum, default_value_t)]
+    notify_end: NotifyEnd,
 
     /// Say yes to package manager's prompt
     #[arg(
@@ -826,6 +890,13 @@ pub struct CommandLineArgs {
     pub no_self_update: bool,
 }
 
+fn env_args_parser(arg: &str) -> Result<(String, String)> {
+    let (key, value) = arg
+        .split_once("=")
+        .ok_or_eyre("Environment variable must be in the format NAME=VALUE")?;
+    Ok((key.to_string(), value.to_string()))
+}
+
 impl CommandLineArgs {
     pub fn edit_config(&self) -> bool {
         self.edit_config
@@ -835,7 +906,7 @@ impl CommandLineArgs {
         self.show_config_reference
     }
 
-    pub fn env_variables(&self) -> &Vec<String> {
+    pub fn env_variables(&self) -> &Vec<(String, String)> {
         &self.env
     }
 
@@ -955,7 +1026,25 @@ impl Config {
             .containers
             .as_ref()
             .and_then(|containers| containers.runtime)
-            .unwrap_or(ContainerRuntime::Docker) // defaults to a popular choice
+            .unwrap_or_default()
+    }
+
+    /// Whether to run system prune for containers.
+    pub fn containers_system_prune(&self) -> bool {
+        self.config_file
+            .containers
+            .as_ref()
+            .and_then(|containers| containers.system_prune)
+            .unwrap_or(false)
+    }
+
+    /// Whether to use sudo for container operations.
+    pub fn containers_use_sudo(&self) -> bool {
+        self.config_file
+            .containers
+            .as_ref()
+            .and_then(|containers| containers.use_sudo)
+            .unwrap_or(false)
     }
 
     /// Tell whether the specified step should run.
@@ -979,10 +1068,15 @@ impl Config {
             }
         }
 
+        let step_is_deprecated = |x| DEPRECATED_STEPS.contains(&x);
+
         // If neither of those contain anything
         if enabled_steps.is_empty() {
             // All steps are enabled
             enabled_steps.extend(Step::iter());
+            // Handle deprecated steps. Disable automatically when not explicitly mentioned in the
+            // config, so that the warning doesn't print.
+            enabled_steps.retain(|x| !step_is_deprecated(*x));
         }
 
         let mut disabled_steps: Vec<Step> = Vec::new();
@@ -991,6 +1085,15 @@ impl Config {
             if let Some(disabled) = misc.disable.as_ref() {
                 disabled_steps.extend(disabled);
             }
+        }
+
+        // When a deprecated step is mentioned,
+        for step in enabled_steps
+            .iter()
+            .chain(disabled_steps.iter())
+            .filter(|x| step_is_deprecated(**x))
+        {
+            print_warning(t!("`{step}` step is deprecated", step = format!("{step:?}")));
         }
 
         // All steps that are disabled are not enabled, except ones that are passed to `--only`
@@ -1027,7 +1130,7 @@ impl Config {
             .misc
             .as_ref()
             .and_then(|misc| misc.tmux_session_mode)
-            .unwrap_or(TmuxSessionMode::AttachIfNotInSession)
+            .unwrap_or_default()
     }
 
     /// Tell whether we should perform cleanup steps.
@@ -1050,15 +1153,44 @@ impl Config {
         }
     }
 
-    /// Tell whether we should not attempt to retry anything.
-    pub fn no_retry(&self) -> bool {
-        self.opt.no_retry
-            || self
-                .config_file
-                .misc
-                .as_ref()
-                .and_then(|misc| misc.no_retry)
-                .unwrap_or(false)
+    /// Get the auto retry count for failed steps
+    pub fn auto_retry(&self) -> u16 {
+        self.opt
+            .auto_retry
+            .or_else(|| self.config_file.misc.as_ref().and_then(|misc| misc.auto_retry))
+            .unwrap_or(0)
+    }
+
+    /// Determine whether to ask for retry after a step fails
+    pub fn ask_retry(&self) -> bool {
+        if self.opt.no_ask_retry {
+            return false;
+        }
+
+        if self.opt.no_retry {
+            return false;
+        }
+
+        if self
+            .config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.no_retry)
+            .unwrap_or(false)
+        {
+            return false;
+        }
+
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.ask_retry)
+            .unwrap_or(true)
+    }
+
+    /// List of user-defined environment variables
+    pub fn env_variables(&self) -> &Vec<(String, String)> {
+        self.opt.env_variables()
     }
 
     /// List of remote hosts to run Topgrade in
@@ -1089,6 +1221,15 @@ impl Config {
     /// Extra Git arguments
     pub fn git_arguments(&self) -> Option<&String> {
         self.config_file.git.as_ref().and_then(|git| git.arguments.as_ref())
+    }
+
+    /// Only fetch repositories instead of pulling
+    pub fn git_fetch_only(&self) -> bool {
+        self.config_file
+            .git
+            .as_ref()
+            .and_then(|git| git.fetch_only)
+            .unwrap_or(false)
     }
 
     pub fn tmux_config(&self) -> Result<TmuxConfig> {
@@ -1123,13 +1264,28 @@ impl Config {
         self.opt.keep_at_end || env::var("TOPGRADE_KEEP_END").is_ok()
     }
 
-    /// Skip sending a notification at the end of a run
-    pub fn skip_notify(&self) -> bool {
-        if let Some(yes) = self.config_file.misc.as_ref().and_then(|misc| misc.skip_notify) {
-            return yes;
+    /// When to send a notification at the end of a run
+    pub fn notify_end(&self) -> NotifyEnd {
+        let skip_notify = self
+            .config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.skip_notify)
+            .unwrap_or(self.opt.skip_notify);
+
+        let notify_end = self
+            .config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.notify_end)
+            .unwrap_or(self.opt.notify_end);
+
+        // TODO: deprecate skip_notify
+        if skip_notify {
+            return NotifyEnd::Never;
         }
 
-        self.opt.skip_notify
+        notify_end
     }
 
     /// Whether to set the terminal title
@@ -1281,7 +1437,7 @@ impl Config {
             .vim
             .as_ref()
             .and_then(|c| c.force_plug_update)
-            .unwrap_or_default()
+            .unwrap_or(false)
     }
 
     /// Whether to send a desktop notification at the beginning of every step
@@ -1354,7 +1510,7 @@ impl Config {
             .linux
             .as_ref()
             .and_then(|s| s.arch_package_manager)
-            .unwrap_or(ArchPackageManager::Autodetect)
+            .unwrap_or_default()
     }
 
     /// Extra yay arguments
@@ -1396,6 +1552,15 @@ impl Config {
             .linux
             .as_ref()
             .and_then(|linux| linux.dnf_arguments.as_deref())
+    }
+
+    /// Get the handler to use for NixOS/home-manager
+    pub fn nix_handler(&self) -> NixHandler {
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|s| s.nix_handler)
+            .unwrap_or_default()
     }
 
     /// Extra nix arguments
@@ -1524,6 +1689,22 @@ impl Config {
                 .as_ref()
                 .and_then(|git| git.pull_predefined)
                 .unwrap_or(true)
+    }
+
+    pub fn cargo_update_git(&self) -> bool {
+        self.config_file
+            .cargo
+            .as_ref()
+            .and_then(|cargo| cargo.git)
+            .unwrap_or(true)
+    }
+
+    pub fn cargo_update_quiet(&self) -> bool {
+        self.config_file
+            .cargo
+            .as_ref()
+            .and_then(|cargo| cargo.quiet)
+            .unwrap_or(false)
     }
 
     pub fn rustup_channels(&self) -> Vec<String> {
@@ -1791,6 +1972,26 @@ impl Config {
             .unwrap_or(false)
     }
 
+    pub fn mise_bump(&self) -> bool {
+        self.config_file
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.bump)
+            .unwrap_or(false)
+    }
+
+    pub fn mise_jobs(&self) -> u32 {
+        self.config_file.mise.as_ref().and_then(|mise| mise.jobs).unwrap_or(4)
+    }
+
+    pub fn mise_interactive(&self) -> bool {
+        self.config_file
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.interactive)
+            .unwrap_or(false)
+    }
+
     pub fn vscode_profile(&self) -> Option<&str> {
         let vscode_cfg = self.config_file.vscode.as_ref()?;
         let profile = vscode_cfg.profile.as_ref()?;
@@ -1878,5 +2079,35 @@ mod test {
         let mut config = config();
         config.opt = CommandLineArgs::parse_from(["topgrade", "--remote-host-limit", "other_hostname"]);
         assert!(!config.should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"));
+    }
+
+    /// Ensure that custom commands are stored in insertion order.
+    #[test]
+    fn test_custom_commands_order() {
+        let toml_str = r#"
+[commands]
+z = "cmd_z"
+y = "cmd_y"
+x = "cmd_x"
+"#;
+        let order: Vec<_> = toml::from_str::<ConfigFile>(toml_str)
+            .expect("toml parse error")
+            .commands
+            .expect("commands field missing")
+            .keys()
+            .cloned()
+            .collect();
+
+        assert_eq!(order, vec!["z", "y", "x"]);
+    }
+
+    #[test]
+    fn test_env_variable_parser() {
+        let mut config = config();
+        config.opt = CommandLineArgs::parse_from(["topgrade", "--env", "VAR1=foo", "--env", "VAR2=bar"]);
+        let env_vars = config.env_variables();
+        assert_eq!(env_vars.len(), 2);
+        assert_eq!(env_vars[0], ("VAR1".to_string(), "foo".to_string()));
+        assert_eq!(env_vars[1], ("VAR2".to_string(), "bar".to_string()));
     }
 }

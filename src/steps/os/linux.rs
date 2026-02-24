@@ -1,5 +1,4 @@
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use color_eyre::eyre::Result;
 use ini::Ini;
@@ -7,11 +6,13 @@ use rust_i18n::t;
 use tracing::{debug, warn};
 
 use crate::command::CommandExt;
+use crate::config::NixHandler;
 use crate::error::{SkipStep, TopgradeError};
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::steps::generic::is_wsl;
 use crate::steps::os::archlinux;
+use crate::steps::unix::{can_nh_switch, nh_switch, NhSwitchArgs};
 use crate::sudo::SudoExecuteOpts;
 use crate::terminal::{print_separator, prompt_yesno};
 use crate::utils::{require, require_one, which, PathExt};
@@ -78,6 +79,8 @@ impl Distribution {
             Some("neon") => Distribution::KDENeon,
             Some("openmandriva") => Distribution::OpenMandriva,
             Some("pclinuxos") => Distribution::PCLinuxOS,
+            Some(id) if id.starts_with("origami") => Distribution::FedoraImmutable,
+
             _ => {
                 if let Some(name) = name {
                     if name.contains("Vanilla") {
@@ -181,7 +184,7 @@ impl Distribution {
 fn update_bedrock(ctx: &ExecutionContext) -> Result<()> {
     let brl = require("brl")?;
 
-    let output = Command::new(&brl).arg("list").output_checked_utf8()?;
+    let output = ctx.execute(&brl).always().arg("list").output_checked_utf8()?;
     debug!("brl list: {:?} {:?}", output.stdout, output.stderr);
 
     for distribution in output.stdout.trim().lines() {
@@ -797,15 +800,37 @@ fn upgrade_exherbo(ctx: &ExecutionContext) -> Result<()> {
 
 fn upgrade_nixos(ctx: &ExecutionContext) -> Result<()> {
     let sudo = ctx.require_sudo()?;
+    let nix_handler = ctx.config().nix_handler();
+    let nh_switch_args = NhSwitchArgs {
+        step: "system",
+        installable_type: "os",
+        specific_var: "NH_OS_FLAKE",
+        print_separator: false,
+    };
+    let can_nh_switch = can_nh_switch(&nh_switch_args);
 
-    let mut command = sudo.execute(ctx, "/run/current-system/sw/bin/nixos-rebuild")?;
-    command.args(["switch", "--upgrade"]);
+    match (nix_handler, can_nh_switch) {
+        // nh is available and we want it
+        (NixHandler::Autodetect | NixHandler::Nh, Ok(nh)) => {
+            nh_switch(ctx, &nh, &nh_switch_args)?;
+        }
+        // nh is not available but we need it
+        (NixHandler::Nh, Err(e)) => return Err(e),
+        // nh is not available and we don't need it, so we fall back
+        (NixHandler::Autodetect, Err(_))
+        // We need vanilla
+        | (NixHandler::Vanilla, _) => {
+            let mut command = sudo.execute(ctx, "/run/current-system/sw/bin/nixos-rebuild")?;
+            command.args(["switch", "--upgrade"]);
 
-    if let Some(args) = ctx.config().nix_arguments() {
-        command.args(args.split_whitespace());
+            if let Some(args) = ctx.config().nix_arguments() {
+                command.args(args.split_whitespace());
+            }
+            command.status_checked()?;
+        }
     }
-    command.status_checked()?;
 
+    // TODO: maybe use `nh clean` when available&&wanted ?
     if ctx.config().cleanup() {
         sudo.execute(ctx, "/run/current-system/sw/bin/nix-collect-garbage")?
             .arg("-d")
@@ -1121,7 +1146,11 @@ pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_auto_cpufreq(ctx: &ExecutionContext) -> Result<()> {
-    let auto_cpu_freq = require("auto-cpufreq")?;
+    let auto_cpu_freq = require("auto-cpufreq")?.canonicalize()?;
+
+    // The fix is *auto_cpu_freq != *"/usr/local/bin/auto-cpufreq", but that impl is not available in MSRV yet
+    // TODO: once MSRV is bumped high enough that it is, remove this and apply lint
+    #[allow(clippy::cmp_owned)]
     if auto_cpu_freq != PathBuf::from("/usr/local/bin/auto-cpufreq") {
         return Err(SkipStep(String::from(
             "`auto-cpufreq` was not installed by the official installer, but presumably by a package manager.",
@@ -1340,5 +1369,12 @@ mod tests {
     #[test]
     fn test_cachyos() {
         test_template(include_str!("os_release/cachyos"), Distribution::Arch);
+    }
+
+    #[test]
+    fn test_origami() {
+        test_template(include_str!("os_release/origami"), Distribution::FedoraImmutable);
+        test_template(include_str!("os_release/origami-nvidia"), Distribution::FedoraImmutable);
+        test_template(include_str!("os_release/origami-test"), Distribution::FedoraImmutable);
     }
 }

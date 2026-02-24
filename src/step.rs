@@ -14,6 +14,8 @@ use crate::steps::remote::vagrant;
 use crate::steps::*;
 use crate::utils::hostname;
 
+pub const DEPRECATED_STEPS: [Step; 1] = [Step::NixHelper];
+
 #[derive(ValueEnum, EnumString, VariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy, EnumCount)]
 #[clap(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -45,6 +47,7 @@ pub enum Step {
     Conda,
     ConfigUpdate,
     Containers,
+    Cursor,
     CustomCommands,
     DebGet,
     Deno,
@@ -68,6 +71,7 @@ pub enum Step {
     Guix,
     Haxelib,
     Helix,
+    HelixDb,
     Helm,
     HomeManager,
     Hyprpm,
@@ -225,7 +229,7 @@ impl Step {
             Bin => runner.execute(*self, "bin", || generic::bin_update(ctx))?,
             Bob => runner.execute(*self, "Bob", || generic::run_bob(ctx))?,
             BrewCask => {
-                #[cfg(target_os = "macos")]
+                #[cfg(any(target_os = "linux", target_os = "macos"))]
                 runner.execute(*self, "Brew Cask", || unix::run_brew_cask(ctx, unix::BrewVariant::Path))?;
                 #[cfg(target_os = "macos")]
                 runner.execute(*self, "Brew Cask (Intel)", || {
@@ -277,6 +281,9 @@ impl Step {
                 runner.execute(*self, "config-update", || linux::run_config_update(ctx))?
             }
             Containers => runner.execute(*self, "Containers", || containers::run_containers(ctx))?,
+            Cursor => runner.execute(*self, "Cursor extensions", || {
+                generic::run_cursor_extensions_update(ctx)
+            })?,
             CustomCommands => {
                 if let Some(commands) = ctx.config().commands() {
                     for (name, command) in commands
@@ -322,7 +329,7 @@ impl Step {
             Gcloud => runner.execute(*self, "gcloud", || generic::run_gcloud_components_update(ctx))?,
             Gem => runner.execute(*self, "gem", || generic::run_gem(ctx))?,
             Ghcup => runner.execute(*self, "ghcup", || generic::run_ghcup_update(ctx))?,
-            GitRepos => runner.execute(*self, "Git Repositories", || git::run_git_pull(ctx))?,
+            GitRepos => runner.execute(*self, "Git Repositories", || git::run_git_pull_or_fetch(ctx))?,
             GithubCliExtensions => runner.execute(*self, "GitHub CLI Extensions", || {
                 generic::run_ghcli_extensions_upgrade(ctx)
             })?,
@@ -342,6 +349,7 @@ impl Step {
             }
             Haxelib => runner.execute(*self, "haxelib", || generic::run_haxelib_update(ctx))?,
             Helix => runner.execute(*self, "helix", || generic::run_helix_grammars(ctx))?,
+            HelixDb => runner.execute(*self, "HelixDB", || generic::run_helix_db(ctx))?,
             Helm => runner.execute(*self, "helm", || generic::run_helm_repo_update(ctx))?,
             HomeManager =>
             {
@@ -441,11 +449,7 @@ impl Step {
                 #[cfg(unix)]
                 runner.execute(*self, "nix upgrade-nix", || unix::run_nix_self_upgrade(ctx))?
             }
-            NixHelper =>
-            {
-                #[cfg(unix)]
-                runner.execute(*self, "nh", || unix::run_nix_helper(ctx))?
-            }
+            NixHelper => {}
             Node => runner.execute(*self, "npm", || node::run_npm_upgrade(ctx))?,
             Opam => runner.execute(*self, "opam", || generic::run_opam_update(ctx))?,
             Pacdef =>
@@ -750,6 +754,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Restarts,
         Flatpak,
         BrewFormula,
+        BrewCask,
         Lure,
         Waydroid,
         AutoCpufreq,
@@ -800,6 +805,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Dotnet,
         Choosenim,
         Cargo,
+        Cursor,
         Flutter,
         Go,
         Emacs,
@@ -829,6 +835,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Vim,
         Kakoune,
         Helix,
+        HelixDb,
         Node,
         Yarn,
         Pnpm,

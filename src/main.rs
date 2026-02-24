@@ -12,7 +12,6 @@ use clap::{crate_version, Parser};
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use console::Key;
-use etcetera::base_strategy::BaseStrategy;
 #[cfg(windows)]
 use etcetera::base_strategy::Windows;
 #[cfg(unix)]
@@ -47,6 +46,8 @@ mod step;
 mod steps;
 mod sudo;
 mod terminal;
+#[cfg(unix)]
+mod tmux;
 mod utils;
 
 pub(crate) static HOME_DIR: LazyLock<PathBuf> = LazyLock::new(|| home::home_dir().expect("No home directory"));
@@ -95,11 +96,8 @@ fn run() -> Result<()> {
         return Ok(());
     }
 
-    for env in opt.env_variables() {
-        let mut parts = env.split('=');
-        let var = parts.next().unwrap();
-        let value = parts.next().unwrap();
-        env::set_var(var, value);
+    for (key, value) in opt.env_variables() {
+        env::set_var(key, value);
     }
 
     if opt.edit_config() {
@@ -209,7 +207,19 @@ fn run() -> Result<()> {
     }
 
     for step in step::default_steps() {
-        step.run(&mut runner, &ctx)?
+        match step.run(&mut runner, &ctx) {
+            Ok(()) => (),
+            Err(error)
+                if error
+                    .downcast_ref::<io::Error>()
+                    .is_some_and(|e| e.kind() == io::ErrorKind::Interrupted) =>
+            {
+                println!();
+                debug!("Interrupted (possibly with 'q' during retry prompt). Printing summary.");
+                break;
+            }
+            Err(error) => return Err(error),
+        }
     }
 
     let mut failed = false;
@@ -299,7 +309,13 @@ fn run() -> Result<()> {
         }
     }
 
-    if !config.skip_notify() {
+    let should_notify = match config.notify_end() {
+        config::NotifyEnd::Always => true,
+        config::NotifyEnd::Never => false,
+        config::NotifyEnd::OnFailure => failed,
+    };
+
+    if should_notify {
         notify_desktop(
             if failed {
                 t!("Topgrade finished with errors")

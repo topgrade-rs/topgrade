@@ -4,7 +4,7 @@ Non-major versions go via release-plz.
 
       > If there are breaking changes, the major version number should be increased.
 
-   2. If the major versioin number gets bumped, update [SECURITY.md][SECURITY_file_link].
+   2. If the major version number gets bumped, update [SECURITY.md][SECURITY_file_link].
 
       [SECURITY_file_link]: https://github.com/topgrade-rs/topgrade/blob/main/SECURITY.md
 

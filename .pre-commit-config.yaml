@@ -1,6 +1,6 @@
 repos:
 - repo: https://github.com/gitleaks/gitleaks
-  rev: v8.28.0
+  rev: v8.30.0
   hooks:
   - id: gitleaks
 
@@ -8,6 +8,7 @@ repos:
   rev: v0.11.0.1
   hooks:
   - id: shellcheck
+    args: [--external-sources]
 
 - repo: https://github.com/pre-commit/pre-commit-hooks
   rev: v6.0.0
@@ -15,10 +16,16 @@ repos:
   - id: end-of-file-fixer
   - id: trailing-whitespace
 
-- repo: https://github.com/crate-ci/typos
-  rev: v1.38.1
+- repo: https://github.com/adhtruong/mirrors-typos
+  rev: v1.43.4
   hooks:
   - id: typos
+    args:
+      - --write-changes
+      - --force-exclude
+      - --exclude=src/steps/os/os_release/**
+      - --exclude=locales/**
+      - --exclude=CHANGELOG.md  # Contains commit hashes and verbatim commit messages
 
 
 ci:

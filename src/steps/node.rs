@@ -2,7 +2,6 @@ use std::fmt::Display;
 #[cfg(target_os = "linux")]
 use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
-use std::process::Command;
 
 use crate::HOME_DIR;
 use color_eyre::eyre::Result;
@@ -52,20 +51,20 @@ impl NPM {
         Self { command, variant }
     }
 
-    /// Is the “NPM” version larger than 8.11.0?
-    fn is_npm_8(&self) -> bool {
-        let v = self.version();
+    /// Is the "NPM" version larger than 8.11.0?
+    fn is_npm_8(&self, ctx: &ExecutionContext) -> bool {
+        let v = self.version(ctx);
 
         self.variant.is_npm() && matches!(v, Ok(v) if v >= Version::new(8, 11, 0))
     }
 
-    /// Get the most suitable “global location” argument
+    /// Get the most suitable "global location" argument
     /// of this NPM instance.
     ///
-    /// If the “NPM” version is larger than 8.11.0, we use
+    /// If the "NPM" version is larger than 8.11.0, we use
     /// `--location=global`; otherwise, use `-g`.
-    fn global_location_arg(&self) -> &str {
-        if self.is_npm_8() {
+    fn global_location_arg(&self, ctx: &ExecutionContext) -> &str {
+        if self.is_npm_8(ctx) {
             "--location=global"
         } else {
             "-g"
@@ -73,16 +72,19 @@ impl NPM {
     }
 
     #[cfg(target_os = "linux")]
-    fn root(&self) -> Result<PathBuf> {
-        let args = ["root", self.global_location_arg()];
-        Command::new(&self.command)
+    fn root(&self, ctx: &ExecutionContext) -> Result<PathBuf> {
+        let args = ["root", self.global_location_arg(ctx)];
+        ctx.execute(&self.command)
+            .always()
             .args(args)
             .output_checked_utf8()
             .map(|s| PathBuf::from(s.stdout.trim()))
     }
 
-    fn version(&self) -> Result<Version> {
-        let version_str = Command::new(&self.command)
+    fn version(&self, ctx: &ExecutionContext) -> Result<Version> {
+        let version_str = ctx
+            .execute(&self.command)
+            .always()
             .args(["--version"])
             .output_checked_utf8()
             .map(|s| s.stdout.trim().to_owned());
@@ -90,7 +92,7 @@ impl NPM {
     }
 
     fn upgrade(&self, ctx: &ExecutionContext, use_sudo: bool) -> Result<()> {
-        let args = ["update", self.global_location_arg()];
+        let args = ["update", self.global_location_arg(ctx)];
         if use_sudo {
             let sudo = ctx.require_sudo()?;
             sudo.execute(ctx, &self.command)?.args(args).status_checked()?;
@@ -102,8 +104,8 @@ impl NPM {
     }
 
     #[cfg(target_os = "linux")]
-    pub fn should_use_sudo(&self) -> Result<bool> {
-        let npm_root = self.root()?;
+    pub fn should_use_sudo(&self, ctx: &ExecutionContext) -> Result<bool> {
+        let npm_root = self.root(ctx)?;
         if !npm_root.exists() {
             return Err(SkipStep(format!("{} root at {} doesn't exist", self.variant, npm_root.display())).into());
         }
@@ -124,21 +126,26 @@ impl Yarn {
         Self { command }
     }
 
-    fn has_global_subcmd(&self) -> bool {
+    fn has_global_subcmd(&self, ctx: &ExecutionContext) -> bool {
         // Get the version of Yarn. After Yarn 2.x (berry),
-        // “yarn global” has been replaced with “yarn dlx”.
+        // "yarn global" has been replaced with "yarn dlx".
         //
-        // As “yarn dlx” don't need to “upgrade”, we
+        // As "yarn dlx" don't need to "upgrade", we
         // ignore the whole task if Yarn is 2.x or above.
-        let version = Command::new(&self.command).args(["--version"]).output_checked_utf8();
+        let version = ctx
+            .execute(&self.command)
+            .always()
+            .args(["--version"])
+            .output_checked_utf8();
 
         matches!(version, Ok(ver) if ver.stdout.starts_with('1') || ver.stdout.starts_with('0'))
     }
 
     #[cfg(target_os = "linux")]
-    fn root(&self) -> Result<PathBuf> {
+    fn root(&self, ctx: &ExecutionContext) -> Result<PathBuf> {
         let args = ["global", "dir"];
-        Command::new(&self.command)
+        ctx.execute(&self.command)
+            .always()
             .args(args)
             .output_checked_utf8()
             .map(|s| PathBuf::from(s.stdout.trim()))
@@ -158,8 +165,8 @@ impl Yarn {
     }
 
     #[cfg(target_os = "linux")]
-    pub fn should_use_sudo(&self) -> Result<bool> {
-        let yarn_root = self.root()?;
+    pub fn should_use_sudo(&self, ctx: &ExecutionContext) -> Result<bool> {
+        let yarn_root = self.root(ctx)?;
         if !yarn_root.exists() {
             return Err(SkipStep(format!("Yarn root at {} doesn't exist", yarn_root.display(),)).into());
         }
@@ -185,7 +192,7 @@ impl Deno {
 
         let version = ctx.config().deno_version();
         if let Some(version) = version {
-            let bin_version = self.version()?;
+            let bin_version = self.version(ctx)?;
 
             if bin_version >= Version::new(2, 0, 0) {
                 args.push(version);
@@ -244,8 +251,10 @@ impl Deno {
     /// ```sh
     /// deno -V # deno 1.6.0
     /// ```
-    fn version(&self) -> Result<Version> {
-        let version_str = Command::new(&self.command)
+    fn version(&self, ctx: &ExecutionContext) -> Result<Version> {
+        let version_str = ctx
+            .execute(&self.command)
+            .always()
             .args(["-V"])
             .output_checked_utf8()
             .map(|s| s.stdout.trim().to_owned().split_off(5)); // remove "deno " prefix
@@ -255,7 +264,7 @@ impl Deno {
 
 #[cfg(target_os = "linux")]
 fn should_use_sudo(npm: &NPM, ctx: &ExecutionContext) -> Result<bool> {
-    if npm.should_use_sudo()? {
+    if npm.should_use_sudo(ctx)? {
         if ctx.config().npm_use_sudo() {
             Ok(true)
         } else {
@@ -269,7 +278,7 @@ fn should_use_sudo(npm: &NPM, ctx: &ExecutionContext) -> Result<bool> {
 
 #[cfg(target_os = "linux")]
 fn should_use_sudo_yarn(yarn: &Yarn, ctx: &ExecutionContext) -> Result<bool> {
-    if yarn.should_use_sudo()? {
+    if yarn.should_use_sudo(ctx)? {
         if ctx.config().yarn_use_sudo() {
             Ok(true)
         } else {
@@ -316,7 +325,7 @@ pub fn run_pnpm_upgrade(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_yarn_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let yarn = require("yarn").map(Yarn::new)?;
 
-    if !yarn.has_global_subcmd() {
+    if !yarn.has_global_subcmd(ctx) {
         debug!("Yarn is 2.x or above, skipping global upgrade");
         return Ok(());
     }
@@ -360,6 +369,7 @@ pub fn run_volta_packages_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     let list_output = ctx
         .execute(&volta)
+        .always()
         .args(["list", "--format=plain"])
         .output_checked_utf8()?
         .stdout;
