@@ -1172,6 +1172,30 @@ pub fn run_cinnamon_spices_updater(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(cinnamon_spice_updater).arg("--update-all").status_checked()
 }
 
+pub fn run_protonplus_update(ctx: &ExecutionContext) -> Result<()> {
+    let protonplus = require("protonplus")?;
+
+    print_separator("ProtonPlus");
+
+    let mut cmd = ctx.execute(protonplus);
+    cmd.args(["update", "all"]);
+
+    match cmd.status_checked() {
+        Ok(()) => Ok(()),
+        Err(e) => {
+            if let Some(TopgradeError::ProcessFailed(_, _)) = e.downcast_ref() {
+                println!();
+                println!(
+                    "{}",
+                    t!("Make sure ProtonPlus version is at least v0.5.17 and try again.")
+                );
+                return Err(e);
+            }
+            Err(e)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
