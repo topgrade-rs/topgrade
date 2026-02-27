@@ -18,6 +18,10 @@
 # (default: false)
 # pre_sudo = false
 
+# Periodically runs `sudo -v` to avoid password re-prompts during updates (default: false)
+# sudo_loop = true
+# sudo_loop_interval = 240 # 4 minutes (240s); default if sudo_loop enabled
+
 # Sudo command to be used
 # sudo_command = "sudo"
 
