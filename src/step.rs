@@ -62,6 +62,7 @@ pub enum Step {
     Flutter,
     Fossil,
     Gcloud,
+    Gearlever,
     Gem,
     Ghcup,
     GitRepos,
@@ -327,6 +328,11 @@ impl Step {
             Flutter => runner.execute(*self, "Flutter", || generic::run_flutter_upgrade(ctx))?,
             Fossil => runner.execute(*self, "fossil", || generic::run_fossil(ctx))?,
             Gcloud => runner.execute(*self, "gcloud", || generic::run_gcloud_components_update(ctx))?,
+            Gearlever =>
+            {
+                #[cfg(target_os = "linux")]
+                runner.execute(*self, "Gear Lever", || linux::run_gearlever(ctx))?
+            }
             Gem => runner.execute(*self, "gem", || generic::run_gem(ctx))?,
             Ghcup => runner.execute(*self, "ghcup", || generic::run_ghcup_update(ctx))?,
             GitRepos => runner.execute(*self, "Git Repositories", || git::run_git_pull_or_fetch(ctx))?,
@@ -753,6 +759,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Firmware,
         Restarts,
         Flatpak,
+        Gearlever,
         BrewFormula,
         BrewCask,
         Lure,
