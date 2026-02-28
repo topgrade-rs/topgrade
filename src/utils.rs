@@ -16,6 +16,7 @@ use crate::command::CommandExt;
 use crate::config::DEFAULT_LOG_LEVEL;
 use crate::error::SkipStep;
 use crate::execution_context::ExecutionContext;
+use crate::executor::Executor;
 
 pub trait PathExt
 where
@@ -100,6 +101,23 @@ pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
                 panic!("Detecting {:?} failed: {}", &binary_name, e);
             }
         },
+    }
+}
+
+#[allow(unused)]
+pub fn require_flatpak(ctx: &ExecutionContext, name: &str) -> Result<Executor> {
+    let flatpak = require("flatpak")?;
+
+    let result = ctx.execute(&flatpak).always().args(["info", name]).output_checked();
+
+    match result {
+        Ok(_) => {
+            debug!("Flatpak {name:?} is installed");
+            let mut cmd = ctx.execute(&flatpak);
+            cmd.args(["run", name]);
+            Ok(cmd)
+        }
+        _ => Err(SkipStep(t!("Flatpak {name} is not installed", name = name).to_string()).into()),
     }
 }
 
