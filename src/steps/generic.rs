@@ -343,7 +343,7 @@ pub fn run_juliaup(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("juliaup");
 
-    if juliaup.canonicalize()?.is_descendant_of(&HOME_DIR) {
+    if juliaup.canonicalize().is_ok_and(|p| p.is_descendant_of(&HOME_DIR)) {
         ctx.execute(&juliaup).args(["self", "update"]).status_checked()?;
     }
 
