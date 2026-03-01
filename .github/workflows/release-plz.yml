@@ -6,6 +6,7 @@ on:
       - main
 
 jobs:
+
   # Release unpublished packages.
   release-plz-release:
     if: github.repository == 'topgrade-rs/topgrade'
