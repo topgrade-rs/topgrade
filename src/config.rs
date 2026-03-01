@@ -711,7 +711,7 @@ impl ConfigFile {
                 // Parses the [include] section present in the slice
                 if let Some(ref paths) = includes.paths {
                     for include in paths.iter().rev() {
-                        let include_path = shellexpand::full::<&str>(&include.as_ref()).unwrap().into_owned();
+                        let include_path = shellexpand::full::<&str>(&include.as_ref())?.into_owned();
                         let include_path = PathBuf::from(include_path);
                         let include_contents = match fs::read_to_string(&include_path) {
                             Ok(c) => c,
