@@ -1180,16 +1180,13 @@ pub fn run_protonplus_update(ctx: &ExecutionContext) -> Result<()> {
     let mut cmd = ctx.execute(protonplus);
     cmd.args(["update", "all"]);
 
-    match cmd.status_checked() {
-        Ok(()) => Ok(()),
+    match cmd.output_checked_with(|o| if o.status.success() { Ok(()) } else { Err(()) }) {
+        Ok(_) => Ok(()),
         Err(e) => {
-            if let Some(TopgradeError::ProcessFailed(_, _)) = e.downcast_ref() {
-                println!();
-                println!(
-                    "{}",
-                    t!("Make sure ProtonPlus version is at least v0.5.17 and try again.")
-                );
-                return Err(e);
+            if let Some(TopgradeError::ProcessFailedWithOutput(_, _, stderr)) = e.downcast_ref() {
+                if stderr.contains("This application can not open files") {
+                    return Err(SkipStep(String::new()).into());
+                }
             }
             Err(e)
         }
