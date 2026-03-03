@@ -46,6 +46,7 @@ pub enum Distribution {
     Solus,
     Exherbo,
     NixOS,
+    KDELinux,
     KDENeon,
     Nobara,
 }
@@ -76,6 +77,7 @@ impl Distribution {
             Some("exherbo") => Distribution::Exherbo,
             Some("nixos") => Distribution::NixOS,
             Some("opensuse-microos") => Distribution::SuseMicro,
+            Some("kde-linux") => Distribution::KDELinux,
             Some("neon") => Distribution::KDENeon,
             Some("openmandriva") => Distribution::OpenMandriva,
             Some("pclinuxos") => Distribution::PCLinuxOS,
@@ -160,6 +162,7 @@ impl Distribution {
             Distribution::Solus => upgrade_solus(ctx),
             Distribution::Exherbo => upgrade_exherbo(ctx),
             Distribution::NixOS => upgrade_nixos(ctx),
+            Distribution::KDELinux => upgrade_kde_linux(ctx),
             Distribution::KDENeon => upgrade_neon(ctx),
             Distribution::Bedrock => update_bedrock(ctx),
             Distribution::OpenMandriva => upgrade_openmandriva(ctx),
@@ -867,6 +870,15 @@ fn upgrade_neon(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+fn upgrade_kde_linux(ctx: &ExecutionContext) -> Result<()> {
+    let updatectl = require("updatectl")?;
+    let mut command = ctx.execute(updatectl);
+    command.arg("update");
+    command.status_checked()?;
+
+    Ok(())
+}
+
 /// `needrestart` should be skipped if:
 ///
 /// 1. This is a redhat-based distribution
@@ -1361,6 +1373,11 @@ mod tests {
     #[test]
     fn test_nilrt() {
         test_template(include_str!("os_release/nilrt"), Distribution::NILRT);
+    }
+
+    #[test]
+    fn test_kde_linux() {
+        test_template(include_str!("os_release/kde-linux"), Distribution::KDELinux);
     }
 
     #[test]
