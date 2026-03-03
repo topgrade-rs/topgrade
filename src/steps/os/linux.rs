@@ -1180,7 +1180,7 @@ pub fn run_protonplus_update(ctx: &ExecutionContext) -> Result<()> {
     let mut cmd = ctx.execute(protonplus);
     cmd.args(["update", "all"]);
 
-    match cmd.output_checked_with(|o| if o.status.success() { Ok(()) } else { Err(()) }) {
+    match cmd.output_checked() {
         Ok(_) => Ok(()),
         Err(e) => {
             if let Some(TopgradeError::ProcessFailedWithOutput(_, _, stderr)) = e.downcast_ref() {
