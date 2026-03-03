@@ -1175,22 +1175,18 @@ pub fn run_cinnamon_spices_updater(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_protonplus_update(ctx: &ExecutionContext) -> Result<()> {
     let protonplus = require("protonplus")?;
 
-    print_separator("ProtonPlus");
-
-    let mut cmd = ctx.execute(protonplus);
-    cmd.args(["update", "all"]);
-
-    match cmd.output_checked() {
-        Ok(_) => Ok(()),
-        Err(e) => {
-            if let Some(TopgradeError::ProcessFailedWithOutput(_, _, stderr)) = e.downcast_ref() {
-                if stderr.contains("This application can not open files") {
-                    return Err(SkipStep("Updates unsupported for ProtonPlus versions under v0.5.18".to_string()).into());
-                }
+    let check = ctx.execute(&protonplus).args(["invalidarg67"]).output_checked();
+    if let Err(e) = &check {
+        if let Some(TopgradeError::ProcessFailedWithOutput(_, _, stderr)) = e.downcast_ref() {
+            if stderr.contains("This application can not open files") {
+                return Err(SkipStep("Updates unsupported for ProtonPlus versions under v0.5.18".to_string()).into());
             }
-            Err(e)
         }
     }
+
+    print_separator("ProtonPlus");
+
+    ctx.execute(&protonplus).args(["update", "all"]).status_checked()
 }
 
 #[cfg(test)]
