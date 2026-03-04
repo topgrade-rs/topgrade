@@ -519,7 +519,9 @@ impl VSCodeVariant {
 
     fn supports_profiles(&self) -> bool {
         match self {
-            VSCodeVariant::Antigravity | VSCodeVariant::Code | VSCodeVariant::CodeInsiders | VSCodeVariant::Cursor => true,
+            VSCodeVariant::Antigravity | VSCodeVariant::Code | VSCodeVariant::CodeInsiders | VSCodeVariant::Cursor => {
+                true
+            }
             VSCodeVariant::Codium | VSCodeVariant::CodiumInsiders => false,
         }
     }
