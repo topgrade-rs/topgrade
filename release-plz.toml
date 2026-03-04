@@ -1,0 +1,35 @@
+[changelog]
+body = """
+
+## [{{ version }}]\
+    {%- if release_link -%}\
+        ({{ release_link }})\
+    {% endif %} \
+    - {{ timestamp | date(format="%Y-%m-%d") }}
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim | upper_first }}
+
+    {% for commit in commits %}
+        {%- if commit.scope -%}
+            - *({{commit.scope}})* \
+                {{ commit.message }}\
+                {%- if commit.links %} \
+                    ({% for link in commit.links %}[{{link.text}}]({{link.href}}) {% endfor -%})\
+                {% endif %}
+        {% else -%}
+            - {{ commit.message }}
+        {% endif -%}
+    {% endfor -%}
+{% endfor %}
+"""
+commit_parsers = [
+    { field = "breaking", pattern = "true", group = "<!-- 0 -->breaking changes" },
+    { message = "^feat", group = "added" },
+    { message = "^fix", group = "fixed" },
+    { message = "^refactor", skip = true },
+    { message = "^chore", skip = true },
+    { message = "^ci", skip = true },
+    { message = "^docs", skip = true },
+    { message = "^.*", group = "other" },
+]
+protect_breaking_commits = true
