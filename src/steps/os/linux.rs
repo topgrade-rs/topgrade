@@ -5,6 +5,7 @@ use ini::Ini;
 use rust_i18n::t;
 use tracing::{debug, warn};
 
+use crate::HOME_DIR;
 use crate::command::CommandExt;
 use crate::config::NixHandler;
 use crate::error::{SkipStep, TopgradeError};
@@ -12,11 +13,10 @@ use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::steps::generic::is_wsl;
 use crate::steps::os::archlinux;
-use crate::steps::unix::{can_nh_switch, nh_switch, NhSwitchArgs};
+use crate::steps::unix::{NhSwitchArgs, can_nh_switch, nh_switch};
 use crate::sudo::SudoExecuteOpts;
 use crate::terminal::{print_separator, prompt_yesno};
-use crate::utils::{require, require_flatpak, require_one, which, PathExt};
-use crate::HOME_DIR;
+use crate::utils::{PathExt, require, require_flatpak, require_one, which};
 
 static OS_RELEASE_PATH: &str = "/etc/os-release";
 
@@ -84,10 +84,10 @@ impl Distribution {
             Some(id) if id.starts_with("origami") => Distribution::FedoraImmutable,
 
             _ => {
-                if let Some(name) = name {
-                    if name.contains("Vanilla") {
-                        return Ok(Distribution::Vanilla);
-                    }
+                if let Some(name) = name
+                    && name.contains("Vanilla")
+                {
+                    return Ok(Distribution::Vanilla);
                 }
                 if let Some(id_like) = id_like {
                     if id_like.contains(&"debian") || id_like.contains(&"ubuntu") {
@@ -245,19 +245,19 @@ fn upgrade_wolfi_linux(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
-    if let Some(bootc) = which("bootc") {
-        if ctx.config().bootc() {
-            let sudo = ctx.require_sudo()?;
-            return sudo.execute(ctx, &bootc)?.arg("upgrade").status_checked();
-        }
+    if let Some(bootc) = which("bootc")
+        && ctx.config().bootc()
+    {
+        let sudo = ctx.require_sudo()?;
+        return sudo.execute(ctx, &bootc)?.arg("upgrade").status_checked();
     }
 
-    if let Some(ostree) = which("rpm-ostree") {
-        if ctx.config().rpm_ostree() {
-            let mut command = ctx.execute(ostree);
-            command.arg("upgrade");
-            return command.status_checked();
-        }
+    if let Some(ostree) = which("rpm-ostree")
+        && ctx.config().rpm_ostree()
+    {
+        let mut command = ctx.execute(ostree);
+        command.arg("upgrade");
+        return command.status_checked();
     };
 
     let dnf = require_one(["dnf", "yum"])?;
@@ -323,11 +323,11 @@ fn upgrade_nilrt(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_fedora_immutable(ctx: &ExecutionContext) -> Result<()> {
-    if let Some(bootc) = which("bootc") {
-        if ctx.config().bootc() {
-            let sudo = ctx.require_sudo()?;
-            return sudo.execute(ctx, &bootc)?.arg("upgrade").status_checked();
-        }
+    if let Some(bootc) = which("bootc")
+        && ctx.config().bootc()
+    {
+        let sudo = ctx.require_sudo()?;
+        return sudo.execute(ctx, &bootc)?.arg("upgrade").status_checked();
     }
 
     let ostree = require("rpm-ostree")?;
@@ -1204,13 +1204,13 @@ pub fn run_cinnamon_spices_updater(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_protonplus_update(ctx: &ExecutionContext) -> Result<()> {
     let protonplus = require("protonplus")?;
 
-    if let Err(e) = ctx.execute(&protonplus).args(["invalidarg67"]).output_checked() {
-        if matches!(
+    if let Err(e) = ctx.execute(&protonplus).args(["invalidarg67"]).output_checked()
+        && matches!(
             e.downcast_ref(),
             Some(TopgradeError::ProcessFailedWithOutput(_, _, stderr)) if stderr.contains("This application can not open files")
-        ) {
-            return Err(SkipStep("Updates unsupported for ProtonPlus versions under v0.5.18".to_string()).into());
-        }
+        )
+    {
+        return Err(SkipStep("Updates unsupported for ProtonPlus versions under v0.5.18".to_string()).into());
     }
 
     print_separator("ProtonPlus");

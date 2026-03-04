@@ -5,8 +5,8 @@ use std::process::Child;
 use std::process::{Command, ExitStatus, Output};
 
 use color_eyre::eyre;
-use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
+use color_eyre::eyre::eyre;
 
 use crate::error::TopgradeError;
 
