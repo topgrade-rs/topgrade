@@ -26,10 +26,15 @@ commit_parsers = [
     { field = "breaking", pattern = "true", group = "<!-- 0 -->breaking changes" },
     { message = "^feat", group = "added" },
     { message = "^fix", group = "fixed" },
-    { message = "^refactor", skip = true },
-    { message = "^chore", skip = true },
-    { message = "^ci", skip = true },
+    { message = "^revert", group = "removed" },
     { message = "^docs", skip = true },
+    { message = "^style", skip = true },
+    { message = "^refactor", skip = true },
+    { message = "^perf", skip = true },
+    { message = "^test", skip = true },
+    { message = "^build", skip = true },
+    { message = "^ci", skip = true },
+    { message = "^chore", skip = true },
     { message = "^.*", group = "other" },
 ]
 protect_breaking_commits = true
