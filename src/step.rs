@@ -132,6 +132,7 @@ pub enum Step {
     Pnpm,
     Poetry,
     Powershell,
+    Protonplus,
     Protonup,
     Pyenv,
     Raco,
@@ -508,6 +509,11 @@ impl Step {
             Pnpm => runner.execute(*self, "pnpm", || node::run_pnpm_upgrade(ctx))?,
             Poetry => runner.execute(*self, "Poetry", || generic::run_poetry(ctx))?,
             Powershell => runner.execute(*self, "Powershell Modules Update", || generic::run_powershell(ctx))?,
+            Protonplus =>
+            {
+                #[cfg(target_os = "linux")]
+                runner.execute(*self, "protonplus", || linux::run_protonplus_update(ctx))?
+            }
             Protonup =>
             {
                 #[cfg(target_os = "linux")]
@@ -756,6 +762,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Pacstall,
         Pacdef,
         Protonup,
+        Protonplus,
         Distrobox,
         DkpPacman,
         Firmware,

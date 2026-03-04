@@ -1201,6 +1201,23 @@ pub fn run_cinnamon_spices_updater(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(cinnamon_spice_updater).arg("--update-all").status_checked()
 }
 
+pub fn run_protonplus_update(ctx: &ExecutionContext) -> Result<()> {
+    let protonplus = require("protonplus")?;
+
+    if let Err(e) = ctx.execute(&protonplus).args(["invalidarg67"]).output_checked() {
+        if matches!(
+            e.downcast_ref(),
+            Some(TopgradeError::ProcessFailedWithOutput(_, _, stderr)) if stderr.contains("This application can not open files")
+        ) {
+            return Err(SkipStep("Updates unsupported for ProtonPlus versions under v0.5.18".to_string()).into());
+        }
+    }
+
+    print_separator("ProtonPlus");
+
+    ctx.execute(&protonplus).args(["update", "all"]).status_checked()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
