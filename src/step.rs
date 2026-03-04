@@ -23,6 +23,7 @@ pub const DEPRECATED_STEPS: [Step; 1] = [Step::NixHelper];
 pub enum Step {
     AM,
     AndroidStudio,
+    Antigravity,
     AppMan,
     Aqua,
     Asdf,
@@ -192,6 +193,9 @@ impl Step {
                 runner.execute(*self, "am", || linux::run_am(ctx))?
             }
             AndroidStudio => runner.execute(*self, "Android Studio Plugins", || generic::run_android_studio(ctx))?,
+            Antigravity => runner.execute(*self, "Antigravity extensions", || {
+                generic::run_antigravity_extensions_update(ctx)
+            })?,
             AppMan =>
             {
                 #[cfg(target_os = "linux")]
@@ -821,6 +825,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Dotnet,
         Choosenim,
         Cargo,
+        Antigravity,
         Cursor,
         Flutter,
         Go,

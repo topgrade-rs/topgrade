@@ -475,6 +475,7 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 enum VSCodeVariant {
+    Antigravity,
     Code,
     CodeInsiders,
     Codium,
@@ -485,6 +486,7 @@ enum VSCodeVariant {
 impl VSCodeVariant {
     fn name(&self) -> &'static str {
         match self {
+            VSCodeVariant::Antigravity => "Antigravity",
             VSCodeVariant::Code => "VSCode",
             VSCodeVariant::CodeInsiders => "VSCode Insiders",
             VSCodeVariant::Codium => "VSCodium",
@@ -495,6 +497,7 @@ impl VSCodeVariant {
 
     fn bin_name(&self) -> &'static str {
         match self {
+            VSCodeVariant::Antigravity => "antigravity",
             VSCodeVariant::Code => "code",
             VSCodeVariant::CodeInsiders => "code-insiders",
             VSCodeVariant::Codium => "codium",
@@ -505,6 +508,7 @@ impl VSCodeVariant {
 
     fn display_name(&self) -> &'static str {
         match self {
+            VSCodeVariant::Antigravity => "Antigravity extensions",
             VSCodeVariant::Code => "Visual Studio Code extensions",
             VSCodeVariant::CodeInsiders => "Visual Studio Code Insiders extensions",
             VSCodeVariant::Codium => "VSCodium extensions",
@@ -515,13 +519,14 @@ impl VSCodeVariant {
 
     fn supports_profiles(&self) -> bool {
         match self {
-            VSCodeVariant::Code | VSCodeVariant::CodeInsiders | VSCodeVariant::Cursor => true,
+            VSCodeVariant::Antigravity | VSCodeVariant::Code | VSCodeVariant::CodeInsiders | VSCodeVariant::Cursor => true,
             VSCodeVariant::Codium | VSCodeVariant::CodiumInsiders => false,
         }
     }
 }
 
-/// This functions runs for VSCode, VSCode Insiders, VSCodium, and VSCodium Insiders, as most of the process is the same for all.
+/// Runs extension updates for VSCode-compatible editors (VSCode, VSCode Insiders, VSCodium,
+/// VSCodium Insiders, Cursor, Antigravity), as the process is the same for all.
 fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Result<()> {
     // Calling VSCode/VSCodium in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
     if is_wsl()? {
@@ -624,6 +629,10 @@ pub fn run_vscodium_insiders_extensions_update(ctx: &ExecutionContext) -> Result
 
 pub fn run_cursor_extensions_update(ctx: &ExecutionContext) -> Result<()> {
     run_vscode_compatible(VSCodeVariant::Cursor, ctx)
+}
+
+pub fn run_antigravity_extensions_update(ctx: &ExecutionContext) -> Result<()> {
+    run_vscode_compatible(VSCodeVariant::Antigravity, ctx)
 }
 
 pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
