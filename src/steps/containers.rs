@@ -5,7 +5,7 @@ use std::path::Path;
 
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use color_eyre::eyre::{eyre, OptionExt};
+use color_eyre::eyre::{OptionExt, eyre};
 use tracing::{debug, error, warn};
 use wildmatch::WildMatch;
 
@@ -126,11 +126,11 @@ fn list_containers(ctx: &ExecutionContext, crt: &Path) -> Result<Vec<Container>>
         }
         let (repo_tag, image_id) = (split_res[0], split_res[1]);
 
-        if let Some(ref ignored_containers) = ignored_containers {
-            if ignored_containers.iter().any(|pattern| pattern.matches(repo_tag)) {
-                debug!("Skipping ignored container '{}'", line);
-                continue;
-            }
+        if let Some(ref ignored_containers) = ignored_containers
+            && ignored_containers.iter().any(|pattern| pattern.matches(repo_tag))
+        {
+            debug!("Skipping ignored container '{}'", line);
+            continue;
         }
 
         debug!(

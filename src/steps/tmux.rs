@@ -6,8 +6,8 @@ use etcetera::base_strategy::BaseStrategy;
 
 use crate::command::CommandExt;
 use crate::terminal::print_separator;
-use crate::{execution_context::ExecutionContext, utils::PathExt};
 use crate::{HOME_DIR, XDG_DIRS};
+use crate::{execution_context::ExecutionContext, utils::PathExt};
 
 // update_plugins path is relative to the TPM path
 const UPDATE_PLUGINS: &str = "bin/update_plugins";
