@@ -20,4 +20,35 @@
             datasourceTemplate: "github-tags",
         },
     ],
+    packageRules: [
+        {
+            matchManagers: [
+                "cargo",
+            ],
+            matchDepTypes: [
+                "build-dependencies",
+                "dependencies",
+            ],
+            matchCurrentVersion: ">=0.1.0",
+            matchUpdateTypes: [
+                "patch",
+            ],
+            enabled: false,
+        },
+        {
+            matchManagers: [
+                "cargo",
+            ],
+            matchDepTypes: [
+                "build-dependencies",
+                "dependencies",
+            ],
+            matchCurrentVersion: ">=1.0.0",
+            matchUpdateTypes: [
+                "minor",
+                "patch",
+            ],
+            enabled: false,
+        },
+    ],
 }
