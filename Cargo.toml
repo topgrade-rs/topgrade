@@ -74,6 +74,9 @@ assets = [
   ["deployment/deb/_topgrade", "usr/share/zsh/vendor-completions/", "644"],
 ]
 
+[target.'cfg(target_os = "linux")'.dependencies]
+libplasmoid-updater = { version = "0.1.4", features = ["cli"] }
+
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.31", features = ["hostname", "signal", "user"] }
 rust-ini = "0.21"

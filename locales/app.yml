@@ -1458,6 +1458,22 @@ _version: 2
   zh_CN: "`hx` 和 `helix` 命令均未指向 Helix 编辑器"
   zh_TW: "`hx` 和 `helix` 命令均未指向 Helix 編輯器"
   de: "Weder der Befehl `hx` noch `helix` verweist auf den Helix-Editor"
+"plasmoid-updater encountered an unexpected error during updating:":
+  en: "plasmoid-updater encountered an unexpected error during updating:"
+  lt: "plasmoid-updater susidūrė su netikėta klaida atnaujinant:"
+  es: "plasmoid-updater encontró un error inesperado durante la actualización:"
+  fr: "plasmoid-updater a rencontré une erreur inattendue lors de la mise à jour:"
+  zh_CN: "plasmoid-updater 在更新过程中遇到意外错误："
+  zh_TW: "plasmoid-updater 在更新過程中遇到意外錯誤："
+  de: "plasmoid-updater ist auf einen unerwarteten Fehler während der Aktualisierung gestoßen:"
+"plasmoid-updater failed to update some components:":
+  en: "plasmoid-updater failed to update some components:"
+  lt: "plasmoid-updater nepavyko atnaujinti kai kurių komponentų:"
+  es: "plasmoid-updater no pudo actualizar algunos componentes:"
+  fr: "plasmoid-updater n'a pas pu mettre à jour certains composants :"
+  zh_CN: "plasmoid-updater 无法更新某些组件："
+  zh_TW: "plasmoid-updater 無法更新某些组件："
+  de: "plasmoid-updater konnte einige Komponenten nicht aktualisieren:"
 "Flatpak {name} is not installed":
   en: "Flatpak %{name} is not installed"
   lt: "Flatpak %{name} nėra įdiegtas"
