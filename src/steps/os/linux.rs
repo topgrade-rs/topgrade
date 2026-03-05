@@ -1210,7 +1210,7 @@ pub fn run_protonplus_update(ctx: &ExecutionContext) -> Result<()> {
             Some(TopgradeError::ProcessFailedWithOutput(_, _, stderr)) if stderr.contains("This application can not open files")
         )
     {
-        return Err(SkipStep("Updates unsupported for ProtonPlus versions under v0.5.18".to_string()).into());
+        return Err(SkipStep("Updates unsupported for ProtonPlus versions under v0.5.17".to_string()).into());
     }
 
     print_separator("ProtonPlus");
