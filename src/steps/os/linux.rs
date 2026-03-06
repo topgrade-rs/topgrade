@@ -2,13 +2,14 @@ use std::path::{Path, PathBuf};
 
 use color_eyre::eyre::Result;
 use ini::Ini;
+use libplasmoid_updater::Config as PlasmoidConfig;
 use rust_i18n::t;
 use tracing::{debug, warn};
 
 use crate::HOME_DIR;
 use crate::command::CommandExt;
 use crate::config::NixHandler;
-use crate::error::{SkipStep, TopgradeError};
+use crate::error::{SkipStep, StepFailed, TopgradeError};
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::steps::generic::is_wsl;
@@ -1216,6 +1217,44 @@ pub fn run_protonplus_update(ctx: &ExecutionContext) -> Result<()> {
     print_separator("ProtonPlus");
 
     ctx.execute(&protonplus).args(["update", "all"]).status_checked()
+}
+
+pub fn run_plasmoid_updater(ctx: &ExecutionContext, system: bool, step_name: &str) -> Result<()> {
+    let with_yes = ctx
+        .config()
+        .yes(if system { Step::PlasmoidsSystem } else { Step::Plasmoids });
+    let excluded = ctx.config().plasmoids_get_excluded(system);
+    let config = PlasmoidConfig::new()
+        .with_system(system)
+        .with_excluded_packages(excluded)
+        .with_yes(with_yes);
+
+    print_separator(step_name);
+
+    if ctx.run_type().dry() {
+        println!("Dry running plasmoid-updater");
+        return Ok(());
+    }
+
+    match libplasmoid_updater::update(&config) {
+        Err(e) => {
+            println!(
+                "{}",
+                t!("plasmoid-updater encountered an unexpected error during updating:")
+            );
+            println!("{e:#?}");
+            Err(StepFailed.into())
+        }
+        Ok(result) => {
+            if result.has_failures() {
+                println!("{}", t!("plasmoid-updater failed to update some components:"));
+                result.print_error_table();
+                Err(StepFailed.into())
+            } else {
+                Ok(())
+            }
+        }
+    }
 }
 
 #[cfg(test)]

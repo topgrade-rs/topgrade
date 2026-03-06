@@ -129,6 +129,8 @@ pub enum Step {
     Pkg,
     Pkgfile,
     Pkgin,
+    Plasmoids,
+    PlasmoidsSystem,
     PlatformioCore,
     Pnpm,
     Poetry,
@@ -509,6 +511,20 @@ impl Step {
                 #[cfg(unix)]
                 runner.execute(*self, "pkgin", || unix::run_pkgin(ctx))?
             }
+            Plasmoids => {
+                #[cfg(target_os = "linux")]
+                {
+                    let name = "KDE Plasmoids";
+                    runner.execute(*self, name, || linux::run_plasmoid_updater(ctx, false, name))?
+                }
+            }
+            PlasmoidsSystem => {
+                #[cfg(target_os = "linux")]
+                {
+                    let name = "KDE System Plasmoids";
+                    runner.execute(*self, name, || linux::run_plasmoid_updater(ctx, true, name))?
+                }
+            }
             PlatformioCore => runner.execute(*self, "PlatformIO Core", || generic::run_platform_io(ctx))?,
             Pnpm => runner.execute(*self, "pnpm", || node::run_pnpm_upgrade(ctx))?,
             Poetry => runner.execute(*self, "Poetry", || generic::run_poetry(ctx))?,
@@ -781,6 +797,8 @@ pub(crate) fn default_steps() -> Vec<Step> {
         CinnamonSpices,
         Mandb,
         Pkgfile,
+        Plasmoids,
+        PlasmoidsSystem,
     ]);
 
     #[cfg(unix)]

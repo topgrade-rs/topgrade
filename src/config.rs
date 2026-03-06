@@ -307,6 +307,12 @@ pub struct Linux {
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     home_manager_arguments: Option<Vec<String>>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    excluded_plasmoids: Option<Vec<String>>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    excluded_plasmoids_system: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -2017,6 +2023,21 @@ impl Config {
             .as_ref()
             .and_then(|pkgfile| pkgfile.enable)
             .unwrap_or(false)
+    }
+
+    #[cfg(target_os = "linux")]
+    pub fn plasmoids_get_excluded(&self, system: bool) -> Vec<String> {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|p| {
+                if system {
+                    Some(p.excluded_plasmoids_system.as_ref()?.clone())
+                } else {
+                    Some(p.excluded_plasmoids.as_ref()?.clone())
+                }
+            })
+            .unwrap_or_default()
     }
 }
 

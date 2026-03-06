@@ -236,6 +236,12 @@
 # Extra Home Manager arguments
 # home_manager_arguments = ["--flake", "file"]
 
+# KDE Plasmoids (package IDs or exact names) to exclude from updates.
+# excluded_plasmoids = [""]
+
+# System-wide Plasmoids to exclude from updates.
+# excluded_plasmoids_system = [""]
+
 
 [mandb]
 # Enable the mandb step (to update manual entries).
