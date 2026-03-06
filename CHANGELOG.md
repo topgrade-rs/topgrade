@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - bump MSRV to 1.88.0
 
+  Topgrade v17.0.0 bumps the MSRV (minimum supported Rust version) from 1.84.1 to 1.88.0. There are no breaking changes for users.
+
+  If the bumped MSRV hinders you in using or packaging Topgrade, please let us know by opening an issue!
+
 ### Added
 
 - improve breaking changes notifications ([#1827](https://github.com/topgrade-rs/topgrade/pull/1827))
