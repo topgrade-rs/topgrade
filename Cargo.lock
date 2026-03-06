@@ -1883,6 +1883,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f38d5652c16fde515bb1ecef450ab0f6a219d619a7274976324d5e377f7dceba"
 
 [[package]]
+name = "parse-changelog"
+version = "0.6.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f191c834870b0abd3945d585d590150d94c5e401ae2ac522db6123f39366cd2"
+dependencies = [
+ "indexmap",
+ "memchr",
+ "regex",
+]
+
+[[package]]
 name = "parselnk"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3094,6 +3105,7 @@ dependencies = [
  "merge",
  "nix",
  "notify-rust",
+ "parse-changelog",
  "parselnk",
  "regex",
  "regex-split",

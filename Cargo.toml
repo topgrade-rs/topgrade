@@ -49,6 +49,9 @@ itertools = "0.14.0"
 clap-cargo = "0.18.0"
 edit = "0.1.5"
 
+[build-dependencies]
+parse-changelog = { version = "0.6.15", default-features = false }
+
 [package.metadata.generate-rpm]
 assets = [{ source = "target/release/topgrade", dest = "/usr/bin/topgrade" }]
 
