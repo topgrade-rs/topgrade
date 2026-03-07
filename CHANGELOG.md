@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.0.0](https://github.com/topgrade-rs/topgrade/compare/v16.9.0...v17.0.0) - 2026-03-06
+
+### Breaking changes
+
+- bump MSRV to 1.88.0
+
+  Topgrade v17.0.0 bumps the MSRV (minimum supported Rust version) from 1.84.1 to 1.88.0. There are no breaking changes for users.
+
+  If the bumped MSRV hinders you in using or packaging Topgrade, please let us know by opening an issue!
+
+### Added
+
+- improve breaking changes notifications ([#1827](https://github.com/topgrade-rs/topgrade/pull/1827))
+- *(step)* add antigravity ([#1822](https://github.com/topgrade-rs/topgrade/pull/1822))
+- *(step)* add `protonplus` ([#1799](https://github.com/topgrade-rs/topgrade/pull/1799))
+- *(os)* add KDE Linux support ([#1814](https://github.com/topgrade-rs/topgrade/pull/1814))
+- *(step)* add claude code ([#1792](https://github.com/topgrade-rs/topgrade/pull/1792))
+- *(step)* add Gear Lever
+- *(utils)* add require_flatpak function
+- add Helix DB step ([#1790](https://github.com/topgrade-rs/topgrade/pull/1790))
+- add notify_end tristate option ([#1760](https://github.com/topgrade-rs/topgrade/pull/1760))
+- *(executor)* add Executor::always() for commands that must run in dry-run mode
+- show version range in self-update message ([#1752](https://github.com/topgrade-rs/topgrade/pull/1752))
+- *(uv)* run uv python upgrade ([#1747](https://github.com/topgrade-rs/topgrade/pull/1747))
+- `--auto-retry [<COUNT>]` flag and `--no-retry` deprecation ([#1603](https://github.com/topgrade-rs/topgrade/pull/1603))
+
+### Fixed
+
+- *(protonplus)* correct protonplus version in error message ([#1823](https://github.com/topgrade-rs/topgrade/pull/1823))
+- *(juliaup)* don't crash when failing to canonicalize juliaup path ([#1809](https://github.com/topgrade-rs/topgrade/pull/1809))
+- *(helix)* disambiguate between Helix Editor and HelixDB ([#1781](https://github.com/topgrade-rs/topgrade/pull/1781))
+- correct typos and enhance clarity ([#1778](https://github.com/topgrade-rs/topgrade/pull/1778))
+- use `edit` crate for --edit-config editor resolution ([#1759](https://github.com/topgrade-rs/topgrade/pull/1759))
+- *(vim)* AstroNvim - wait for AstroUpdateCompleted and finish. ([#1744](https://github.com/topgrade-rs/topgrade/pull/1744))
+
 ## [16.9.0](https://github.com/topgrade-rs/topgrade/compare/v16.8.0...v16.9.0) - 2026-02-03
 
 ### Added
