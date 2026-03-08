@@ -937,9 +937,9 @@ dependencies = [
 
 [[package]]
 name = "freedesktop-desktop-entry"
-version = "0.7.19"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "528df05c8ed0bfd569c7018914ba1995be2a133ba9ead17628ddb0ff94b86331"
+checksum = "28273c5c6b97a5f07724f6652f064c0c7f637f9aa5e7c09c83bc3bc4ad4ea245"
 dependencies = [
  "bstr",
  "log",
@@ -1540,9 +1540,9 @@ checksum = "92ecc6618181def0457392ccd0ee51198e065e016d1d527a7ac1b6dc7c1f09d2"
 
 [[package]]
 name = "jetbrains-toolbox-updater"
-version = "5.4.6"
+version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f66feaa93d7af6a82669172d6f3117889b1e7210dd6d9cf71e8ddcf9fd48c74f"
+checksum = "4462ef6f061d87a9b7565e70974e0714f8df3d81b12dcdbe8c0eb412ee89de20"
 dependencies = [
  "dirs",
  "freedesktop-desktop-entry",
