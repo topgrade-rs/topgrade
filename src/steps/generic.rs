@@ -105,9 +105,81 @@ pub fn run_flutter_upgrade(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(flutter).arg("upgrade").status_checked()
 }
 
+/// On macOS, attempt to find Homebrew's keg-only Ruby `gem` binary.
+///
+/// Homebrew installs Ruby as "keg-only", meaning its binaries are not symlinked
+/// into the standard Homebrew bin directory. If `which gem` resolves to
+/// `/usr/bin/gem` (Apple's system Ruby, typically 2.6.x), this function tries
+/// to locate Homebrew's Ruby via `brew --prefix ruby` and returns the path to
+/// its `gem` binary instead.
+///
+/// Returns `None` if Homebrew Ruby is not installed or if the resolved gem is
+/// already a non-system binary.
+#[cfg(target_os = "macos")]
+fn resolve_homebrew_keg_gem(gem: &Path) -> Option<PathBuf> {
+    // Only override if the resolved gem is macOS system Ruby
+    if gem != Path::new("/usr/bin/gem") {
+        debug!("gem at {:?} is not system Ruby, no keg-only override needed", gem);
+        return None;
+    }
+
+    debug!("gem resolved to /usr/bin/gem (system Ruby), checking for Homebrew keg-only Ruby");
+
+    // Find brew binary — check well-known paths first, then fall back to PATH
+    let brew_path = ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"]
+        .iter()
+        .map(PathBuf::from)
+        .find(|p| p.exists())
+        .or_else(|| which("brew"))?;
+
+    // Run `brew --prefix ruby` to get the keg installation path
+    #[allow(clippy::disallowed_methods)]
+    let output = std::process::Command::new(brew_path)
+        .args(["--prefix", "ruby"])
+        .output()
+        .ok()?;
+
+    if !output.status.success() {
+        debug!("brew --prefix ruby failed, Homebrew Ruby likely not installed");
+        return None;
+    }
+
+    let prefix = String::from_utf8(output.stdout).ok()?;
+    let keg_gem = PathBuf::from(prefix.trim()).join("bin/gem");
+
+    if keg_gem.exists() {
+        debug!("Found Homebrew keg-only gem at {:?}", keg_gem);
+        Some(keg_gem)
+    } else {
+        debug!("Homebrew Ruby keg path exists but {:?} not found", keg_gem);
+        None
+    }
+}
+
+/// Check whether a gem binary belongs to a Homebrew-managed Ruby installation.
+///
+/// Homebrew Ruby is user-owned and should not use `sudo` for gem operations.
+#[cfg(target_os = "macos")]
+fn is_homebrew_ruby(gem: &Path) -> bool {
+    let gem_str = gem.to_str().unwrap_or_default();
+    // Homebrew keg paths on ARM and Intel Macs
+    gem_str.starts_with("/opt/homebrew/") || gem_str.starts_with("/usr/local/Cellar/")
+        || gem_str.starts_with("/usr/local/opt/")
+}
+
 pub fn run_gem(ctx: &ExecutionContext) -> Result<()> {
-    let gem = require("gem")?;
+    let mut gem = require("gem")?;
     HOME_DIR.join(".gem").require()?;
+
+    #[cfg(target_os = "macos")]
+    if let Some(keg_gem) = resolve_homebrew_keg_gem(&gem) {
+        warn!(
+            "Overriding system Ruby gem ({}) with Homebrew keg-only Ruby gem ({})",
+            gem.display(),
+            keg_gem.display()
+        );
+        gem = keg_gem;
+    }
 
     print_separator("Gems");
 
@@ -125,7 +197,17 @@ pub fn run_gem(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
     HOME_DIR.join(".gem").require()?;
-    let gem = require("gem")?;
+    let mut gem = require("gem")?;
+
+    #[cfg(target_os = "macos")]
+    if let Some(keg_gem) = resolve_homebrew_keg_gem(&gem) {
+        warn!(
+            "Overriding system Ruby gem ({}) with Homebrew keg-only Ruby gem ({})",
+            gem.display(),
+            keg_gem.display()
+        );
+        gem = keg_gem;
+    }
 
     print_separator("RubyGems");
     let gem_path_str = gem.as_os_str();
@@ -135,11 +217,22 @@ pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
         || gem_path_str.to_str().unwrap().contains(".rvm")
     {
         ctx.execute(gem).args(["update", "--system"]).status_checked()?;
-    } else if !Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
-        let sudo = ctx.require_sudo()?;
-        sudo.execute_opts(ctx, &gem, SudoExecuteOpts::new().preserve_env().set_home())?
-            .args(["update", "--system"])
-            .status_checked()?;
+    } else {
+        #[cfg(target_os = "macos")]
+        let homebrew_managed = is_homebrew_ruby(&gem);
+        #[cfg(not(target_os = "macos"))]
+        let homebrew_managed = false;
+
+        if homebrew_managed {
+            // Homebrew Ruby is user-owned; sudo is unnecessary and harmful
+            debug!("Detected Homebrew-managed Ruby, running gem update --system without sudo");
+            ctx.execute(gem).args(["update", "--system"]).status_checked()?;
+        } else if !Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
+            let sudo = ctx.require_sudo()?;
+            sudo.execute_opts(ctx, &gem, SudoExecuteOpts::new().preserve_env().set_home())?
+                .args(["update", "--system"])
+                .status_checked()?;
+        }
     }
 
     Ok(())
