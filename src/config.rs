@@ -291,6 +291,7 @@ pub struct Linux {
     nix_env_arguments: Option<String>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
+    apt_command: Option<String>,
     apt_arguments: Option<String>,
 
     enable_tlmgr: Option<bool>,
@@ -1536,6 +1537,15 @@ impl Config {
             .as_ref()
             .and_then(|s| s.aura_pacman_arguments.as_deref())
             .unwrap_or("")
+    }
+
+    /// apt command: upgrade or dist-upgrade
+    pub fn apt_command(&self) -> &str {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|linux| linux.apt_command.as_deref())
+            .unwrap_or("dist-upgrade")
     }
 
     /// Extra apt arguments
