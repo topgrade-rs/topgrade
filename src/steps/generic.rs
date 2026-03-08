@@ -163,7 +163,8 @@ fn resolve_homebrew_keg_gem(gem: &Path) -> Option<PathBuf> {
 fn is_homebrew_ruby(gem: &Path) -> bool {
     let gem_str = gem.to_str().unwrap_or_default();
     // Homebrew keg paths on ARM and Intel Macs
-    gem_str.starts_with("/opt/homebrew/") || gem_str.starts_with("/usr/local/Cellar/")
+    gem_str.starts_with("/opt/homebrew/")
+        || gem_str.starts_with("/usr/local/Cellar/")
         || gem_str.starts_with("/usr/local/opt/")
 }
 
