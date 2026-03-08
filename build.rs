@@ -12,7 +12,9 @@ fn breaking_changes() {
     let out_dir = Path::new(out_dir_s);
     let version_str = env::var("CARGO_PKG_VERSION").unwrap();
     let changelog = parse_changelog::parse(include_str!("CHANGELOG.md")).expect("Invalid CHANGELOG.md");
-    let release = &changelog[&*version_str];
+    let release = changelog
+        .get(&*version_str)
+        .expect("Current release not found in CHANGELOG.md");
     let breaking_changes = release
         .notes
         // Get the part after the header
