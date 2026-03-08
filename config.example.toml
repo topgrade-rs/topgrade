@@ -118,15 +118,65 @@
 # "Emacs Snapshot" = "rm -rf ~/.emacs.d/elpa.bak && cp -rl ~/.emacs.d/elpa ~/.emacs.d/elpa.bak"
 
 
-# Commands to run after anything
+# Commands to run after everything completes
 [post_commands]
 # "Emacs Snapshot" = "rm -rf ~/.emacs.d/elpa.bak && cp -rl ~/.emacs.d/elpa ~/.emacs.d/elpa.bak"
+#
+# Run the coverage audit script to detect tools without an update path.
+# See contrib/topgrade-audit.sh for details.
+# "Coverage Audit" = "$HOME/.config/topgrade-audit.sh --quiet || true"
 
 
 # Custom commands
 [commands]
 # "Python Environment" = "~/dev/.env/bin/pip install -i https://pypi.python.org/simple -U --upgrade-strategy eager jupyter"
 # "Custom command using interactive shell (unix)" = "-i vim_upgrade"
+#
+# --- GitHub Release Binary Pattern ---
+# Many CLI tools are distributed as GitHub release binaries with no package
+# manager. Use `gh release` to check versions and download updates:
+#
+# "My Tool" = """
+#     CURRENT_VERSION=$(mytool --version 2>/dev/null | awk '{print $2}') && \
+#     LATEST_VERSION=$(gh release view --repo owner/repo --json tagName -q .tagName 2>/dev/null | sed 's/^v//') && \
+#     if [ -n "$LATEST_VERSION" ] && [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then \
+#         echo "Updating mytool from $CURRENT_VERSION to v$LATEST_VERSION..." && \
+#         TEMP_DIR=$(mktemp -d) && \
+#         gh release download --repo owner/repo --pattern '*-darwin-arm64.tar.gz' -D "$TEMP_DIR" && \
+#         cd "$TEMP_DIR" && tar xzf *.tar.gz && chmod +x mytool && \
+#         mv mytool "$HOME/.local/bin/mytool" && \
+#         cd ~ && rm -rf "$TEMP_DIR" && \
+#         echo "mytool updated to v$LATEST_VERSION"; \
+#     else \
+#         echo "mytool is already up to date (v$CURRENT_VERSION)"; \
+#     fi
+# """
+#
+# --- curl Installer Pattern ---
+# For tools installed via `curl | sh` style installers:
+#
+# "My CLI" = """
+#     if command -v curl >/dev/null 2>&1; then \
+#         echo "Updating my-cli via official installer"; \
+#         curl -fsSL https://example.com/install.sh | sh; \
+#     else \
+#         echo "curl not found; skipping my-cli update"; \
+#     fi
+# """
+#
+# --- Git Repo Pattern ---
+# For tools cloned as git repos:
+#
+# "My Project" = """
+#     if [ -d "$HOME/my-project" ]; then \
+#         cd "$HOME/my-project" && \
+#         if [ -z "$(git status --porcelain)" ]; then \
+#             git pull --ff-only && npm install && npm run build; \
+#         else \
+#             echo "my-project has local changes; skipping"; \
+#         fi; \
+#     fi
+# """
 
 
 [python]
