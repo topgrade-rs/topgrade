@@ -169,6 +169,7 @@ fn is_homebrew_ruby(gem: &Path) -> bool {
 }
 
 pub fn run_gem(ctx: &ExecutionContext) -> Result<()> {
+    #[allow(unused_mut)]
     let mut gem = require("gem")?;
     HOME_DIR.join(".gem").require()?;
 
@@ -198,6 +199,7 @@ pub fn run_gem(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
     HOME_DIR.join(".gem").require()?;
+    #[allow(unused_mut)]
     let mut gem = require("gem")?;
 
     #[cfg(target_os = "macos")]
