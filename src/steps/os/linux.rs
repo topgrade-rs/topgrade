@@ -555,7 +555,7 @@ fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
     let (kind, apt) = detect_apt()?;
 
     // MIST does not require `sudo`
-    if matches!(kind, Mist) {
+    if let Mist = kind {
         ctx.execute(&apt).arg("update").status_checked()?;
         ctx.execute(&apt).arg("upgrade").status_checked()?;
 
@@ -572,7 +572,7 @@ fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
     }
 
     let mut command = sudo.execute(ctx, &apt)?;
-    if matches!(kind, Nala) {
+    if let Nala = kind {
         command.arg("upgrade");
     } else {
         command.arg("dist-upgrade");
@@ -892,9 +892,9 @@ fn should_skip_needrestart() -> Result<()> {
         return Err(SkipStep(String::from(msg)).into());
     }
 
-    if matches!(distribution, Distribution::Debian) {
+    if let Distribution::Debian = distribution {
         let (apt_kind, _) = detect_apt()?;
-        if matches!(apt_kind, AptKind::Nala) {
+        if let AptKind::Nala = apt_kind {
             return Err(SkipStep(String::from(msg)).into());
         }
     }
@@ -1205,10 +1205,8 @@ pub fn run_protonplus_update(ctx: &ExecutionContext) -> Result<()> {
     let protonplus = require("protonplus")?;
 
     if let Err(e) = ctx.execute(&protonplus).args(["invalidarg67"]).output_checked()
-        && matches!(
-            e.downcast_ref(),
-            Some(TopgradeError::ProcessFailedWithOutput(_, _, stderr)) if stderr.contains("This application can not open files")
-        )
+        && let Some(TopgradeError::ProcessFailedWithOutput(_, _, stderr)) = e.downcast_ref()
+        && stderr.contains("This application can not open files")
     {
         return Err(SkipStep("Updates unsupported for ProtonPlus versions under v0.5.17".to_string()).into());
     }

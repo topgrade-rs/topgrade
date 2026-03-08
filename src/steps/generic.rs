@@ -652,7 +652,9 @@ pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
         .output_checked_utf8()
         .map(|s| s.stdout.trim().to_owned());
     let version = Version::parse(&version_str?);
-    if matches!(version, Ok(version) if version >= Version::new(1, 4, 0)) {
+    if let Ok(version) = version
+        && version >= Version::new(1, 4, 0)
+    {
         command_args.push("--quiet");
     }
 
