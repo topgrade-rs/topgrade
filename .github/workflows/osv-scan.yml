@@ -1,0 +1,66 @@
+name: OSV Scanner
+
+on:
+  pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "src/**"
+      - ".github/workflows/osv-scan.yml"
+  push:
+    branches: [main]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "src/**"
+      - ".github/workflows/osv-scan.yml"
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  osv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        # action pin via: git ls-remote https://github.com/actions/checkout refs/tags/v5.0.0 | head -1
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Prepare lockfile
+        # action pin via: git ls-remote https://github.com/dtolnay/rust-toolchain refs/heads/stable | head -1
+        uses: dtolnay/rust-toolchain@5d458579430fc14a04a08a1e7d3694f545e91ce6 # stable
+
+      - name: Fetch dependencies
+        run: cargo fetch --locked
+
+      - name: Run OSV-Scanner (Docker, pinned digest)
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          # Digest pinned via: docker pull ghcr.io/google/osv-scanner:latest && docker image inspect --format='{{index .RepoDigests 0}}' ghcr.io/google/osv-scanner:latest
+          docker run --rm \
+            -v "${{ github.workspace }}":/src \
+            -w /src \
+            ghcr.io/google/osv-scanner@sha256:f7ba4be68bac8086b1f88fd598fdca1ca67239c79ad2c2b5c78e03a82e5187c4 \
+            --config .github/osv-scanner-config.yaml \
+            --lockfile Cargo.lock \
+            --recursive \
+            --format sarif \
+            --output osv-results.sarif
+
+      - name: Upload SARIF
+        # action pin via: git ls-remote https://github.com/github/codeql-action refs/tags/codeql-bundle-v3.27.7 | head -1
+        uses: github/codeql-action/upload-sarif@5d5cd550d3e189c569da8f16ea8de2d821c9bf7a # v3
+        if: ${{ always() && hashFiles('osv-results.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        with:
+          sarif_file: osv-results.sarif
