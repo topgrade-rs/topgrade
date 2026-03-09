@@ -2007,3 +2007,11 @@ pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(falconf).arg("sync").status_checked()
 }
+
+pub fn run_colima(ctx: &ExecutionContext) -> Result<()> {
+    let colima = require("colima")?;
+
+    print_separator("Colima");
+
+    ctx.execute(colima).arg("update").status_checked()
+}

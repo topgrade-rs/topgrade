@@ -45,6 +45,7 @@ pub enum Step {
     CinnamonSpices,
     ClamAvDb,
     ClaudeCode,
+    Colima,
     Composer,
     Conda,
     ConfigUpdate,
@@ -281,6 +282,7 @@ impl Step {
             }
             ClamAvDb => runner.execute(*self, "ClamAV Databases", || generic::run_freshclam(ctx))?,
             ClaudeCode => runner.execute(*self, "Claude Code", || generic::run_claude_code(ctx))?,
+            Colima => runner.execute(*self, "Colima", || generic::run_colima(ctx))?,
             Composer => runner.execute(*self, "composer", || generic::run_composer_update(ctx))?,
             Conda => runner.execute(*self, "conda", || generic::run_conda_update(ctx))?,
             ConfigUpdate =>
@@ -884,6 +886,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         GitRepos,
         ClamAvDb,
         ClaudeCode,
+        Colima,
         PlatformioCore,
         Lensfun,
         Poetry,
