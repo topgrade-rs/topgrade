@@ -1176,14 +1176,46 @@ pub fn run_auto_cpufreq(ctx: &ExecutionContext) -> Result<()> {
     sudo.execute(ctx, &auto_cpu_freq)?.arg("--update").status_checked()
 }
 
+fn gearlever_has_pending_updates(output: &str) -> bool {
+    let trimmed = output.trim();
+
+    !trimmed.is_empty() && !trimmed.eq_ignore_ascii_case("No updates available")
+}
+
 pub fn run_gearlever(ctx: &ExecutionContext) -> Result<()> {
-    let (mut cmd, native) = match require("gearlever") {
-        Ok(p) => (ctx.execute(p), true),
-        Err(_) => (require_flatpak(ctx, "it.mijorus.gearlever")?, false),
-    };
+    let native = require("gearlever").is_ok();
+
+    if !native {
+        require_flatpak(ctx, "it.mijorus.gearlever")?;
+    }
 
     print_separator(if native { "Gear Lever" } else { "Gear Lever (Flatpak)" });
 
+    let mut list_updates = if native {
+        ctx.execute(require("gearlever")?).always()
+    } else {
+        let flatpak = require("flatpak")?;
+        let mut cmd = ctx.execute(&flatpak).always();
+        cmd.args(["run", "it.mijorus.gearlever"]);
+        cmd
+    };
+    list_updates.arg("--list-updates");
+
+    let list_updates = list_updates.output_checked_utf8()?;
+    let update_candidates = format!("{}\n{}", list_updates.stdout, list_updates.stderr);
+
+    if !gearlever_has_pending_updates(&update_candidates) {
+        return Err(SkipStep("No Gear Lever updates available".to_string()).into());
+    }
+
+    let mut cmd = if native {
+        ctx.execute(require("gearlever")?)
+    } else {
+        let flatpak = require("flatpak")?;
+        let mut cmd = ctx.execute(&flatpak);
+        cmd.args(["run", "it.mijorus.gearlever"]);
+        cmd
+    };
     cmd.args(["--update", "--all"]);
 
     if ctx.config().yes(Step::Gearlever) {
@@ -1282,6 +1314,22 @@ mod tests {
     #[test]
     fn test_oraclelinux() {
         test_template(include_str!("os_release/oracle"), Distribution::CentOS);
+    }
+
+    #[test]
+    fn test_gearlever_has_pending_updates_for_empty_output() {
+        assert!(!gearlever_has_pending_updates("   \n"));
+    }
+
+    #[test]
+    fn test_gearlever_has_pending_updates_for_no_updates_message() {
+        assert!(!gearlever_has_pending_updates("No updates available\n"));
+        assert!(!gearlever_has_pending_updates("no updates available\n"));
+    }
+
+    #[test]
+    fn test_gearlever_has_pending_updates_for_listed_updates() {
+        assert!(gearlever_has_pending_updates("Firefox\nLibreWolf\n"));
     }
 
     #[test]
