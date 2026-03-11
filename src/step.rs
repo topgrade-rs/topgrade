@@ -150,6 +150,7 @@ pub enum Step {
     SelfUpdate,
     Sheldon,
     Shell,
+    Skills,
     Snap,
     Sparkle,
     Spicetify,
@@ -600,6 +601,7 @@ impl Step {
                     runner.execute(*self, "fundle", || unix::run_fundle(ctx))?
                 }
             }
+            Skills => runner.execute(*self, "Skills", || generic::run_skills(ctx))?,
             Snap =>
             {
                 #[cfg(target_os = "linux")]
@@ -887,6 +889,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         ClamAvDb,
         ClaudeCode,
         Colima,
+        Skills,
         PlatformioCore,
         Lensfun,
         Poetry,

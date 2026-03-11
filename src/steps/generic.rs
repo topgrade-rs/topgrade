@@ -2015,3 +2015,16 @@ pub fn run_colima(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(colima).arg("update").status_checked()
 }
+
+pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
+    let npx = require("npx")?;
+
+    let skill_lock = HOME_DIR.join(".agents").join(".skill-lock.json");
+    if !skill_lock.exists() {
+        return Err(SkipStep("No ~/.agents/.skill-lock.json found".to_string()).into());
+    }
+
+    print_separator("Skills");
+
+    ctx.execute(npx).args(["skills", "update"]).status_checked()
+}
