@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use color_eyre::eyre::Result;
@@ -1177,13 +1178,39 @@ pub fn run_auto_cpufreq(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_gearlever(ctx: &ExecutionContext) -> Result<()> {
-    let (mut cmd, native) = match require("gearlever") {
-        Ok(p) => (ctx.execute(p), true),
-        Err(_) => (require_flatpak(ctx, "it.mijorus.gearlever")?, false),
-    };
+    let native = require("gearlever").is_ok();
+
+    if !native {
+        require_flatpak(ctx, "it.mijorus.gearlever")?;
+    }
 
     print_separator(if native { "Gear Lever" } else { "Gear Lever (Flatpak)" });
 
+    let mut list_updates = if native {
+        ctx.execute(require("gearlever")?).always()
+    } else {
+        let flatpak = require("flatpak")?;
+        let mut cmd = ctx.execute(&flatpak).always();
+        cmd.args(["run", "it.mijorus.gearlever"]);
+        cmd
+    };
+    list_updates.arg("--list-updates");
+
+    let list_output = list_updates.output_checked_utf8()?;
+    if list_output.stdout.trim() == "No updates available" {
+        std::io::stdout().write_all(list_output.stdout.as_bytes())?;
+        std::io::stderr().write_all(list_output.stderr.as_bytes())?;
+        return Ok(());
+    }
+
+    let mut cmd = if native {
+        ctx.execute(require("gearlever")?)
+    } else {
+        let flatpak = require("flatpak")?;
+        let mut cmd = ctx.execute(&flatpak);
+        cmd.args(["run", "it.mijorus.gearlever"]);
+        cmd
+    };
     cmd.args(["--update", "--all"]);
 
     if ctx.config().yes(Step::Gearlever) {
