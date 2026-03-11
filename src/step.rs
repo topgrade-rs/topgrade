@@ -519,7 +519,7 @@ impl Step {
             Protonplus =>
             {
                 #[cfg(target_os = "linux")]
-                runner.execute(*self, "protonplus", || linux::run_protonplus_update(ctx))?
+                runner.execute(*self, "ProtonPlus", || linux::run_protonplus_update(ctx))?
             }
             Protonup =>
             {
