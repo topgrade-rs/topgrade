@@ -1205,7 +1205,8 @@ pub fn run_gearlever(ctx: &ExecutionContext) -> Result<()> {
     let update_candidates = format!("{}\n{}", list_updates.stdout, list_updates.stderr);
 
     if !gearlever_has_pending_updates(&update_candidates) {
-        return Err(SkipStep("No Gear Lever updates available".to_string()).into());
+        println!("No updates available.");
+        return Ok(());
     }
 
     let mut cmd = if native {
