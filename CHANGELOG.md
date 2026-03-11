@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.1.0](https://github.com/topgrade-rs/topgrade/compare/v17.0.0...v17.1.0) - 2026-03-11
+
+### Added
+
+- *(step)* add skills for skills.sh ([#1843](https://github.com/topgrade-rs/topgrade/pull/1843))
+- *(step)* add Colima ([#1840](https://github.com/topgrade-rs/topgrade/pull/1840))
+
+### Fixed
+
+- *(gearlever)* skip update prompt when no updates exist ([#1844](https://github.com/topgrade-rs/topgrade/pull/1844))
+
 ## [17.0.0](https://github.com/topgrade-rs/topgrade/compare/v16.9.0...v17.0.0) - 2026-03-06
 
 ### Breaking changes
