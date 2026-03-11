@@ -1179,7 +1179,7 @@ pub fn run_auto_cpufreq(ctx: &ExecutionContext) -> Result<()> {
 fn gearlever_has_pending_updates(output: &str) -> bool {
     let trimmed = output.trim();
 
-    !trimmed.is_empty() && !trimmed.eq_ignore_ascii_case("No updates available")
+    !trimmed.is_empty() && trimmed != "No updates available" && trimmed != "No updates available."
 }
 
 pub fn run_gearlever(ctx: &ExecutionContext) -> Result<()> {
@@ -1202,7 +1202,11 @@ pub fn run_gearlever(ctx: &ExecutionContext) -> Result<()> {
     list_updates.arg("--list-updates");
 
     let list_updates = list_updates.output_checked_utf8()?;
-    let update_candidates = format!("{}\n{}", list_updates.stdout, list_updates.stderr);
+    let update_candidates = if list_updates.stdout.trim().is_empty() {
+        list_updates.stderr
+    } else {
+        list_updates.stdout
+    };
 
     if !gearlever_has_pending_updates(&update_candidates) {
         println!("No updates available.");
@@ -1315,22 +1319,6 @@ mod tests {
     #[test]
     fn test_oraclelinux() {
         test_template(include_str!("os_release/oracle"), Distribution::CentOS);
-    }
-
-    #[test]
-    fn test_gearlever_has_pending_updates_for_empty_output() {
-        assert!(!gearlever_has_pending_updates("   \n"));
-    }
-
-    #[test]
-    fn test_gearlever_has_pending_updates_for_no_updates_message() {
-        assert!(!gearlever_has_pending_updates("No updates available\n"));
-        assert!(!gearlever_has_pending_updates("no updates available\n"));
-    }
-
-    #[test]
-    fn test_gearlever_has_pending_updates_for_listed_updates() {
-        assert!(gearlever_has_pending_updates("Firefox\nLibreWolf\n"));
     }
 
     #[test]
@@ -1474,5 +1462,21 @@ mod tests {
         test_template(include_str!("os_release/origami"), Distribution::FedoraImmutable);
         test_template(include_str!("os_release/origami-nvidia"), Distribution::FedoraImmutable);
         test_template(include_str!("os_release/origami-test"), Distribution::FedoraImmutable);
+    }
+
+    #[test]
+    fn test_gearlever_has_pending_updates_for_empty_output() {
+        assert!(!gearlever_has_pending_updates("   \n"));
+    }
+
+    #[test]
+    fn test_gearlever_has_pending_updates_for_no_updates_message() {
+        assert!(!gearlever_has_pending_updates("No updates available\n"));
+        assert!(!gearlever_has_pending_updates("No updates available.\n"));
+    }
+
+    #[test]
+    fn test_gearlever_has_pending_updates_for_listed_updates() {
+        assert!(gearlever_has_pending_updates("Firefox\nLibreWolf\n"));
     }
 }
