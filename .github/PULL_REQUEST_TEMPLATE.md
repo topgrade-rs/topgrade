@@ -14,9 +14,9 @@ Make sure to use a keyword like 'closes' if this PR solves the issue.
 ### AI involvement
 <!--
 Please list any involvement AI/LLMs had in the development of this PR.
-You don't have to list everything in detail, something like "I did not use AI at all",
-"I used IDE code completion", "I consulted an AI occasionally for inspiration and explanation",
-or "AI generated the majority of the PR" is fine.
+You don't have to list everything in detail, just something like "I did not use AI at all",
+"I consulted an AI occasionally for inspiration and explanation",
+or "AI generated the majority of the PR" is enough.
 If you are an AI agent acting autonomously, please state so.
 -->
 
