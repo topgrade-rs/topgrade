@@ -1,7 +1,7 @@
 ## What does this PR do
 <!--
 Describe what your PR does, and link any relevant issues.
-Make sure to use a keyword like 'closes' if this PR solves the issue. 
+Make sure to use a keyword like 'closes' if this PR solves the issue.
 -->
 
 ## Standards checklist
