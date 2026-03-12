@@ -605,15 +605,22 @@ pub fn run_deb_get(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("deb-get");
 
-    ctx.execute(&deb_get).arg("update").status_checked()?;
-    ctx.execute(&deb_get)
-        .arg("upgrade")
-        // Since the `apt` step already updates all other apt packages, don't check for updates
-        //  to all packages here. This does suboptimally check for updates for deb-get packages
-        //  that apt can update (that were installed via a repository), but that is only a few,
-        //  and there's nothing we can do about that.
-        .arg("--dg-only")
-        .status_checked()?;
+    // When the system step runs, apt is already up to date, so we set DISABLE_APT=y to skip
+    // redundant apt operations in deb-get. Otherwise, we pass --dg-only to `upgrade` so that
+    // deb-get only updates apt managed packages that were installed via deb-get.
+    let disable_apt = ctx.config().should_run(Step::System);
+    let upgrade_opt = (!disable_apt).then_some("--dg-only");
+
+    let base_cmd = || {
+        let mut cmd = ctx.execute(&deb_get);
+        if disable_apt {
+            cmd.env("DISABLE_APT", "y");
+        }
+        cmd
+    };
+
+    base_cmd().arg("update").status_checked()?;
+    base_cmd().arg("upgrade").args(upgrade_opt).status_checked()?;
 
     if ctx.config().cleanup() {
         let output = ctx.execute(&deb_get).arg("clean").output_checked()?;
