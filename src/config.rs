@@ -328,6 +328,10 @@ pub struct Misc {
 
     pre_sudo: Option<bool>,
 
+    sudo_loop: Option<bool>,
+
+    sudo_loop_interval: Option<u16>,
+
     sudo_command: Option<SudoKind>,
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
@@ -870,6 +874,14 @@ pub struct CommandLineArgs {
     /// Suppress warning and confirmation prompt if running as root
     #[arg(long = "allow-root")]
     allow_root: bool,
+
+    /// Periodically run `sudo -v` to avoid password re-prompts during updates
+    #[arg(long = "sudoloop")]
+    sudo_loop: bool,
+
+    /// Interval in seconds between `sudo -v` invocations when --sudoloop is active (default: 240)
+    #[arg(long = "sudoloop-interval", value_name = "SECONDS")]
+    sudo_loop_interval: Option<u16>,
 
     /// Tracing filter directives.
     ///
@@ -1795,6 +1807,25 @@ impl Config {
             .as_ref()
             .and_then(|misc| misc.pre_sudo)
             .unwrap_or(false)
+    }
+
+    /// If `true`, periodically run `sudo -v` to keep credentials alive during the run
+    pub fn sudo_loop(&self) -> bool {
+        self.opt.sudo_loop
+            || self
+                .config_file
+                .misc
+                .as_ref()
+                .and_then(|misc| misc.sudo_loop)
+                .unwrap_or(false)
+    }
+
+    /// Interval in seconds between `sudo -v` invocations when sudo_loop is active
+    pub fn sudo_loop_interval(&self) -> u16 {
+        self.opt
+            .sudo_loop_interval
+            .or_else(|| self.config_file.misc.as_ref().and_then(|misc| misc.sudo_loop_interval))
+            .unwrap_or(240)
     }
 
     pub fn show_distribution_summary(&self) -> bool {
