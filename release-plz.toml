@@ -1,3 +1,6 @@
+[workspace]
+git_release_draft = true
+
 [changelog]
 body = """
 

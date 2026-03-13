@@ -375,12 +375,27 @@ jobs:
         with:
           subject-path: assets/*
 
+  publish:
+    runs-on: ubuntu-latest
+    needs: [ native_build, cross_build, openbsd_build ]
+    # Make sure we still publish if one fails (notably openbsd_build, which is not tested in CI).
+    #  Unfortunately because of immutable releases, aur and winget have to wait for openbsd_build
+    #  as well, even though they don't use it.
+    if: always()
+    env:
+      tag: ${{ github.event.client_payload.tag }}
+    permissions:
+      contents: write # `gh release edit`
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - name: Publish release
+        run: gh release edit "$tag" --draft=false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   triggers:
     runs-on: ubuntu-latest
-    # Don't wait for openbsd_build, because the workflows receiving this trigger (aur, winget)
-    #  don't use the openbsd binary, and because we don't want to fail the whole pipeline
-    #  when openbsd (which is not tested in CI) fails.
-    needs: [ native_build, cross_build ]
+    needs: [ publish ]
     env:
       tag: ${{ github.event.client_payload.tag }}
     steps:
