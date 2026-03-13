@@ -172,6 +172,7 @@ pub enum Step {
     Vscodium,
     VscodiumInsiders,
     Waydroid,
+    Windsurf,
     Winget,
     Wsl,
     WslUpdate,
@@ -681,6 +682,9 @@ impl Step {
             VscodeInsiders => runner.execute(*self, "Visual Studio Code Insiders extensions", || {
                 generic::run_vscode_insiders_extensions_update(ctx)
             })?,
+            Windsurf => runner.execute(*self, "Windsurf extensions", || {
+                generic::run_windsurf_extensions_update(ctx)
+            })?,
             Vscodium => runner.execute(*self, "VSCodium extensions", || {
                 generic::run_vscodium_extensions_update(ctx)
             })?,
@@ -842,6 +846,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         VscodeInsiders,
         Vscodium,
         VscodiumInsiders,
+        Windsurf,
         Conda,
         Mamba,
         Pixi,
