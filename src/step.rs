@@ -682,9 +682,6 @@ impl Step {
             VscodeInsiders => runner.execute(*self, "Visual Studio Code Insiders extensions", || {
                 generic::run_vscode_insiders_extensions_update(ctx)
             })?,
-            Windsurf => runner.execute(*self, "Windsurf extensions", || {
-                generic::run_windsurf_extensions_update(ctx)
-            })?,
             Vscodium => runner.execute(*self, "VSCodium extensions", || {
                 generic::run_vscodium_extensions_update(ctx)
             })?,
@@ -695,7 +692,10 @@ impl Step {
             {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "Waydroid", || linux::run_waydroid(ctx))?
-            }
+            },
+            Windsurf => runner.execute(*self, "Windsurf extensions", || {
+                generic::run_windsurf_extensions_update(ctx)
+            })?,
             Winget =>
             {
                 #[cfg(windows)]
