@@ -692,7 +692,7 @@ impl Step {
             {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "Waydroid", || linux::run_waydroid(ctx))?
-            },
+            }
             Windsurf => runner.execute(*self, "Windsurf extensions", || {
                 generic::run_windsurf_extensions_update(ctx)
             })?,
