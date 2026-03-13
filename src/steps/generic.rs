@@ -481,6 +481,7 @@ enum VSCodeVariant {
     Codium,
     CodiumInsiders,
     Cursor,
+    Windsurf,
 }
 
 impl VSCodeVariant {
@@ -492,6 +493,7 @@ impl VSCodeVariant {
             VSCodeVariant::Codium => "VSCodium",
             VSCodeVariant::CodiumInsiders => "VSCodium Insiders",
             VSCodeVariant::Cursor => "Cursor",
+            VSCodeVariant::Windsurf => "Windsurf",
         }
     }
 
@@ -503,6 +505,7 @@ impl VSCodeVariant {
             VSCodeVariant::Codium => "codium",
             VSCodeVariant::CodiumInsiders => "codium-insiders",
             VSCodeVariant::Cursor => "cursor",
+            VSCodeVariant::Windsurf => "windsurf",
         }
     }
 
@@ -514,6 +517,7 @@ impl VSCodeVariant {
             VSCodeVariant::Codium => "VSCodium extensions",
             VSCodeVariant::CodiumInsiders => "VSCodium Insiders extensions",
             VSCodeVariant::Cursor => "Cursor extensions",
+            VSCodeVariant::Windsurf => "Windsurf extensions",
         }
     }
 
@@ -522,7 +526,7 @@ impl VSCodeVariant {
             VSCodeVariant::Antigravity | VSCodeVariant::Code | VSCodeVariant::CodeInsiders | VSCodeVariant::Cursor => {
                 true
             }
-            VSCodeVariant::Codium | VSCodeVariant::CodiumInsiders => false,
+            VSCodeVariant::Codium | VSCodeVariant::CodiumInsiders | VSCodeVariant::Windsurf => false,
         }
     }
 }
@@ -631,6 +635,10 @@ pub fn run_vscodium_insiders_extensions_update(ctx: &ExecutionContext) -> Result
 
 pub fn run_cursor_extensions_update(ctx: &ExecutionContext) -> Result<()> {
     run_vscode_compatible(VSCodeVariant::Cursor, ctx)
+}
+
+pub fn run_windsurf_extensions_update(ctx: &ExecutionContext) -> Result<()> {
+    run_vscode_compatible(VSCodeVariant::Windsurf, ctx)
 }
 
 pub fn run_antigravity_extensions_update(ctx: &ExecutionContext) -> Result<()> {

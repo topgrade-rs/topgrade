@@ -172,6 +172,7 @@ pub enum Step {
     Vscodium,
     VscodiumInsiders,
     Waydroid,
+    Windsurf,
     Winget,
     Wsl,
     WslUpdate,
@@ -692,6 +693,9 @@ impl Step {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "Waydroid", || linux::run_waydroid(ctx))?
             }
+            Windsurf => runner.execute(*self, "Windsurf extensions", || {
+                generic::run_windsurf_extensions_update(ctx)
+            })?,
             Winget =>
             {
                 #[cfg(windows)]
@@ -842,6 +846,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         VscodeInsiders,
         Vscodium,
         VscodiumInsiders,
+        Windsurf,
         Conda,
         Mamba,
         Pixi,
