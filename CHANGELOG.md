@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.2.0](https://github.com/topgrade-rs/topgrade/compare/v17.1.0...v17.2.0) - 2026-03-15
+
+### Added
+
+- *(step)* add windsurf ([#1859](https://github.com/topgrade-rs/topgrade/pull/1859))
+
+### Fixed
+
+- *(deb-get)* skip redundant apt operations ([#1855](https://github.com/topgrade-rs/topgrade/pull/1855))
+- *(protonplus)* fix display name capitalization ([#1846](https://github.com/topgrade-rs/topgrade/pull/1846))
+
 ## [17.1.0](https://github.com/topgrade-rs/topgrade/compare/v17.0.0...v17.1.0) - 2026-03-11
 
 ### Added
