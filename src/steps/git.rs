@@ -4,10 +4,10 @@ use std::path::{Path, PathBuf};
 use std::process::{Output, Stdio};
 
 use color_eyre::eyre::Context;
-use color_eyre::eyre::{eyre, Result};
+use color_eyre::eyre::{Result, eyre};
 use console::style;
-use futures::stream::{iter, FuturesUnordered, StreamExt};
-use glob::{glob_with, MatchOptions};
+use futures::stream::{FuturesUnordered, StreamExt, iter};
+use glob::{MatchOptions, glob_with};
 use tokio::process::Command as AsyncCommand;
 use tokio::runtime;
 use tracing::{debug, error};
@@ -17,8 +17,8 @@ use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::steps::emacs::Emacs;
 use crate::terminal::print_separator;
-use crate::utils::{require, PathExt};
-use crate::{error::SkipStep, terminal::print_warning, HOME_DIR};
+use crate::utils::{PathExt, require};
+use crate::{HOME_DIR, error::SkipStep, terminal::print_warning};
 use etcetera::base_strategy::BaseStrategy;
 use rust_i18n::t;
 
@@ -38,10 +38,10 @@ pub fn run_git_pull_or_fetch(ctx: &ExecutionContext) -> Result<()> {
         {
             if config.should_run(Step::Emacs) {
                 let emacs = Emacs::new();
-                if !emacs.is_doom() {
-                    if let Some(directory) = emacs.directory() {
-                        repos.insert_if_repo(ctx, directory);
-                    }
+                if !emacs.is_doom()
+                    && let Some(directory) = emacs.directory()
+                {
+                    repos.insert_if_repo(ctx, directory);
                 }
                 repos.insert_if_repo(ctx, HOME_DIR.join(".doom.d"));
             }
@@ -58,10 +58,10 @@ pub fn run_git_pull_or_fetch(ctx: &ExecutionContext) -> Result<()> {
                 repos.insert_if_repo(ctx, HOME_DIR.join(".dotfiles"));
             }
 
-            if let Some(powershell) = ctx.powershell() {
-                if let Some(profile) = powershell.profile() {
-                    repos.insert_if_repo(ctx, profile);
-                }
+            if let Some(powershell) = ctx.powershell()
+                && let Some(profile) = powershell.profile()
+            {
+                repos.insert_if_repo(ctx, profile);
             }
         }
 
@@ -274,15 +274,15 @@ impl RepoStep {
             for entry in glob {
                 match entry {
                     Ok(path) => {
-                        if let Some(last_git_repo) = &last_git_repo {
-                            if path.is_descendant_of(last_git_repo) {
-                                debug!(
-                                    "Skipping {} because it's a descendant of last known repo {}",
-                                    path.display(),
-                                    last_git_repo.display()
-                                );
-                                continue;
-                            }
+                        if let Some(last_git_repo) = &last_git_repo
+                            && path.is_descendant_of(last_git_repo)
+                        {
+                            debug!(
+                                "Skipping {} because it's a descendant of last known repo {}",
+                                path.display(),
+                                last_git_repo.display()
+                            );
+                            continue;
                         }
                         if self.insert_if_repo(ctx, &path) {
                             last_git_repo = Some(path);

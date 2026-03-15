@@ -1,12 +1,12 @@
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use color_eyre::eyre::{eyre, OptionExt};
+use color_eyre::eyre::{OptionExt, eyre};
 use etcetera::BaseStrategy;
-use home;
 use ini::Ini;
 use regex::Regex;
 use rust_i18n::t;
 use semver::Version;
+use std::env::home_dir;
 use std::ffi::OsStr;
 use std::io::Write;
 use std::os::unix::fs::MetadataExt;
@@ -17,12 +17,12 @@ use std::{env::var, path::Path};
 use std::{fs, io};
 use tracing::{debug, warn};
 
+use crate::XDG_DIRS;
 use crate::command::CommandExt;
 use crate::config::NixHandler;
 use crate::sudo::SudoExecuteOpts;
 use crate::utils::require_one;
-use crate::XDG_DIRS;
-use crate::{output_changed_message, HOME_DIR};
+use crate::{HOME_DIR, output_changed_message};
 
 #[cfg(target_os = "linux")]
 use super::linux::Distribution;
@@ -32,7 +32,7 @@ use crate::execution_context::ExecutionContext;
 use crate::executor::Executor;
 use crate::step::Step;
 use crate::terminal::print_separator;
-use crate::utils::{require, PathExt};
+use crate::utils::{PathExt, require};
 
 #[cfg(target_os = "linux")]
 fn brew_linux_sudo_uid() -> Option<u32> {
@@ -555,8 +555,8 @@ impl NixVersion {
 
 pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     let nix = require("nix")?;
-    // TODO: Is None possible here?
-    let profile_path = match home::home_dir() {
+    // TODO: Is None possible here? Should we use HOME_DIR instead?
+    let profile_path = match home_dir() {
         Some(home) => XDG_DIRS
             .state_dir()
             .map(|d| d.join("nix/profile"))

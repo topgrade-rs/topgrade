@@ -1,14 +1,14 @@
 #![allow(clippy::cognitive_complexity)]
 
 use std::env;
+use std::env::home_dir;
 use std::io;
 use std::path::PathBuf;
 use std::process::exit;
 use std::time::Duration;
 
-use crate::breaking_changes::{first_run_of_major_release, print_breaking_changes, should_skip, write_keep_file};
 use clap::CommandFactory;
-use clap::{crate_version, Parser};
+use clap::{Parser, crate_version};
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use console::Key;
@@ -50,7 +50,7 @@ mod terminal;
 mod tmux;
 mod utils;
 
-pub(crate) static HOME_DIR: LazyLock<PathBuf> = LazyLock::new(|| home::home_dir().expect("No home directory"));
+pub(crate) static HOME_DIR: LazyLock<PathBuf> = LazyLock::new(|| home_dir().expect("No home directory"));
 #[cfg(unix)]
 pub(crate) static XDG_DIRS: LazyLock<Xdg> = LazyLock::new(|| Xdg::new().expect("No home directory"));
 
@@ -97,7 +97,7 @@ fn run() -> Result<()> {
     }
 
     for (key, value) in opt.env_variables() {
-        env::set_var(key, value);
+        unsafe { env::set_var(key, value) };
     }
 
     if opt.edit_config() {
@@ -169,20 +169,8 @@ fn run() -> Result<()> {
     );
     let mut runner = runner::Runner::new(&ctx);
 
-    // If
-    //
-    // 1. the breaking changes notification shouldn't be skipped
-    // 2. this is the first execution of a major release
-    //
-    // inform user of breaking changes
-    if !should_skip() && first_run_of_major_release()? {
-        print_breaking_changes();
-
-        if prompt_yesno(&t!("Continue?"))? {
-            write_keep_file()?;
-        } else {
-            exit(1);
-        }
+    if !breaking_changes::should_skip() {
+        breaking_changes::run()?;
     }
 
     step::Step::SelfUpdate.run(&mut runner, &ctx)?;
@@ -194,10 +182,10 @@ fn run() -> Result<()> {
         None
     };
 
-    if config.pre_sudo() {
-        if let Some(sudo) = ctx.sudo() {
-            sudo.elevate(&ctx)?;
-        }
+    if config.pre_sudo()
+        && let Some(sudo) = ctx.sudo()
+    {
+        sudo.elevate(&ctx)?;
     }
 
     if let Some(commands) = config.pre_commands() {
@@ -274,10 +262,10 @@ fn run() -> Result<()> {
     }
 
     #[cfg(target_os = "linux")]
-    if config.show_distribution_summary() {
-        if let Ok(distribution) = &distribution {
-            distribution.show_summary();
-        }
+    if config.show_distribution_summary()
+        && let Ok(distribution) = &distribution
+    {
+        distribution.show_summary();
     }
 
     if let Some(commands) = config.post_commands() {
@@ -326,11 +314,7 @@ fn run() -> Result<()> {
         );
     }
 
-    if failed {
-        Err(StepFailed.into())
-    } else {
-        Ok(())
-    }
+    if failed { Err(StepFailed.into()) } else { Ok(()) }
 }
 
 fn main() {

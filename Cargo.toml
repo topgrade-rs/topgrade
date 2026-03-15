@@ -5,55 +5,52 @@ categories = ["command-line-utilities"]
 keywords = ["upgrade", "update"]
 license = "GPL-3.0-or-later"
 repository = "https://github.com/topgrade-rs/topgrade"
-rust-version = "1.84.1"
-version = "16.9.0"
+rust-version = "1.88.0"
+version = "17.1.0"
 exclude = ["doc/screenshot.gif", "BREAKINGCHANGES_dev.md"]
-edition = "2021"
+edition = "2024"
 
 readme = "README.md"
 
 [dependencies]
-home = "=0.5.11"
-etcetera = "=0.10.0"
-serde = { version = "~1.0", features = ["derive"] }
-toml = { version = "~1.0.0", features = ["preserve_order"] }
-which_crate = { version = "~8.0", package = "which" }
-shellexpand = "~3.1"
-clap = { version = "~4.5", features = ["cargo", "derive"] }
-clap_complete = "~4.5"
-clap_mangen = "~0.2"
-walkdir = "~2.5"
-console = "~0.16"
-chrono = "~0.4"
-glob = "~0.3"
-strum = { version = "~0.28.0", features = ["derive"] }
-thiserror = "~2.0"
-tempfile = "~3.24.0"
-tokio = { version = "~1.49.0", features = ["process", "rt-multi-thread"] }
-futures = "~0.3"
-regex = "~1.12"
-semver = "~1.0"
-shell-words = "~1.1"
-color-eyre = "~0.6"
-tracing = { version = "~0.1", features = ["attributes", "log"] }
-tracing-subscriber = { version = "~0.3.20", features = ["env-filter", "time"] }
-merge = "~0.1"
-regex-split = "~0.1"
-notify-rust = "~4.12.0"
+etcetera = "0.11.0"
+serde = { version = "1.0", features = ["derive"] }
+toml = { version = "1.0.0", features = ["preserve_order"] }
+which_crate = { version = "8.0", package = "which" }
+shellexpand = "3.1"
+clap = { version = "4.5", features = ["cargo", "derive"] }
+clap_complete = "4.5"
+clap_mangen = "0.2"
+walkdir = "2.5"
+console = "0.16"
+chrono = "0.4"
+glob = "0.3"
+strum = { version = "0.28.0", features = ["derive"] }
+thiserror = "2.0"
+tempfile = "3.24.0"
+tokio = { version = "1.49.0", features = ["process", "rt-multi-thread"] }
+futures = "0.3"
+regex = "1.12"
+semver = "1.0"
+shell-words = "1.1"
+color-eyre = "0.6"
+tracing = { version = "0.1", features = ["attributes", "log"] }
+tracing-subscriber = { version = "0.3.20", features = ["env-filter", "time"] }
+merge = "0.1"
+regex-split = "0.1"
+notify-rust = "4.12.0"
 wildmatch = "2.3.0"
 rust-i18n = "3.0.1"
 sys-locale = "0.3.1"
-jetbrains-toolbox-updater = "5.0.0"
+jetbrains-toolbox-updater = "6.0.0"
 indexmap = { version = "2.9.0", features = ["serde"] }
 serde_json = "1.0.145"
 itertools = "0.14.0"
-# Temporary transitive dependency pins
-ignore = "=0.4.23"
-globset = "=0.4.16"
-base64ct = "<1.8.0"
-async-lock = "=3.4.1"
-clap-cargo = "0.15.2"
+clap-cargo = "0.18.0"
 edit = "0.1.5"
+
+[build-dependencies]
+parse-changelog = { version = "0.6.15", default-features = false }
 
 [package.metadata.generate-rpm]
 assets = [{ source = "target/release/topgrade", dest = "/usr/bin/topgrade" }]
@@ -81,16 +78,16 @@ assets = [
 ]
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "~0.30", features = ["hostname", "signal", "user"] }
-rust-ini = "~0.21"
-self_update_crate = { version = "~0.42", default-features = false, optional = true, package = "self_update", features = ["archive-tar", "compression-flate2", "rustls"] }
+nix = { version = "0.31", features = ["hostname", "signal", "user"] }
+rust-ini = "0.21"
+self_update_crate = { version = "0.43", default-features = false, optional = true, package = "self_update", features = ["archive-tar", "compression-flate2", "rustls", "reqwest"] }
 
 [target.'cfg(windows)'.dependencies]
-is_elevated = "~0.1"
-parselnk = "~0.1"
-self_update_crate = { version = "~0.42", default-features = false, optional = true, package = "self_update", features = ["archive-zip", "compression-zip-deflate", "rustls"] }
-windows = { version = "~0.62", features = ["Win32_System_Console"] }
-windows-registry = "~0.6"
+is_elevated = "0.1"
+parselnk = "0.1"
+self_update_crate = { version = "0.43", default-features = false, optional = true, package = "self_update", features = ["archive-zip", "compression-zip-deflate", "rustls", "reqwest"] }
+windows = { version = "0.62", features = ["Win32_System_Console"] }
+windows-registry = "0.6"
 
 [profile.release]
 lto = true

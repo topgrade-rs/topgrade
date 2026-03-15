@@ -9,13 +9,14 @@ use tracing::{debug, error};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::reload::{Handle, Layer};
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{fmt, Registry};
-use tracing_subscriber::{registry, EnvFilter};
+use tracing_subscriber::{EnvFilter, registry};
+use tracing_subscriber::{Registry, fmt};
 
 use crate::command::CommandExt;
 use crate::config::DEFAULT_LOG_LEVEL;
 use crate::error::SkipStep;
 use crate::execution_context::ExecutionContext;
+use crate::executor::Executor;
 
 pub trait PathExt
 where
@@ -100,6 +101,23 @@ pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
                 panic!("Detecting {:?} failed: {}", &binary_name, e);
             }
         },
+    }
+}
+
+#[allow(unused)]
+pub fn require_flatpak(ctx: &ExecutionContext, name: &str) -> Result<Executor> {
+    let flatpak = require("flatpak")?;
+
+    let result = ctx.execute(&flatpak).always().args(["info", name]).output_checked();
+
+    match result {
+        Ok(_) => {
+            debug!("Flatpak {name:?} is installed");
+            let mut cmd = ctx.execute(&flatpak);
+            cmd.args(["run", name]);
+            Ok(cmd)
+        }
+        _ => Err(SkipStep(t!("Flatpak {name} is not installed", name = name).to_string()).into()),
     }
 }
 
@@ -207,7 +225,7 @@ pub mod merge_strategies {
     where
         T: Merge,
     {
-        if let Some(ref mut left_inner) = left {
+        if let Some(left_inner) = left {
             if let Some(right_inner) = right {
                 left_inner.merge(right_inner);
             }
@@ -217,7 +235,7 @@ pub mod merge_strategies {
     }
 
     pub fn commands_merge_opt(left: &mut Option<Commands>, right: Option<Commands>) {
-        if let Some(ref mut left_inner) = left {
+        if let Some(left_inner) = left {
             if let Some(right_inner) = right {
                 left_inner.extend(right_inner);
             }

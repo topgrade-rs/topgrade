@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::fs::{write, File};
+use std::fs::{File, write};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::{env, fmt, fs};
@@ -20,7 +20,7 @@ use strum::IntoEnumIterator;
 use tracing::{debug, error};
 
 use crate::execution_context::RunType;
-use crate::step::{Step, DEPRECATED_STEPS};
+use crate::step::{DEPRECATED_STEPS, Step};
 use crate::sudo::SudoKind;
 use crate::terminal::print_warning;
 use crate::utils::string_prepend_str;
@@ -1062,10 +1062,10 @@ impl Config {
         enabled_steps.extend(&opt.only);
 
         // Plus any steps in the config file's `misc.only`
-        if let Some(misc) = config_file.misc.as_ref() {
-            if let Some(only) = misc.only.as_ref() {
-                enabled_steps.extend(only);
-            }
+        if let Some(misc) = config_file.misc.as_ref()
+            && let Some(only) = misc.only.as_ref()
+        {
+            enabled_steps.extend(only);
         }
 
         let step_is_deprecated = |x| DEPRECATED_STEPS.contains(&x);
@@ -1081,10 +1081,10 @@ impl Config {
 
         let mut disabled_steps: Vec<Step> = Vec::new();
         disabled_steps.extend(&opt.disable);
-        if let Some(misc) = config_file.misc.as_ref() {
-            if let Some(disabled) = misc.disable.as_ref() {
-                disabled_steps.extend(disabled);
-            }
+        if let Some(misc) = config_file.misc.as_ref()
+            && let Some(disabled) = misc.disable.as_ref()
+        {
+            disabled_steps.extend(disabled);
         }
 
         // When a deprecated step is mentioned,
@@ -1853,10 +1853,10 @@ impl Config {
     pub fn should_execute_remote(&self, hostname: Result<String>, remote: &str) -> bool {
         let remote_host = remote.split_once('@').map_or(remote, |(_, host)| host);
 
-        if let Ok(hostname) = hostname {
-            if remote_host == hostname {
-                return false;
-            }
+        if let Ok(hostname) = hostname
+            && remote_host == hostname
+        {
+            return false;
         }
 
         if let Some(limit) = &self.opt.remote_host_limit.as_ref() {

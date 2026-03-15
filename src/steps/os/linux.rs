@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use color_eyre::eyre::Result;
@@ -5,6 +6,7 @@ use ini::Ini;
 use rust_i18n::t;
 use tracing::{debug, warn};
 
+use crate::HOME_DIR;
 use crate::command::CommandExt;
 use crate::config::NixHandler;
 use crate::error::{SkipStep, TopgradeError};
@@ -12,11 +14,10 @@ use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::steps::generic::is_wsl;
 use crate::steps::os::archlinux;
-use crate::steps::unix::{can_nh_switch, nh_switch, NhSwitchArgs};
+use crate::steps::unix::{NhSwitchArgs, can_nh_switch, nh_switch};
 use crate::sudo::SudoExecuteOpts;
 use crate::terminal::{print_separator, prompt_yesno};
-use crate::utils::{require, require_one, which, PathExt};
-use crate::HOME_DIR;
+use crate::utils::{PathExt, require, require_flatpak, require_one, which};
 
 static OS_RELEASE_PATH: &str = "/etc/os-release";
 
@@ -46,6 +47,7 @@ pub enum Distribution {
     Solus,
     Exherbo,
     NixOS,
+    KDELinux,
     KDENeon,
     Nobara,
 }
@@ -76,16 +78,17 @@ impl Distribution {
             Some("exherbo") => Distribution::Exherbo,
             Some("nixos") => Distribution::NixOS,
             Some("opensuse-microos") => Distribution::SuseMicro,
+            Some("kde-linux") => Distribution::KDELinux,
             Some("neon") => Distribution::KDENeon,
             Some("openmandriva") => Distribution::OpenMandriva,
             Some("pclinuxos") => Distribution::PCLinuxOS,
             Some(id) if id.starts_with("origami") => Distribution::FedoraImmutable,
 
             _ => {
-                if let Some(name) = name {
-                    if name.contains("Vanilla") {
-                        return Ok(Distribution::Vanilla);
-                    }
+                if let Some(name) = name
+                    && name.contains("Vanilla")
+                {
+                    return Ok(Distribution::Vanilla);
                 }
                 if let Some(id_like) = id_like {
                     if id_like.contains(&"debian") || id_like.contains(&"ubuntu") {
@@ -160,6 +163,7 @@ impl Distribution {
             Distribution::Solus => upgrade_solus(ctx),
             Distribution::Exherbo => upgrade_exherbo(ctx),
             Distribution::NixOS => upgrade_nixos(ctx),
+            Distribution::KDELinux => upgrade_kde_linux(ctx),
             Distribution::KDENeon => upgrade_neon(ctx),
             Distribution::Bedrock => update_bedrock(ctx),
             Distribution::OpenMandriva => upgrade_openmandriva(ctx),
@@ -242,19 +246,19 @@ fn upgrade_wolfi_linux(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
-    if let Some(bootc) = which("bootc") {
-        if ctx.config().bootc() {
-            let sudo = ctx.require_sudo()?;
-            return sudo.execute(ctx, &bootc)?.arg("upgrade").status_checked();
-        }
+    if let Some(bootc) = which("bootc")
+        && ctx.config().bootc()
+    {
+        let sudo = ctx.require_sudo()?;
+        return sudo.execute(ctx, &bootc)?.arg("upgrade").status_checked();
     }
 
-    if let Some(ostree) = which("rpm-ostree") {
-        if ctx.config().rpm_ostree() {
-            let mut command = ctx.execute(ostree);
-            command.arg("upgrade");
-            return command.status_checked();
-        }
+    if let Some(ostree) = which("rpm-ostree")
+        && ctx.config().rpm_ostree()
+    {
+        let mut command = ctx.execute(ostree);
+        command.arg("upgrade");
+        return command.status_checked();
     };
 
     let dnf = require_one(["dnf", "yum"])?;
@@ -320,11 +324,11 @@ fn upgrade_nilrt(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_fedora_immutable(ctx: &ExecutionContext) -> Result<()> {
-    if let Some(bootc) = which("bootc") {
-        if ctx.config().bootc() {
-            let sudo = ctx.require_sudo()?;
-            return sudo.execute(ctx, &bootc)?.arg("upgrade").status_checked();
-        }
+    if let Some(bootc) = which("bootc")
+        && ctx.config().bootc()
+    {
+        let sudo = ctx.require_sudo()?;
+        return sudo.execute(ctx, &bootc)?.arg("upgrade").status_checked();
     }
 
     let ostree = require("rpm-ostree")?;
@@ -552,7 +556,7 @@ fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
     let (kind, apt) = detect_apt()?;
 
     // MIST does not require `sudo`
-    if matches!(kind, Mist) {
+    if let Mist = kind {
         ctx.execute(&apt).arg("update").status_checked()?;
         ctx.execute(&apt).arg("upgrade").status_checked()?;
 
@@ -569,7 +573,7 @@ fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
     }
 
     let mut command = sudo.execute(ctx, &apt)?;
-    if matches!(kind, Nala) {
+    if let Nala = kind {
         command.arg("upgrade");
     } else {
         command.arg("dist-upgrade");
@@ -601,15 +605,22 @@ pub fn run_deb_get(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("deb-get");
 
-    ctx.execute(&deb_get).arg("update").status_checked()?;
-    ctx.execute(&deb_get)
-        .arg("upgrade")
-        // Since the `apt` step already updates all other apt packages, don't check for updates
-        //  to all packages here. This does suboptimally check for updates for deb-get packages
-        //  that apt can update (that were installed via a repository), but that is only a few,
-        //  and there's nothing we can do about that.
-        .arg("--dg-only")
-        .status_checked()?;
+    // When the system step runs, apt is already up to date, so we set DISABLE_APT=y to skip
+    // redundant apt operations in deb-get. Otherwise, we pass --dg-only to `upgrade` so that
+    // deb-get only updates apt managed packages that were installed via deb-get.
+    let disable_apt = ctx.config().should_run(Step::System);
+    let upgrade_opt = (!disable_apt).then_some("--dg-only");
+
+    let base_cmd = || {
+        let mut cmd = ctx.execute(&deb_get);
+        if disable_apt {
+            cmd.env("DISABLE_APT", "y");
+        }
+        cmd
+    };
+
+    base_cmd().arg("update").status_checked()?;
+    base_cmd().arg("upgrade").args(upgrade_opt).status_checked()?;
 
     if ctx.config().cleanup() {
         let output = ctx.execute(&deb_get).arg("clean").output_checked()?;
@@ -867,6 +878,15 @@ fn upgrade_neon(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+fn upgrade_kde_linux(ctx: &ExecutionContext) -> Result<()> {
+    let updatectl = require("updatectl")?;
+    let mut command = ctx.execute(updatectl);
+    command.arg("update");
+    command.status_checked()?;
+
+    Ok(())
+}
+
 /// `needrestart` should be skipped if:
 ///
 /// 1. This is a redhat-based distribution
@@ -880,9 +900,9 @@ fn should_skip_needrestart() -> Result<()> {
         return Err(SkipStep(String::from(msg)).into());
     }
 
-    if matches!(distribution, Distribution::Debian) {
+    if let Distribution::Debian = distribution {
         let (apt_kind, _) = detect_apt()?;
-        if matches!(apt_kind, AptKind::Nala) {
+        if let AptKind::Nala = apt_kind {
             return Err(SkipStep(String::from(msg)).into());
         }
     }
@@ -1164,12 +1184,70 @@ pub fn run_auto_cpufreq(ctx: &ExecutionContext) -> Result<()> {
     sudo.execute(ctx, &auto_cpu_freq)?.arg("--update").status_checked()
 }
 
+pub fn run_gearlever(ctx: &ExecutionContext) -> Result<()> {
+    let native = require("gearlever").is_ok();
+
+    if !native {
+        require_flatpak(ctx, "it.mijorus.gearlever")?;
+    }
+
+    print_separator(if native { "Gear Lever" } else { "Gear Lever (Flatpak)" });
+
+    let mut list_updates = if native {
+        ctx.execute(require("gearlever")?).always()
+    } else {
+        let flatpak = require("flatpak")?;
+        let mut cmd = ctx.execute(&flatpak).always();
+        cmd.args(["run", "it.mijorus.gearlever"]);
+        cmd
+    };
+    list_updates.arg("--list-updates");
+
+    let list_output = list_updates.output_checked_utf8()?;
+    if list_output.stdout.trim() == "No updates available" {
+        std::io::stdout().write_all(list_output.stdout.as_bytes())?;
+        std::io::stderr().write_all(list_output.stderr.as_bytes())?;
+        return Ok(());
+    }
+
+    let mut cmd = if native {
+        ctx.execute(require("gearlever")?)
+    } else {
+        let flatpak = require("flatpak")?;
+        let mut cmd = ctx.execute(&flatpak);
+        cmd.args(["run", "it.mijorus.gearlever"]);
+        cmd
+    };
+    cmd.args(["--update", "--all"]);
+
+    if ctx.config().yes(Step::Gearlever) {
+        cmd.arg("--yes");
+    }
+
+    cmd.status_checked()
+}
+
 pub fn run_cinnamon_spices_updater(ctx: &ExecutionContext) -> Result<()> {
     let cinnamon_spice_updater = require("cinnamon-spice-updater")?;
 
     print_separator("Cinnamon spices");
 
     ctx.execute(cinnamon_spice_updater).arg("--update-all").status_checked()
+}
+
+pub fn run_protonplus_update(ctx: &ExecutionContext) -> Result<()> {
+    let protonplus = require("protonplus")?;
+
+    if let Err(e) = ctx.execute(&protonplus).args(["invalidarg67"]).output_checked()
+        && let Some(TopgradeError::ProcessFailedWithOutput(_, _, stderr)) = e.downcast_ref()
+        && stderr.contains("This application can not open files")
+    {
+        return Err(SkipStep("Updates unsupported for ProtonPlus versions under v0.5.17".to_string()).into());
+    }
+
+    print_separator("ProtonPlus");
+
+    ctx.execute(&protonplus).args(["update", "all"]).status_checked()
 }
 
 #[cfg(test)]
@@ -1344,6 +1422,11 @@ mod tests {
     #[test]
     fn test_nilrt() {
         test_template(include_str!("os_release/nilrt"), Distribution::NILRT);
+    }
+
+    #[test]
+    fn test_kde_linux() {
+        test_template(include_str!("os_release/kde-linux"), Distribution::KDELinux);
     }
 
     #[test]

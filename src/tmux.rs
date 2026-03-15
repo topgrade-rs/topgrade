@@ -2,9 +2,9 @@ use std::env;
 use std::path::PathBuf;
 use std::process::Command;
 
-use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use color_eyre::eyre::eyre;
 
 use crate::command::CommandExt;
 use crate::config::TmuxConfig;
