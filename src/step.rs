@@ -755,13 +755,13 @@ pub(crate) fn default_steps() -> Vec<Step> {
 
     #[cfg(target_os = "macos")]
     steps.extend_from_slice(&[
-        BrewFormula, 
-        BrewCask, 
-        Macports, 
-        Xcodes, 
-        Sparkle, 
-        Mas, 
-        MicrosoftOffice, 
+        BrewFormula,
+        BrewCask,
+        Macports,
+        Xcodes,
+        Sparkle,
+        Mas,
+        MicrosoftOffice,
         System
     ]);
 
