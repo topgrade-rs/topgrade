@@ -7,6 +7,7 @@ use color_eyre::eyre::Result;
 use rust_i18n::t;
 use std::collections::HashSet;
 use std::fs;
+use std::io::{self, Write};
 use std::path::PathBuf;
 use tracing::debug;
 
