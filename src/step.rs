@@ -754,7 +754,16 @@ pub(crate) fn default_steps() -> Vec<Step> {
     steps.extend_from_slice(&[Wsl, WslUpdate, Chocolatey, Scoop, Winget, System, MicrosoftStore]);
 
     #[cfg(target_os = "macos")]
-    steps.extend_from_slice(&[BrewFormula, BrewCask, Macports, Xcodes, Sparkle, Mas, MicrosoftOffice, System]);
+    steps.extend_from_slice(&[
+        BrewFormula, 
+        BrewCask, 
+        Macports, 
+        Xcodes, 
+        Sparkle, 
+        Mas, 
+        MicrosoftOffice, 
+        System
+    ]);
 
     #[cfg(target_os = "dragonfly")]
     steps.extend_from_slice(&[Pkg, Audit]);
