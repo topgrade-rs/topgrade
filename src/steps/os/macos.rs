@@ -46,8 +46,8 @@ pub fn run_microsoft_office(ctx: &ExecutionContext) -> Result<()> {
     debug!("msupdate --list output: {:?}", output);
 
     if output.stdout.contains("No updates available") {
-        io::stdout().write_all(&output.stdout)?;
-        io::stderr().write_all(&output.stderr)?;
+        io::stdout().write_all(output.stdout.as_bytes())?;
+        io::stderr().write_all(output.stderr.as_bytes())?;
         return Ok(());
     }
 
