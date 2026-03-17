@@ -109,6 +109,7 @@ pub enum Step {
     Mas,
     Maza,
     Micro,
+    MicrosoftOffice,
     MicrosoftStore,
     Miktex,
     Mise,
