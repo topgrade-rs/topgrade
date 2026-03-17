@@ -45,7 +45,8 @@ pub fn run_microsoft_office(ctx: &ExecutionContext) -> Result<()> {
     debug!("msupdate --list output: {:?}", output);
 
     if output.stdout.contains("No updates available") {
-        println!("{}", t!("No new software available."));
+        io::stdout().write_all(&output.stdout)?;
+        io::stderr().write_all(&output.stderr)?;
         return Ok(());
     }
 
