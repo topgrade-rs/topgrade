@@ -762,7 +762,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Sparkle,
         Mas,
         MicrosoftOffice,
-        System
+        System,
     ]);
 
     #[cfg(target_os = "dragonfly")]
