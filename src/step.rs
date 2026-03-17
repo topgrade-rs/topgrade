@@ -449,6 +449,11 @@ impl Step {
                 runner.execute(*self, "maza", || unix::run_maza(ctx))?
             }
             Micro => runner.execute(*self, "micro", || generic::run_micro(ctx))?,
+            MicrosoftOffice =>
+            {
+                #[cfg(target_os = "macos")]
+                runner.execute(*self, "Microsoft Office", || macos::run_microsoft_office(ctx))?
+            }
             MicrosoftStore =>
             {
                 #[cfg(windows)]
@@ -749,7 +754,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
     steps.extend_from_slice(&[Wsl, WslUpdate, Chocolatey, Scoop, Winget, System, MicrosoftStore]);
 
     #[cfg(target_os = "macos")]
-    steps.extend_from_slice(&[BrewFormula, BrewCask, Macports, Xcodes, Sparkle, Mas, System]);
+    steps.extend_from_slice(&[BrewFormula, BrewCask, Macports, Xcodes, Sparkle, Mas, MicrosoftOffice, System]);
 
     #[cfg(target_os = "dragonfly")]
     steps.extend_from_slice(&[Pkg, Audit]);
