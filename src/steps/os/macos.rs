@@ -40,11 +40,7 @@ pub fn run_microsoft_office(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Microsoft Office");
 
     // Check for available updates first
-    let output = ctx
-        .execute(&msupdate)
-        .always()
-        .arg("--list")
-        .output_checked_utf8()?;
+    let output = ctx.execute(&msupdate).always().arg("--list").output_checked_utf8()?;
 
     debug!("msupdate --list output: {:?}", output);
 
