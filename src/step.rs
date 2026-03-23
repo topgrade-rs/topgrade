@@ -580,10 +580,11 @@ impl Step {
             SelfUpdate => {
                 // Self-Update step, this will execute only if:
                 // 1. the `self-update` feature is enabled
-                // 2. it is not disabled from configuration (env var/CLI opt/file)
+                // 2. it is not disabled via TOPGRADE_NO_SELF_UPGRADE env var
+                // Use `--disable self_update` to skip this step from config/CLI.
                 #[cfg(feature = "self-update")]
                 {
-                    if std::env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() && !ctx.config().no_self_update() {
+                    if std::env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() {
                         runner.execute(*self, "Self Update", || self_update::self_update(ctx))?;
                     }
                 }
