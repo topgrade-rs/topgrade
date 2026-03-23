@@ -1038,18 +1038,13 @@ pub fn run_custom_command(name: &str, command: &str, ctx: &ExecutionContext) -> 
     } else {
         command
     };
-    exec.env(
-        "TOPGRADE_YES",
-        if ctx.config().yes(Step::CustomCommands) {
-            "1"
-        } else {
-            "0"
-        },
-    )
-    .env("TOPGRADE_CLEANUP", if ctx.config().cleanup() { "1" } else { "0" })
-    .arg("-c")
-    .arg(command)
-    .status_checked()
+    if ctx.config().yes(Step::CustomCommands) {
+        exec.env("TOPGRADE_YES", "1");
+    }
+    if ctx.config().cleanup() {
+        exec.env("TOPGRADE_CLEANUP", "1");
+    }
+    exec.arg("-c").arg(command).status_checked()
 }
 
 pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
