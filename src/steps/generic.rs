@@ -168,6 +168,14 @@ pub fn run_haxelib_update(ctx: &ExecutionContext) -> Result<()> {
     command.arg("update").status_checked()
 }
 
+pub fn run_getnf_update(ctx: &ExecutionContext) -> Result<()> {
+    let getnf = require("getnf")?;
+
+    print_separator("getnf");
+
+    ctx.execute(getnf).args(["-U"]).status_checked()
+}
+
 pub fn run_sheldon(ctx: &ExecutionContext) -> Result<()> {
     let sheldon = require("sheldon")?;
 
