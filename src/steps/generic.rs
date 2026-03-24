@@ -2023,6 +2023,7 @@ pub fn run_claude_code(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Claude Code");
 
     ctx.execute(&claude).arg("update").status_checked()?;
+
     ctx.execute(&claude)
         .args(["plugin", "marketplace", "update"])
         .status_checked()?;
