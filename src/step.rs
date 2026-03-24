@@ -67,6 +67,7 @@ pub enum Step {
     Gcloud,
     Gearlever,
     Gem,
+    Getnf,
     Ghcup,
     GitRepos,
     GithubCliExtensions,
@@ -346,6 +347,7 @@ impl Step {
                 runner.execute(*self, "Gear Lever", || linux::run_gearlever(ctx))?
             }
             Gem => runner.execute(*self, "gem", || generic::run_gem(ctx))?,
+            Getnf => runner.execute(*self, "getnf", || generic::run_getnf_update(ctx))?,
             Ghcup => runner.execute(*self, "ghcup", || generic::run_ghcup_update(ctx))?,
             GitRepos => runner.execute(*self, "Git Repositories", || git::run_git_pull_or_fetch(ctx))?,
             GithubCliExtensions => runner.execute(*self, "GitHub CLI Extensions", || {
@@ -870,6 +872,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         PipReview,
         PipReviewLocal,
         Pipupgrade,
+        Getnf,
         Ghcup,
         Stack,
         Tldr,
