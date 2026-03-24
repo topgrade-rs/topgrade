@@ -54,7 +54,8 @@ pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
             topgrade_path,
             "--only",
             "system",
-            "--no-self-update",
+            "--disable",
+            "self_update",
             "--notify-end",
             "never",
         ];

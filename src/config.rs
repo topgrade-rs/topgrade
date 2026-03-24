@@ -478,9 +478,6 @@ pub struct Misc {
     only: Option<Vec<Step>>,
 
     #[merge(strategy = merge::option::overwrite_none)]
-    no_self_update: Option<bool>,
-
-    #[merge(strategy = merge::option::overwrite_none)]
     log_filters: Option<Vec<String>>,
 
     #[merge(strategy = merge::option::overwrite_none)]
@@ -1011,10 +1008,6 @@ pub struct CommandLineArgs {
     /// Print roff manpage and exit
     #[arg(long, hide = true)]
     pub gen_manpage: bool,
-
-    /// Don't update Topgrade
-    #[arg(long = "no-self-update")]
-    pub no_self_update: bool,
 }
 
 fn env_args_parser(arg: &str) -> Result<(String, String)> {
@@ -1226,17 +1219,6 @@ impl Config {
         // All steps that are disabled are not enabled, except ones that are passed to `--only`
         enabled_steps.retain(|e| !disabled_steps.contains(e) || opt.only.contains(e));
         enabled_steps
-    }
-
-    /// Tell whether we should run a self-update.
-    pub fn no_self_update(&self) -> bool {
-        self.opt.no_self_update
-            || self
-                .config_file
-                .misc
-                .as_ref()
-                .and_then(|misc| misc.no_self_update)
-                .unwrap_or(false)
     }
 
     /// Tell whether we should run in tmux.
