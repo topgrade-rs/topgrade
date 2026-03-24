@@ -387,8 +387,6 @@ pub struct Misc {
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     only: Option<Vec<Step>>,
 
-    no_self_update: Option<bool>,
-
     log_filters: Option<Vec<String>>,
 
     show_distribution_summary: Option<bool>,
@@ -894,10 +892,6 @@ pub struct CommandLineArgs {
     /// Print roff manpage and exit
     #[arg(long, hide = true)]
     pub gen_manpage: bool,
-
-    /// Don't update Topgrade
-    #[arg(long = "no-self-update")]
-    pub no_self_update: bool,
 }
 
 fn env_args_parser(arg: &str) -> Result<(String, String)> {
@@ -1109,17 +1103,6 @@ impl Config {
         // All steps that are disabled are not enabled, except ones that are passed to `--only`
         enabled_steps.retain(|e| !disabled_steps.contains(e) || opt.only.contains(e));
         enabled_steps
-    }
-
-    /// Tell whether we should run a self-update.
-    pub fn no_self_update(&self) -> bool {
-        self.opt.no_self_update
-            || self
-                .config_file
-                .misc
-                .as_ref()
-                .and_then(|misc| misc.no_self_update)
-                .unwrap_or(false)
     }
 
     /// Tell whether we should run in tmux.
