@@ -2016,7 +2016,7 @@ pub fn run_typst(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_claude_code(ctx: &ExecutionContext) -> Result<()> {
     static PLUGIN_RE: LazyLock<regex::Regex> =
-        LazyLock::new(|| regex::Regex::new(r"[[:alnum:]_.-]+@[[:alnum:]_.-]+").unwrap());
+        LazyLock::new(|| regex::Regex::new(r"[a-zA-Z0-9_.-]+@[a-zA-Z0-9_.-]+").unwrap());
 
     let claude = require("claude")?;
 
