@@ -882,7 +882,6 @@ pub struct CommandLineArgs {
     /// Print roff manpage and exit
     #[arg(long, hide = true)]
     pub gen_manpage: bool,
-
 }
 
 fn env_args_parser(arg: &str) -> Result<(String, String)> {
