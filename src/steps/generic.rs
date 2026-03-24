@@ -2015,11 +2015,27 @@ pub fn run_typst(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_claude_code(ctx: &ExecutionContext) -> Result<()> {
+    static PLUGIN_RE: LazyLock<regex::Regex> =
+        LazyLock::new(|| regex::Regex::new(r"[a-zA-Z0-9_.-]+@[a-zA-Z0-9_.-]+").unwrap());
+
     let claude = require("claude")?;
 
     print_separator("Claude Code");
 
-    ctx.execute(claude).arg("update").status_checked()
+    ctx.execute(&claude).arg("update").status_checked()?;
+
+    ctx.execute(&claude)
+        .args(["plugin", "marketplace", "update"])
+        .status_checked()?;
+
+    let output = ctx.execute(&claude).args(["plugins", "list"]).output_checked_utf8()?;
+    for plugin in PLUGIN_RE.find_iter(&output.stdout) {
+        ctx.execute(&claude)
+            .args(["plugin", "update", plugin.as_str()])
+            .status_checked()?;
+    }
+
+    Ok(())
 }
 
 pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
