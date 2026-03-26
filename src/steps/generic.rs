@@ -184,6 +184,15 @@ pub fn run_sheldon(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(sheldon).args(["lock", "--update"]).status_checked()
 }
 
+/// <https://github.com/Rishang/install-release>
+pub fn run_install_release(ctx: &ExecutionContext) -> Result<()> {
+    let ir = require("ir")?;
+
+    print_separator("install-release");
+
+    ctx.execute(ir).arg("upgrade").status_checked()
+}
+
 pub fn run_fossil(ctx: &ExecutionContext) -> Result<()> {
     let fossil = require("fossil")?;
 
