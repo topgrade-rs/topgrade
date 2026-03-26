@@ -184,6 +184,15 @@ pub fn run_sheldon(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(sheldon).args(["lock", "--update"]).status_checked()
 }
 
+/// <https://github.com/pkgforge/soar>
+pub fn run_soar(ctx: &ExecutionContext) -> Result<()> {
+    let soar = require("soar")?;
+
+    print_separator("Soar");
+
+    ctx.execute(soar).arg("update").status_checked()
+}
+
 pub fn run_fossil(ctx: &ExecutionContext) -> Result<()> {
     let fossil = require("fossil")?;
 

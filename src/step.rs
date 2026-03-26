@@ -152,6 +152,7 @@ pub enum Step {
     SelfUpdate,
     Sheldon,
     Shell,
+    Soar,
     Skills,
     Snap,
     Sparkle,
@@ -589,6 +590,7 @@ impl Step {
                 }
             }
             Sheldon => runner.execute(*self, "sheldon", || generic::run_sheldon(ctx))?,
+            Soar => runner.execute(*self, "soar", || generic::run_soar(ctx))?,
             Shell => {
                 #[cfg(unix)]
                 {
@@ -898,6 +900,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Julia,
         Haxelib,
         Sheldon,
+        Soar,
         Stew,
         Rtcl,
         Bin,
