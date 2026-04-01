@@ -652,10 +652,11 @@ impl Step {
             }
             Tldr => runner.execute(*self, "TLDR", || generic::run_tldr(ctx))?,
             Tlmgr => runner.execute(*self, "tlmgr", || generic::run_tlmgr_update(ctx))?,
-            Tmux =>
-            {
+            Tmux => {
                 #[cfg(unix)]
-                runner.execute(*self, "tmux", || tmux::run_tpm(ctx))?
+                runner.execute(*self, "tmux", || tmux::run_tpm(ctx))?;
+                #[cfg(unix)]
+                runner.execute(*self, "tpack", || tmux::run_tpack(ctx))?
             }
             Toolbx =>
             {
