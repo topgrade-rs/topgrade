@@ -6,6 +6,7 @@ use etcetera::base_strategy::BaseStrategy;
 
 use crate::command::CommandExt;
 use crate::terminal::print_separator;
+use crate::utils::require;
 use crate::{HOME_DIR, XDG_DIRS};
 use crate::{execution_context::ExecutionContext, utils::PathExt};
 
@@ -37,4 +38,12 @@ pub fn run_tpm(ctx: &ExecutionContext) -> Result<()> {
     print_separator("tmux plugins");
 
     ctx.execute(tpm).arg("all").status_checked()
+}
+
+pub fn run_tpack(ctx: &ExecutionContext) -> Result<()> {
+    let tpack = require("tpack")?;
+
+    print_separator("tpack");
+
+    ctx.execute(tpack).args(["update", "all"]).status_checked()
 }

@@ -163,6 +163,7 @@ pub enum Step {
     Tlmgr,
     Tmux,
     Toolbx,
+    Tpack,
     Typst,
     Uv,
     Vagrant,
@@ -662,6 +663,11 @@ impl Step {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "toolbx", || toolbx::run_toolbx(ctx))?
             }
+            Tpack =>
+            {
+                #[cfg(unix)]
+                runner.execute(*self, "tpack", || tmux::run_tpack(ctx))?
+            }
             Typst => runner.execute(*self, "Typst", || generic::run_typst(ctx))?,
             Uv => runner.execute(*self, "uv", || generic::run_uv(ctx))?,
             Vagrant => {
@@ -821,6 +827,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         BunPackages,
         Shell,
         Tmux,
+        Tpack,
         Pearl,
         #[cfg(not(any(target_os = "macos", target_os = "android")))]
         GnomeShellExtensions,
