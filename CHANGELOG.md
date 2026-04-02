@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.2.1](https://github.com/topgrade-rs/topgrade/compare/v17.2.0...v17.2.1) - 2026-04-01
+Rerelease of 17.2.0 because of CD mishap
+
+## [17.2.0](https://github.com/topgrade-rs/topgrade/compare/v17.1.0...v17.2.0) - 2026-03-30
+
+### Added
+
+- *(claude code)* add plugin updates ([#1879](https://github.com/topgrade-rs/topgrade/pull/1879))
+- *(step)* add getnf ([#1874](https://github.com/topgrade-rs/topgrade/pull/1874))
+- don't set TOPGRADE_YES and TOPGRADE_CLEANUP at all instead of setting to 0 ([#1876](https://github.com/topgrade-rs/topgrade/pull/1876))
+- expose TOPGRADE_YES and TOPGRADE_CLEANUP env vars for custom commands ([#1869](https://github.com/topgrade-rs/topgrade/pull/1869))
+- *(step)* add Microsoft Office auto update on macOS ([#1865](https://github.com/topgrade-rs/topgrade/pull/1865))
+- *(step)* add windsurf ([#1859](https://github.com/topgrade-rs/topgrade/pull/1859))
+
+### Fixed
+
+- *(deb-get)* skip redundant apt operations ([#1855](https://github.com/topgrade-rs/topgrade/pull/1855))
+- *(protonplus)* fix display name capitalization ([#1846](https://github.com/topgrade-rs/topgrade/pull/1846))
+
 ## [17.1.0](https://github.com/topgrade-rs/topgrade/compare/v17.0.0...v17.1.0) - 2026-03-11
 
 ### Added
