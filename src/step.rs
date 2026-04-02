@@ -162,6 +162,7 @@ pub enum Step {
     Tldr,
     Tlmgr,
     Tmux,
+    Tpack,
     Toolbx,
     Typst,
     Uv,
@@ -655,6 +656,9 @@ impl Step {
             Tmux => {
                 #[cfg(unix)]
                 runner.execute(*self, "tmux", || tmux::run_tpm(ctx))?;
+            }
+            Tpack =>
+            {
                 #[cfg(unix)]
                 runner.execute(*self, "tpack", || tmux::run_tpack(ctx))?
             }
@@ -822,6 +826,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         BunPackages,
         Shell,
         Tmux,
+        Tpack,
         Pearl,
         #[cfg(not(any(target_os = "macos", target_os = "android")))]
         GnomeShellExtensions,
