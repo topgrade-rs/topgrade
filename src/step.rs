@@ -162,9 +162,9 @@ pub enum Step {
     Tldr,
     Tlmgr,
     Tmux,
-    Tpack,
     Toolbx,
     Typst,
+    Tpack,
     Uv,
     Vagrant,
     Vcpkg,
@@ -657,15 +657,15 @@ impl Step {
                 #[cfg(unix)]
                 runner.execute(*self, "tmux", || tmux::run_tpm(ctx))?;
             }
-            Tpack =>
-            {
-                #[cfg(unix)]
-                runner.execute(*self, "tpack", || tmux::run_tpack(ctx))?
-            }
             Toolbx =>
             {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "toolbx", || toolbx::run_toolbx(ctx))?
+            }
+            Tpack =>
+            {
+                #[cfg(unix)]
+                runner.execute(*self, "tpack", || tmux::run_tpack(ctx))?
             }
             Typst => runner.execute(*self, "Typst", || generic::run_typst(ctx))?,
             Uv => runner.execute(*self, "uv", || generic::run_uv(ctx))?,
