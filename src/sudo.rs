@@ -470,12 +470,9 @@ impl Sudo {
                 SudoKind::Sudo => {
                     cmd.arg("-H");
                 }
-                SudoKind::Doas
-                | SudoKind::WinSudo
-                | SudoKind::Gsudo
-                | SudoKind::Pkexec
-                | SudoKind::Run0
-                | SudoKind::Please => {
+                // This is already the default behavior for run0
+                SudoKind::Run0 => {}
+                SudoKind::Doas | SudoKind::WinSudo | SudoKind::Gsudo | SudoKind::Pkexec | SudoKind::Please => {
                     return Err(UnsupportedSudo {
                         sudo_kind: self.kind,
                         option: "set_home",
