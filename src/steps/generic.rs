@@ -2054,6 +2054,15 @@ pub fn run_colima(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(colima).arg("update").status_checked()
 }
 
+/// <https://github.com/Rishang/install-release>
+pub fn run_install_release(ctx: &ExecutionContext) -> Result<()> {
+    let ir = require("ir")?;
+
+    print_separator("install-release");
+
+    ctx.execute(ir).arg("upgrade").status_checked()
+}
+
 pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
     let npx = require("npx")?;
 

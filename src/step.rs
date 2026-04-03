@@ -74,6 +74,7 @@ pub enum Step {
     GnomeShellExtensions,
     Go,
     Guix,
+    InstallRelease,
     Haxelib,
     Helix,
     HelixDb,
@@ -368,6 +369,7 @@ impl Step {
                 #[cfg(unix)]
                 runner.execute(*self, "guix", || unix::run_guix(ctx))?
             }
+            InstallRelease => runner.execute(*self, "install-release", || generic::run_install_release(ctx))?,
             Haxelib => runner.execute(*self, "haxelib", || generic::run_haxelib_update(ctx))?,
             Helix => runner.execute(*self, "helix", || generic::run_helix_grammars(ctx))?,
             HelixDb => runner.execute(*self, "HelixDB", || generic::run_helix_db(ctx))?,
@@ -820,6 +822,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Nix,
         NixHelper,
         Guix,
+        InstallRelease,
         HomeManager,
         Asdf,
         Mise,
