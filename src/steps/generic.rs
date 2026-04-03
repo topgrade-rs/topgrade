@@ -2054,6 +2054,15 @@ pub fn run_colima(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(colima).arg("update").status_checked()
 }
 
+/// <https://github.com/pkgforge/soar>
+pub fn run_soar(ctx: &ExecutionContext) -> Result<()> {
+    let soar = require("soar")?;
+
+    print_separator("soar");
+
+    ctx.execute(soar).arg("update").status_checked()
+}
+
 pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
     let npx = require("npx")?;
 

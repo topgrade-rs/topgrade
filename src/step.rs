@@ -154,6 +154,7 @@ pub enum Step {
     Shell,
     Skills,
     Snap,
+    Soar,
     Sparkle,
     Spicetify,
     Stack,
@@ -617,6 +618,7 @@ impl Step {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "snap", || linux::run_snap(ctx))?
             }
+            Soar => runner.execute(*self, "soar", || generic::run_soar(ctx))?,
             Sparkle =>
             {
                 #[cfg(target_os = "macos")]
@@ -794,6 +796,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         DebGet,
         Toolbx,
         Snap,
+        Soar,
         Pacstall,
         Pacdef,
         Protonup,
