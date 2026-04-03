@@ -377,9 +377,6 @@ pub struct Misc {
 
     notify_each_step: Option<bool>,
 
-    /// Deprecated: use `notify_end = "never"` instead
-    skip_notify: Option<bool>,
-
     notify_end: Option<NotifyEnd>,
 
     bashit_branch: Option<String>,
@@ -841,10 +838,6 @@ pub struct CommandLineArgs {
     #[arg(short = 'k', long = "keep")]
     keep_at_end: bool,
 
-    /// Skip sending a notification at the end of a run (deprecated: use --notify-end never)
-    #[arg(long = "skip-notify", hide = true)]
-    skip_notify: bool,
-
     /// When to send a notification at the end of a run
     #[arg(long = "notify-end", value_enum, default_value_t)]
     notify_end: NotifyEnd,
@@ -1259,26 +1252,11 @@ impl Config {
 
     /// When to send a notification at the end of a run
     pub fn notify_end(&self) -> NotifyEnd {
-        let skip_notify = self
-            .config_file
-            .misc
-            .as_ref()
-            .and_then(|misc| misc.skip_notify)
-            .unwrap_or(self.opt.skip_notify);
-
-        let notify_end = self
-            .config_file
+        self.config_file
             .misc
             .as_ref()
             .and_then(|misc| misc.notify_end)
-            .unwrap_or(self.opt.notify_end);
-
-        // TODO: deprecate skip_notify
-        if skip_notify {
-            return NotifyEnd::Never;
-        }
-
-        notify_end
+            .unwrap_or(self.opt.notify_end)
     }
 
     /// Whether to set the terminal title

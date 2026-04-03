@@ -80,9 +80,6 @@
 # (default: "always", allowed values: "always", "never", "on_failure")
 # notify_end = "on_failure"
 
-# Deprecated: use `notify_end = "never"` instead (default: false)
-# skip_notify = true
-
 # The Bash-it branch to update (default: "stable")
 # bashit_branch = "stable"
 
