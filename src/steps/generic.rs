@@ -176,6 +176,14 @@ pub fn run_getnf_update(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(getnf).args(["-U"]).status_checked()
 }
 
+pub fn run_soar(ctx: &ExecutionContext) -> Result<()> {
+    let soar = require("soar")?;
+
+    print_separator("soar");
+
+    ctx.execute(soar).arg("update").status_checked()
+}
+
 pub fn run_sheldon(ctx: &ExecutionContext) -> Result<()> {
     let sheldon = require("sheldon")?;
 

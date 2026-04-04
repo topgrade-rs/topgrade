@@ -149,6 +149,7 @@ pub enum Step {
     Rye,
     Scoop,
     Sdkman,
+    Soar,
     SelfUpdate,
     Sheldon,
     Shell,
@@ -578,6 +579,11 @@ impl Step {
                 #[cfg(unix)]
                 runner.execute(*self, "SDKMAN!", || unix::run_sdkman(ctx))?
             }
+            Soar =>
+            {
+                #[cfg(unix)]
+                runner.execute(*self, "soar", || generic::run_soar(ctx))?
+            }
             SelfUpdate => {
                 // Self-Update step, this will execute only if:
                 // 1. the `self-update` feature is enabled
@@ -833,6 +839,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         GnomeShellExtensions,
         Pyenv,
         Sdkman,
+        Soar,
         Rcm,
         Maza,
         Hyprpm,
