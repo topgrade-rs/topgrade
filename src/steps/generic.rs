@@ -176,6 +176,14 @@ pub fn run_getnf_update(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(getnf).args(["-U"]).status_checked()
 }
 
+pub fn run_install_release(ctx: &ExecutionContext) -> Result<()> {
+    let ir = require("ir")?;
+
+    print_separator("install-release");
+
+    ctx.execute(ir).arg("upgrade").status_checked()
+}
+
 pub fn run_sheldon(ctx: &ExecutionContext) -> Result<()> {
     let sheldon = require("sheldon")?;
 
