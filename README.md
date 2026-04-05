@@ -15,7 +15,7 @@
 
 ## Introduction
 
-> **Note**
+> [!NOTE]
 > This is a fork of [topgrade by r-darwish](https://github.com/r-darwish/topgrade) to keep it maintained.
 
 Keeping your system up-to-date usually involves invoking multiple package managers.
@@ -53,6 +53,7 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 - Ubuntu ([Pacstall](https://pacstall.dev/)):
   [`pacstall -I topgrade-bin`](https://github.com/pacstall/pacstall-programs/blob/master/packages/topgrade-bin/topgrade-bin.pacscript)
 - NixOS or Nix (nixpkgs): [topgrade](https://search.nixos.org/packages?show=topgrade)
+- Alpine Linux: [`sudo apk add topgrade`](https://pkgs.alpinelinux.org/package/edge/community/x86_64/topgrade)
 - Void Linux: [`sudo xbps-install -S topgrade`](https://voidlinux.org/packages/?arch=x86_64&q=topgrade)
 
 ## Usage

@@ -322,6 +322,10 @@
 # (default: false)
 # interactive = false
 
+[go]
+# Exclude specified binaries from `gup update`
+# gup_exclude = ["kind", "pkgsite"]
+
 
 [npm]
 # Use sudo if the NPM directory isn't owned by the current user

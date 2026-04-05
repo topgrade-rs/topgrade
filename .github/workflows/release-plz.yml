@@ -9,6 +9,7 @@ jobs:
 
   # Release unpublished packages.
   release-plz-release:
+    if: github.repository == 'topgrade-rs/topgrade'
     name: Release-plz release
     runs-on: ubuntu-latest
     environment: crates_io
@@ -22,12 +23,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # master
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # master
         with:
           toolchain: stable
       - name: Run release-plz
         id: release-plz
-        uses: release-plz/action@f708778669256143d984cce4b23592637532e040 # v0.5.127
+        uses: release-plz/action@1528104d2ca23787631a1c1f022abb64b34c1e11 # v0.5.128
         with:
           command: release
         env:
@@ -45,6 +46,7 @@ jobs:
 
   # Create a PR with the new versions and changelog, preparing the next release.
   release-plz-pr:
+    if: github.repository == 'topgrade-rs/topgrade'
     name: Release-plz PR
     runs-on: ubuntu-latest
     permissions:
@@ -60,11 +62,11 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9 # master
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # master
         with:
           toolchain: stable
       - name: Run release-plz
-        uses: release-plz/action@f708778669256143d984cce4b23592637532e040 # v0.5.127
+        uses: release-plz/action@1528104d2ca23787631a1c1f022abb64b34c1e11 # v0.5.128
         with:
           command: release-pr
         env:

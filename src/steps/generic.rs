@@ -1,7 +1,7 @@
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use color_eyre::eyre::{eyre, OptionExt};
-use jetbrains_toolbox_updater::{find_jetbrains_toolbox, update_jetbrains_toolbox, FindError};
+use color_eyre::eyre::{OptionExt, eyre};
+use jetbrains_toolbox_updater::{FindError, find_jetbrains_toolbox, update_jetbrains_toolbox};
 use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
@@ -15,6 +15,7 @@ use std::{fs, io::Write};
 use tempfile::tempfile_in;
 use tracing::{debug, error, warn};
 
+use crate::HOME_DIR;
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::ExecutorOutput;
@@ -22,8 +23,7 @@ use crate::output_changed_message;
 use crate::step::Step;
 use crate::sudo::SudoExecuteOpts;
 use crate::terminal::{print_separator, shell};
-use crate::utils::{check_is_python_2_or_shim, require, require_one, require_option, which, PathExt};
-use crate::HOME_DIR;
+use crate::utils::{PathExt, check_is_python_2_or_shim, require, require_one, require_option, which};
 use crate::{
     error::{DryRun, SkipStep, StepFailed, TopgradeError},
     terminal::print_warning,
@@ -64,7 +64,9 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
         .or_else(|| cargo_dir.join("bin/cargo-install-update").if_exists());
 
     let Some(cargo_update) = cargo_update else {
-        let message = String::from("cargo-update isn't installed so Topgrade can't upgrade cargo packages.\nInstall cargo-update by running `cargo install cargo-update`");
+        let message = String::from(
+            "cargo-update isn't installed so Topgrade can't upgrade cargo packages.\nInstall cargo-update by running `cargo install cargo-update`",
+        );
         print_warning(&message);
         return Err(SkipStep(message).into());
     };
@@ -86,7 +88,9 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
         if let Some(e) = cargo_cache {
             ctx.execute(e).args(["-a"]).status_checked()?;
         } else {
-            let message = String::from("cargo-cache isn't installed so Topgrade can't cleanup cargo packages.\nInstall cargo-cache by running `cargo install cargo-cache`");
+            let message = String::from(
+                "cargo-cache isn't installed so Topgrade can't cleanup cargo packages.\nInstall cargo-cache by running `cargo install cargo-cache`",
+            );
             print_warning(message);
         }
     }
@@ -162,6 +166,14 @@ pub fn run_haxelib_update(ctx: &ExecutionContext) -> Result<()> {
     };
 
     command.arg("update").status_checked()
+}
+
+pub fn run_getnf_update(ctx: &ExecutionContext) -> Result<()> {
+    let getnf = require("getnf")?;
+
+    print_separator("getnf");
+
+    ctx.execute(getnf).args(["-U"]).status_checked()
 }
 
 pub fn run_sheldon(ctx: &ExecutionContext) -> Result<()> {
@@ -343,7 +355,7 @@ pub fn run_juliaup(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("juliaup");
 
-    if juliaup.canonicalize()?.is_descendant_of(&HOME_DIR) {
+    if juliaup.canonicalize().is_ok_and(|p| p.is_descendant_of(&HOME_DIR)) {
         ctx.execute(&juliaup).args(["self", "update"]).status_checked()?;
     }
 
@@ -471,53 +483,64 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 enum VSCodeVariant {
+    Antigravity,
     Code,
     CodeInsiders,
     Codium,
     CodiumInsiders,
     Cursor,
+    Windsurf,
 }
 
 impl VSCodeVariant {
     fn name(&self) -> &'static str {
         match self {
+            VSCodeVariant::Antigravity => "Antigravity",
             VSCodeVariant::Code => "VSCode",
             VSCodeVariant::CodeInsiders => "VSCode Insiders",
             VSCodeVariant::Codium => "VSCodium",
             VSCodeVariant::CodiumInsiders => "VSCodium Insiders",
             VSCodeVariant::Cursor => "Cursor",
+            VSCodeVariant::Windsurf => "Windsurf",
         }
     }
 
     fn bin_name(&self) -> &'static str {
         match self {
+            VSCodeVariant::Antigravity => "antigravity",
             VSCodeVariant::Code => "code",
             VSCodeVariant::CodeInsiders => "code-insiders",
             VSCodeVariant::Codium => "codium",
             VSCodeVariant::CodiumInsiders => "codium-insiders",
             VSCodeVariant::Cursor => "cursor",
+            VSCodeVariant::Windsurf => "windsurf",
         }
     }
 
     fn display_name(&self) -> &'static str {
         match self {
+            VSCodeVariant::Antigravity => "Antigravity extensions",
             VSCodeVariant::Code => "Visual Studio Code extensions",
             VSCodeVariant::CodeInsiders => "Visual Studio Code Insiders extensions",
             VSCodeVariant::Codium => "VSCodium extensions",
             VSCodeVariant::CodiumInsiders => "VSCodium Insiders extensions",
             VSCodeVariant::Cursor => "Cursor extensions",
+            VSCodeVariant::Windsurf => "Windsurf extensions",
         }
     }
 
     fn supports_profiles(&self) -> bool {
         match self {
-            VSCodeVariant::Code | VSCodeVariant::CodeInsiders | VSCodeVariant::Cursor => true,
-            VSCodeVariant::Codium | VSCodeVariant::CodiumInsiders => false,
+            VSCodeVariant::Antigravity | VSCodeVariant::Code | VSCodeVariant::CodeInsiders | VSCodeVariant::Cursor => {
+                true
+            }
+            VSCodeVariant::Codium | VSCodeVariant::CodiumInsiders | VSCodeVariant::Windsurf => false,
         }
     }
 }
 
-/// This functions runs for VSCode, VSCode Insiders, VSCodium, and VSCodium Insiders, as most of the process is the same for all.
+/// Runs extension updates for VSCode-compatible editors (VSCode, VSCode Insiders, VSCodium,
+/// VSCodium Insiders, Cursor, Antigravity), as the process is the same for all.
 fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Result<()> {
     // Calling VSCode/VSCodium in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
     if is_wsl()? {
@@ -622,6 +645,14 @@ pub fn run_cursor_extensions_update(ctx: &ExecutionContext) -> Result<()> {
     run_vscode_compatible(VSCodeVariant::Cursor, ctx)
 }
 
+pub fn run_windsurf_extensions_update(ctx: &ExecutionContext) -> Result<()> {
+    run_vscode_compatible(VSCodeVariant::Windsurf, ctx)
+}
+
+pub fn run_antigravity_extensions_update(ctx: &ExecutionContext) -> Result<()> {
+    run_vscode_compatible(VSCodeVariant::Antigravity, ctx)
+}
+
 pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
     let pipx = require("pipx")?;
     print_separator("pipx");
@@ -637,7 +668,9 @@ pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
         .output_checked_utf8()
         .map(|s| s.stdout.trim().to_owned());
     let version = Version::parse(&version_str?);
-    if matches!(version, Ok(version) if version >= Version::new(1, 4, 0)) {
+    if let Ok(version) = version
+        && version >= Version::new(1, 4, 0)
+    {
         command_args.push("--quiet");
     }
 
@@ -1013,6 +1046,12 @@ pub fn run_custom_command(name: &str, command: &str, ctx: &ExecutionContext) -> 
     } else {
         command
     };
+    if ctx.config().yes(Step::CustomCommands) {
+        exec.env("TOPGRADE_YES", "1");
+    }
+    if ctx.config().cleanup() {
+        exec.env("TOPGRADE_CLEANUP", "1");
+    }
     exec.arg("-c").arg(command).status_checked()
 }
 
@@ -1061,10 +1100,10 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
     if let ExecutorOutput::Wet(output) = output {
         let output: Utf8Output = output.try_into()?;
         print!("{}\n{}", output.stdout, output.stderr);
-        if output.stdout.contains("valet") || output.stderr.contains("valet") {
-            if let Some(valet) = which("valet") {
-                ctx.execute(valet).arg("install").status_checked()?;
-            }
+        if (output.stdout.contains("valet") || output.stderr.contains("valet"))
+            && let Some(valet) = which("valet")
+        {
+            ctx.execute(valet).arg("install").status_checked()?;
         }
     }
 
@@ -1339,11 +1378,7 @@ pub fn run_helm_repo_update(ctx: &ExecutionContext) -> Result<()> {
         };
     }
 
-    if success {
-        Ok(())
-    } else {
-        Err(eyre!(StepFailed))
-    }
+    if success { Ok(()) } else { Err(eyre!(StepFailed)) }
 }
 
 pub fn run_stew(ctx: &ExecutionContext) -> Result<()> {
@@ -1528,8 +1563,7 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
             .map_err(|e| SkipStep(format!("Could not find interpreter for {}: {}", poetry.display(), e)))?;
         debug!("poetry interpreter: {:?}, args: {:?}", interp, interp_args);
 
-        let check_official_install_script =
-            "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
+        let check_official_install_script = "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
         let mut command = ctx.execute(&interp).always();
         if let Some(args) = interp_args {
             command.arg(args);
@@ -1818,7 +1852,10 @@ fn run_jetbrains_ide_generic<const IS_JETBRAINS: bool>(ctx: &ExecutionContext, b
             .code()
             .ok_or_eyre("Failed to get status code; was killed with signal")?;
         if status_code != 1 {
-            return Err(eyre!("Expected status code 1 ('Only one instance of <IDE> can be run at a time.'), but found status code {}. Output: {output:?}", status_code));
+            return Err(eyre!(
+                "Expected status code 1 ('Only one instance of <IDE> can be run at a time.'), but found status code {}. Output: {output:?}",
+                status_code
+            ));
         }
         // Don't crash, but don't be silent either
         warn!("{name} is already running, can't update it now.");
@@ -1977,10 +2014,55 @@ pub fn run_typst(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(typst).args(["update"]).status_checked()
 }
 
+pub fn run_claude_code(ctx: &ExecutionContext) -> Result<()> {
+    static PLUGIN_RE: LazyLock<regex::Regex> =
+        LazyLock::new(|| regex::Regex::new(r"[a-zA-Z0-9_.-]+@[a-zA-Z0-9_.-]+").unwrap());
+
+    let claude = require("claude")?;
+
+    print_separator("Claude Code");
+
+    ctx.execute(&claude).arg("update").status_checked()?;
+
+    ctx.execute(&claude)
+        .args(["plugin", "marketplace", "update"])
+        .status_checked()?;
+
+    let output = ctx.execute(&claude).args(["plugins", "list"]).output_checked_utf8()?;
+    for plugin in PLUGIN_RE.find_iter(&output.stdout) {
+        ctx.execute(&claude)
+            .args(["plugin", "update", plugin.as_str()])
+            .status_checked()?;
+    }
+
+    Ok(())
+}
+
 pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
     let falconf = require("falconf")?;
 
     print_separator("falconf sync");
 
     ctx.execute(falconf).arg("sync").status_checked()
+}
+
+pub fn run_colima(ctx: &ExecutionContext) -> Result<()> {
+    let colima = require("colima")?;
+
+    print_separator("Colima");
+
+    ctx.execute(colima).arg("update").status_checked()
+}
+
+pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
+    let npx = require("npx")?;
+
+    let skill_lock = HOME_DIR.join(".agents").join(".skill-lock.json");
+    if !skill_lock.exists() {
+        return Err(SkipStep("No ~/.agents/.skill-lock.json found".to_string()).into());
+    }
+
+    print_separator("Skills");
+
+    ctx.execute(npx).args(["skills", "update"]).status_checked()
 }

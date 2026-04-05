@@ -5,10 +5,10 @@ use std::path::PathBuf;
 
 #[cfg(windows)]
 use color_eyre::eyre;
-#[cfg(windows)]
-use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+#[cfg(windows)]
+use color_eyre::eyre::eyre;
 use itertools::Itertools;
 use rust_i18n::t;
 use serde::Deserialize;
@@ -470,12 +470,9 @@ impl Sudo {
                 SudoKind::Sudo => {
                     cmd.arg("-H");
                 }
-                SudoKind::Doas
-                | SudoKind::WinSudo
-                | SudoKind::Gsudo
-                | SudoKind::Pkexec
-                | SudoKind::Run0
-                | SudoKind::Please => {
+                // This is already the default behavior for run0
+                SudoKind::Run0 => {}
+                SudoKind::Doas | SudoKind::WinSudo | SudoKind::Gsudo | SudoKind::Pkexec | SudoKind::Please => {
                     return Err(UnsupportedSudo {
                         sudo_kind: self.kind,
                         option: "set_home",

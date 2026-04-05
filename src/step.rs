@@ -23,6 +23,7 @@ pub const DEPRECATED_STEPS: [Step; 1] = [Step::NixHelper];
 pub enum Step {
     AM,
     AndroidStudio,
+    Antigravity,
     AppMan,
     Aqua,
     Asdf,
@@ -43,6 +44,8 @@ pub enum Step {
     Choosenim,
     CinnamonSpices,
     ClamAvDb,
+    ClaudeCode,
+    Colima,
     Composer,
     Conda,
     ConfigUpdate,
@@ -62,7 +65,9 @@ pub enum Step {
     Flutter,
     Fossil,
     Gcloud,
+    Gearlever,
     Gem,
+    Getnf,
     Ghcup,
     GitRepos,
     GithubCliExtensions,
@@ -105,6 +110,7 @@ pub enum Step {
     Mas,
     Maza,
     Micro,
+    MicrosoftOffice,
     MicrosoftStore,
     Miktex,
     Mise,
@@ -130,6 +136,7 @@ pub enum Step {
     Pnpm,
     Poetry,
     Powershell,
+    Protonplus,
     Protonup,
     Pyenv,
     Raco,
@@ -145,6 +152,7 @@ pub enum Step {
     SelfUpdate,
     Sheldon,
     Shell,
+    Skills,
     Snap,
     Sparkle,
     Spicetify,
@@ -155,6 +163,7 @@ pub enum Step {
     Tlmgr,
     Tmux,
     Toolbx,
+    Tpack,
     Typst,
     Uv,
     Vagrant,
@@ -166,6 +175,7 @@ pub enum Step {
     Vscodium,
     VscodiumInsiders,
     Waydroid,
+    Windsurf,
     Winget,
     Wsl,
     WslUpdate,
@@ -189,6 +199,9 @@ impl Step {
                 runner.execute(*self, "am", || linux::run_am(ctx))?
             }
             AndroidStudio => runner.execute(*self, "Android Studio Plugins", || generic::run_android_studio(ctx))?,
+            Antigravity => runner.execute(*self, "Antigravity extensions", || {
+                generic::run_antigravity_extensions_update(ctx)
+            })?,
             AppMan =>
             {
                 #[cfg(target_os = "linux")]
@@ -273,6 +286,8 @@ impl Step {
                 runner.execute(*self, "Cinnamon spices", || linux::run_cinnamon_spices_updater(ctx))?
             }
             ClamAvDb => runner.execute(*self, "ClamAV Databases", || generic::run_freshclam(ctx))?,
+            ClaudeCode => runner.execute(*self, "Claude Code", || generic::run_claude_code(ctx))?,
+            Colima => runner.execute(*self, "Colima", || generic::run_colima(ctx))?,
             Composer => runner.execute(*self, "composer", || generic::run_composer_update(ctx))?,
             Conda => runner.execute(*self, "conda", || generic::run_conda_update(ctx))?,
             ConfigUpdate =>
@@ -327,7 +342,13 @@ impl Step {
             Flutter => runner.execute(*self, "Flutter", || generic::run_flutter_upgrade(ctx))?,
             Fossil => runner.execute(*self, "fossil", || generic::run_fossil(ctx))?,
             Gcloud => runner.execute(*self, "gcloud", || generic::run_gcloud_components_update(ctx))?,
+            Gearlever =>
+            {
+                #[cfg(target_os = "linux")]
+                runner.execute(*self, "Gear Lever", || linux::run_gearlever(ctx))?
+            }
             Gem => runner.execute(*self, "gem", || generic::run_gem(ctx))?,
+            Getnf => runner.execute(*self, "getnf", || generic::run_getnf_update(ctx))?,
             Ghcup => runner.execute(*self, "ghcup", || generic::run_ghcup_update(ctx))?,
             GitRepos => runner.execute(*self, "Git Repositories", || git::run_git_pull_or_fetch(ctx))?,
             GithubCliExtensions => runner.execute(*self, "GitHub CLI Extensions", || {
@@ -431,6 +452,11 @@ impl Step {
                 runner.execute(*self, "maza", || unix::run_maza(ctx))?
             }
             Micro => runner.execute(*self, "micro", || generic::run_micro(ctx))?,
+            MicrosoftOffice =>
+            {
+                #[cfg(target_os = "macos")]
+                runner.execute(*self, "Microsoft Office", || macos::run_microsoft_office(ctx))?
+            }
             MicrosoftStore =>
             {
                 #[cfg(windows)]
@@ -500,6 +526,11 @@ impl Step {
             Pnpm => runner.execute(*self, "pnpm", || node::run_pnpm_upgrade(ctx))?,
             Poetry => runner.execute(*self, "Poetry", || generic::run_poetry(ctx))?,
             Powershell => runner.execute(*self, "Powershell Modules Update", || generic::run_powershell(ctx))?,
+            Protonplus =>
+            {
+                #[cfg(target_os = "linux")]
+                runner.execute(*self, "ProtonPlus", || linux::run_protonplus_update(ctx))?
+            }
             Protonup =>
             {
                 #[cfg(target_os = "linux")]
@@ -580,6 +611,7 @@ impl Step {
                     runner.execute(*self, "fundle", || unix::run_fundle(ctx))?
                 }
             }
+            Skills => runner.execute(*self, "Skills", || generic::run_skills(ctx))?,
             Snap =>
             {
                 #[cfg(target_os = "linux")]
@@ -631,16 +663,21 @@ impl Step {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "toolbx", || toolbx::run_toolbx(ctx))?
             }
+            Tpack =>
+            {
+                #[cfg(unix)]
+                runner.execute(*self, "tpack", || tmux::run_tpack(ctx))?
+            }
             Typst => runner.execute(*self, "Typst", || generic::run_typst(ctx))?,
             Uv => runner.execute(*self, "uv", || generic::run_uv(ctx))?,
             Vagrant => {
-                if ctx.config().should_run(Vagrant) {
-                    if let Ok(boxes) = vagrant::collect_boxes(ctx) {
-                        for vagrant_box in boxes {
-                            runner.execute(*self, format!("Vagrant ({})", vagrant_box.smart_name()), || {
-                                vagrant::topgrade_vagrant_box(ctx, &vagrant_box)
-                            })?;
-                        }
+                if ctx.config().should_run(Vagrant)
+                    && let Ok(boxes) = vagrant::collect_boxes(ctx)
+                {
+                    for vagrant_box in boxes {
+                        runner.execute(*self, format!("Vagrant ({})", vagrant_box.smart_name()), || {
+                            vagrant::topgrade_vagrant_box(ctx, &vagrant_box)
+                        })?;
                     }
                 }
                 runner.execute(*self, "Vagrant boxes", || vagrant::upgrade_vagrant_boxes(ctx))?;
@@ -670,6 +707,9 @@ impl Step {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "Waydroid", || linux::run_waydroid(ctx))?
             }
+            Windsurf => runner.execute(*self, "Windsurf extensions", || {
+                generic::run_windsurf_extensions_update(ctx)
+            })?,
             Winget =>
             {
                 #[cfg(windows)]
@@ -722,7 +762,16 @@ pub(crate) fn default_steps() -> Vec<Step> {
     steps.extend_from_slice(&[Wsl, WslUpdate, Chocolatey, Scoop, Winget, System, MicrosoftStore]);
 
     #[cfg(target_os = "macos")]
-    steps.extend_from_slice(&[BrewFormula, BrewCask, Macports, Xcodes, Sparkle, Mas, System]);
+    steps.extend_from_slice(&[
+        BrewFormula,
+        BrewCask,
+        Macports,
+        Xcodes,
+        Sparkle,
+        Mas,
+        MicrosoftOffice,
+        System,
+    ]);
 
     #[cfg(target_os = "dragonfly")]
     steps.extend_from_slice(&[Pkg, Audit]);
@@ -748,11 +797,13 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Pacstall,
         Pacdef,
         Protonup,
+        Protonplus,
         Distrobox,
         DkpPacman,
         Firmware,
         Restarts,
         Flatpak,
+        Gearlever,
         BrewFormula,
         BrewCask,
         Lure,
@@ -776,6 +827,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         BunPackages,
         Shell,
         Tmux,
+        Tpack,
         Pearl,
         #[cfg(not(any(target_os = "macos", target_os = "android")))]
         GnomeShellExtensions,
@@ -805,6 +857,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Dotnet,
         Choosenim,
         Cargo,
+        Antigravity,
         Cursor,
         Flutter,
         Go,
@@ -817,6 +870,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         VscodeInsiders,
         Vscodium,
         VscodiumInsiders,
+        Windsurf,
         Conda,
         Mamba,
         Pixi,
@@ -825,6 +879,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         PipReview,
         PipReviewLocal,
         Pipupgrade,
+        Getnf,
         Ghcup,
         Stack,
         Tldr,
@@ -862,6 +917,9 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Certbot,
         GitRepos,
         ClamAvDb,
+        ClaudeCode,
+        Colima,
+        Skills,
         PlatformioCore,
         Lensfun,
         Poetry,

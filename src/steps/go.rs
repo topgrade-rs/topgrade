@@ -23,7 +23,14 @@ pub fn run_go_gup(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("gup");
 
-    ctx.execute(gup).arg("update").status_checked()
+    let mut command = ctx.execute(gup);
+    command.arg("update");
+
+    for exclude in ctx.config().gup_exclude() {
+        command.args(["--exclude", exclude]);
+    }
+
+    command.status_checked()
 }
 
 /// Get the path of a Go binary.
