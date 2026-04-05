@@ -220,9 +220,8 @@ impl Terminal {
             .yellow()
             .bold();
 
-        self.term.write_fmt(format_args!("\n{prompt_inner}")).ok();
-
         let answer = loop {
+            self.term.write_fmt(format_args!("\n{prompt_inner}")).ok();
             match self.term.read_key() {
                 Ok(Key::Char('y' | 'Y')) => break Ok(ShouldRetry::Yes),
                 Ok(Key::Char('s' | 'S')) => {
@@ -238,6 +237,11 @@ impl Terminal {
                 }
                 Ok(Key::Char('n' | 'N') | Key::Enter) => break Ok(ShouldRetry::No),
                 Err(e) => {
+                    if let io::ErrorKind::Interrupted = e.kind() {
+                        println!();
+                        error!("Interrupted while reading from terminal: {}", e);
+                        continue;
+                    }
                     error!("Error reading from terminal: {}", e);
                     break Ok(ShouldRetry::No);
                 }
