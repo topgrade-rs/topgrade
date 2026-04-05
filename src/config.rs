@@ -214,6 +214,13 @@ pub struct Brew {
     fetch_head: Option<bool>,
 }
 
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct Go {
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    gup_exclude: Option<Vec<String>>,
+}
+
 #[derive(Debug, Deserialize, Clone, Copy, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ArchPackageManager {
@@ -508,6 +515,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     git: Option<Git>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    go: Option<Go>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     containers: Option<Containers>,
@@ -1438,6 +1448,15 @@ impl Config {
             .as_ref()
             .and_then(|c| c.force_plug_update)
             .unwrap_or(false)
+    }
+
+    /// Binaries to exclude from `gup update`
+    pub fn gup_exclude(&self) -> &[String] {
+        self.config_file
+            .go
+            .as_ref()
+            .and_then(|g| g.gup_exclude.as_deref())
+            .unwrap_or(&[])
     }
 
     /// Whether to send a desktop notification at the beginning of every step
