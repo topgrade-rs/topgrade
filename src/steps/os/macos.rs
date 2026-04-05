@@ -124,13 +124,13 @@ pub fn run_sparkle(ctx: &ExecutionContext) -> Result<()> {
         let probe = ctx
             .execute(&sparkle)
             .always()
-            .args(["--probe", "--application"])
             .arg(application.path())
+            .args(["--probe", "--user-agent-name", "topgrade"])
             .output_checked_utf8();
         if probe.is_ok() {
             let mut command = ctx.execute(&sparkle);
-            command.args(["bundle", "--check-immediately", "--application"]);
             command.arg(application.path());
+            command.args(["--check-immediately", "--user-agent-name", "topgrade"]);
             command.status_checked()?;
         }
     }
