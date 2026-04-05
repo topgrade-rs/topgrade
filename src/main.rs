@@ -321,7 +321,10 @@ fn run() -> Result<()> {
 }
 
 fn spawn_sudo_loop(ctx: &execution_context::ExecutionContext, config: &Config) -> Option<std::sync::mpsc::Sender<()>> {
-    let sudo = ctx.sudo().as_ref().filter(|_| config.sudo_loop())?.clone();
+    if !config.sudo_loop() {
+        return None;
+    }
+    let sudo = ctx.sudo().as_ref()?.clone();
     let run_type = ctx.run_type();
     let interval = Duration::from_secs(config.sudo_loop_interval().into());
     let (tx, rx) = std::sync::mpsc::channel::<()>();
