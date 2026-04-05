@@ -121,18 +121,10 @@ pub fn run_sparkle(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Sparkle");
 
     for application in (fs::read_dir("/Applications")?).flatten() {
-        let probe = ctx
-            .execute(&sparkle)
-            .always()
-            .arg(application.path())
-            .args(["--probe", "--user-agent-name", "topgrade"])
-            .output_checked_utf8();
-        if probe.is_ok() {
-            let mut command = ctx.execute(&sparkle);
-            command.arg(application.path());
-            command.args(["--check-immediately", "--user-agent-name", "topgrade"]);
-            command.status_checked()?;
-        }
+        let mut command = ctx.execute(&sparkle);
+        command.arg(application.path());
+        command.args(["--check-immediately", "--user-agent-name", "topgrade"]);
+        command.status_checked()?;
     }
     Ok(())
 }
