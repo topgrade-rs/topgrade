@@ -5,7 +5,7 @@ use color_eyre::Result;
 #[cfg(target_os = "linux")]
 use rust_i18n::t;
 use serde::Deserialize;
-use strum::{EnumCount, EnumIter, EnumString, VariantNames};
+use strum::{Display, EnumCount, EnumIter, EnumString, VariantNames};
 
 #[cfg(feature = "self-update")]
 use crate::self_update;
@@ -16,7 +16,9 @@ use crate::utils::hostname;
 
 pub const DEPRECATED_STEPS: [Step; 1] = [Step::NixHelper];
 
-#[derive(ValueEnum, EnumString, VariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy, EnumCount)]
+#[derive(
+    ValueEnum, EnumString, VariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy, EnumCount, Display,
+)]
 #[clap(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]

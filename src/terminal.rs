@@ -19,6 +19,11 @@ use crate::command::CommandExt;
 use crate::runner::StepResult;
 
 static TERMINAL: LazyLock<Mutex<Terminal>> = LazyLock::new(|| Mutex::new(Terminal::new()));
+static CURRENT_STEP_ID: LazyLock<Mutex<Option<String>>> = LazyLock::new(|| Mutex::new(None));
+
+pub fn set_current_step_id(id: Option<String>) {
+    *CURRENT_STEP_ID.lock().expect("Current step mutex poisoned") = id;
+}
 
 #[cfg(unix)]
 pub fn shell() -> String {
@@ -84,13 +89,18 @@ impl Terminal {
     }
 
     fn print_separator<P: AsRef<str>>(&mut self, message: P) {
+        let message = if let Some(step_id) = CURRENT_STEP_ID.lock().expect("Current step mutex poisoned").clone() {
+            format!("{} ({step_id})", message.as_ref())
+        } else {
+            message.as_ref().to_string()
+        };
+
         if self.set_title {
-            self.term
-                .set_title(format!("{}Topgrade - {}", self.prefix, message.as_ref()));
+            self.term.set_title(format!("{}Topgrade - {}", self.prefix, message));
         }
 
         if self.desktop_notification {
-            self.notify_desktop(message.as_ref(), Some(Duration::from_secs(5)));
+            self.notify_desktop(&message, Some(Duration::from_secs(5)));
         }
 
         let now = Local::now();
@@ -101,10 +111,10 @@ impl Terminal {
                 now.hour(),
                 now.minute(),
                 now.second(),
-                message.as_ref()
+                message
             )
         } else {
-            String::from(message.as_ref())
+            message
         };
 
         match self.width {

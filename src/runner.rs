@@ -9,7 +9,7 @@ use crate::ctrlc;
 use crate::error::{DryRun, MissingSudo, SkipStep};
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
-use crate::terminal::{ShouldRetry, print_error, print_warning, should_retry};
+use crate::terminal::{ShouldRetry, print_error, print_warning, set_current_step_id, should_retry};
 
 pub enum StepResult {
     Success,
@@ -85,6 +85,7 @@ impl<'a> Runner<'a> {
 
         let key: Cow<'a, str> = key.into();
         debug!("Step {:?}", key);
+        set_current_step_id(Some(step.to_string()));
 
         // alter the `func` to put it in a span
         let func = || {
@@ -150,6 +151,7 @@ impl<'a> Runner<'a> {
                             }
                             RetryDecision::Quit => {
                                 self.push_result(key, StepResult::Failure);
+                                set_current_step_id(None);
                                 return Err(io::Error::from(io::ErrorKind::Interrupted))
                                     .context("Quit from user input");
                             }
@@ -173,6 +175,7 @@ impl<'a> Runner<'a> {
             }
         }
 
+        set_current_step_id(None);
         Ok(())
     }
 
