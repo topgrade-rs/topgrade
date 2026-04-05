@@ -361,7 +361,7 @@ impl Sudo {
             }
             _ => return Ok(()),
         }
-        cmd.status_checked().wrap_err(t!("Failed to refresh sudo credentials"))
+        cmd.status_checked().wrap_err("Failed to refresh sudo credentials")
     }
 
     /// Execute a command with `sudo`.

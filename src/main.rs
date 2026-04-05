@@ -336,10 +336,7 @@ fn spawn_sudo_loop(ctx: &execution_context::ExecutionContext, config: &Config) -
                     Ok(()) | Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                         if let Err(err) = sudo.refresh(run_type) {
-                            print_warning(t!(
-                                "Failed to refresh sudo credentials: {error}",
-                                error = format!("{err:?}")
-                            ));
+                            print_warning(format!("Failed to refresh sudo credentials: {err:?}"));
                         }
                     }
                 }
