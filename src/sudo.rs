@@ -21,7 +21,7 @@ use windows::Win32::Foundation::ERROR_FILE_NOT_FOUND;
 
 use crate::command::CommandExt;
 use crate::error::UnsupportedSudo;
-use crate::execution_context::ExecutionContext;
+use crate::execution_context::{ExecutionContext, RunType};
 use crate::executor::Executor;
 use crate::terminal::print_separator;
 use crate::utils::which;
@@ -312,6 +312,7 @@ impl Sudo {
                 // going through a shell (which could be powershell) first.
                 // See: https://gerardog.github.io/gsudo/docs/usage
                 cmd.args(["-d", "cmd.exe", "/c", "rem"]);
+                // TODO: `gsudo cache on` starts a session with cached credentials and could replace the dummy `rem` invocation here when sudo_loop is enabled...
             }
             SudoKind::Pkexec => {
                 // I don't think this does anything; `pkexec` usually asks for
@@ -339,6 +340,28 @@ impl Sudo {
             SudoKind::Null => unreachable!(),
         }
         cmd.status_checked().wrap_err("Failed to elevate permissions")
+    }
+
+    /// Silently refresh cached superuser credentials.
+    ///
+    /// Only for sudo kinds that support credential caching (`sudo -v`, `please -w`).
+    /// For others it's a no-op.
+    pub fn refresh(&self, run_type: RunType) -> Result<()> {
+        let Some(path) = self.path.as_deref() else {
+            return Ok(());
+        };
+
+        let mut cmd = run_type.execute(path);
+        match self.kind {
+            SudoKind::Sudo => {
+                cmd.arg("-v");
+            }
+            SudoKind::Please => {
+                cmd.arg("-w");
+            }
+            _ => return Ok(()),
+        }
+        cmd.status_checked().wrap_err("Failed to refresh sudo credentials")
     }
 
     /// Execute a command with `sudo`.

@@ -42,6 +42,16 @@ impl RunType {
             RunType::Damp => false,
         }
     }
+
+    /// Create an `Executor` for the given program using this run type.
+    #[allow(clippy::disallowed_methods)]
+    pub fn execute<S: AsRef<OsStr>>(self, program: S) -> Executor {
+        match self {
+            RunType::Dry => Executor::Dry(DryCommand::new(program)),
+            RunType::Wet => Executor::Wet(Command::new(program)),
+            RunType::Damp => Executor::Damp(Command::new(program)),
+        }
+    }
 }
 
 pub struct ExecutionContext<'a> {
@@ -80,13 +90,8 @@ impl<'a> ExecutionContext<'a> {
     }
 
     /// Create an instance of `Executor` that should run `program`.
-    #[allow(clippy::disallowed_methods)]
     pub fn execute<S: AsRef<OsStr>>(&self, program: S) -> Executor {
-        match self.run_type {
-            RunType::Dry => Executor::Dry(DryCommand::new(program)),
-            RunType::Wet => Executor::Wet(Command::new(program)),
-            RunType::Damp => Executor::Damp(Command::new(program)),
-        }
+        self.run_type.execute(program)
     }
 
     pub fn run_type(&self) -> RunType {
