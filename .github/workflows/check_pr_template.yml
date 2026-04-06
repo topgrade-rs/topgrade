@@ -12,6 +12,7 @@ jobs:
     name: Validate PR description
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       issues: write  # gh pr comment
       pull-requests: write  # gh pr close
     steps:
