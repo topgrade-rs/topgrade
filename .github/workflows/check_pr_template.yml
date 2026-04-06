@@ -29,7 +29,12 @@ jobs:
           BODY: ${{ github.event.pull_request.body }}
         run: |
           PERM=$(gh api repos/$REPO/collaborators/$AUTHOR/permission --jq .permission)
-          if [[ "$PERM" != "admin" && "$PERM" != "maintain" && "$BODY" != *"$REQUIRED"* ]]; then
+          if [[ "$PERM" == "admin" || "$PERM" == "maintain" ]]; then
+            echo "This user has permission '$PERM', skipping PR description check"
+            exit 0
+          fi
+          if [[ "$BODY" != *"$REQUIRED"* ]]; then
+            echo "Did not find '$REQUIRED' in PR body, closing..."
             gh pr comment "$PR" --body "$MSG"
             gh pr close "$PR"
           fi
