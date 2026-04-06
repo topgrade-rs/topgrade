@@ -4,9 +4,11 @@
 "   skip_prompts = true,
 " },
 if exists(":AstroUpdate")
-   echo "AstroUpdate"
-   AstroUpdate
-   quitall
+    echo "AstroUpdate"
+    autocmd User AstroUpdateCompleted quitall
+    AstroUpdate
+    " Astro includes Lazy etc. So we end early.
+    finish
 endif
 
 if exists(":MasonUpdate")

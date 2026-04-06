@@ -20,7 +20,7 @@ jobs:
           echo "version=${tag#v}" >> $GITHUB_OUTPUT
 
       - name: Publish source AUR package
-        uses: varabyte/update-aur-package@572e31b1972fa289a27b1926c06a489eb89c7fd7
+        uses: varabyte/update-aur-package@572e31b1972fa289a27b1926c06a489eb89c7fd7 # v1.0.4
         with:
           version: ${{ steps.determine_version.outputs.version }}
           package_name: topgrade
@@ -29,7 +29,7 @@ jobs:
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
 
       - name: Publish binary AUR package
-        uses: varabyte/update-aur-package@572e31b1972fa289a27b1926c06a489eb89c7fd7
+        uses: varabyte/update-aur-package@572e31b1972fa289a27b1926c06a489eb89c7fd7 # v1.0.4
         with:
           version: ${{ steps.determine_version.outputs.version }}
           package_name: topgrade-bin

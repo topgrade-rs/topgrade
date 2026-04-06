@@ -8,7 +8,7 @@ use std::time::Duration;
 use chrono::{Local, Timelike};
 use color_eyre::eyre;
 use color_eyre::eyre::Context;
-use console::{style, Key, Term};
+use console::{Key, Term, measure_text_width, style};
 use notify_rust::{Notification, Timeout};
 use rust_i18n::t;
 use tracing::{debug, error};
@@ -30,6 +30,7 @@ pub fn shell() -> &'static str {
     which("pwsh").map(|_| "pwsh").unwrap_or("powershell")
 }
 
+#[allow(clippy::disallowed_methods)]
 pub fn run_shell() -> eyre::Result<()> {
     Command::new(shell()).env("IN_TOPGRADE", "1").status_checked()
 }
@@ -119,7 +120,7 @@ impl Terminal {
                                 2,
                                 min(80, width as usize)
                                     .checked_sub(4)
-                                    .and_then(|e| e.checked_sub(message.len()))
+                                    .and_then(|e| e.checked_sub(measure_text_width(&message)))
                                     .unwrap_or(0)
                             )
                         ))
@@ -210,7 +211,6 @@ impl Terminal {
         }
     }
 
-    #[allow(unused_variables)]
     fn should_retry(&mut self, step_name: &str) -> eyre::Result<ShouldRetry> {
         if self.width.is_none() {
             return Ok(ShouldRetry::No);
@@ -228,9 +228,8 @@ impl Terminal {
             .yellow()
             .bold();
 
-        self.term.write_fmt(format_args!("\n{prompt_inner}")).ok();
-
         let answer = loop {
+            self.term.write_fmt(format_args!("\n{prompt_inner}")).ok();
             match self.term.read_key() {
                 Ok(Key::Char('y' | 'Y')) => break Ok(ShouldRetry::Yes),
                 Ok(Key::Char('s' | 'S')) => {
@@ -246,6 +245,11 @@ impl Terminal {
                 }
                 Ok(Key::Char('n' | 'N') | Key::Enter) => break Ok(ShouldRetry::No),
                 Err(e) => {
+                    if let io::ErrorKind::Interrupted = e.kind() {
+                        println!();
+                        error!("Interrupted while reading from terminal: {}", e);
+                        continue;
+                    }
                     error!("Error reading from terminal: {}", e);
                     break Ok(ShouldRetry::No);
                 }

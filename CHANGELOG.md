@@ -7,6 +7,311 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.2.1](https://github.com/topgrade-rs/topgrade/compare/v17.2.0...v17.2.1) - 2026-04-01
+Rerelease of 17.2.0 because of CD mishap
+
+## [17.2.0](https://github.com/topgrade-rs/topgrade/compare/v17.1.0...v17.2.0) - 2026-03-30
+
+### Added
+
+- *(claude code)* add plugin updates ([#1879](https://github.com/topgrade-rs/topgrade/pull/1879))
+- *(step)* add getnf ([#1874](https://github.com/topgrade-rs/topgrade/pull/1874))
+- don't set TOPGRADE_YES and TOPGRADE_CLEANUP at all instead of setting to 0 ([#1876](https://github.com/topgrade-rs/topgrade/pull/1876))
+- expose TOPGRADE_YES and TOPGRADE_CLEANUP env vars for custom commands ([#1869](https://github.com/topgrade-rs/topgrade/pull/1869))
+- *(step)* add Microsoft Office auto update on macOS ([#1865](https://github.com/topgrade-rs/topgrade/pull/1865))
+- *(step)* add windsurf ([#1859](https://github.com/topgrade-rs/topgrade/pull/1859))
+
+### Fixed
+
+- *(deb-get)* skip redundant apt operations ([#1855](https://github.com/topgrade-rs/topgrade/pull/1855))
+- *(protonplus)* fix display name capitalization ([#1846](https://github.com/topgrade-rs/topgrade/pull/1846))
+
+## [17.1.0](https://github.com/topgrade-rs/topgrade/compare/v17.0.0...v17.1.0) - 2026-03-11
+
+### Added
+
+- *(step)* add skills for skills.sh ([#1843](https://github.com/topgrade-rs/topgrade/pull/1843))
+- *(step)* add Colima ([#1840](https://github.com/topgrade-rs/topgrade/pull/1840))
+
+### Fixed
+
+- *(gearlever)* skip update prompt when no updates exist ([#1844](https://github.com/topgrade-rs/topgrade/pull/1844))
+
+## [17.0.0](https://github.com/topgrade-rs/topgrade/compare/v16.9.0...v17.0.0) - 2026-03-06
+
+### Breaking changes
+
+- bump MSRV to 1.88.0
+
+  Topgrade v17.0.0 bumps the MSRV (minimum supported Rust version) from 1.84.1 to 1.88.0. There are no breaking changes for users.
+
+  If the bumped MSRV hinders you in using or packaging Topgrade, please let us know by opening an issue!
+
+### Added
+
+- improve breaking changes notifications ([#1827](https://github.com/topgrade-rs/topgrade/pull/1827))
+- *(step)* add antigravity ([#1822](https://github.com/topgrade-rs/topgrade/pull/1822))
+- *(step)* add `protonplus` ([#1799](https://github.com/topgrade-rs/topgrade/pull/1799))
+- *(os)* add KDE Linux support ([#1814](https://github.com/topgrade-rs/topgrade/pull/1814))
+- *(step)* add claude code ([#1792](https://github.com/topgrade-rs/topgrade/pull/1792))
+- *(step)* add Gear Lever
+- *(utils)* add require_flatpak function
+- add Helix DB step ([#1790](https://github.com/topgrade-rs/topgrade/pull/1790))
+- add notify_end tristate option ([#1760](https://github.com/topgrade-rs/topgrade/pull/1760))
+- *(executor)* add Executor::always() for commands that must run in dry-run mode
+- show version range in self-update message ([#1752](https://github.com/topgrade-rs/topgrade/pull/1752))
+- *(uv)* run uv python upgrade ([#1747](https://github.com/topgrade-rs/topgrade/pull/1747))
+- `--auto-retry [<COUNT>]` flag and `--no-retry` deprecation ([#1603](https://github.com/topgrade-rs/topgrade/pull/1603))
+
+### Fixed
+
+- *(protonplus)* correct protonplus version in error message ([#1823](https://github.com/topgrade-rs/topgrade/pull/1823))
+- *(juliaup)* don't crash when failing to canonicalize juliaup path ([#1809](https://github.com/topgrade-rs/topgrade/pull/1809))
+- *(helix)* disambiguate between Helix Editor and HelixDB ([#1781](https://github.com/topgrade-rs/topgrade/pull/1781))
+- correct typos and enhance clarity ([#1778](https://github.com/topgrade-rs/topgrade/pull/1778))
+- use `edit` crate for --edit-config editor resolution ([#1759](https://github.com/topgrade-rs/topgrade/pull/1759))
+- *(vim)* AstroNvim - wait for AstroUpdateCompleted and finish. ([#1744](https://github.com/topgrade-rs/topgrade/pull/1744))
+
+## [16.9.0](https://github.com/topgrade-rs/topgrade/compare/v16.8.0...v16.9.0) - 2026-02-03
+
+### Added
+
+- *(system,home_manager)* integrate nh into nix-based updaters ([#1712](https://github.com/topgrade-rs/topgrade/pull/1712))
+- *(cargo)* add `git` and `quiet` options ([#1685](https://github.com/topgrade-rs/topgrade/pull/1685))
+
+### Fixed
+
+- add missing import ([#1718](https://github.com/topgrade-rs/topgrade/pull/1718))
+- *(nix)* make nix-{channel,env} optional for flake-enabled systems ([#1716](https://github.com/topgrade-rs/topgrade/pull/1716))
+
+### Other
+
+- *(pre-commit)* autoupdate ([#1723](https://github.com/topgrade-rs/topgrade/pull/1723))
+- *(deps)* update github/codeql-action action to v4.32.1 ([#1722](https://github.com/topgrade-rs/topgrade/pull/1722))
+- *(deps)* update vmactions/openbsd-vm digest to a23337e ([#1720](https://github.com/topgrade-rs/topgrade/pull/1720))
+- *(deps)* update rust crate notify-rust to ~4.12.0 ([#1721](https://github.com/topgrade-rs/topgrade/pull/1721))
+- *(system,home-manager)* make matches more explicit ([#1719](https://github.com/topgrade-rs/topgrade/pull/1719))
+- *(pre-commit)* autoupdate ([#1704](https://github.com/topgrade-rs/topgrade/pull/1704))
+- *(deps)* update release-plz/action digest to e592230 ([#1698](https://github.com/topgrade-rs/topgrade/pull/1698))
+- *(deps)* update actions/checkout action to v6.0.2 ([#1699](https://github.com/topgrade-rs/topgrade/pull/1699))
+- *(deps)* update github/codeql-action action to v4.32.0 ([#1700](https://github.com/topgrade-rs/topgrade/pull/1700))
+- *(deps)* update actions/attest-build-provenance action to v3.2.0 ([#1703](https://github.com/topgrade-rs/topgrade/pull/1703))
+- *(deps)* update vmactions/openbsd-vm digest to f5b9bc1 ([#1706](https://github.com/topgrade-rs/topgrade/pull/1706))
+- *(renovate)* disable rate-limiting ([#1697](https://github.com/topgrade-rs/topgrade/pull/1697))
+- *(renovate)* disable rate-limiting ([#1696](https://github.com/topgrade-rs/topgrade/pull/1696))
+- *(deps)* update dependency rust to v1.93.0 ([#1695](https://github.com/topgrade-rs/topgrade/pull/1695))
+- *(renovate)* add rust-toolchain updating ([#1694](https://github.com/topgrade-rs/topgrade/pull/1694))
+- pin toolchain to stable instead of MSRV, add MSRV testing, simplify CI workflow ([#1690](https://github.com/topgrade-rs/topgrade/pull/1690))
+- *(pre-commit)* autoupdate ([#1687](https://github.com/topgrade-rs/topgrade/pull/1687))
+- *(renovate)* use preset for lockfile config ([#1684](https://github.com/topgrade-rs/topgrade/pull/1684))
+- *(pre-commit)* autoupdate ([#1682](https://github.com/topgrade-rs/topgrade/pull/1682))
+- *(deps)* update github/codeql-action action to v4.31.10 ([#1680](https://github.com/topgrade-rs/topgrade/pull/1680))
+- *(deb)* update copyright
+- *(deps)* unpin toml
+- *(installation)* add Pacstall Ubuntu package to README ([#1676](https://github.com/topgrade-rs/topgrade/pull/1676))
+- *(deps)* update rust crate toml to v0.9.11 ([#1675](https://github.com/topgrade-rs/topgrade/pull/1675))
+- *(release)* fix OpenBSD release job ([#1674](https://github.com/topgrade-rs/topgrade/pull/1674))
+- *(release)* fix OpenBSD release job ([#1672](https://github.com/topgrade-rs/topgrade/pull/1672))
+
+## [16.8.0](https://github.com/topgrade-rs/topgrade/compare/v16.7.0...v16.8.0) - 2026-01-07
+
+### Added
+
+- *(cursor)* add cursor extension update support ([#1659](https://github.com/topgrade-rs/topgrade/pull/1659))
+
+### Fixed
+
+- *(deps)* update rust crate tempfile to ~3.24.0 ([#1646](https://github.com/topgrade-rs/topgrade/pull/1646))
+- *(deps)* update rust crate toml to v0.9.10 ([#1625](https://github.com/topgrade-rs/topgrade/pull/1625))
+
+### Other
+
+- *(deps)* update lockfile ([#1671](https://github.com/topgrade-rs/topgrade/pull/1671))
+- *(release)* fix OpenBSD release job ([#1639](https://github.com/topgrade-rs/topgrade/pull/1639))
+- *(pre-commit)* autoupdate ([#1668](https://github.com/topgrade-rs/topgrade/pull/1668))
+- *(deps)* lock file maintenance ([#1666](https://github.com/topgrade-rs/topgrade/pull/1666))
+- *(deps)* update rust crate tokio to ~1.49.0 ([#1663](https://github.com/topgrade-rs/topgrade/pull/1663))
+- *(renovate)* change semantic commit type to always be 'chore' ([#1665](https://github.com/topgrade-rs/topgrade/pull/1665))
+- fix category (os -> command-line-utlilities) in Cargo.toml ([#1664](https://github.com/topgrade-rs/topgrade/pull/1664))
+- remove deprecated authors field from Cargo.toml ([#1661](https://github.com/topgrade-rs/topgrade/pull/1661))
+- add authors and maintainers to pyproject.toml ([#1662](https://github.com/topgrade-rs/topgrade/pull/1662))
+- *(deps)* update rust crate clap_complete to v4.5.64 ([#1654](https://github.com/topgrade-rs/topgrade/pull/1654))
+- *(deps)* bump clap_complete ([#1657](https://github.com/topgrade-rs/topgrade/pull/1657))
+- *(pre-commit)* autoupdate ([#1655](https://github.com/topgrade-rs/topgrade/pull/1655))
+- *(deps)* update vmactions/openbsd-vm digest to 00753f2 ([#1649](https://github.com/topgrade-rs/topgrade/pull/1649))
+- *(deps)* lock file maintenance ([#1652](https://github.com/topgrade-rs/topgrade/pull/1652))
+- *(deps)* update rust crate serde_json to v1.0.148 ([#1650](https://github.com/topgrade-rs/topgrade/pull/1650))
+- *(deps)* update rust crate serde_json to v1.0.147 ([#1645](https://github.com/topgrade-rs/topgrade/pull/1645))
+- update bug_report issue template ([#1643](https://github.com/topgrade-rs/topgrade/pull/1643))
+- *(deps)* update rust crate serde_json to v1.0.146 ([#1640](https://github.com/topgrade-rs/topgrade/pull/1640))
+- add Discord link to Python package ([#1641](https://github.com/topgrade-rs/topgrade/pull/1641))
+- *(deps)* pin vmactions/openbsd-vm action to a17ab0b ([#1636](https://github.com/topgrade-rs/topgrade/pull/1636))
+- *(deps)* update actions/attest-build-provenance action to v3.1.0 ([#1637](https://github.com/topgrade-rs/topgrade/pull/1637))
+- *(release)* add OpenBSD release steps ([#1630](https://github.com/topgrade-rs/topgrade/pull/1630))
+- *(deps)* lock file maintenance ([#1631](https://github.com/topgrade-rs/topgrade/pull/1631))
+- *(deps)* pin async-lock to prevent MSRV bump ([#1635](https://github.com/topgrade-rs/topgrade/pull/1635))
+- *(deps)* pin async-lock to prevent MSRV bump ([#1633](https://github.com/topgrade-rs/topgrade/pull/1633))
+- *(deps)* pin async-lock to prevent MSRV bump ([#1632](https://github.com/topgrade-rs/topgrade/pull/1632))
+- *(deps)* update actions/attest-build-provenance action to v3.1.0 ([#1629](https://github.com/topgrade-rs/topgrade/pull/1629))
+- *(deps)* update lockfile ([#1628](https://github.com/topgrade-rs/topgrade/pull/1628))
+- *(deps)* update github/codeql-action action to v4.31.9 ([#1620](https://github.com/topgrade-rs/topgrade/pull/1620))
+- *(release)* fix winget releases ([#1623](https://github.com/topgrade-rs/topgrade/pull/1623))
+- *(release)* fix winget releases ([#1621](https://github.com/topgrade-rs/topgrade/pull/1621))
+
+## [16.7.0](https://github.com/topgrade-rs/topgrade/compare/v16.6.1...v16.7.0) - 2025-12-17
+
+### Added
+
+- *(containers)* add `use_sudo` option ([#1618](https://github.com/topgrade-rs/topgrade/pull/1618))
+- *(sudo)* propagate --env to sudo commands ([#1588](https://github.com/topgrade-rs/topgrade/pull/1588)) ([#1589](https://github.com/topgrade-rs/topgrade/pull/1589))
+- *(aqua)* run `aqua update --config $AQUA_GLOBAL_CONFIG` instead of `aqua update` ([#1596](https://github.com/topgrade-rs/topgrade/pull/1596))
+
+### Fixed
+
+- *(brew)* fix brew casks and incomplete formula update on linux when using isolated user ([#1611](https://github.com/topgrade-rs/topgrade/pull/1611))
+- *(vscode)* fix parsing of different version format ([#1608](https://github.com/topgrade-rs/topgrade/pull/1608))
+
+### Other
+
+- *(deps)* lock file maintenance ([#1615](https://github.com/topgrade-rs/topgrade/pull/1615))
+- *(lint_pr)* zizmor fixes ([#1614](https://github.com/topgrade-rs/topgrade/pull/1614))
+- *(renovate)* move Renovate config ([#1613](https://github.com/topgrade-rs/topgrade/pull/1613))
+- *(deps)* update github/codeql-action action to v4.31.8 ([#1607](https://github.com/topgrade-rs/topgrade/pull/1607))
+- *(deps)* update github artifact actions (major) ([#1609](https://github.com/topgrade-rs/topgrade/pull/1609))
+- *(deps)* update rust crate shell-words to v1.1.1 ([#1604](https://github.com/topgrade-rs/topgrade/pull/1604))
+- *(deps)* update itertools to 0.14.0 ([#1601](https://github.com/topgrade-rs/topgrade/pull/1601))
+- *(pre-commit)* autoupdate ([#1580](https://github.com/topgrade-rs/topgrade/pull/1580))
+- *(deps)* lock file maintenance ([#1597](https://github.com/topgrade-rs/topgrade/pull/1597))
+- *(deps)* update github/codeql-action action to v4.31.7 ([#1591](https://github.com/topgrade-rs/topgrade/pull/1591))
+- *(deps)* update release-plz/action digest to 487eb7b ([#1590](https://github.com/topgrade-rs/topgrade/pull/1590))
+
+## [16.6.1](https://github.com/topgrade-rs/topgrade/compare/v16.6.0...v16.6.1) - 2025-12-06
+
+### Fixed
+
+- *(uv)* update silenced error messages ([#1593](https://github.com/topgrade-rs/topgrade/pull/1593))
+- *(archlinux)* don't overwrite PATH ([#1586](https://github.com/topgrade-rs/topgrade/pull/1586))
+- *(git)* skip repos with remotes without configured urls ([#1573](https://github.com/topgrade-rs/topgrade/pull/1573))
+- use measure_text_width instead of byte count for header border calculation ([#1576](https://github.com/topgrade-rs/topgrade/pull/1576))
+
+### Other
+
+- *(deps)* update actions/checkout action to v6.0.1 ([#1583](https://github.com/topgrade-rs/topgrade/pull/1583))
+- *(deps)* update actions/checkout digest to 8e8c483 ([#1582](https://github.com/topgrade-rs/topgrade/pull/1582))
+- *(deps)* update dawidd6/action-homebrew-bump-formula action to v7 ([#1585](https://github.com/topgrade-rs/topgrade/pull/1585))
+- *(deps)* update github/codeql-action action to v4.31.6 ([#1578](https://github.com/topgrade-rs/topgrade/pull/1578))
+- *(deps)* lock file maintenance ([#1577](https://github.com/topgrade-rs/topgrade/pull/1577))
+- *(deps)* update mac-notification-sys ([#1574](https://github.com/topgrade-rs/topgrade/pull/1574))
+
+## [16.6.0](https://github.com/topgrade-rs/topgrade/compare/v16.5.0...v16.6.0) - 2025-11-28
+
+### Added
+
+- *(git)* add option to fetch instead of pull repositories ([#1371](https://github.com/topgrade-rs/topgrade/pull/1371))
+
+### Fixed
+
+- *(deps)* downgrade mac-notification-sys to fix build failure ([#1571](https://github.com/topgrade-rs/topgrade/pull/1571))
+- Add more alternate names for Intellij IDEA ([#1570](https://github.com/topgrade-rs/topgrade/pull/1570))
+
+### Other
+
+- *(deps)* update http, tower-http, tracing, zerocopy ([#1567](https://github.com/topgrade-rs/topgrade/pull/1567))
+- *(deps)* update swatinem/rust-cache action to v2.8.2 ([#1562](https://github.com/topgrade-rs/topgrade/pull/1562))
+- switch release_to_pypi.yml to trusted publishing ([#1566](https://github.com/topgrade-rs/topgrade/pull/1566))
+- README.md fixes ([#1564](https://github.com/topgrade-rs/topgrade/pull/1564))
+
+## [16.5.0](https://github.com/topgrade-rs/topgrade/compare/v16.4.2...v16.5.0) - 2025-11-26
+
+### Added
+
+- add colors to --help/-h ([#1553](https://github.com/topgrade-rs/topgrade/pull/1553))
+- *(mise)* add support for parallel job configuration in mise ([#1548](https://github.com/topgrade-rs/topgrade/pull/1548))
+- *(brew)* add Homebrew cask support for Linux ([#1539](https://github.com/topgrade-rs/topgrade/pull/1539))
+- *(mise)* add mise configuration options for bump and interactive modes ([#1546](https://github.com/topgrade-rs/topgrade/pull/1546))
+
+### Fixed
+
+- *(auto-cpufreq)* fix skipping on systems with merged bin/sbin ([#1556](https://github.com/topgrade-rs/topgrade/pull/1556))
+
+### Other
+
+- *(pre-commit)* autoupdate ([#1560](https://github.com/topgrade-rs/topgrade/pull/1560))
+- *(deps)* update release-plz/action digest to 1efcf74 ([#1561](https://github.com/topgrade-rs/topgrade/pull/1561))
+- *(deps)* lock file maintenance ([#1555](https://github.com/topgrade-rs/topgrade/pull/1555))
+- *(deps)* update github/codeql-action action to v4.31.5 ([#1559](https://github.com/topgrade-rs/topgrade/pull/1559))
+- *(deps)* update rust crate indexmap to v2.12.1 ([#1550](https://github.com/topgrade-rs/topgrade/pull/1550))
+- *(deps)* update actions/checkout action to v6 ([#1551](https://github.com/topgrade-rs/topgrade/pull/1551))
+- Add metadata to Python package for PyPI ([#1549](https://github.com/topgrade-rs/topgrade/pull/1549))
+- *(installation)* update copr repo info in readme ([#1545](https://github.com/topgrade-rs/topgrade/pull/1545))
+
+## [16.4.2](https://github.com/topgrade-rs/topgrade/compare/v16.4.1...v16.4.2) - 2025-11-20
+
+### Other
+
+- *(deps)* update dawidd6/action-homebrew-bump-formula action to v6 ([#1543](https://github.com/topgrade-rs/topgrade/pull/1543))
+
+## [16.4.1](https://github.com/topgrade-rs/topgrade/compare/v16.4.0...v16.4.1) - 2025-11-20
+
+### Other
+
+- refactor run_containers error handling ([#1541](https://github.com/topgrade-rs/topgrade/pull/1541))
+
+## [16.4.0](https://github.com/topgrade-rs/topgrade/compare/v16.3.0...v16.4.0) - 2025-11-20
+
+### Added
+
+- *(os)* add Origami Linux support ([#1530](https://github.com/topgrade-rs/topgrade/pull/1530))
+- *(containers)* add option to run `system prune` ([#1523](https://github.com/topgrade-rs/topgrade/pull/1523))
+
+### Fixed
+
+- *(deps)* restore custom commands order ([#1535](https://github.com/topgrade-rs/topgrade/pull/1535))
+
+### Other
+
+- *(deps)* update clap, clap_builder, clap_complete ([#1540](https://github.com/topgrade-rs/topgrade/pull/1540))
+- *(deps)* update github/codeql-action action to v4.31.4 ([#1531](https://github.com/topgrade-rs/topgrade/pull/1531))
+- *(config)* add custom commands order test ([#1536](https://github.com/topgrade-rs/topgrade/pull/1536))
+- make Config methods more consistent by utilizing `#[derive(Default)]` ([#1534](https://github.com/topgrade-rs/topgrade/pull/1534))
+- *(issue templates)* use issue types ([#1533](https://github.com/topgrade-rs/topgrade/pull/1533))
+- *(deps)* lock file maintenance ([#1505](https://github.com/topgrade-rs/topgrade/pull/1505))
+- *(deps)* update actions/checkout digest to 93cb6ef ([#1526](https://github.com/topgrade-rs/topgrade/pull/1526))
+- *(deps)* update actions/checkout action to v5.0.1 ([#1527](https://github.com/topgrade-rs/topgrade/pull/1527))
+
+## [16.3.0](https://github.com/topgrade-rs/topgrade/compare/v16.2.1...v16.3.0) - 2025-11-16
+
+### Added
+
+- print summary and run post commands when (q)uit is used ([#1254](https://github.com/topgrade-rs/topgrade/pull/1254))
+- run pre_sudo before pre_commands ([#1469](https://github.com/topgrade-rs/topgrade/pull/1469))
+- *(chezmoi)* add `exclude_encrypted` config ([#1453](https://github.com/topgrade-rs/topgrade/pull/1453))
+
+### Fixed
+
+- *(elan)* skip running elan update on elan >=4.0.0 ([#1507](https://github.com/topgrade-rs/topgrade/pull/1507))
+- *(deps)* Fix non-locked install on older version of Rust ([#1485](https://github.com/topgrade-rs/topgrade/pull/1485))
+- *(deps)* Fix non-locked install on older version of Rust ([#1482](https://github.com/topgrade-rs/topgrade/pull/1482))
+- *(bun)* skip self-update if not installed via official script ([#1476](https://github.com/topgrade-rs/topgrade/pull/1476))
+- *(openbsd)* fix compilation on OpenBSD ([#1473](https://github.com/topgrade-rs/topgrade/pull/1473))
+
+### Other
+
+- *(license)* switch license variant to GPL-3.0-or-later ([#1518](https://github.com/topgrade-rs/topgrade/pull/1518))
+- *(deps)* update some dependencies ([#1512](https://github.com/topgrade-rs/topgrade/pull/1512))
+- *(deps)* update github/codeql-action action to v4.31.3 ([#1483](https://github.com/topgrade-rs/topgrade/pull/1483))
+- remove unnecessary cfg-if dependency ([#1509](https://github.com/topgrade-rs/topgrade/pull/1509))
+- *(lint_pr)* run on synchronize, and add zizmor ignore ([#1508](https://github.com/topgrade-rs/topgrade/pull/1508))
+- *(pre-commit)* autoupdate ([#1464](https://github.com/topgrade-rs/topgrade/pull/1464))
+- improve issue templates ([#1235](https://github.com/topgrade-rs/topgrade/pull/1235))
+- *(deps)* bump mac-notification-sys, use main branch temporarily ([#1506](https://github.com/topgrade-rs/topgrade/pull/1506))
+- *(deps)* lock file maintenance ([#1481](https://github.com/topgrade-rs/topgrade/pull/1481))
+- *(deps)* pin dependencies ([#1478](https://github.com/topgrade-rs/topgrade/pull/1478))
+- *(deps)* update actions/dependency-review-action action to v4.8.2 ([#1479](https://github.com/topgrade-rs/topgrade/pull/1479))
+- Add Renovate ([#1477](https://github.com/topgrade-rs/topgrade/pull/1477))
+- Replace main's self update with a proper step call ([#1470](https://github.com/topgrade-rs/topgrade/pull/1470))
+- *(release)* Fix homebrew releases ([#1468](https://github.com/topgrade-rs/topgrade/pull/1468))
+
 ## [16.2.1](https://github.com/topgrade-rs/topgrade/compare/v16.2.0...v16.2.1) - 2025-11-10
 
 ### Fixed

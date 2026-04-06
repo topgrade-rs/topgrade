@@ -18,6 +18,12 @@
 # (default: false)
 # pre_sudo = false
 
+# Periodically runs `sudo -v` or `please -w` to avoid password re-prompts during updates (default: false)
+# WARNING: This is a potential security risk; if you walk away from the computer while topgrade is running,
+# another person can come by, CTRL+C, and gain access to a sudo session.
+# sudo_loop = true
+# sudo_loop_interval = 240 # 4 minutes (240s); default if sudo_loop enabled
+
 # Sudo command to be used
 # sudo_command = "sudo"
 
@@ -48,7 +54,13 @@
 # Don't ask for confirmations (no default value)
 # assume_yes = true
 
-# Do not ask to retry failed steps (default: false)
+# Whether to ask what to do after a step fails (default: true)
+# ask_retry = true
+
+# Number of times to automatically retry a step when it fails (default: 0)
+# auto_retry = 0
+
+# Same as ask_retry = false (default: false) - legacy
 # no_retry = true
 
 # Show the reason for skipped steps (default: false)
@@ -70,7 +82,11 @@
 # Send a notification for every step (default: false)
 # notify_each_step = false
 
-# Skip sending a notification at the end of a run (default: false)
+# When to send a notification at the end of a run
+# (default: "always", allowed values: "always", "never", "on_failure")
+# notify_end = "on_failure"
+
+# Deprecated: use `notify_end = "never"` instead (default: false)
 # skip_notify = true
 
 # The Bash-it branch to update (default: "stable")
@@ -95,6 +111,12 @@
 # Pacman backup configuration files (*.pacsave and *.pacnew)
 # (default: true)
 # show_distribution_summary = false
+
+# For NixOS/home-manager, there are multiple ways to switch to newer configurations.
+# When set to autodetect: use nh when available, fall back to vanilla
+# Allowed values:
+#   autodetect, nh, vanilla
+# nix_handler = "autodetect"
 
 
 # Commands to run before anything
@@ -236,21 +258,23 @@
 
 
 [git]
-# How many repos to pull at max in parallel
+# How many repos to pull or fetch at max in parallel
 # max_concurrency = 5
 
-# Additional git repositories to pull
+# Additional git repositories to pull or fetch
 # repos = [
 #     "~/src/*/",
 #     "~/.config/something"
 # ]
 
-# Don't pull the predefined git repos
+# Set to `false` to skip pulling/fetching the predefined git repos
 # pull_predefined = false
 
-# Arguments to pass Git when pulling Repositories
+# Arguments to pass Git when pulling/fetching Repositories
 # arguments = "--rebase --autostash"
 
+# Whether to perform a `git fetch` instead of `git pull`
+# fetch_only = false
 
 [windows]
 # Manually select Windows updates
@@ -290,6 +314,24 @@
 # Exclude encrypted files from update
 # (default: false)
 # exclude_encrypted = false
+
+[mise]
+# Upgrades to the latest version available, bumping the version in mise.toml
+# (default: false)
+# bump = false
+
+# Number of jobs to run in parallel
+# (default: 4)
+# jobs = 4
+
+# Run interactively
+# (default: false)
+# interactive = false
+
+[go]
+# Exclude specified binaries from `gup update`
+# gup_exclude = ["kind", "pkgsite"]
+
 
 [npm]
 # Use sudo if the NPM directory isn't owned by the current user
@@ -341,6 +383,14 @@
 # ignored_containers = ["ghcr.io/rancher-sandbox/rancher-desktop/rdx-proxy:latest", "docker.io*"]
 # Specify the runtime to use for containers (default: "docker", allowed values: "docker", "podman")
 # runtime = "podman"
+
+# Run 'docker system prune' to clean up unused containers, networks, and build cache
+# (default: false)
+# system_prune = false
+
+# Use sudo for updating containers. Necessary for non-rootless installs.
+# (default: false)
+# use_sudo = false
 
 [lensfun]
 # If disabled, Topgrade invokes `lensfun‑update‑data` without root privilege,
@@ -399,6 +449,18 @@
 # which enables ahead-of-time native compilation of packages.
 # (default: false)
 # aot = true
+
+[cargo]
+# If this is set to true, `cargo install-update` also updates git-originating packages.
+# (default: true)
+# git = false
+
+# If this is set to true, `cargo install-update` is run quietly.
+# (default: false)
+# quiet = true
+
+# Other options like `--locked` or `--jobs` can be passed to `cargo install`
+# using the `CARGO_INSTALL_OPTS` environment variable.
 
 [rustup]
 # If set, updates only these channels.

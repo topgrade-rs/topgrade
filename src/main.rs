@@ -1,18 +1,17 @@
 #![allow(clippy::cognitive_complexity)]
 
 use std::env;
+use std::env::home_dir;
 use std::io;
 use std::path::PathBuf;
 use std::process::exit;
 use std::time::Duration;
 
-use crate::breaking_changes::{first_run_of_major_release, print_breaking_changes, should_skip, write_keep_file};
 use clap::CommandFactory;
-use clap::{crate_version, Parser};
+use clap::{Parser, crate_version};
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use console::Key;
-use etcetera::base_strategy::BaseStrategy;
 #[cfg(windows)]
 use etcetera::base_strategy::Windows;
 #[cfg(unix)]
@@ -47,9 +46,11 @@ mod step;
 mod steps;
 mod sudo;
 mod terminal;
+#[cfg(unix)]
+mod tmux;
 mod utils;
 
-pub(crate) static HOME_DIR: LazyLock<PathBuf> = LazyLock::new(|| home::home_dir().expect("No home directory"));
+pub(crate) static HOME_DIR: LazyLock<PathBuf> = LazyLock::new(|| home_dir().expect("No home directory"));
 #[cfg(unix)]
 pub(crate) static XDG_DIRS: LazyLock<Xdg> = LazyLock::new(|| Xdg::new().expect("No home directory"));
 
@@ -95,11 +96,8 @@ fn run() -> Result<()> {
         return Ok(());
     }
 
-    for env in opt.env_variables() {
-        let mut parts = env.split('=');
-        let var = parts.next().unwrap();
-        let value = parts.next().unwrap();
-        env::set_var(var, value);
+    for (key, value) in opt.env_variables() {
+        unsafe { env::set_var(key, value) };
     }
 
     if opt.edit_config() {
@@ -171,20 +169,8 @@ fn run() -> Result<()> {
     );
     let mut runner = runner::Runner::new(&ctx);
 
-    // If
-    //
-    // 1. the breaking changes notification shouldn't be skipped
-    // 2. this is the first execution of a major release
-    //
-    // inform user of breaking changes
-    if !should_skip() && first_run_of_major_release()? {
-        print_breaking_changes();
-
-        if prompt_yesno(&t!("Continue?"))? {
-            write_keep_file()?;
-        } else {
-            exit(1);
-        }
+    if !breaking_changes::should_skip() {
+        breaking_changes::run()?;
     }
 
     step::Step::SelfUpdate.run(&mut runner, &ctx)?;
@@ -196,11 +182,14 @@ fn run() -> Result<()> {
         None
     };
 
-    if config.pre_sudo() {
-        if let Some(sudo) = ctx.sudo() {
-            sudo.elevate(&ctx)?;
-        }
+    if config.pre_sudo()
+        && let Some(sudo) = ctx.sudo()
+    {
+        sudo.elevate(&ctx)?;
     }
+
+    // Held until `run()` returns — dropping would stop the background thread.
+    let _sudo_loop_guard = spawn_sudo_loop(&ctx, &config);
 
     if let Some(commands) = config.pre_commands() {
         for (name, command) in commands {
@@ -276,10 +265,10 @@ fn run() -> Result<()> {
     }
 
     #[cfg(target_os = "linux")]
-    if config.show_distribution_summary() {
-        if let Ok(distribution) = &distribution {
-            distribution.show_summary();
-        }
+    if config.show_distribution_summary()
+        && let Ok(distribution) = &distribution
+    {
+        distribution.show_summary();
     }
 
     if let Some(commands) = config.post_commands() {
@@ -311,7 +300,13 @@ fn run() -> Result<()> {
         }
     }
 
-    if !config.skip_notify() {
+    let should_notify = match config.notify_end() {
+        config::NotifyEnd::Always => true,
+        config::NotifyEnd::Never => false,
+        config::NotifyEnd::OnFailure => failed,
+    };
+
+    if should_notify {
         notify_desktop(
             if failed {
                 t!("Topgrade finished with errors")
@@ -322,11 +317,33 @@ fn run() -> Result<()> {
         );
     }
 
-    if failed {
-        Err(StepFailed.into())
-    } else {
-        Ok(())
+    if failed { Err(StepFailed.into()) } else { Ok(()) }
+}
+
+fn spawn_sudo_loop(ctx: &execution_context::ExecutionContext, config: &Config) -> Option<std::sync::mpsc::Sender<()>> {
+    if !config.sudo_loop() {
+        return None;
     }
+    let sudo = ctx.sudo().as_ref()?.clone();
+    let run_type = ctx.run_type();
+    let interval = Duration::from_secs(config.sudo_loop_interval().into());
+    let (tx, rx) = std::sync::mpsc::channel::<()>();
+    std::thread::Builder::new()
+        .name("sudo-loop".into())
+        .spawn(move || {
+            loop {
+                match rx.recv_timeout(interval) {
+                    Ok(()) | Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                        if let Err(err) = sudo.refresh(run_type) {
+                            print_warning(format!("Failed to refresh sudo credentials: {err:?}"));
+                        }
+                    }
+                }
+            }
+        })
+        .expect("failed to spawn sudo-loop thread");
+    Some(tx)
 }
 
 fn main() {

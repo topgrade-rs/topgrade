@@ -8,12 +8,18 @@ on:
       - reopened
       - synchronize
 
+permissions: { }
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   main:
     name: Validate PR title
     runs-on: ubuntu-latest
     permissions:
-      pull-requests: read
+      pull-requests: read # amannn/action-semantic-pull-request
     steps:
       - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6.1.1
         env:

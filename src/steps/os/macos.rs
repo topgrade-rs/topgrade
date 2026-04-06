@@ -7,7 +7,8 @@ use color_eyre::eyre::Result;
 use rust_i18n::t;
 use std::collections::HashSet;
 use std::fs;
-use std::process::Command;
+use std::io::{self, Write};
+use std::path::PathBuf;
 use tracing::debug;
 
 pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
@@ -35,13 +36,52 @@ pub fn run_mas(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(mas).arg("upgrade").status_checked()
 }
 
+pub fn run_microsoft_office(ctx: &ExecutionContext) -> Result<()> {
+    let msupdate = find_msupdate()?;
+    print_separator("Microsoft Office");
+
+    // Check for available updates first
+    let output = ctx.execute(&msupdate).always().arg("--list").output_checked_utf8()?;
+
+    debug!("msupdate --list output: {:?}", output);
+
+    if output.stdout.contains("No updates available") {
+        io::stdout().write_all(output.stdout.as_bytes())?;
+        io::stderr().write_all(output.stderr.as_bytes())?;
+        return Ok(());
+    }
+
+    // Install updates, waiting up to 600 seconds for completion
+    ctx.execute(&msupdate)
+        .args(["--install", "--wait", "600"])
+        .status_checked()
+}
+
+fn find_msupdate() -> Result<PathBuf> {
+    // Known paths where Microsoft AutoUpdate places msupdate
+    let candidates = [
+        "/Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app/Contents/MacOS/msupdate",
+        "/Library/Application Support/Microsoft/MAU 2.0/Microsoft AutoUpdate.app/Contents/MacOS/msupdate",
+    ];
+
+    for path in &candidates {
+        let p = PathBuf::from(path);
+        if p.exists() {
+            debug!("Found msupdate at {:?}", p);
+            return Ok(p);
+        }
+    }
+
+    Err(crate::error::SkipStep("Microsoft AutoUpdate (msupdate) not found".to_string()).into())
+}
+
 pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
     print_separator(t!("macOS system update"));
 
     let should_ask = !(ctx.config().yes(Step::System) || ctx.run_type().dry());
     if should_ask {
         println!("{}", t!("Finding available software"));
-        if system_update_available()? {
+        if system_update_available(ctx)? {
             let answer = prompt_yesno(t!("A system update is available. Do you wish to install it?").as_ref())?;
             if !answer {
                 return Ok(());
@@ -63,8 +103,12 @@ pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
     command.status_checked()
 }
 
-fn system_update_available() -> Result<bool> {
-    let output = Command::new("softwareupdate").arg("--list").output_checked_utf8()?;
+fn system_update_available(ctx: &ExecutionContext) -> Result<bool> {
+    let output = ctx
+        .execute("softwareupdate")
+        .always()
+        .arg("--list")
+        .output_checked_utf8()?;
 
     debug!("{:?}", output);
 
@@ -77,7 +121,9 @@ pub fn run_sparkle(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Sparkle");
 
     for application in (fs::read_dir("/Applications")?).flatten() {
-        let probe = Command::new(&sparkle)
+        let probe = ctx
+            .execute(&sparkle)
+            .always()
             .args(["--probe", "--application"])
             .arg(application.path())
             .output_checked_utf8();
@@ -154,7 +200,12 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
         process_xcodes_releases(releases_regular, should_ask, ctx)?;
     }
 
-    let releases_new = ctx.execute(&xcodes).args(["list"]).output_checked_utf8()?.stdout;
+    let releases_new = ctx
+        .execute(&xcodes)
+        .always()
+        .args(["list"])
+        .output_checked_utf8()?
+        .stdout;
 
     let releases_gm_new_installed: HashSet<_> = releases_new
         .lines()
@@ -200,7 +251,7 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
 pub fn process_xcodes_releases(releases_filtered: Vec<String>, should_ask: bool, ctx: &ExecutionContext) -> Result<()> {
     let xcodes = require("xcodes")?;
 
-    if releases_filtered.last().map_or(true, |s| !s.contains("(Installed)")) && !releases_filtered.is_empty() {
+    if releases_filtered.last().is_none_or(|s| !s.contains("(Installed)")) && !releases_filtered.is_empty() {
         println!(
             "{} {}",
             t!("New Xcode release detected:"),

@@ -9,7 +9,7 @@ use crate::ctrlc;
 use crate::error::{DryRun, MissingSudo, SkipStep};
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
-use crate::terminal::{print_error, print_warning, should_retry, ShouldRetry};
+use crate::terminal::{ShouldRetry, print_error, print_warning, should_retry};
 
 pub enum StepResult {
     Success(Option<UpdatedComponents>),
@@ -28,6 +28,12 @@ impl StepResult {
             Failure => true,
         }
     }
+}
+
+enum RetryDecision {
+    Retry,
+    Quit,
+    Continue(StepResult),
 }
 
 type Report<'a> = Vec<(Cow<'a, str>, StepResult)>;
@@ -100,6 +106,24 @@ impl<'a> Runner<'a> {
         }
     }
 
+    fn handle_retry_prompt(
+        &self,
+        key: &str,
+        error: &color_eyre::eyre::Error,
+        ignore_failure: bool,
+    ) -> Result<RetryDecision> {
+        print_error(key, format!("{error:?}"));
+        match should_retry(key)? {
+            ShouldRetry::Yes => Ok(RetryDecision::Retry),
+            ShouldRetry::Quit => Ok(RetryDecision::Quit),
+            ShouldRetry::No => Ok(RetryDecision::Continue(if ignore_failure {
+                StepResult::Ignored
+            } else {
+                StepResult::Failure
+            })),
+        }
+    }
+
     fn push_result(&mut self, key: Cow<'a, str>, result: StepResult) {
         debug_assert!(!self.report.iter().any(|(k, _)| k == &key), "{key} already reported");
         self.report.push((key, result));
@@ -141,6 +165,11 @@ impl<'a> Runner<'a> {
             func()
         };
 
+        // Total max attempts = 1 (initial) + auto_retry count
+        let max_attempts = self.ctx.config().auto_retry().saturating_add(1);
+
+        let mut attempt = 1;
+
         loop {
             match func() {
                 Ok(updated) => {
@@ -167,31 +196,49 @@ impl<'a> Runner<'a> {
                     }
 
                     let ignore_failure = self.ctx.config().ignore_failure(step);
-                    let should_ask = interrupted || !(self.ctx.config().no_retry() || ignore_failure);
-                    let should_retry = if should_ask {
-                        print_error(&key, format!("{e:?}"));
-                        should_retry(key.as_ref())?
+
+                    // Decide whether to prompt the user
+                    let has_auto_retries_left = attempt < max_attempts;
+                    let should_prompt = if interrupted {
+                        // If interrupted, always prompt
+                        true
+                    } else if has_auto_retries_left {
+                        // If not interrupted, auto-retry if we want to
+                        attempt += 1;
+                        continue;
+                    } else if ignore_failure {
+                        // If ignore_failure, never prompt (except when interrupted)
+                        false
                     } else {
-                        ShouldRetry::No
+                        // Otherwise, prompt when we are configured to prompt
+                        self.ctx.config().ask_retry()
                     };
 
-                    match should_retry {
-                        ShouldRetry::No | ShouldRetry::Quit => {
-                            self.push_result(
-                                key,
-                                if ignore_failure {
-                                    StepResult::Ignored
-                                } else {
-                                    StepResult::Failure
-                                },
-                            );
-                            if let ShouldRetry::Quit = should_retry {
+                    if should_prompt {
+                        match self.handle_retry_prompt(&key, &e, ignore_failure)? {
+                            RetryDecision::Retry => {
+                                continue;
+                            }
+                            RetryDecision::Quit => {
+                                self.push_result(key, StepResult::Failure);
                                 return Err(io::Error::from(io::ErrorKind::Interrupted))
                                     .context("Quit from user input");
                             }
-                            break;
+                            RetryDecision::Continue(result) => {
+                                self.push_result(key, result);
+                                break;
+                            }
                         }
-                        ShouldRetry::Yes => (),
+                    } else {
+                        self.push_result(
+                            key,
+                            if ignore_failure {
+                                StepResult::Ignored
+                            } else {
+                                StepResult::Failure
+                            },
+                        );
+                        break;
                     }
                 }
             }

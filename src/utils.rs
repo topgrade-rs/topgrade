@@ -1,8 +1,6 @@
-use std::env;
 use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use color_eyre::eyre::Result;
 use rust_i18n::t;
@@ -11,12 +9,14 @@ use tracing::{debug, error};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::reload::{Handle, Layer};
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{fmt, Registry};
-use tracing_subscriber::{registry, EnvFilter};
+use tracing_subscriber::{EnvFilter, registry};
+use tracing_subscriber::{Registry, fmt};
 
 use crate::command::CommandExt;
 use crate::config::DEFAULT_LOG_LEVEL;
 use crate::error::SkipStep;
+use crate::execution_context::ExecutionContext;
+use crate::executor::Executor;
 
 pub trait PathExt
 where
@@ -82,14 +82,6 @@ pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBuf> {
     }
 }
 
-pub fn editor() -> Vec<String> {
-    env::var("EDITOR")
-        .unwrap_or_else(|_| String::from(if cfg!(windows) { "notepad" } else { "vi" }))
-        .split_whitespace()
-        .map(std::borrow::ToOwned::to_owned)
-        .collect()
-}
-
 pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
     match which_crate::which(&binary_name) {
         Ok(path) => {
@@ -109,6 +101,23 @@ pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
                 panic!("Detecting {:?} failed: {}", &binary_name, e);
             }
         },
+    }
+}
+
+#[allow(unused)]
+pub fn require_flatpak(ctx: &ExecutionContext, name: &str) -> Result<Executor> {
+    let flatpak = require("flatpak")?;
+
+    let result = ctx.execute(&flatpak).always().args(["info", name]).output_checked();
+
+    match result {
+        Ok(_) => {
+            debug!("Flatpak {name:?} is installed");
+            let mut cmd = ctx.execute(&flatpak);
+            cmd.args(["run", name]);
+            Ok(cmd)
+        }
+        _ => Err(SkipStep(t!("Flatpak {name} is not installed", name = name).to_string()).into()),
     }
 }
 
@@ -163,10 +172,8 @@ pub fn hostname() -> Result<String> {
 
 #[cfg(windows)]
 pub fn hostname() -> Result<String> {
-    Command::new("hostname")
-        .output_checked_utf8()
+    std::env::var("COMPUTERNAME")
         .map_err(|err| SkipStep(t!("Failed to get hostname: {err}", err = err).to_string()).into())
-        .map(|output| output.stdout.trim().to_owned())
 }
 
 #[cfg(unix)]
@@ -218,7 +225,7 @@ pub mod merge_strategies {
     where
         T: Merge,
     {
-        if let Some(ref mut left_inner) = left {
+        if let Some(left_inner) = left {
             if let Some(right_inner) = right {
                 left_inner.merge(right_inner);
             }
@@ -228,7 +235,7 @@ pub mod merge_strategies {
     }
 
     pub fn commands_merge_opt(left: &mut Option<Commands>, right: Option<Commands>) {
-        if let Some(ref mut left_inner) = left {
+        if let Some(left_inner) = left {
             if let Some(right_inner) = right {
                 left_inner.extend(right_inner);
             }
@@ -248,8 +255,8 @@ pub mod merge_strategies {
 ///
 /// We do this check through `python -V`, a shim will just give `Python` with
 /// no version number.
-pub fn check_is_python_2_or_shim(python: PathBuf) -> Result<PathBuf> {
-    let output = Command::new(&python).arg("-V").output_checked_utf8()?;
+pub fn check_is_python_2_or_shim(ctx: &ExecutionContext, python: PathBuf) -> Result<PathBuf> {
+    let output = ctx.execute(&python).always().arg("-V").output_checked_utf8()?;
     // "Python x.x.x\n"
     let stdout = output.stdout;
     // ["Python"] or ["Python", "x.x.x"], the newline char is trimmed.

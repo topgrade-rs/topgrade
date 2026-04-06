@@ -1,6 +1,6 @@
+use crate::HOME_DIR;
 use crate::command::CommandExt;
 use crate::error::{SkipStep, TopgradeError};
-use crate::HOME_DIR;
 use color_eyre::eyre::Result;
 use etcetera::base_strategy::BaseStrategy;
 
@@ -8,14 +8,11 @@ use crate::executor::{Executor, ExecutorOutput};
 use crate::terminal::print_separator;
 use crate::{
     execution_context::ExecutionContext,
-    utils::{require, PathExt},
+    utils::{PathExt, require},
 };
 use rust_i18n::t;
+use std::io::{self, Write};
 use std::path::PathBuf;
-use std::{
-    io::{self, Write},
-    process::Command,
-};
 use tracing::debug;
 
 const UPGRADE_VIM: &str = include_str!("upgrade.vim");
@@ -120,7 +117,7 @@ pub fn upgrade_ultimate_vimrc(ctx: &ExecutionContext) -> Result<()> {
 pub fn upgrade_vim(ctx: &ExecutionContext) -> Result<()> {
     let vim = require("vim")?;
 
-    let output = Command::new(&vim).arg("--version").output_checked_utf8()?;
+    let output = ctx.execute(&vim).always().arg("--version").output_checked_utf8()?;
     if !output.stdout.starts_with("VIM") {
         return Err(SkipStep(t!("vim binary might be actually nvim").to_string()).into());
     }

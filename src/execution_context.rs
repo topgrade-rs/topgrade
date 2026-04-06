@@ -2,7 +2,7 @@
 use std::env::var;
 use std::ffi::OsStr;
 use std::process::Command;
-use std::sync::{LazyLock, Mutex};
+use std::sync::{Mutex, OnceLock};
 
 use clap::ValueEnum;
 use color_eyre::eyre::Result;
@@ -42,6 +42,16 @@ impl RunType {
             RunType::Damp => false,
         }
     }
+
+    /// Create an `Executor` for the given program using this run type.
+    #[allow(clippy::disallowed_methods)]
+    pub fn execute<S: AsRef<OsStr>>(self, program: S) -> Executor {
+        match self {
+            RunType::Dry => Executor::Dry(DryCommand::new(program)),
+            RunType::Wet => Executor::Wet(Command::new(program)),
+            RunType::Damp => Executor::Damp(Command::new(program)),
+        }
+    }
 }
 
 pub struct ExecutionContext<'a> {
@@ -56,7 +66,7 @@ pub struct ExecutionContext<'a> {
     under_ssh: bool,
     #[cfg(target_os = "linux")]
     distribution: &'a Result<Distribution>,
-    powershell: LazyLock<Option<Powershell>>,
+    powershell: OnceLock<Option<Powershell>>,
 }
 
 impl<'a> ExecutionContext<'a> {
@@ -75,17 +85,13 @@ impl<'a> ExecutionContext<'a> {
             under_ssh,
             #[cfg(target_os = "linux")]
             distribution,
-            powershell: LazyLock::new(Powershell::new),
+            powershell: OnceLock::new(),
         }
     }
 
     /// Create an instance of `Executor` that should run `program`.
     pub fn execute<S: AsRef<OsStr>>(&self, program: S) -> Executor {
-        match self.run_type {
-            RunType::Dry => Executor::Dry(DryCommand::new(program)),
-            RunType::Wet => Executor::Wet(Command::new(program)),
-            RunType::Damp => Executor::Damp(Command::new(program)),
-        }
+        self.run_type.execute(program)
     }
 
     pub fn run_type(&self) -> RunType {
@@ -126,10 +132,13 @@ impl<'a> ExecutionContext<'a> {
     }
 
     pub fn powershell(&self) -> &Option<Powershell> {
-        &self.powershell
+        self.powershell.get_or_init(|| Powershell::new(self))
     }
 
     pub fn require_powershell(&self) -> Result<&Powershell> {
-        require_option(self.powershell.as_ref(), t!("Powershell is not installed").to_string())
+        require_option(
+            self.powershell().as_ref(),
+            t!("Powershell is not installed").to_string(),
+        )
     }
 }

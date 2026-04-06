@@ -1,18 +1,17 @@
 use std::env;
 use std::path::PathBuf;
-use std::process::Command;
 
 use color_eyre::eyre::Result;
 use tracing::debug;
 use walkdir::WalkDir;
 
+use crate::HOME_DIR;
+use crate::XDG_DIRS;
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::git::RepoStep;
 use crate::terminal::print_separator;
-use crate::utils::{require, PathExt};
-use crate::HOME_DIR;
-use crate::XDG_DIRS;
+use crate::utils::{PathExt, require};
 use etcetera::base_strategy::BaseStrategy;
 
 pub fn run_zr(ctx: &ExecutionContext) -> Result<()> {
@@ -125,7 +124,8 @@ pub fn run_zim(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
     env::var("ZIM_HOME")
         .or_else(|_| {
-            Command::new("zsh")
+            ctx.execute("zsh")
+                .always()
                 // TODO: Should these be quoted?
                 .args(["-c", "[[ -n ${ZIM_HOME} ]] && print -n ${ZIM_HOME}"])
                 .output_checked_utf8()
@@ -154,7 +154,9 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
     // children processes won't get it either, so we source the zshrc and set
     // the ZSH variable for topgrade here.
     if ctx.under_ssh() {
-        let res_env_zsh = Command::new("zsh")
+        let res_env_zsh = ctx
+            .execute("zsh")
+            .always()
             .args(["-ic", "print -rn -- ${ZSH:?}"])
             .output_checked_utf8();
 
@@ -162,7 +164,7 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
         if let Ok(output) = res_env_zsh {
             let env_zsh = output.stdout;
             debug!("Oh-my-zsh: under SSH, setting ZSH={}", env_zsh);
-            env::set_var("ZSH", env_zsh);
+            unsafe { env::set_var("ZSH", env_zsh) };
         }
     }
 
@@ -176,7 +178,8 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
 
     let custom_dir = env::var::<_>("ZSH_CUSTOM")
         .or_else(|_| {
-            Command::new("zsh")
+            ctx.execute("zsh")
+                .always()
                 // TODO: Should these be quoted?
                 .args(["-c", "test $ZSH_CUSTOM && echo -n $ZSH_CUSTOM"])
                 .output_checked_utf8()
@@ -198,7 +201,7 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
 
     for entry in WalkDir::new(custom_dir).max_depth(2) {
         let entry = entry?;
-        custom_repos.insert_if_repo(entry.path());
+        custom_repos.insert_if_repo(ctx, entry.path());
     }
 
     custom_repos.remove(&oh_my_zsh);

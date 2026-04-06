@@ -1,22 +1,24 @@
 <div align="center">
   <h1>
-    <img alt="Topgrade" src="doc/topgrade_transparent.png" width="850px">
+    <img alt="Topgrade" src="https://github.com/topgrade-rs/topgrade/blob/main/doc/topgrade_transparent.png?raw=true" width="850px">
   </h1>
 
-  <a href="https://github.com/topgrade-rs/topgrade/releases"><img alt="GitHub Release" src="https://img.shields.io/github/release/topgrade-rs/topgrade.svg"></a>
-  <a href="https://crates.io/crates/topgrade"><img alt="crates.io" src="https://img.shields.io/crates/v/topgrade.svg"></a>
-  <a href="https://aur.archlinux.org/packages/topgrade"><img alt="AUR" src="https://img.shields.io/aur/version/topgrade.svg"></a>
-  <a href="https://formulae.brew.sh/formula/topgrade"><img alt="Homebrew" src="https://img.shields.io/homebrew/v/topgrade.svg"></a>
+<a href="https://github.com/topgrade-rs/topgrade/releases"><img alt="GitHub Release" src="https://img.shields.io/github/release/topgrade-rs/topgrade.svg"></a>
+<a href="https://crates.io/crates/topgrade"><img alt="crates.io" src="https://img.shields.io/crates/v/topgrade.svg"></a>
+<a href="https://aur.archlinux.org/packages/topgrade"><img alt="AUR" src="https://img.shields.io/aur/version/topgrade.svg"></a>
+<a href="https://formulae.brew.sh/formula/topgrade"><img alt="Homebrew" src="https://img.shields.io/homebrew/v/topgrade.svg"></a>
+<br>
+<a href="https://discord.gg/Q8HGGWundY"><img alt="Discord" src="https://img.shields.io/badge/Discord-%235865F2.svg?logo=discord&logoColor=white"></a>
 
-  <img alt="Demo" src="doc/topgrade_demo.gif">
+  <img alt="Demo" src="https://github.com/topgrade-rs/topgrade/blob/main/doc/topgrade_demo.gif?raw=true">
 </div>
 
 ## Introduction
 
-> **Note**
+> [!NOTE]
 > This is a fork of [topgrade by r-darwish](https://github.com/r-darwish/topgrade) to keep it maintained.
 
-Keeping your system up to date usually involves invoking multiple package managers.
+Keeping your system up-to-date usually involves invoking multiple package managers.
 This results in big, non-portable shell one-liners saved in your shell.
 To remedy this, **Topgrade** detects which tools you use and runs the appropriate commands to update them.
 
@@ -37,6 +39,8 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 - Windows ([Winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/)): [
   `winget install --id=topgrade-rs.topgrade  -e`](https://winstall.app/apps/topgrade-rs.topgrade)
 - macOS or Linux ([Homebrew](https://brew.sh/)): [`brew install topgrade`](https://formulae.brew.sh/formula/topgrade)
+- Fedora/RHEL/AlmaLinux/CentOS-Stream ([Copr](https://copr.fedorainfracloud.org/)): [
+  `sudo dnf copr enable lilay/topgrade && sudo dnf install topgrade`](https://copr.fedorainfracloud.org/coprs/lilay/topgrade/)
 
 ### Community-maintained
 
@@ -46,9 +50,10 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
   `scoop bucket add main && scoop install main/topgrade`](https://scoop.sh/#/apps?q=topgrade)
 - macOS ([MacPorts](https://www.macports.org/)): [
   `sudo port install topgrade`](https://ports.macports.org/port/topgrade/)
-- Fedora ([Copr](https://copr.fedorainfracloud.org/)): [
-  `dnf copr enable lilay/topgrade && dnf install topgrade`](https://copr.fedorainfracloud.org/coprs/lilay/topgrade/)
+- Ubuntu ([Pacstall](https://pacstall.dev/)):
+  [`pacstall -I topgrade-bin`](https://github.com/pacstall/pacstall-programs/blob/master/packages/topgrade-bin/topgrade-bin.pacscript)
 - NixOS or Nix (nixpkgs): [topgrade](https://search.nixos.org/packages?show=topgrade)
+- Alpine Linux: [`sudo apk add topgrade`](https://pkgs.alpinelinux.org/package/edge/community/x86_64/topgrade)
 - Void Linux: [`sudo xbps-install -S topgrade`](https://voidlinux.org/packages/?arch=x86_64&q=topgrade)
 
 ## Usage
@@ -57,7 +62,11 @@ Just run `topgrade`.
 
 ## Configuration
 
-See `config.example.toml` for an example configuration file.
+See [`config.example.toml`](https://github.com/topgrade-rs/topgrade/blob/main/config.example.toml) for an example configuration file.
+
+## MSRV
+
+Find the current MSRV in `Cargo.toml` under `rust-version`. This MSRV will only be bumped in a major release.
 
 ## Migration and Breaking Changes
 
@@ -79,22 +88,22 @@ it when updated to a major release.
 1. `CONFIG_DIR/topgrade.toml`
 2. `CONFIG_DIR/topgrade/topgrade.toml`
 
-If the file with higher priority is present, no matter it is valid or not, the other configuration files will be
+If the file with higher priority is present, no matter if it is valid or not, the other configuration files will be
 ignored.
 
-On the first run(no configuration file exists), `topgrade` will create a configuration file at
+On the first run (provided that no configuration file exists), `topgrade` will create a configuration file at
 `CONFIG_DIR/topgrade.toml` for you.
 
 ### Custom Commands
 
-Custom commands can be defined in the config file which can be run before, during, or after the inbuilt commands, as
+Custom commands can be defined in the configuration file, which can be run before, during, or after the inbuilt commands, as
 required.
-By default, the custom commands are run using a new shell according to the `$SHELL` environment variable on unix (falls
-back to `sh`) or `pwsh` on windows (falls back to `powershell`).
+By default, the custom commands are run using a new shell according to the `$SHELL` environment variable on Unix (falls
+back to `sh`) or `pwsh` on Windows (falls back to `powershell`).
 
-On unix, if you want to run your command using an interactive shell, for example to source your shell's rc files, you
+On Unix, if you want to run your command using an interactive shell, for example to source your shell's RC files, you
 can add `-i` at the start of your custom command.
-But note that this requires the command to exit the shell correctly or else the shell will hang indefinitely.
+Although note that this requires the command to exit the shell correctly, or else the shell will hang indefinitely.
 
 ## Remote Execution
 
@@ -117,9 +126,9 @@ its usage.
 
 ### Want to contribute?
 
-See [CONTRIBUTING.md](https://github.com/topgrade-rs/topgrade/blob/master/CONTRIBUTING.md)
+See [CONTRIBUTING.md](https://github.com/topgrade-rs/topgrade/blob/main/CONTRIBUTING.md)
 
 ## Discord server
 
-Welcome to [join](https://discord.gg/Q8HGGWundY) our Discord server if you want
+You're welcome to [join](https://discord.gg/Q8HGGWundY) our Discord server if you want
 to discuss Topgrade!

@@ -118,8 +118,13 @@ fn is_wsl_installed() -> Result<bool> {
     Ok(false)
 }
 
-fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
-    let output = Command::new(wsl).args(["--list", "-q"]).output_checked_utf8()?.stdout;
+fn get_wsl_distributions(ctx: &ExecutionContext, wsl: &Path) -> Result<Vec<String>> {
+    let output = ctx
+        .execute(wsl)
+        .always()
+        .args(["--list", "-q"])
+        .output_checked_utf8()?
+        .stdout;
     Ok(output
         .lines()
         .map(|x| x.replace(['\u{0}', '\r'], "").trim().to_owned())
@@ -128,7 +133,9 @@ fn get_wsl_distributions(wsl: &Path) -> Result<Vec<String>> {
 }
 
 fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> Result<()> {
-    let topgrade = Command::new(wsl)
+    let topgrade = ctx
+        .execute(wsl)
+        .always()
         .args(["-d", dist, "bash", "-lc", "which topgrade"])
         .output_checked_utf8()
         .map_err(|_| SkipStep(t!("Could not find Topgrade installed in WSL").to_string()))?
@@ -184,7 +191,7 @@ pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     }
 
     let wsl = require("wsl")?;
-    let wsl_distributions = get_wsl_distributions(&wsl)?;
+    let wsl_distributions = get_wsl_distributions(ctx, &wsl)?;
     let mut ran = false;
 
     debug!("WSL distributions: {:?}", wsl_distributions);
@@ -192,10 +199,10 @@ pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     for distribution in wsl_distributions {
         let result = upgrade_wsl_distribution(&wsl, &distribution, ctx);
         debug!("Upgrading {:?}: {:?}", distribution, result);
-        if let Err(e) = result {
-            if e.is::<SkipStep>() {
-                continue;
-            }
+        if let Err(e) = result
+            && e.is::<SkipStep>()
+        {
+            continue;
         }
         ran = true
     }
@@ -212,7 +219,7 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Windows Update"));
 
-    if !powershell.has_module("PSWindowsUpdate") {
+    if !powershell.has_module(ctx, "PSWindowsUpdate") {
         print_warning(t!(
             "The PSWindowsUpdate PowerShell module isn't installed so Topgrade can't run Windows Update.\nInstall PSWindowsUpdate by running `Install-Module PSWindowsUpdate` in PowerShell."
         ));
@@ -254,11 +261,7 @@ pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
             }
             let ret_val = output.stdout.trim();
             debug!("Command return value: {}", ret_val);
-            if ret_val == "0" {
-                Ok(())
-            } else {
-                Err(())
-            }
+            if ret_val == "0" { Ok(()) } else { Err(()) }
         })?;
     println!(
         "{}",
@@ -273,18 +276,18 @@ pub fn reboot(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute("shutdown.exe").args(["/R", "/T", "0"]).status_checked()
 }
 
-pub fn insert_startup_scripts(git_repos: &mut RepoStep) -> Result<()> {
+pub fn insert_startup_scripts(ctx: &ExecutionContext, git_repos: &mut RepoStep) -> Result<()> {
     let startup_dir = crate::WINDOWS_DIRS
         .data_dir()
         .join("Microsoft\\Windows\\Start Menu\\Programs\\Startup");
     for entry in std::fs::read_dir(&startup_dir)?.flatten() {
         let path = entry.path();
-        if path.extension().and_then(OsStr::to_str) == Some("lnk") {
-            if let Ok(lnk) = parselnk::Lnk::try_from(Path::new(&path)) {
-                debug!("Startup link: {:?}", lnk);
-                if let Some(path) = lnk.relative_path() {
-                    git_repos.insert_if_repo(startup_dir.join(path));
-                }
+        if path.extension().and_then(OsStr::to_str) == Some("lnk")
+            && let Ok(lnk) = parselnk::Lnk::try_from(Path::new(&path))
+        {
+            debug!("Startup link: {:?}", lnk);
+            if let Some(path) = lnk.relative_path() {
+                git_repos.insert_if_repo(ctx, startup_dir.join(path));
             }
         }
     }
