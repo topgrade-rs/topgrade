@@ -8,6 +8,7 @@ pub mod node;
 pub mod os;
 pub mod powershell;
 pub mod remote;
+pub mod soar;
 #[cfg(unix)]
 pub mod tmux;
 #[cfg(target_os = "linux")]
