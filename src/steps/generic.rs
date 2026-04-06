@@ -2087,5 +2087,5 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Skills");
 
-    ctx.execute(npx).args(["skills", "update"]).status_checked()
+    ctx.execute(npx).args(["--yes", "skills", "update"]).status_checked()
 }
