@@ -35,6 +35,6 @@ jobs:
           fi
           if [[ "$BODY" != *"$MARKER"* ]]; then
             echo "Did not find '$MARKER' in PR body, closing..."
-            gh pr comment "$PR" --body "$MSG"
-            gh pr close "$PR"
+            gh pr comment --repo "$REPO" "$PR" --body "$MSG"
+            gh pr close --repo "$REPO" "$PR"
           fi
