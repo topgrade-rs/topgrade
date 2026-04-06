@@ -1013,6 +1013,14 @@ pub fn run_snap(ctx: &ExecutionContext) -> Result<()> {
     sudo.execute(ctx, &snap)?.arg("refresh").status_checked()
 }
 
+pub fn run_soar(ctx: &ExecutionContext) -> Result<()> {
+    let soar = require("soar")?;
+
+    print_separator("soar");
+
+    ctx.execute(soar).arg("update").status_checked()
+}
+
 pub fn run_pihole_update(ctx: &ExecutionContext) -> Result<()> {
     let pihole = require("pihole")?;
     Path::new("/opt/pihole/update.sh").require()?;
