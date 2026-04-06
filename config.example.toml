@@ -438,7 +438,7 @@
 # If not set or set to an empty list, Topgrade updates only the default profile
 # via plain `colima update`.
 # Include "default" explicitly if you want it updated alongside custom profiles.
-# (default: this won't be set by default)
+# (default: not set)
 # profiles = ["default", "aarch64"]
 
 [vscode]
