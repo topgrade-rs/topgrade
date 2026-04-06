@@ -1,7 +1,6 @@
-use color_eyre::eyre::{eyre, Context, Result, OptionExt};
-use jetbrains_toolbox_updater::{find_jetbrains_toolbox, update_jetbrains_toolbox, FindError};
+use color_eyre::eyre::{Context, OptionExt, Result, eyre};
+use jetbrains_toolbox_updater::{FindError, find_jetbrains_toolbox, update_jetbrains_toolbox};
 use regex::Regex;
-use color_eyre::eyre::{OptionExt, eyre};
 use rust_i18n::t;
 use semver::Version;
 use serde::Deserialize;
