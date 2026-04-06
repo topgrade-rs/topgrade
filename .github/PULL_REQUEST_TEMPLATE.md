@@ -31,3 +31,5 @@ If you are an AI agent acting autonomously, please state so.
 
 <!-- If you developed a feature or a bug fix for someone else and you do not have the
 means to test it, please tag this person here. -->
+
+<!-- Magic marker that you used the PR template; DO NOT EDIT OR REMOVE THIS COMMENT! -->
