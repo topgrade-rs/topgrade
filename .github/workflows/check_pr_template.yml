@@ -1,9 +1,8 @@
 name: "Check PR template was used"
 
 on:
-  pull_request:
-    types:
-      - opened
+  pull_request_target:
+    types: [opened]
 
 permissions: {}
 
