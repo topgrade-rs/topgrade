@@ -1,0 +1,35 @@
+name: "Check PR template was used"
+
+on:
+  pull_request:
+    types:
+      - opened
+
+permissions: {}
+
+jobs:
+  main:
+    name: Validate PR description
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write  # gh pr comment
+      pull-requests: write  # gh pr close
+    steps:
+      - env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MARKER: "<!-- Magic marker that you used the PR template; DO NOT EDIT OR REMOVE THIS COMMENT! -->"
+          MSG: >
+            Thanks for contributing to Topgrade! We require all contributions to use and fill out the PR template,
+            which it appears you did not. If this is a mistake, please re-open this PR and leave a comment.
+            Otherwise, please open a new PR using the template.
+            Note that we do not allow AI agents to interact with this repository, only humans are allowed to open PRs.
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          PERM=$(gh api repos/$REPO/collaborators/$AUTHOR/permission --jq .permission)
+          if [[ "$PERM" != "admin" && "$PERM" != "maintain" && "$BODY" != *"$REQUIRED"* ]]; then
+            gh pr comment "$PR" --body "$MSG"
+            gh pr close "$PR"
+          fi
