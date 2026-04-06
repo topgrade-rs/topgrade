@@ -209,6 +209,13 @@ pub mod merge_strategies {
         }
     }
 
+    /// Replaces left with right whenever right is explicitly set.
+    pub fn overwrite_opt<T>(left: &mut Option<T>, right: Option<T>) {
+        if right.is_some() {
+            *left = right;
+        }
+    }
+
     /// Appends an Option<String> to another Option<String>
     pub fn string_append_opt(left: &mut Option<String>, right: Option<String>) {
         if let Some(left_str) = left {

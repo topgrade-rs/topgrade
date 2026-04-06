@@ -432,6 +432,15 @@
 # (default: false)
 # cleanup = false
 
+[colima]
+# If this is set, Topgrade will update the listed Colima profiles with
+# `colima update --profile <name>`, in the order listed here.
+# If not set or set to an empty list, Topgrade updates only the default profile
+# via plain `colima update`.
+# Include "default" explicitly if you want it updated alongside custom profiles.
+# (default: this won't be set by default)
+# profiles = ["default", "aarch64"]
+
 [vscode]
 # If this is set and is a non-empty string, it specifies the profile the
 # extensions should be updated for.

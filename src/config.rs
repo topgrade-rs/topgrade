@@ -457,6 +457,13 @@ pub struct VscodeConfig {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct ColimaConfig {
+    #[merge(strategy = crate::utils::merge_strategies::overwrite_opt)]
+    profiles: Option<Vec<String>>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 pub struct DoomConfig {
     aot: Option<bool>,
 }
@@ -570,6 +577,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     zigup: Option<Zigup>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    colima: Option<ColimaConfig>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     vscode: Option<VscodeConfig>,
@@ -1471,6 +1481,15 @@ impl Config {
             .unwrap_or(&[])
     }
 
+    /// Profiles to update via `colima update --profile`
+    pub fn colima_profiles(&self) -> &[String] {
+        self.config_file
+            .colima
+            .as_ref()
+            .and_then(|colima| colima.profiles.as_deref())
+            .unwrap_or(&[])
+    }
+
     /// Whether to send a desktop notification at the beginning of every step
     pub fn notify_each_step(&self) -> bool {
         self.config_file
@@ -2075,6 +2094,7 @@ mod test {
 
     use crate::config::*;
     use color_eyre::eyre::eyre;
+    use merge::Merge;
 
     /// Test the default configuration in `config.example.toml` is valid.
     #[test]
@@ -2159,5 +2179,52 @@ x = "cmd_x"
         assert_eq!(env_vars.len(), 2);
         assert_eq!(env_vars[0], ("VAR1".to_string(), "foo".to_string()));
         assert_eq!(env_vars[1], ("VAR2".to_string(), "bar".to_string()));
+    }
+
+    #[test]
+    fn test_colima_profiles_default_to_empty() {
+        assert!(config().colima_profiles().is_empty());
+    }
+
+    #[test]
+    fn test_colima_profiles_parse_from_config() {
+        let mut config = config();
+        config.config_file = toml::from_str(
+            r#"
+[colima]
+profiles = ["default", "", "aarch64"]
+"#,
+        )
+        .expect("toml parse error");
+
+        assert_eq!(
+            config.colima_profiles(),
+            ["default".to_string(), "".to_string(), "aarch64".to_string()]
+        );
+    }
+
+    #[test]
+    fn test_colima_profiles_override_replaces_included_profiles() {
+        let mut inherited = toml::from_str::<ConfigFile>(
+            r#"
+[colima]
+profiles = ["default", "aarch64"]
+"#,
+        )
+        .expect("toml parse error");
+        let override_config = toml::from_str::<ConfigFile>(
+            r#"
+[colima]
+profiles = []
+"#,
+        )
+        .expect("toml parse error");
+
+        inherited.merge(override_config);
+
+        let mut config = config();
+        config.config_file = inherited;
+
+        assert!(config.colima_profiles().is_empty());
     }
 }

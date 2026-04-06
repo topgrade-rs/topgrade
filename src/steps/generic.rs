@@ -2046,12 +2046,31 @@ pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(falconf).arg("sync").status_checked()
 }
 
+fn configured_colima_profiles(profiles: &[String]) -> Vec<&str> {
+    profiles
+        .iter()
+        .filter_map(|profile| (!profile.is_empty()).then_some(profile.as_str()))
+        .collect()
+}
+
 pub fn run_colima(ctx: &ExecutionContext) -> Result<()> {
     let colima = require("colima")?;
 
     print_separator("Colima");
 
-    ctx.execute(colima).arg("update").status_checked()
+    let profiles = configured_colima_profiles(ctx.config().colima_profiles());
+
+    if profiles.is_empty() {
+        return ctx.execute(colima).arg("update").status_checked();
+    }
+
+    for profile in profiles {
+        ctx.execute(&colima)
+            .args(["update", "--profile", profile])
+            .status_checked()?;
+    }
+
+    Ok(())
 }
 
 pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
@@ -2065,4 +2084,23 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Skills");
 
     ctx.execute(npx).args(["skills", "update"]).status_checked()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::configured_colima_profiles;
+
+    #[test]
+    fn configured_colima_profiles_filters_empty_entries() {
+        let profiles = vec!["default".to_string(), "".to_string(), "aarch64".to_string()];
+
+        assert_eq!(configured_colima_profiles(&profiles), vec!["default", "aarch64"]);
+    }
+
+    #[test]
+    fn configured_colima_profiles_treats_empty_only_input_as_unconfigured() {
+        let profiles = vec!["".to_string()];
+
+        assert!(configured_colima_profiles(&profiles).is_empty());
+    }
 }
