@@ -29,8 +29,14 @@ jobs:
           BODY: ${{ github.event.pull_request.body }}
         run: |
           PERM=$(gh api repos/$REPO/collaborators/$AUTHOR/permission --jq .permission)
+          echo "Author: $AUTHOR"
           if [[ "$PERM" == "admin" || "$PERM" == "maintain" ]]; then
             echo "This user has permission '$PERM', skipping PR description check"
+            exit 0
+          fi
+          TYPE=$(gh api users/$AUTHOR --jq .type)
+          if [[ "$TYPE" == "Bot" ]]; then
+            echo "This user is a bot, skipping PR description check"
             exit 0
           fi
           if [[ "$BODY" != *"$MARKER"* ]]; then
