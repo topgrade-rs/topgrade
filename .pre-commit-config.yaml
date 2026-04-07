@@ -17,7 +17,7 @@ repos:
   - id: trailing-whitespace
 
 - repo: https://github.com/adhtruong/mirrors-typos
-  rev: v1.44.0
+  rev: v1.45.0
   hooks:
   - id: typos
     args:
