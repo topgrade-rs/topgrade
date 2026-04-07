@@ -2037,8 +2037,12 @@ pub fn run_claude_code(ctx: &ExecutionContext) -> Result<()> {
         .execute(&claude)
         .args(["plugin", "list", "--json"])
         .output_checked_utf8()?;
-    let plugins: Vec<ClaudePlugin> =
-        serde_json::from_str(&output.stdout).wrap_err("Failed to parse `claude plugin list --json` output")?;
+    let plugins: Vec<ClaudePlugin> = serde_json::from_str(&output.stdout).wrap_err_with(|| {
+        output_changed_message!(
+            "claude plugin list --json",
+            "json output is invalid or does not match expected structure"
+        )
+    })?;
 
     let mut success = true;
     for plugin in &plugins {
