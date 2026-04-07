@@ -2015,8 +2015,14 @@ pub fn run_typst(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_claude_code(ctx: &ExecutionContext) -> Result<()> {
-    static PLUGIN_RE: LazyLock<regex::Regex> =
-        LazyLock::new(|| regex::Regex::new(r"[a-zA-Z0-9_.-]+@[a-zA-Z0-9_.-]+").unwrap());
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct ClaudePlugin {
+        id: String,
+        scope: String,
+        #[serde(default)]
+        project_path: Option<PathBuf>,
+    }
 
     let claude = require("claude")?;
 
@@ -2028,14 +2034,31 @@ pub fn run_claude_code(ctx: &ExecutionContext) -> Result<()> {
         .args(["plugin", "marketplace", "update"])
         .status_checked()?;
 
-    let output = ctx.execute(&claude).args(["plugins", "list"]).output_checked_utf8()?;
-    for plugin in PLUGIN_RE.find_iter(&output.stdout) {
-        ctx.execute(&claude)
-            .args(["plugin", "update", plugin.as_str()])
-            .status_checked()?;
+    let output = ctx
+        .execute(&claude)
+        .args(["plugin", "list", "--json"])
+        .output_checked_utf8()?;
+    let plugins: Vec<ClaudePlugin> = serde_json::from_str(&output.stdout).wrap_err_with(|| {
+        output_changed_message!(
+            "claude plugin list --json",
+            "json output is invalid or does not match expected structure"
+        )
+    })?;
+
+    let mut success = true;
+    for plugin in &plugins {
+        let mut cmd = ctx.execute(&claude);
+        cmd.args(["plugin", "update", &plugin.id, "--scope", &plugin.scope]);
+        if let Some(path) = &plugin.project_path {
+            cmd.current_dir(path);
+        }
+        if let Err(e) = cmd.status_checked() {
+            error!("Updating plugin {} failed: {e}", plugin.id);
+            success = false;
+        }
     }
 
-    Ok(())
+    if success { Ok(()) } else { Err(eyre!(StepFailed)) }
 }
 
 pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
