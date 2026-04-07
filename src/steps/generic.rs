@@ -2015,27 +2015,55 @@ pub fn run_typst(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_claude_code(ctx: &ExecutionContext) -> Result<()> {
-    static PLUGIN_RE: LazyLock<regex::Regex> =
-        LazyLock::new(|| regex::Regex::new(r"[a-zA-Z0-9_.-]+@[a-zA-Z0-9_.-]+").unwrap());
+    #[derive(Deserialize)]
+    struct ClaudePlugin {
+        id: String,
+        scope: String,
+    }
 
     let claude = require("claude")?;
 
     print_separator("Claude Code");
 
-    ctx.execute(&claude).arg("update").status_checked()?;
+    let mut success = true;
 
-    ctx.execute(&claude)
-        .args(["plugin", "marketplace", "update"])
-        .status_checked()?;
-
-    let output = ctx.execute(&claude).args(["plugins", "list"]).output_checked_utf8()?;
-    for plugin in PLUGIN_RE.find_iter(&output.stdout) {
-        ctx.execute(&claude)
-            .args(["plugin", "update", plugin.as_str()])
-            .status_checked()?;
+    if let Err(e) = ctx.execute(&claude).arg("update").status_checked() {
+        error!("Updating Claude Code failed: {e}");
+        success = false;
     }
 
-    Ok(())
+    if let Err(e) = ctx
+        .execute(&claude)
+        .args(["plugin", "marketplace", "update"])
+        .status_checked()
+    {
+        error!("Updating plugin marketplaces failed: {e}");
+        success = false;
+    }
+
+    let output = ctx
+        .execute(&claude)
+        .args(["plugin", "list", "--json"])
+        .output_checked_utf8()?;
+    let plugins: Vec<ClaudePlugin> =
+        serde_json::from_str(&output.stdout).wrap_err("failed to parse `claude plugin list --json` output")?;
+
+    // `claude plugin update` defaults to `--scope user` and rejects plugins
+    // installed at `project` or `local` scope. Only iterate user-scoped
+    // plugins; project/local plugins belong to a checkout, not the user's
+    // machine, and topgrade is a per-user updater.
+    for plugin in plugins.iter().filter(|p| p.scope == "user") {
+        if let Err(e) = ctx
+            .execute(&claude)
+            .args(["plugin", "update", &plugin.id])
+            .status_checked()
+        {
+            error!("Updating plugin {} failed: {e}", plugin.id);
+            success = false;
+        }
+    }
+
+    if success { Ok(()) } else { Err(eyre!(StepFailed)) }
 }
 
 pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
