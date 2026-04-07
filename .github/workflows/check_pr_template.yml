@@ -37,6 +37,7 @@ jobs:
           TYPE=$(gh api users/$AUTHOR --jq .type)
           if [[ "$TYPE" == "Bot" ]]; then
             echo "This user is a bot, skipping PR description check"
+            exit 0
           fi
           if [[ "$BODY" != *"$MARKER"* ]]; then
             echo "Did not find '$MARKER' in PR body, closing..."
