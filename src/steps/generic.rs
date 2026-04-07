@@ -2015,27 +2015,54 @@ pub fn run_typst(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_claude_code(ctx: &ExecutionContext) -> Result<()> {
-    static PLUGIN_RE: LazyLock<regex::Regex> =
-        LazyLock::new(|| regex::Regex::new(r"[a-zA-Z0-9_.-]+@[a-zA-Z0-9_.-]+").unwrap());
+    #[derive(Deserialize)]
+    struct ClaudePlugin {
+        id: String,
+        scope: String,
+        #[serde(default, rename = "projectPath")]
+        project_path: Option<PathBuf>,
+    }
 
     let claude = require("claude")?;
 
     print_separator("Claude Code");
 
-    ctx.execute(&claude).arg("update").status_checked()?;
+    let mut success = true;
 
-    ctx.execute(&claude)
-        .args(["plugin", "marketplace", "update"])
-        .status_checked()?;
-
-    let output = ctx.execute(&claude).args(["plugins", "list"]).output_checked_utf8()?;
-    for plugin in PLUGIN_RE.find_iter(&output.stdout) {
-        ctx.execute(&claude)
-            .args(["plugin", "update", plugin.as_str()])
-            .status_checked()?;
+    if let Err(e) = ctx.execute(&claude).arg("update").status_checked() {
+        error!("Updating Claude Code failed: {e}");
+        success = false;
     }
 
-    Ok(())
+    if let Err(e) = ctx
+        .execute(&claude)
+        .args(["plugin", "marketplace", "update"])
+        .status_checked()
+    {
+        error!("Updating plugin marketplaces failed: {e}");
+        success = false;
+    }
+
+    let output = ctx
+        .execute(&claude)
+        .args(["plugin", "list", "--json"])
+        .output_checked_utf8()?;
+    let plugins: Vec<ClaudePlugin> =
+        serde_json::from_str(&output.stdout).wrap_err("Failed to parse `claude plugin list --json` output")?;
+
+    for plugin in &plugins {
+        let mut cmd = ctx.execute(&claude);
+        cmd.args(["plugin", "update", &plugin.id, "--scope", &plugin.scope]);
+        if let Some(path) = &plugin.project_path {
+            cmd.current_dir(path);
+        }
+        if let Err(e) = cmd.status_checked() {
+            error!("Updating plugin {} failed: {e}", plugin.id);
+            success = false;
+        }
+    }
+
+    if success { Ok(()) } else { Err(eyre!(StepFailed)) }
 }
 
 pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
