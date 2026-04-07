@@ -2016,10 +2016,11 @@ pub fn run_typst(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_claude_code(ctx: &ExecutionContext) -> Result<()> {
     #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
     struct ClaudePlugin {
         id: String,
         scope: String,
-        #[serde(default, rename = "projectPath")]
+        #[serde(default)]
         project_path: Option<PathBuf>,
     }
 
