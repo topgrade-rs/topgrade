@@ -2027,21 +2027,11 @@ pub fn run_claude_code(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Claude Code");
 
-    let mut success = true;
+    ctx.execute(&claude).arg("update").status_checked()?;
 
-    if let Err(e) = ctx.execute(&claude).arg("update").status_checked() {
-        error!("Updating Claude Code failed: {e}");
-        success = false;
-    }
-
-    if let Err(e) = ctx
-        .execute(&claude)
+    ctx.execute(&claude)
         .args(["plugin", "marketplace", "update"])
-        .status_checked()
-    {
-        error!("Updating plugin marketplaces failed: {e}");
-        success = false;
-    }
+        .status_checked()?;
 
     let output = ctx
         .execute(&claude)
@@ -2050,6 +2040,7 @@ pub fn run_claude_code(ctx: &ExecutionContext) -> Result<()> {
     let plugins: Vec<ClaudePlugin> =
         serde_json::from_str(&output.stdout).wrap_err("Failed to parse `claude plugin list --json` output")?;
 
+    let mut success = true;
     for plugin in &plugins {
         let mut cmd = ctx.execute(&claude);
         cmd.args(["plugin", "update", &plugin.id, "--scope", &plugin.scope]);
