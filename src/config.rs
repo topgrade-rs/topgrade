@@ -345,6 +345,12 @@ pub struct Misc {
     disable: Option<Vec<Step>>,
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    first: Option<Vec<Step>>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    last: Option<Vec<Step>>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     ignore_failures: Option<Vec<Step>>,
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
@@ -1701,6 +1707,48 @@ impl Config {
             .as_ref()
             .and_then(|linux| linux.bootc)
             .unwrap_or(false)
+    }
+
+    /// Returns the steps to execute in order, prioritizing `misc.first` and `misc.last`
+    /// to over the default step list.
+    ///
+    /// Steps in `first` run first (in the order listed), then any remaining default
+    /// steps in their normal order, then steps in `last` (in the order listed).
+    pub fn steps(&self) -> Vec<Step> {
+        let config_misc = self.config_file.misc.as_ref();
+        let default = crate::step::default_steps();
+        let first = config_misc.and_then(|m| m.first.as_ref());
+        let last = config_misc.and_then(|m| m.last.as_ref());
+
+        if first.is_none() && last.is_none() {
+            return default;
+        }
+
+        let empty: Vec<Step> = Vec::new();
+        let first = first.unwrap_or(&empty);
+        let last = last.unwrap_or(&empty);
+
+        let mut steps: Vec<Step> = Vec::with_capacity(default.len());
+
+        for step in first {
+            if default.contains(step) && !steps.contains(step) {
+                steps.push(*step);
+            }
+        }
+
+        for step in &default {
+            if !first.contains(step) && !last.contains(step) {
+                steps.push(*step);
+            }
+        }
+
+        for step in last {
+            if default.contains(step) && !steps.contains(step) {
+                steps.push(*step);
+            }
+        }
+
+        steps
     }
 
     /// Determine if we should ignore failures for this step

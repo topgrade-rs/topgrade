@@ -30,6 +30,12 @@
 # Disable specific steps - same options as the command line flag
 # disable = ["system", "emacs"]
 
+# Run these steps before all others
+# first = [""]
+
+# Run these steps after all others
+# last = [""]
+
 # Ignore failures for these steps
 # ignore_failures = ["powershell"]
 
