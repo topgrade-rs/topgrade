@@ -232,6 +232,7 @@ pub enum ArchPackageManager {
     Pamac,
     Paru,
     Pikaur,
+    Shelly,
     Trizen,
     Yay,
 }
@@ -287,6 +288,9 @@ pub struct Linux {
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     pamac_arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
+    shelly_arguments: Option<String>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     dnf_arguments: Option<String>,
@@ -1514,6 +1518,15 @@ impl Config {
             .linux
             .as_ref()
             .and_then(|s| s.pamac_arguments.as_deref())
+            .unwrap_or("")
+    }
+
+    /// Extra Shelly arguments
+    pub fn shelly_arguments(&self) -> &str {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|s| s.shelly_arguments.as_deref())
             .unwrap_or("")
     }
 
