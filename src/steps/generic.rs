@@ -2087,5 +2087,12 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Skills");
 
-    ctx.execute(npx).args(["skills", "update"]).status_checked()
+    let mut command = ctx.execute(npx);
+
+    if ctx.config().yes(Step::Skills) {
+        command.arg("--yes");
+    }
+    command.args(["skills", "update"]);
+
+    command.status_checked()
 }
