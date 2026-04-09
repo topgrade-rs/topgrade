@@ -752,7 +752,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
     use Step::*;
     // For now, SelfRenamer and SelfUpdate aren't included as they're ran before the other non-steps (pre-commands, sudo, etc)
     vec![
-        // Remotes,
+        Remotes,
         Wsl,
         WslUpdate,
         Chocolatey,
