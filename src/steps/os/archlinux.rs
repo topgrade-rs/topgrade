@@ -314,6 +314,38 @@ impl ArchPackageManager for Aura {
     }
 }
 
+pub struct Shelly {
+    executable: PathBuf,
+}
+
+impl Shelly {
+    fn get() -> Option<Self> {
+        Some(Self {
+            executable: which("shelly")?,
+        })
+    }
+}
+
+impl ArchPackageManager for Shelly {
+    fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
+        let mut command = ctx.execute(&self.executable);
+
+        command
+            .arg("upgrade")
+            .arg("--all")
+            .arg("--sync")
+            .args(ctx.config().shelly_arguments().split_whitespace());
+
+        if ctx.config().yes(Step::System) {
+            command.arg("--no-confirm");
+        }
+
+        command.status_checked()?;
+
+        Ok(())
+    }
+}
+
 fn box_package_manager<P: 'static + ArchPackageManager>(package_manager: P) -> Box<dyn ArchPackageManager> {
     Box::new(package_manager) as Box<dyn ArchPackageManager>
 }
@@ -339,6 +371,7 @@ pub fn get_arch_package_manager(ctx: &ExecutionContext) -> Option<Box<dyn ArchPa
         config::ArchPackageManager::Pikaur => Pikaur::get().map(box_package_manager),
         config::ArchPackageManager::Pamac => Pamac::get().map(box_package_manager),
         config::ArchPackageManager::Aura => Aura::get().map(box_package_manager),
+        config::ArchPackageManager::Shelly => Shelly::get().map(box_package_manager),
     }
 }
 
