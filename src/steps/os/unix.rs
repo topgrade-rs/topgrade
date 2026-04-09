@@ -1,6 +1,6 @@
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use color_eyre::eyre::{OptionExt, eyre, bail};
+use color_eyre::eyre::{OptionExt, bail, eyre};
 use etcetera::BaseStrategy;
 use ini::Ini;
 use regex::Regex;
