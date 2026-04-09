@@ -1,6 +1,6 @@
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use color_eyre::eyre::{OptionExt, eyre};
+use color_eyre::eyre::{OptionExt, bail, eyre};
 use jetbrains_toolbox_updater::{FindError, find_jetbrains_toolbox, update_jetbrains_toolbox};
 use regex::bytes::Regex;
 use rust_i18n::t;
@@ -419,7 +419,7 @@ pub fn run_gcloud_components_update(ctx: &ExecutionContext) -> Result<()> {
     std::io::stderr().write_all(stderr.as_bytes())?;
 
     if !output.status.success() {
-        return Err(eyre!("gcloud component update failed"));
+        bail!("gcloud component update failed");
     }
 
     Ok(())
@@ -1521,19 +1521,19 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
 
         let pos = match data.windows(4).rposition(|b| b == b"PK\x05\x06") {
             Some(i) => i,
-            None => return Err(eyre!("Not a ZIP archive")),
+            None => bail!("Not a ZIP archive"),
         };
 
         let cdr_size = match data.get(pos + 12..pos + 16) {
             Some(b) => u32::from_le_bytes(b.try_into().unwrap()) as usize,
-            None => return Err(eyre!("Invalid CDR size")),
+            None => bail!("Invalid CDR size"),
         };
         let cdr_offset = match data.get(pos + 16..pos + 20) {
             Some(b) => u32::from_le_bytes(b.try_into().unwrap()) as usize,
-            None => return Err(eyre!("Invalid CDR offset")),
+            None => bail!("Invalid CDR offset"),
         };
         if pos < cdr_size + cdr_offset {
-            return Err(eyre!("Invalid ZIP archive"));
+            bail!("Invalid ZIP archive");
         }
         let arc_pos = pos - cdr_size - cdr_offset;
         match data[..arc_pos].windows(2).rposition(|b| b == b"#!") {
@@ -1689,7 +1689,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
 
             // And, if self update failed, fail the step as well.
             if !output.status.success() {
-                return Err(eyre!("uv self update failed"));
+                bail!("uv self update failed");
             }
         }
     };
@@ -1852,10 +1852,10 @@ fn run_jetbrains_ide_generic<const IS_JETBRAINS: bool>(ctx: &ExecutionContext, b
             .code()
             .ok_or_eyre("Failed to get status code; was killed with signal")?;
         if status_code != 1 {
-            return Err(eyre!(
+            bail!(
                 "Expected status code 1 ('Only one instance of <IDE> can be run at a time.'), but found status code {}. Output: {output:?}",
                 status_code
-            ));
+            );
         }
         // Don't crash, but don't be silent either
         warn!("{name} is already running, can't update it now.");
