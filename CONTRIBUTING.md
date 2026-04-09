@@ -109,9 +109,8 @@ To add a new step to `topgrade`:
 
 4. Finally, add the step to `default_steps()` in `step.rs`
    ```rust
-   steps.push(Xxx)
+   Xxx,
    ```
-   Keep the conditional compilation the same as in the above step 3.
 
    Congrats, you just added a new step :)
 

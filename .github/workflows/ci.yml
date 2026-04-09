@@ -90,8 +90,7 @@ jobs:
             else
             echo "Duplicates found:"
             echo "$duplicates"
-            # We allow duplicates, but lets keep this check for potential future usefulness
-            # exit 1
+            exit 1
           fi
 
   msrv:
