@@ -1852,7 +1852,7 @@ fn run_jetbrains_ide_generic<const IS_JETBRAINS: bool>(ctx: &ExecutionContext, b
             .code()
             .ok_or_eyre("Failed to get status code; was killed with signal")?;
         if status_code != 1 {
-            return bail!(
+            bail!(
                 "Expected status code 1 ('Only one instance of <IDE> can be run at a time.'), but found status code {}. Output: {output:?}",
                 status_code
             );

@@ -119,7 +119,7 @@ fn list_containers(ctx: &ExecutionContext, crt: &Path) -> Result<Vec<Container>>
         // line is of format: `Repository:Tag ImageID`, e.g., `nixos/nix:latest d80fea9c32b4`
         let split_res = line.split(' ').collect::<Vec<&str>>();
         if split_res.len() != 2 {
-            return bail!(format!(
+            bail!(format!(
                 "Got erroneous output from `{} image ls --format \"{{.Repository}}:{{.Tag}} {{.ID}}\"; Expected line to split into 2 parts",
                 crt.display()
             ));
@@ -153,7 +153,7 @@ fn list_containers(ctx: &ExecutionContext, crt: &Path) -> Result<Vec<Container>>
         // truncate the tailing new line character
         platform.truncate(platform.len() - 1);
         if !platform.contains('/') {
-            return bail!(format!(
+            bail!(format!(
                 "Got erroneous output from `{} image ls --format \"{{.Repository}}:{{.Tag}} {{.ID}}\"; Expected platform to contain '/'",
                 crt.display()
             ));
@@ -214,7 +214,7 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
         io::stderr().write_all(&output.stderr)?;
         // If we saw the message, but the code is not 1 (e.g. 0, or a non-1 failure), crash, as we expect a 1.
         // If we did not see the message, it's broken in some way we do not understand.
-        return bail!(
+        bail!(
             "{0} seems to be non-functional (`{0} --help` returned non-zero exit code {1})",
             crt.display(),
             status_code,
