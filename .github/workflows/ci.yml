@@ -90,12 +90,11 @@ jobs:
             else
             echo "Duplicates found:"
             echo "$duplicates"
-            # We allow duplicates, but lets keep this check for potential future usefulness
-            # exit 1
+            exit 1
           fi
 
   msrv:
-    needs: [ format, custom-checks ]
+    needs: [format, custom-checks]
     name: MSRV check (${{ matrix.target_name }})
     runs-on: ${{ matrix.os }}
     strategy:
@@ -140,7 +139,7 @@ jobs:
         run: cargo check --locked --all-features
 
   main:
-    needs: [ format, custom-checks ]
+    needs: [format, custom-checks]
     name: ${{ matrix.target_name }}
     runs-on: ${{ matrix.os }}
     strategy:
