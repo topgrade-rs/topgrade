@@ -1,6 +1,6 @@
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use color_eyre::eyre::{OptionExt, eyre};
+use color_eyre::eyre::{OptionExt, eyre, bail};
 use jetbrains_toolbox_updater::{FindError, find_jetbrains_toolbox, update_jetbrains_toolbox};
 use regex::bytes::Regex;
 use rust_i18n::t;
