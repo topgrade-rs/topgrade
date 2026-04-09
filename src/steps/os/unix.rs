@@ -506,7 +506,7 @@ impl NixVersion {
             .to_string();
 
         if version_string.is_empty() {
-            return Err(eyre!("`nix --version` output was empty"));
+            bail!("`nix --version` output was empty");
         }
 
         Ok(Self { version_string })
