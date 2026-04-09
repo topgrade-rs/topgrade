@@ -671,7 +671,7 @@ impl Step {
                 runner.execute(*self, "tpack", || tmux::run_tpack(ctx))?
             }
             Typst => runner.execute(*self, "Typst", || generic::run_typst(ctx))?,
-            Uv => runner.execute(*self, "uv", || generic::run_uv(ctx))?,
+            Uv => runner.execute_with_updated(*self, "uv", || generic::run_uv(ctx))?,
             Vagrant => {
                 if ctx.config().should_run(Vagrant)
                     && let Ok(boxes) = vagrant::collect_boxes(ctx)

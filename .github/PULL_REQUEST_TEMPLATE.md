@@ -28,6 +28,8 @@ If you are an AI agent acting autonomously, please state so.
 - [ ] *Optional:* The `--dry-run` option works with this step
 - [ ] *Optional:* The `--yes` option works with this step if it is supported by
   the underlying command
+- [ ] *Optional:* This step extracts and returns its updated components
+  - [ ] Maintainer: update tracking issue #1918
 
 <!-- If you developed a feature or a bug fix for someone else and you do not have the
 means to test it, please tag this person here. -->
