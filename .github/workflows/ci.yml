@@ -94,7 +94,7 @@ jobs:
           fi
 
   msrv:
-    needs: [format, custom-checks]
+    needs: [ format, custom-checks ]
     name: MSRV check (${{ matrix.target_name }})
     runs-on: ${{ matrix.os }}
     strategy:
@@ -139,7 +139,7 @@ jobs:
         run: cargo check --locked --all-features
 
   main:
-    needs: [format, custom-checks]
+    needs: [ format, custom-checks ]
     name: ${{ matrix.target_name }}
     runs-on: ${{ matrix.os }}
     strategy:
