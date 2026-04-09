@@ -31,10 +31,10 @@
 # disable = ["system", "emacs"]
 
 # Run these steps before all others
-# first = [""]
+# first = ["chezmoi"]
 
 # Run these steps after all others
-# last = [""]
+# last = ["system"]
 
 # Ignore failures for these steps
 # ignore_failures = ["powershell"]

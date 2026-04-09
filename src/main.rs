@@ -197,7 +197,7 @@ fn run() -> Result<()> {
         }
     }
 
-    for step in config.steps() {
+    for step in config.steps()? {
         match step.run(&mut runner, &ctx) {
             Ok(()) => (),
             Err(error)
