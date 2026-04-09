@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.3.0](https://github.com/topgrade-rs/topgrade/compare/v17.2.1...v17.3.0) - 2026-04-09
+
+### Added
+
+- *(config)* add custom step order ([#1940](https://github.com/topgrade-rs/topgrade/pull/1940))
+- *(archlinux)* add shelly package manager ([#1941](https://github.com/topgrade-rs/topgrade/pull/1941))
+- *(claude)* update non-user scope plugins ([#1938](https://github.com/topgrade-rs/topgrade/pull/1938))
+- add sudo loop ([#1803](https://github.com/topgrade-rs/topgrade/pull/1803))
+- *(gup)* add exclude config ([#1911](https://github.com/topgrade-rs/topgrade/pull/1911))
+- *(step)* add tpack ([#1898](https://github.com/topgrade-rs/topgrade/pull/1898))
+
+### Fixed
+
+- *(skills)* skip npx update prompt with assume_yes ([#1920](https://github.com/topgrade-rs/topgrade/pull/1920))
+- do not continue to next step when ctrl+c is pressed at retry prompt ([#1915](https://github.com/topgrade-rs/topgrade/pull/1915))
+- *(sudo)* ignore set_home for run0 ([#1905](https://github.com/topgrade-rs/topgrade/pull/1905))
+
 ## [17.2.1](https://github.com/topgrade-rs/topgrade/compare/v17.2.0...v17.2.1) - 2026-04-01
 Rerelease of 17.2.0 because of CD mishap
 
