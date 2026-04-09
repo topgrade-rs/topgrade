@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use std::collections::HashSet;
 use std::fs::{File, write};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -347,6 +348,12 @@ pub struct Misc {
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     disable: Option<Vec<Step>>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    first: Option<Vec<Step>>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    last: Option<Vec<Step>>,
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     ignore_failures: Option<Vec<Step>>,
@@ -1716,6 +1723,32 @@ impl Config {
             .unwrap_or(false)
     }
 
+    /// Returns the steps to execute in order, prioritizing `misc.first` and `misc.last`
+    /// to over the default step list.
+    ///
+    /// Steps in `first` run first (in the order listed), then any remaining default
+    /// steps in their normal order, then steps in `last` (in the order listed).
+    pub fn steps(&self) -> Result<impl Iterator<Item = Step> + '_> {
+        let misc = self.config_file.misc.as_ref();
+        let first = misc.and_then(|m| m.first.as_deref()).unwrap_or_default();
+        let last = misc.and_then(|m| m.last.as_deref()).unwrap_or_default();
+
+        let specified: HashSet<Step> = first.iter().chain(last).copied().collect();
+        if specified.len() != first.len() + last.len() {
+            color_eyre::eyre::bail!("All steps included in `misc.first` and `misc.last` must be unique");
+        }
+
+        Ok(first
+            .iter()
+            .copied()
+            .chain(
+                crate::step::default_steps()
+                    .into_iter()
+                    .filter(move |s| !specified.contains(s)),
+            )
+            .chain(last.iter().copied()))
+    }
+
     /// Determine if we should ignore failures for this step
     pub fn ignore_failure(&self, step: Step) -> bool {
         self.config_file
@@ -2172,5 +2205,62 @@ x = "cmd_x"
         assert_eq!(env_vars.len(), 2);
         assert_eq!(env_vars[0], ("VAR1".to_string(), "foo".to_string()));
         assert_eq!(env_vars[1], ("VAR2".to_string(), "bar".to_string()));
+    }
+
+    fn config_from_toml(toml_str: &str) -> Config {
+        Config {
+            opt: CommandLineArgs::parse_from::<_, String>([]),
+            config_file: toml::from_str(toml_str).expect("toml parse error"),
+            allowed_steps: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn test_steps_default_order_without_first_or_last() {
+        let steps: Vec<Step> = config().steps().unwrap().collect();
+        assert_eq!(steps, crate::step::default_steps());
+    }
+
+    #[test]
+    fn test_steps_first_and_last_reorder() {
+        let config = config_from_toml(
+            r#"
+[misc]
+first = ["cargo", "rustup"]
+last = ["chezmoi", "vim"]
+"#,
+        );
+        let steps: Vec<Step> = config.steps().unwrap().collect();
+
+        assert_eq!(&steps[..2], &[Step::Cargo, Step::Rustup]);
+        assert_eq!(&steps[steps.len() - 2..], &[Step::Chezmoi, Step::Vim]);
+        for reordered in [Step::Cargo, Step::Rustup, Step::Chezmoi, Step::Vim] {
+            assert_eq!(steps.iter().filter(|&&s| s == reordered).count(), 1);
+        }
+        // Untouched defaults still present.
+        assert!(steps.contains(&Step::Remotes));
+    }
+
+    #[test]
+    fn test_steps_rejects_duplicates_in_first() {
+        let config = config_from_toml(
+            r#"
+[misc]
+first = ["cargo", "cargo"]
+"#,
+        );
+        assert!(config.steps().is_err());
+    }
+
+    #[test]
+    fn test_steps_rejects_overlap_between_first_and_last() {
+        let config = config_from_toml(
+            r#"
+[misc]
+first = ["cargo"]
+last = ["cargo"]
+"#,
+        );
+        assert!(config.steps().is_err());
     }
 }
