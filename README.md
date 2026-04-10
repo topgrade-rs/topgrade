@@ -15,7 +15,7 @@
 
 ## Introduction
 
-> **Note**
+> [!NOTE]
 > This is a fork of [topgrade by r-darwish](https://github.com/r-darwish/topgrade) to keep it maintained.
 
 Keeping your system up-to-date usually involves invoking multiple package managers.

@@ -18,11 +18,23 @@
 # (default: false)
 # pre_sudo = false
 
+# Periodically runs `sudo -v` or `please -w` to avoid password re-prompts during updates (default: false)
+# WARNING: This is a potential security risk; if you walk away from the computer while topgrade is running,
+# another person can come by, CTRL+C, and gain access to a sudo session.
+# sudo_loop = true
+# sudo_loop_interval = 240 # 4 minutes (240s); default if sudo_loop enabled
+
 # Sudo command to be used
 # sudo_command = "sudo"
 
 # Disable specific steps - same options as the command line flag
 # disable = ["system", "emacs"]
+
+# Run these steps before all others
+# first = ["chezmoi"]
+
+# Run these steps after all others
+# last = ["system"]
 
 # Ignore failures for these steps
 # ignore_failures = ["powershell"]
@@ -190,7 +202,7 @@
 [linux]
 # Arch Package Manager to use.
 # Allowed values:
-#   autodetect, aura, garuda_update, pacman, pamac, paru, pikaur, trizen, yay
+#   autodetect, aura, garuda_update, pacman, pamac, paru, pikaur, shelly, trizen, yay
 # arch_package_manager = "pacman"
 
 # Arguments to pass yay (or paru) when updating packages
@@ -211,6 +223,8 @@
 # pikaur_arguments = ""
 
 # pamac_arguments = "--no-devel"
+
+# shelly_arguments = ""
 
 # enable_tlmgr = true
 
@@ -321,6 +335,10 @@
 # Run interactively
 # (default: false)
 # interactive = false
+
+[go]
+# Exclude specified binaries from `gup update`
+# gup_exclude = ["kind", "pkgsite"]
 
 
 [npm]

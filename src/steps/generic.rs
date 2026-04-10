@@ -1,6 +1,6 @@
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use color_eyre::eyre::{OptionExt, eyre};
+use color_eyre::eyre::{OptionExt, bail, eyre};
 use jetbrains_toolbox_updater::{FindError, find_jetbrains_toolbox, update_jetbrains_toolbox};
 use regex::bytes::Regex;
 use rust_i18n::t;
@@ -166,6 +166,14 @@ pub fn run_haxelib_update(ctx: &ExecutionContext) -> Result<()> {
     };
 
     command.arg("update").status_checked()
+}
+
+pub fn run_getnf_update(ctx: &ExecutionContext) -> Result<()> {
+    let getnf = require("getnf")?;
+
+    print_separator("getnf");
+
+    ctx.execute(getnf).args(["-U"]).status_checked()
 }
 
 pub fn run_sheldon(ctx: &ExecutionContext) -> Result<()> {
@@ -411,7 +419,7 @@ pub fn run_gcloud_components_update(ctx: &ExecutionContext) -> Result<()> {
     std::io::stderr().write_all(stderr.as_bytes())?;
 
     if !output.status.success() {
-        return Err(eyre!("gcloud component update failed"));
+        bail!("gcloud component update failed");
     }
 
     Ok(())
@@ -1038,18 +1046,13 @@ pub fn run_custom_command(name: &str, command: &str, ctx: &ExecutionContext) -> 
     } else {
         command
     };
-    exec.env(
-        "TOPGRADE_YES",
-        if ctx.config().yes(Step::CustomCommands) {
-            "1"
-        } else {
-            "0"
-        },
-    )
-    .env("TOPGRADE_CLEANUP", if ctx.config().cleanup() { "1" } else { "0" })
-    .arg("-c")
-    .arg(command)
-    .status_checked()
+    if ctx.config().yes(Step::CustomCommands) {
+        exec.env("TOPGRADE_YES", "1");
+    }
+    if ctx.config().cleanup() {
+        exec.env("TOPGRADE_CLEANUP", "1");
+    }
+    exec.arg("-c").arg(command).status_checked()
 }
 
 pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
@@ -1518,19 +1521,19 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
 
         let pos = match data.windows(4).rposition(|b| b == b"PK\x05\x06") {
             Some(i) => i,
-            None => return Err(eyre!("Not a ZIP archive")),
+            None => bail!("Not a ZIP archive"),
         };
 
         let cdr_size = match data.get(pos + 12..pos + 16) {
             Some(b) => u32::from_le_bytes(b.try_into().unwrap()) as usize,
-            None => return Err(eyre!("Invalid CDR size")),
+            None => bail!("Invalid CDR size"),
         };
         let cdr_offset = match data.get(pos + 16..pos + 20) {
             Some(b) => u32::from_le_bytes(b.try_into().unwrap()) as usize,
-            None => return Err(eyre!("Invalid CDR offset")),
+            None => bail!("Invalid CDR offset"),
         };
         if pos < cdr_size + cdr_offset {
-            return Err(eyre!("Invalid ZIP archive"));
+            bail!("Invalid ZIP archive");
         }
         let arc_pos = pos - cdr_size - cdr_offset;
         match data[..arc_pos].windows(2).rposition(|b| b == b"#!") {
@@ -1686,7 +1689,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
 
             // And, if self update failed, fail the step as well.
             if !output.status.success() {
-                return Err(eyre!("uv self update failed"));
+                bail!("uv self update failed");
             }
         }
     };
@@ -1849,10 +1852,10 @@ fn run_jetbrains_ide_generic<const IS_JETBRAINS: bool>(ctx: &ExecutionContext, b
             .code()
             .ok_or_eyre("Failed to get status code; was killed with signal")?;
         if status_code != 1 {
-            return Err(eyre!(
+            bail!(
                 "Expected status code 1 ('Only one instance of <IDE> can be run at a time.'), but found status code {}. Output: {output:?}",
                 status_code
-            ));
+            );
         }
         // Don't crash, but don't be silent either
         warn!("{name} is already running, can't update it now.");
@@ -2012,11 +2015,50 @@ pub fn run_typst(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_claude_code(ctx: &ExecutionContext) -> Result<()> {
+    #[derive(Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    struct ClaudePlugin {
+        id: String,
+        scope: String,
+        #[serde(default)]
+        project_path: Option<PathBuf>,
+    }
+
     let claude = require("claude")?;
 
     print_separator("Claude Code");
 
-    ctx.execute(claude).arg("update").status_checked()
+    ctx.execute(&claude).arg("update").status_checked()?;
+
+    ctx.execute(&claude)
+        .args(["plugin", "marketplace", "update"])
+        .status_checked()?;
+
+    let output = ctx
+        .execute(&claude)
+        .args(["plugin", "list", "--json"])
+        .output_checked_utf8()?;
+    let plugins: Vec<ClaudePlugin> = serde_json::from_str(&output.stdout).wrap_err_with(|| {
+        output_changed_message!(
+            "claude plugin list --json",
+            "json output is invalid or does not match expected structure"
+        )
+    })?;
+
+    let mut success = true;
+    for plugin in &plugins {
+        let mut cmd = ctx.execute(&claude);
+        cmd.args(["plugin", "update", &plugin.id, "--scope", &plugin.scope]);
+        if let Some(path) = &plugin.project_path {
+            cmd.current_dir(path);
+        }
+        if let Err(e) = cmd.status_checked() {
+            error!("Updating plugin {} failed: {e}", plugin.id);
+            success = false;
+        }
+    }
+
+    if success { Ok(()) } else { Err(eyre!(StepFailed)) }
 }
 
 pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
@@ -2045,5 +2087,12 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Skills");
 
-    ctx.execute(npx).args(["skills", "update"]).status_checked()
+    let mut command = ctx.execute(npx);
+
+    if ctx.config().yes(Step::Skills) {
+        command.arg("--yes");
+    }
+    command.args(["skills", "update"]);
+
+    command.status_checked()
 }

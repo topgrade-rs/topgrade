@@ -16,7 +16,9 @@ use crate::utils::hostname;
 
 pub const DEPRECATED_STEPS: [Step; 1] = [Step::NixHelper];
 
-#[derive(ValueEnum, EnumString, VariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy, EnumCount)]
+#[derive(
+    ValueEnum, EnumString, VariantNames, Debug, Clone, PartialEq, Eq, Hash, Deserialize, EnumIter, Copy, EnumCount,
+)]
 #[clap(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
@@ -67,6 +69,7 @@ pub enum Step {
     Gcloud,
     Gearlever,
     Gem,
+    Getnf,
     Ghcup,
     GitRepos,
     GithubCliExtensions,
@@ -162,6 +165,7 @@ pub enum Step {
     Tlmgr,
     Tmux,
     Toolbx,
+    Tpack,
     Typst,
     Uv,
     Vagrant,
@@ -346,6 +350,7 @@ impl Step {
                 runner.execute(*self, "Gear Lever", || linux::run_gearlever(ctx))?
             }
             Gem => runner.execute(*self, "gem", || generic::run_gem(ctx))?,
+            Getnf => runner.execute(*self, "getnf", || generic::run_getnf_update(ctx))?,
             Ghcup => runner.execute(*self, "ghcup", || generic::run_ghcup_update(ctx))?,
             GitRepos => runner.execute(*self, "Git Repositories", || git::run_git_pull_or_fetch(ctx))?,
             GithubCliExtensions => runner.execute(*self, "GitHub CLI Extensions", || {
@@ -660,6 +665,11 @@ impl Step {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "toolbx", || toolbx::run_toolbx(ctx))?
             }
+            Tpack =>
+            {
+                #[cfg(unix)]
+                runner.execute(*self, "tpack", || tmux::run_tpack(ctx))?
+            }
             Typst => runner.execute(*self, "Typst", || generic::run_typst(ctx))?,
             Uv => runner.execute(*self, "uv", || generic::run_uv(ctx))?,
             Vagrant => {
@@ -739,22 +749,17 @@ impl Step {
 
 #[allow(clippy::too_many_lines)]
 pub(crate) fn default_steps() -> Vec<Step> {
-    // For now, SelfRenamer and SelfUpdate isn't included as they're ran before the other non-steps (pre-commands, sudo, etc)
-
     use Step::*;
-    // Could probably have a smaller starting capacity, but this at least ensures only 2 allocations:
-    // initial and shrink
-    let mut steps = Vec::with_capacity(Step::COUNT);
-
-    // Not combined with other generic steps to preserve the order as it was in main.rs originally,
-    // but this can be changed in the future.
-    steps.push(Remotes);
-
-    #[cfg(windows)]
-    steps.extend_from_slice(&[Wsl, WslUpdate, Chocolatey, Scoop, Winget, System, MicrosoftStore]);
-
-    #[cfg(target_os = "macos")]
-    steps.extend_from_slice(&[
+    // For now, SelfRenamer and SelfUpdate aren't included as they're ran before the other non-steps (pre-commands, sudo, etc)
+    vec![
+        Remotes,
+        Wsl,
+        WslUpdate,
+        Chocolatey,
+        Scoop,
+        Winget,
+        System,
+        MicrosoftStore,
         BrewFormula,
         BrewCask,
         Macports,
@@ -762,24 +767,8 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Sparkle,
         Mas,
         MicrosoftOffice,
-        System,
-    ]);
-
-    #[cfg(target_os = "dragonfly")]
-    steps.extend_from_slice(&[Pkg, Audit]);
-
-    #[cfg(target_os = "freebsd")]
-    steps.extend_from_slice(&[Pkg, System, Audit]);
-
-    #[cfg(target_os = "openbsd")]
-    steps.extend_from_slice(&[Pkg, System]);
-
-    #[cfg(target_os = "android")]
-    steps.push(Pkg);
-
-    #[cfg(target_os = "linux")]
-    steps.extend_from_slice(&[
-        System,
+        Pkg,
+        Audit,
         ConfigUpdate,
         AM,
         AppMan,
@@ -796,18 +785,12 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Restarts,
         Flatpak,
         Gearlever,
-        BrewFormula,
-        BrewCask,
         Lure,
         Waydroid,
         AutoCpufreq,
         CinnamonSpices,
         Mandb,
         Pkgfile,
-    ]);
-
-    #[cfg(unix)]
-    steps.extend_from_slice(&[
         Yadm,
         Nix,
         NixHelper,
@@ -819,8 +802,8 @@ pub(crate) fn default_steps() -> Vec<Step> {
         BunPackages,
         Shell,
         Tmux,
+        Tpack,
         Pearl,
-        #[cfg(not(any(target_os = "macos", target_os = "android")))]
         GnomeShellExtensions,
         Pyenv,
         Sdkman,
@@ -828,18 +811,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Maza,
         Hyprpm,
         Atuin,
-    ]);
-
-    #[cfg(not(any(
-        target_os = "freebsd",
-        target_os = "openbsd",
-        target_os = "netbsd",
-        target_os = "dragonfly"
-    )))]
-    steps.push(Atom);
-
-    // The following update function should be executed on all OSes.
-    steps.extend_from_slice(&[
+        Atom,
         Fossil,
         Elan,
         Rye,
@@ -870,6 +842,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         PipReview,
         PipReviewLocal,
         Pipupgrade,
+        Getnf,
         Ghcup,
         Stack,
         Tldr,
@@ -948,9 +921,5 @@ pub(crate) fn default_steps() -> Vec<Step> {
         CustomCommands,
         Vagrant,
         Typst,
-    ]);
-
-    steps.shrink_to_fit();
-
-    steps
+    ]
 }

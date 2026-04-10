@@ -188,13 +188,16 @@ fn run() -> Result<()> {
         sudo.elevate(&ctx)?;
     }
 
+    // Held until `run()` returns — dropping would stop the background thread.
+    let _sudo_loop_guard = spawn_sudo_loop(&ctx, &config);
+
     if let Some(commands) = config.pre_commands() {
         for (name, command) in commands {
             generic::run_custom_command(name, command, &ctx)?;
         }
     }
 
-    for step in step::default_steps() {
+    for step in config.steps()? {
         match step.run(&mut runner, &ctx) {
             Ok(()) => (),
             Err(error)
@@ -315,6 +318,32 @@ fn run() -> Result<()> {
     }
 
     if failed { Err(StepFailed.into()) } else { Ok(()) }
+}
+
+fn spawn_sudo_loop(ctx: &execution_context::ExecutionContext, config: &Config) -> Option<std::sync::mpsc::Sender<()>> {
+    if !config.sudo_loop() {
+        return None;
+    }
+    let sudo = ctx.sudo().as_ref()?.clone();
+    let run_type = ctx.run_type();
+    let interval = Duration::from_secs(config.sudo_loop_interval().into());
+    let (tx, rx) = std::sync::mpsc::channel::<()>();
+    std::thread::Builder::new()
+        .name("sudo-loop".into())
+        .spawn(move || {
+            loop {
+                match rx.recv_timeout(interval) {
+                    Ok(()) | Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                        if let Err(err) = sudo.refresh(run_type) {
+                            print_warning(format!("Failed to refresh sudo credentials: {err:?}"));
+                        }
+                    }
+                }
+            }
+        })
+        .expect("failed to spawn sudo-loop thread");
+    Some(tx)
 }
 
 fn main() {

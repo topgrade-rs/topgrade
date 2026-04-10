@@ -1,6 +1,6 @@
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use color_eyre::eyre::{OptionExt, eyre};
+use color_eyre::eyre::{OptionExt, bail, eyre};
 use etcetera::BaseStrategy;
 use ini::Ini;
 use regex::Regex;
@@ -506,7 +506,7 @@ impl NixVersion {
             .to_string();
 
         if version_string.is_empty() {
-            return Err(eyre!("`nix --version` output was empty"));
+            bail!("`nix --version` output was empty");
         }
 
         Ok(Self { version_string })

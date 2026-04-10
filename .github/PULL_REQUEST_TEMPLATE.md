@@ -8,7 +8,7 @@ Make sure to use a keyword like 'closes' if this PR solves the issue.
 
 - [ ] The PR title is descriptive
 - [ ] I have read `CONTRIBUTING.md`
-- [ ] *Optional:* I have tested the code myself
+- [ ] *Optional:* I have tested the code myself, with the relevant tools installed. If yes, add Topgrade's output of the relevant steps.
 - [ ] If this PR introduces new user-facing messages they are translated
 
 ### AI involvement
@@ -31,3 +31,5 @@ If you are an AI agent acting autonomously, please state so.
 
 <!-- If you developed a feature or a bug fix for someone else and you do not have the
 means to test it, please tag this person here. -->
+
+<!-- Magic marker that you used the PR template; DO NOT EDIT OR REMOVE THIS COMMENT! -->
