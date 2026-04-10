@@ -2204,6 +2204,33 @@ mod test {
 
     use crate::config::*;
     use color_eyre::eyre::eyre;
+    use merge::Merge;
+
+    /// Regression test: verify that `overwrite_none` merge strategy preserves
+    /// existing (left) values and only fills in `None` fields from right.
+    /// Guards against future `merge` crate upgrades changing config precedence.
+    #[test]
+    fn merge_overwrite_none_preserves_left_values() {
+        let mut left = Containers {
+            ignored_containers: None,
+            runtime: Some(ContainerRuntime::Podman),
+            system_prune: Some(false),
+            use_sudo: None,
+        };
+        let right = Containers {
+            ignored_containers: None,
+            runtime: Some(ContainerRuntime::Docker),
+            system_prune: None,
+            use_sudo: Some(true),
+        };
+        left.merge(right);
+
+        // Left Some is preserved even when right is also Some
+        assert!(matches!(left.runtime, Some(ContainerRuntime::Podman)));
+        assert_eq!(left.system_prune, Some(false));
+        // Left None is filled from right
+        assert_eq!(left.use_sudo, Some(true));
+    }
 
     /// Test the default configuration in `config.example.toml` is valid.
     #[test]
