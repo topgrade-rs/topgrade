@@ -251,6 +251,8 @@ pub struct Brew {
     autoremove: Option<bool>,
     #[merge(strategy = merge::option::overwrite_none)]
     fetch_head: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    custom_path: Option<PathBuf>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1538,6 +1540,11 @@ impl Config {
             .unwrap_or(false)
     }
 
+    /// Custom path to the Brew binary
+    pub fn brew_custom_path(&self) -> Option<&Path> {
+        self.config_file.brew.as_ref().and_then(|c| c.custom_path.as_deref())
+    }
+
     /// Whether Composer should update itself
     pub fn composer_self_update(&self) -> bool {
         self.config_file
@@ -2323,6 +2330,21 @@ x = "cmd_x"
             config_file: toml::from_str(toml_str).expect("toml parse error"),
             allowed_steps: Vec::new(),
         }
+    }
+
+    #[test]
+    fn test_brew_custom_path_parses() {
+        let config = config_from_toml(
+            r#"
+[brew]
+custom_path = "/opt/workbrew/bin/brew"
+"#,
+        );
+
+        assert_eq!(
+            config.brew_custom_path(),
+            Some(std::path::Path::new("/opt/workbrew/bin/brew"))
+        );
     }
 
     #[test]

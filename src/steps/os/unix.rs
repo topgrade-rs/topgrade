@@ -85,10 +85,16 @@ pub struct Brew {
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 impl Brew {
-    fn new(variant: BrewVariant) -> Result<Self> {
+    fn new(ctx: &ExecutionContext, variant: BrewVariant) -> Result<Self> {
+        let path = if let Some(custom) = ctx.config().brew_custom_path() {
+            require(custom.as_os_str())?
+        } else {
+            require(variant.binary_name())?
+        };
+
         Ok(Self {
             variant,
-            path: require(variant.binary_name())?,
+            path,
             sudo: brew_get_sudo(),
         })
     }
@@ -358,7 +364,7 @@ pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()> {
-    let brew = Brew::new(variant)?;
+    let brew = Brew::new(ctx, variant)?;
 
     #[cfg(target_os = "macos")]
     {
@@ -396,7 +402,7 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()> {
-    let brew = Brew::new(variant)?;
+    let brew = Brew::new(ctx, variant)?;
 
     #[cfg(target_os = "macos")]
     if variant.is_path() && !brew.is_macos_custom() {

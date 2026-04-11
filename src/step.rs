@@ -247,25 +247,29 @@ impl Step {
                 #[cfg(any(target_os = "linux", target_os = "macos"))]
                 runner.execute(*self, "Brew Cask", || unix::run_brew_cask(ctx, unix::BrewVariant::Path))?;
                 #[cfg(target_os = "macos")]
-                runner.execute(*self, "Brew Cask (Intel)", || {
-                    unix::run_brew_cask(ctx, unix::BrewVariant::MacIntel)
-                })?;
-                #[cfg(target_os = "macos")]
-                runner.execute(*self, "Brew Cask (ARM)", || {
-                    unix::run_brew_cask(ctx, unix::BrewVariant::MacArm)
-                })?
+                if ctx.config().brew_custom_path().is_none() {
+                    runner.execute(*self, "Brew Cask (Intel)", || {
+                        unix::run_brew_cask(ctx, unix::BrewVariant::MacIntel)
+                    })?;
+                    runner.execute(*self, "Brew Cask (ARM)", || {
+                        unix::run_brew_cask(ctx, unix::BrewVariant::MacArm)
+                    })?;
+                }
             }
             BrewFormula => {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "Brew", || unix::run_brew_formula(ctx, unix::BrewVariant::Path))?;
                 #[cfg(target_os = "macos")]
-                runner.execute(*self, "Brew (ARM)", || {
-                    unix::run_brew_formula(ctx, unix::BrewVariant::MacArm)
-                })?;
-                #[cfg(target_os = "macos")]
-                runner.execute(*self, "Brew (Intel)", || {
-                    unix::run_brew_formula(ctx, unix::BrewVariant::MacIntel)
-                })?
+                if ctx.config().brew_custom_path().is_some() {
+                    runner.execute(*self, "Brew", || unix::run_brew_formula(ctx, unix::BrewVariant::Path))?;
+                } else {
+                    runner.execute(*self, "Brew (ARM)", || {
+                        unix::run_brew_formula(ctx, unix::BrewVariant::MacArm)
+                    })?;
+                    runner.execute(*self, "Brew (Intel)", || {
+                        unix::run_brew_formula(ctx, unix::BrewVariant::MacIntel)
+                    })?;
+                }
             }
             Bun => runner.execute(*self, "bun", || generic::run_bun(ctx))?,
             BunPackages =>

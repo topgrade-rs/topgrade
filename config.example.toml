@@ -173,6 +173,11 @@
 
 
 [brew]
+# Override the brew binary path. Useful for Workbrew and other non-standard
+# brew installs. When set, the Intel/ARM brew variants are skipped on macOS
+# so the same binary isn't run three times.
+# custom_path = "/opt/workbrew/bin/brew"
+
 # For the BrewCask step
 # If `Repo Cask Upgrade` exists, then use the `-a` option.
 # Otherwise, use the `--greedy` option.
