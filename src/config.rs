@@ -58,20 +58,25 @@ pub struct Include {
 pub struct Containers {
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     ignored_containers: Option<Vec<String>>,
+    #[merge(strategy = merge::option::overwrite_none)]
     runtime: Option<ContainerRuntime>,
+    #[merge(strategy = merge::option::overwrite_none)]
     system_prune: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     use_sudo: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Mandb {
+    #[merge(strategy = merge::option::overwrite_none)]
     enable: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Git {
+    #[merge(strategy = merge::option::overwrite_none)]
     max_concurrency: Option<usize>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
@@ -80,8 +85,10 @@ pub struct Git {
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     repos: Option<Vec<String>>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     pull_predefined: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     fetch_only: Option<bool>,
 }
 
@@ -91,7 +98,9 @@ pub struct Vagrant {
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     directories: Option<Vec<String>>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     power_on: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     always_suspend: Option<bool>,
 }
 
@@ -107,23 +116,36 @@ pub enum UpdatesAutoReboot {
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Windows {
+    #[merge(strategy = merge::option::overwrite_none)]
     accept_all_updates: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     updates_auto_reboot: Option<UpdatesAutoReboot>,
+    #[merge(strategy = merge::option::overwrite_none)]
     self_rename: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     open_remotes_in_new_terminal: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     wsl_update_pre_release: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     wsl_update_use_web_download: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     winget_silent_install: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     winget_use_sudo: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Python {
+    #[merge(strategy = merge::option::overwrite_none)]
     enable_pip_review: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     enable_pip_review_local: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     enable_pipupgrade: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     pipupgrade_arguments: Option<String>,
+    #[merge(strategy = merge::option::overwrite_none)]
     poetry_force_self_update: Option<bool>,
 }
 
@@ -141,6 +163,7 @@ pub struct Conda {
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct Distrobox {
+    #[merge(strategy = merge::option::overwrite_none)]
     use_root: Option<bool>,
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
@@ -151,6 +174,7 @@ pub struct Distrobox {
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct Yarn {
+    #[merge(strategy = merge::option::overwrite_none)]
     use_sudo: Option<bool>,
 }
 
@@ -158,6 +182,7 @@ pub struct Yarn {
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct NPM {
+    #[merge(strategy = merge::option::overwrite_none)]
     use_sudo: Option<bool>,
 }
 
@@ -165,6 +190,7 @@ pub struct NPM {
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct Deno {
+    #[merge(strategy = merge::option::overwrite_none)]
     version: Option<String>,
 }
 
@@ -172,6 +198,7 @@ pub struct Deno {
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct Chezmoi {
+    #[merge(strategy = merge::option::overwrite_none)]
     exclude_encrypted: Option<bool>,
 }
 
@@ -179,8 +206,11 @@ pub struct Chezmoi {
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct Mise {
+    #[merge(strategy = merge::option::overwrite_none)]
     bump: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     interactive: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     jobs: Option<u32>,
 }
 
@@ -188,6 +218,7 @@ pub struct Mise {
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct Firmware {
+    #[merge(strategy = merge::option::overwrite_none)]
     upgrade: Option<bool>,
 }
 
@@ -195,6 +226,7 @@ pub struct Firmware {
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct Flatpak {
+    #[merge(strategy = merge::option::overwrite_none)]
     use_sudo: Option<bool>,
 }
 
@@ -202,16 +234,22 @@ pub struct Flatpak {
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct Pixi {
+    #[merge(strategy = merge::option::overwrite_none)]
     include_release_notes: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Brew {
+    #[merge(strategy = merge::option::overwrite_none)]
     greedy_cask: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     greedy_latest: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     greedy_auto_updates: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     autoremove: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     fetch_head: Option<bool>,
 }
 
@@ -275,7 +313,9 @@ pub struct Linux {
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     aura_pacman_arguments: Option<String>,
+    #[merge(strategy = merge::option::overwrite_none)]
     arch_package_manager: Option<ArchPackageManager>,
+    #[merge(strategy = merge::option::overwrite_none)]
     show_arch_news: Option<bool>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
@@ -305,10 +345,15 @@ pub struct Linux {
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     apt_arguments: Option<String>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     enable_tlmgr: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     redhat_distro_sync: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     suse_dup: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     rpm_ostree: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     bootc: Option<bool>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
@@ -324,26 +369,33 @@ pub struct Linux {
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Composer {
+    #[merge(strategy = merge::option::overwrite_none)]
     self_update: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Vim {
+    #[merge(strategy = merge::option::overwrite_none)]
     force_plug_update: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Misc {
+    #[merge(strategy = merge::option::overwrite_none)]
     allow_root: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     pre_sudo: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     sudo_loop: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     sudo_loop_interval: Option<u16>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     sudo_command: Option<SudoKind>,
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
@@ -361,6 +413,7 @@ pub struct Misc {
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     remote_topgrades: Option<Vec<String>>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     remote_topgrade_path: Option<String>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
@@ -369,45 +422,63 @@ pub struct Misc {
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     tmux_arguments: Option<String>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     set_title: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     display_time: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     assume_yes: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     ask_retry: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     auto_retry: Option<u16>,
 
     /// TODO: Remove this in favor of ask_retry = false
+    #[merge(strategy = merge::option::overwrite_none)]
     no_retry: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     show_skipped: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     run_in_tmux: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     tmux_session_mode: Option<TmuxSessionMode>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     cleanup: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     notify_each_step: Option<bool>,
 
     /// Deprecated: use `notify_end = "never"` instead
+    #[merge(strategy = merge::option::overwrite_none)]
     skip_notify: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     notify_end: Option<NotifyEnd>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     bashit_branch: Option<String>,
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     only: Option<Vec<Step>>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     no_self_update: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     log_filters: Option<Vec<String>>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     show_distribution_summary: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     nix_handler: Option<NixHandler>,
 }
 
@@ -442,52 +513,64 @@ pub struct TmuxConfig {
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Lensfun {
+    #[merge(strategy = merge::option::overwrite_none)]
     use_sudo: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct JuliaConfig {
+    #[merge(strategy = merge::option::overwrite_none)]
     startup_file: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Zigup {
+    #[merge(strategy = merge::option::overwrite_none)]
     target_versions: Option<Vec<String>>,
+    #[merge(strategy = merge::option::overwrite_none)]
     install_dir: Option<String>,
+    #[merge(strategy = merge::option::overwrite_none)]
     path_link: Option<String>,
+    #[merge(strategy = merge::option::overwrite_none)]
     cleanup: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct VscodeConfig {
+    #[merge(strategy = merge::option::overwrite_none)]
     profile: Option<String>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct DoomConfig {
+    #[merge(strategy = merge::option::overwrite_none)]
     aot: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Cargo {
+    #[merge(strategy = merge::option::overwrite_none)]
     git: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     quiet: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Rustup {
+    #[merge(strategy = merge::option::overwrite_none)]
     channels: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Pkgfile {
+    #[merge(strategy = merge::option::overwrite_none)]
     enable: Option<bool>,
 }
 
@@ -2121,6 +2204,33 @@ mod test {
 
     use crate::config::*;
     use color_eyre::eyre::eyre;
+    use merge::Merge;
+
+    /// Regression test: verify that `overwrite_none` merge strategy preserves
+    /// existing (left) values and only fills in `None` fields from right.
+    /// Guards against future `merge` crate upgrades changing config precedence.
+    #[test]
+    fn merge_overwrite_none_preserves_left_values() {
+        let mut left = Containers {
+            ignored_containers: None,
+            runtime: Some(ContainerRuntime::Podman),
+            system_prune: Some(false),
+            use_sudo: None,
+        };
+        let right = Containers {
+            ignored_containers: None,
+            runtime: Some(ContainerRuntime::Docker),
+            system_prune: None,
+            use_sudo: Some(true),
+        };
+        left.merge(right);
+
+        // Left Some is preserved even when right is also Some
+        assert!(matches!(left.runtime, Some(ContainerRuntime::Podman)));
+        assert_eq!(left.system_prune, Some(false));
+        // Left None is filled from right
+        assert_eq!(left.use_sudo, Some(true));
+    }
 
     /// Test the default configuration in `config.example.toml` is valid.
     #[test]
