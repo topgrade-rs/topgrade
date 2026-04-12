@@ -40,7 +40,7 @@ merge = "0.2"
 regex-split = "0.1"
 notify-rust = "4.12.0"
 wildmatch = "2.3.0"
-rust-i18n = "3.0.1"
+rust-i18n = "4.0.0"
 sys-locale = "0.3.1"
 jetbrains-toolbox-updater = "6.0.0"
 indexmap = { version = "2.9.0", features = ["serde"] }
