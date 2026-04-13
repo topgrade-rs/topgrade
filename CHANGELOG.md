@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.3.1](https://github.com/topgrade-rs/topgrade/compare/v17.3.0...v17.3.1) - 2026-04-13
+
+### Fixed
+
+- *(sparkle)* correct CLI argument usage ([#1912](https://github.com/topgrade-rs/topgrade/pull/1912))
+
 ## [17.3.0](https://github.com/topgrade-rs/topgrade/compare/v17.2.1...v17.3.0) - 2026-04-09
 
 ### Added
