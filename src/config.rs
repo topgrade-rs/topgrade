@@ -576,6 +576,13 @@ pub struct Pkgfile {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct Skills {
+    #[merge(strategy = merge::option::overwrite_none)]
+    update: Option<String>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 /// Configuration file
 pub struct ConfigFile {
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
@@ -679,6 +686,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     pkgfile: Option<Pkgfile>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    skills: Option<Skills>,
 }
 
 fn config_directory() -> PathBuf {
@@ -2196,6 +2206,13 @@ impl Config {
             .as_ref()
             .and_then(|pkgfile| pkgfile.enable)
             .unwrap_or(false)
+    }
+
+    pub fn skills_update(&self) -> Option<&str> {
+        self.config_file
+            .skills
+            .as_ref()
+            .and_then(|skills| skills.update.as_deref())
     }
 }
 

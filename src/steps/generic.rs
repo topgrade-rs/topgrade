@@ -2092,7 +2092,22 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
     if ctx.config().yes(Step::Skills) {
         command.arg("--yes");
     }
+
     command.args(["skills", "update"]);
+
+    match ctx.config().skills_update() {
+        Some("global") => {
+            command.arg("--global");
+        }
+        Some("project") => {
+            command.arg("--project");
+        }
+        _ => {
+            if ctx.config().yes(Step::Skills) {
+                command.arg("--yes");
+            }
+        }
+    }
 
     command.status_checked()
 }
