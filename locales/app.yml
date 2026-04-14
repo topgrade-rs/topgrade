@@ -566,6 +566,8 @@ _version: 2
   zh_CN: "固件升级"
   zh_TW: "韌體更新"
   de: "Firmware-Updates"
+"fwupdmgr found firmware updates, but applying these is disabled in the config. Run 'fwupdmgr update' to update firmware manually.":
+  en: "fwupdmgr found firmware updates, but applying these is disabled in the config. Run 'fwupdmgr update' to update firmware manually."
 "Flatpak System Packages":
   en: "Flatpak System Packages"
   lt: "Flatpak sistemos paketai"
