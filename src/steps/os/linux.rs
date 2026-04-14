@@ -16,7 +16,7 @@ use crate::steps::generic::is_wsl;
 use crate::steps::os::archlinux;
 use crate::steps::unix::{NhSwitchArgs, can_nh_switch, nh_switch};
 use crate::sudo::SudoExecuteOpts;
-use crate::terminal::{print_separator, prompt_yesno};
+use crate::terminal::{print_separator, print_warning, prompt_yesno};
 use crate::utils::{PathExt, require, require_flatpak, require_one, which};
 
 static OS_RELEASE_PATH: &str = "/etc/os-release";
@@ -941,10 +941,33 @@ pub fn run_fwupdmgr(ctx: &ExecutionContext) -> Result<()> {
         if ctx.config().yes(Step::System) {
             updmgr.arg("-y");
         }
+        updmgr.status_checked_with_codes(&[2])
     } else {
         updmgr.arg("get-updates");
+
+        // Exit 0 from `fwupdmgr get-updates` means firmware updates are available.
+        // Exit 2 means no updates. When updates exist but `firmware_upgrade` is
+        // disabled, hint to the user that they can apply them manually.
+        let has_updates = std::cell::Cell::new(false);
+        updmgr.status_checked_with(|status| {
+            if status.success() {
+                has_updates.set(true);
+                Ok(())
+            } else if status.code() == Some(2) {
+                Ok(())
+            } else {
+                Err(())
+            }
+        })?;
+
+        if has_updates.get() {
+            print_warning(t!(
+                "fwupdmgr found firmware updates, but applying these is disabled in the config. Run 'fwupdmgr update' to update firmware manually."
+            ));
+        }
+
+        Ok(())
     }
-    updmgr.status_checked_with_codes(&[2])
 }
 
 pub fn run_flatpak(ctx: &ExecutionContext) -> Result<()> {
