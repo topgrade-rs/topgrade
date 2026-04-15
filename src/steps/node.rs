@@ -258,13 +258,81 @@ impl Deno {
     }
 }
 
+struct VitePlus {
+    command: PathBuf,
+}
+
+impl VitePlus {
+    fn new(command: PathBuf) -> Self {
+        Self { command }
+    }
+
+    fn self_upgrade(&self, ctx: &ExecutionContext, use_sudo: bool) -> Result<()> {
+        let mut args = vec!["upgrade"];
+
+        if ctx.run_type().dry() {
+            args.push("--check");
+        }
+
+        if use_sudo {
+            let sudo = ctx.require_sudo()?;
+            sudo.execute(ctx, &self.command)?.args(args).status_checked()?;
+        } else {
+            ctx.execute(&self.command).args(args).status_checked()?;
+        }
+
+        Ok(())
+    }
+
+    fn upgrade_packages(&self, ctx: &ExecutionContext, use_sudo: bool) -> Result<()> {
+        let args = ["update", "--global"];
+
+        if use_sudo {
+            let sudo = ctx.require_sudo()?;
+            sudo.execute(ctx, &self.command)?.args(args).status_checked()?;
+        } else {
+            ctx.execute(&self.command).args(args).status_checked()?;
+        }
+
+        Ok(())
+    }
+
+    #[cfg(target_os = "linux")]
+    pub fn should_use_sudo(&self, _ctx: &ExecutionContext) -> Result<bool> {
+        let vp_home = match std::env::var_os("VP_HOME") {
+            None => return Ok(false),
+            Some(s) if s.is_empty() => return Ok(false),
+            Some(s) => s,
+        };
+
+        let uid = Uid::effective();
+        let metadata = std::fs::metadata(&vp_home)?;
+
+        Ok(metadata.uid() != uid.as_raw() && metadata.uid() == 0)
+    }
+}
+
 #[cfg(target_os = "linux")]
 fn should_use_sudo(npm: &NPM, ctx: &ExecutionContext) -> Result<bool> {
     if npm.should_use_sudo(ctx)? {
         if ctx.config().npm_use_sudo() {
             Ok(true)
         } else {
-            Err(SkipStep("NPM root is owned by another user which is not the current user. Set use_sudo = true under the NPM section in your configuration to run NPM as sudo".to_string())
+            Err(SkipStep(format!("{} root is owned by another user which is not the current user. Set use_sudo = true under the [npm] section in your configuration to run {} as sudo", npm.variant, npm.variant))
+                .into())
+        }
+    } else {
+        Ok(false)
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn should_use_sudo_viteplus(viteplus: &VitePlus, ctx: &ExecutionContext) -> Result<bool> {
+    if viteplus.should_use_sudo(ctx)? {
+        if ctx.config().viteplus_use_sudo() {
+            Ok(true)
+        } else {
+            Err(SkipStep("Vite+ root is owned by another user which is not the current user. Set use_sudo = true under the [viteplus] section in your configuration to run Vite+ as sudo".to_string())
                 .into())
         }
     } else {
@@ -278,7 +346,7 @@ fn should_use_sudo_yarn(yarn: &Yarn, ctx: &ExecutionContext) -> Result<bool> {
         if ctx.config().yarn_use_sudo() {
             Ok(true)
         } else {
-            Err(SkipStep("NPM root is owned by another user which is not the current user. Set use_sudo = true under the NPM section in your configuration to run NPM as sudo".to_string())
+            Err(SkipStep("Yarn root is owned by another user which is not the current user. Set use_sudo = true under the [yarn] section in your configuration to run Yarn as sudo".to_string())
                 .into())
         }
     } else {
@@ -316,6 +384,30 @@ pub fn run_pnpm_upgrade(ctx: &ExecutionContext) -> Result<()> {
     {
         pnpm.upgrade(ctx, false)
     }
+}
+
+pub fn run_viteplus_upgrade(ctx: &ExecutionContext) -> Result<()> {
+    let viteplus = require("vp").map(VitePlus::new)?;
+
+    // This is upstream's preferred branding for the tool
+    print_separator("Vite+");
+
+    let use_sudo;
+
+    #[cfg(target_os = "linux")]
+    {
+        use_sudo = should_use_sudo_viteplus(&viteplus, ctx)?;
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        use_sudo = false;
+    }
+
+    viteplus.self_upgrade(ctx, use_sudo)?;
+    viteplus.upgrade_packages(ctx, use_sudo)?;
+
+    Ok(())
 }
 
 pub fn run_yarn_upgrade(ctx: &ExecutionContext) -> Result<()> {
