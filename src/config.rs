@@ -181,6 +181,14 @@ pub struct Yarn {
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
+pub struct VitePlus {
+    #[merge(strategy = merge::option::overwrite_none)]
+    use_sudo: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct NPM {
     #[merge(strategy = merge::option::overwrite_none)]
     use_sudo: Option<bool>,
@@ -679,6 +687,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     pkgfile: Option<Pkgfile>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    viteplus: Option<VitePlus>,
 }
 
 fn config_directory() -> PathBuf {
@@ -2000,6 +2011,14 @@ impl Config {
             .and_then(|yarn| yarn.use_sudo)
             .unwrap_or(false)
     }
+    #[cfg(target_os = "linux")]
+    pub fn viteplus_use_sudo(&self) -> bool {
+        self.config_file
+            .viteplus
+            .as_ref()
+            .and_then(|viteplus| viteplus.use_sudo)
+            .unwrap_or(false)
+    }
 
     pub fn deno_version(&self) -> Option<&str> {
         self.config_file.deno.as_ref().and_then(|deno| deno.version.as_deref())
@@ -2197,7 +2216,6 @@ impl Config {
             .and_then(|pkgfile| pkgfile.enable)
             .unwrap_or(false)
     }
-
 }
 
 #[cfg(test)]
