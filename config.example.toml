@@ -356,6 +356,11 @@
 # version = "stable"
 
 
+[viteplus]
+# Use sudo if the Vite+ directory isn't owned by the current user
+# use_sudo = true
+
+
 [vim]
 # For `vim-plug`, execute `PlugUpdate!` instead of `PlugUpdate`
 # force_plug_update = true

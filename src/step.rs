@@ -171,6 +171,7 @@ pub enum Step {
     Vagrant,
     Vcpkg,
     Vim,
+    VitePlus,
     VoltaPackages,
     Vscode,
     VscodeInsiders,
@@ -691,6 +692,7 @@ impl Step {
                 runner.execute(*self, "The Ultimate vimrc", || vim::upgrade_ultimate_vimrc(ctx))?;
                 runner.execute(*self, "voom", || vim::run_voom(ctx))?
             }
+            VitePlus => runner.execute(*self, "viteplus", || node::run_viteplus_upgrade(ctx))?,
             VoltaPackages => runner.execute(*self, "volta packages", || node::run_volta_packages_upgrade(ctx))?,
             Vscode => runner.execute(*self, "Visual Studio Code extensions", || {
                 generic::run_vscode_extensions_update(ctx)
@@ -858,6 +860,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Yarn,
         Pnpm,
         VoltaPackages,
+        VitePlus,
         Containers,
         Deno,
         Composer,
