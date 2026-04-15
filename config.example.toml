@@ -474,8 +474,3 @@
 # If set, updates only these channels.
 # (default: [] (all channels))
 # channels = ["stable"]
-
-[skills]
-# Set the scope for `skills update`. Accepted values: "global" or "project".
-# If not set, falls back to --yes when assume_yes is true, otherwise prompts interactively.
-# update = "project"
