@@ -2,8 +2,10 @@ name: Publish to WinGet
 
 on:
   repository_dispatch:
-    types: [ release-assets-built ]
+    types: [release-assets-built]
   workflow_dispatch:
+
+permissions: {}
 
 jobs:
   publish:
