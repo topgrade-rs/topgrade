@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      issues: write  # gh pr comment
-      pull-requests: write  # gh pr close
+      issues: write # gh pr comment
+      pull-requests: write # gh pr close
     steps:
       - env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
