@@ -23,17 +23,14 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
     let env = format!("TOPGRADE_PREFIX={hostname}");
     args.extend(["env", &env, "$SHELL", "-lc", topgrade]);
 
+    #[cfg(unix)]
     if ctx.config().run_in_tmux() && !ctx.run_type().dry() {
-        #[cfg(unix)]
-        {
-            prepare_async_ssh_command(&mut args);
-            crate::tmux::run_command(ctx, hostname, &shell_words::join(args))?;
-            Err(SkipStep(String::from(t!("Remote Topgrade launched in Tmux"))).into())
-        }
+        prepare_async_ssh_command(&mut args);
+        crate::tmux::run_command(ctx, hostname, &shell_words::join(args))?;
+        return Err(SkipStep(String::from(t!("Remote Topgrade launched in Tmux"))).into());
+    }
 
-        #[cfg(not(unix))]
-        unreachable!("Tmux execution is only implemented in Unix");
-    } else if ctx.config().open_remotes_in_new_terminal() && !ctx.run_type().dry() && cfg!(windows) {
+    if ctx.config().open_remotes_in_new_terminal() && !ctx.run_type().dry() && cfg!(windows) {
         prepare_async_ssh_command(&mut args);
         ctx.execute("wt").args(&args).spawn()?;
         Err(SkipStep(String::from(t!("Remote Topgrade launched in an external terminal"))).into())
