@@ -91,6 +91,7 @@ windows-registry = "0.6"
 
 [profile.release]
 lto = true
+codegen-units = 1
 
 [features]
 default = []
