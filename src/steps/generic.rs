@@ -2114,7 +2114,12 @@ fn ollama_manifests_path() -> PathBuf {
         .join("manifests/registry.ollama.ai")
 }
 
-fn ollama_list_models() -> Result<Vec<String>> {
+struct OllamaModel {
+    name: String,
+    manifest_path: PathBuf,
+}
+
+fn ollama_list_models() -> Result<Vec<OllamaModel>> {
     let manifests = ollama_manifests_path();
     let mut models = Vec::new();
     if !manifests.exists() {
@@ -2144,10 +2149,13 @@ fn ollama_list_models() -> Result<Vec<String>> {
             .ok_or_else(|| eyre!("invalid manifest path: {}", path.display()))?
             .to_string_lossy();
 
-        models.push(if namespace == "library" {
-            format!("{name}:{tag}")
-        } else {
-            format!("{namespace}/{name}:{tag}")
+        models.push(OllamaModel {
+            name: if namespace == "library" {
+                format!("{name}:{tag}")
+            } else {
+                format!("{namespace}/{name}:{tag}")
+            },
+            manifest_path: path.to_path_buf(),
         });
     }
 
@@ -2168,26 +2176,8 @@ struct OllamaLayer {
 }
 
 // Locally created model manifests have a `from` field on their model layers
-fn is_local_ollama_model(model: &str) -> bool {
-    // The model string is in the format of `[namespace/]name[:tag]`,
-    // where namespace and tag are optional and default to "library" and "latest"
-    // for example "library/qwen:2b" - this is `ollama_manifests_path()` + `/library/qwen3.5/2b` on disk
-
-    let last_slash = model.rfind('/');
-    let (name, tag) = match model.rfind(':') {
-        Some(index) if last_slash.is_none_or(|slash| index > slash) => (&model[..index], &model[index + 1..]),
-        _ => (model, "latest"),
-    };
-
-    let name_path: PathBuf = if name.contains('/') {
-        name.split('/').collect()
-    } else {
-        PathBuf::from("library").join(name)
-    };
-
-    let manifest_path = ollama_manifests_path().join(name_path).join(tag);
-
-    let Ok(content) = fs::read_to_string(&manifest_path) else {
+fn is_local_ollama_model(manifest_path: &Path) -> bool {
+    let Ok(content) = fs::read_to_string(manifest_path) else {
         return false;
     };
     let Ok(manifest) = serde_json::from_str::<OllamaManifest>(&content) else {
@@ -2203,9 +2193,9 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
     let ollama = require("ollama")?;
 
     let models = ollama_list_models()?;
-    let remote_models: Vec<_> = models.iter().filter(|m| !is_local_ollama_model(m)).collect();
+    let remote_models: Vec<_> = models.iter().filter(|m| !is_local_ollama_model(&m.manifest_path)).collect();
     if remote_models.is_empty() {
-        return Ok(());
+        return Err(SkipStep("No remote Ollama models to update".to_string()).into());
     }
 
     print_separator("Ollama");
@@ -2227,11 +2217,11 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
         }
     }
 
-    // Accumulate failures rather than propagating — ensures server shutdown below always runs.
+    let mut pull_result = Ok(());
     for model in &remote_models {
-        if ctx.execute(&ollama).args(["pull", model]).status_checked().is_err() {
-            warn!("Failed to pull Ollama model '{model}'");
-            print_warning(format!("Failed to pull Ollama model '{model}'."));
+        if let Err(e) = ctx.execute(&ollama).args(["pull", &model.name]).status_checked() {
+            pull_result = Err(e);
+            break;
         }
     }
 
@@ -2241,5 +2231,5 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
         let _ = child.wait();
     }
 
-    Ok(())
+    pull_result
 }
