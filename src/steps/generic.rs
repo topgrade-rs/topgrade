@@ -2226,7 +2226,7 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
         }
     }
 
-	// Do not add early returns between here and the server shutdown
+    // Do not add early returns between here and the server shutdown
     if let Some(ExecutorChild::Wet(mut child)) = server {
         let _ = child.kill();
         let _ = child.wait();
