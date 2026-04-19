@@ -1003,9 +1003,18 @@ pub fn run_tlmgr_update(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_chezmoi_update(ctx: &ExecutionContext) -> Result<()> {
     let chezmoi = require("chezmoi")?;
-    HOME_DIR.join(".local/share/chezmoi").require()?;
 
-    let mut cmd = ctx.execute(chezmoi);
+    PathBuf::from(
+        ctx.execute(&chezmoi)
+            .always()
+            .arg("source-path")
+            .output_checked_utf8()?
+            .stdout
+            .trim(),
+    )
+    .require()?;
+
+    let mut cmd = ctx.execute(&chezmoi);
 
     print_separator("chezmoi");
 
