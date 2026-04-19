@@ -2171,7 +2171,7 @@ struct OllamaLayer {
 fn is_local_ollama_model(model: &str) -> bool {
     // The model string is in the format of `[namespace/]name[:tag]`,
     // where namespace and tag are optional and default to "library" and "latest"
-	// for example "library/qwen:2b" - this is `ollama_manifests_path()` + `/library/qwen3.5/2b` on disk
+    // for example "library/qwen:2b" - this is `ollama_manifests_path()` + `/library/qwen3.5/2b` on disk
 
     let last_slash = model.rfind('/');
     let (name, tag) = match model.rfind(':') {
