@@ -2108,7 +2108,7 @@ fn ollama_serve(ctx: &ExecutionContext, ollama: &Path) -> Result<ExecutorChild> 
 }
 
 fn ollama_manifests_path() -> PathBuf {
-    std::env::var_os("OLLAMA_MODELS")
+    env::var_os("OLLAMA_MODELS")
         .map(PathBuf::from)
         .unwrap_or_else(|| HOME_DIR.join(".ollama/models"))
         .join("manifests/registry.ollama.ai")
@@ -2192,15 +2192,16 @@ fn is_local_ollama_model(manifest_path: &Path) -> bool {
 pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
     let ollama = require("ollama")?;
 
-    let models = ollama_list_models()?;
-    let remote_models: Vec<_> = models.iter().filter(|m| !is_local_ollama_model(&m.manifest_path)).collect();
+    let remote_models: Vec<OllamaModel> = ollama_list_models()?
+        .into_iter()
+        .filter(|m| !is_local_ollama_model(&m.manifest_path))
+        .collect();
     if remote_models.is_empty() {
-        return Err(SkipStep("No remote Ollama models to update".to_string()).into());
+        return Err(SkipStep("No Ollama models to pull".to_string()).into());
     }
 
     print_separator("Ollama");
 
-    // Start ollama if needed
     let mut server: Option<ExecutorChild> = None;
     if let ExecutorOutput::Wet(out) = ctx.execute(&ollama).always().args(["list"]).output()?
         && String::from_utf8_lossy(&out.stderr).contains("could not connect")
@@ -2225,7 +2226,6 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
         }
     }
 
-    // Shutdown previously started Ollama server
     if let Some(ExecutorChild::Wet(mut child)) = server {
         let _ = child.kill();
         let _ = child.wait();
