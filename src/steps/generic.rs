@@ -2116,11 +2116,11 @@ fn ollama_manifests_path() -> PathBuf {
 
 fn ollama_list_models() -> Result<Vec<String>> {
     let manifests = ollama_manifests_path();
+    let mut models = Vec::new();
     if !manifests.exists() {
-        return Ok(Vec::new());
+        return Ok(models);
     }
 
-    let mut models = Vec::new();
     for entry in WalkDir::new(&manifests).min_depth(3).max_depth(3) {
         let entry = entry?;
         if !entry.file_type().is_file() {
@@ -2154,8 +2154,25 @@ fn ollama_list_models() -> Result<Vec<String>> {
     Ok(models)
 }
 
-// Locally created model manifests have a `from` field on their model layers.
+#[derive(Deserialize)]
+struct OllamaManifest {
+    layers: Vec<OllamaLayer>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct OllamaLayer {
+    media_type: String,
+    #[serde(default)]
+    from: Option<String>,
+}
+
+// Locally created model manifests have a `from` field on their model layers
 fn is_local_ollama_model(model: &str) -> bool {
+    // The model string is in the format of `[namespace/]name[:tag]`,
+    // where namespace and tag are optional and default to "library" and "latest"
+	// for example "library/qwen:2b" - this is `ollama_manifests_path()` + `/library/qwen3.5/2b` on disk
+
     let last_slash = model.rfind('/');
     let (name, tag) = match model.rfind(':') {
         Some(index) if last_slash.is_none_or(|slash| index > slash) => (&model[..index], &model[index + 1..]),
@@ -2170,17 +2187,16 @@ fn is_local_ollama_model(model: &str) -> bool {
 
     let manifest_path = ollama_manifests_path().join(name_path).join(tag);
 
-    fs::read_to_string(manifest_path)
-        .ok()
-        .and_then(|content| serde_json::from_str::<serde_json::Value>(&content).ok())
-        .is_some_and(|manifest| {
-            manifest["layers"].as_array().is_some_and(|layers| {
-                layers.iter().any(|layer| {
-                    layer["mediaType"].as_str() == Some("application/vnd.ollama.image.model")
-                        && layer.get("from").is_some()
-                })
-            })
-        })
+    let Ok(content) = fs::read_to_string(&manifest_path) else {
+        return false;
+    };
+    let Ok(manifest) = serde_json::from_str::<OllamaManifest>(&content) else {
+        return false;
+    };
+    manifest
+        .layers
+        .iter()
+        .any(|l| l.media_type == "application/vnd.ollama.image.model" && l.from.is_some())
 }
 
 pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
@@ -2188,7 +2204,7 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
 
     let models = ollama_list_models()?;
     let remote_models: Vec<_> = models.iter().filter(|m| !is_local_ollama_model(m)).collect();
-    if models.is_empty() || remote_models.is_empty() {
+    if remote_models.is_empty() {
         return Ok(());
     }
 
@@ -2203,28 +2219,26 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
         debug!("Ollama server not running, starting temporary server");
         server = Some(ollama_serve(ctx, &ollama)?);
         // Poll for server readiness (2-second budget: 10 × 200ms).
-        let _ = (0..10).any(|_| {
+        for _ in 0..10 {
             std::thread::sleep(std::time::Duration::from_millis(200));
-            ctx.execute(&ollama).args(["list"]).status_checked().is_ok()
-        });
+            if ctx.execute(&ollama).args(["list"]).status_checked().is_ok() {
+                break;
+            }
+        }
     }
 
-    let mut failed = 0;
+    // Accumulate failures rather than propagating — ensures server shutdown below always runs.
     for model in &remote_models {
         if ctx.execute(&ollama).args(["pull", model]).status_checked().is_err() {
-            failed += 1;
             warn!("Failed to pull Ollama model '{model}'");
             print_warning(format!("Failed to pull Ollama model '{model}'."));
         }
     }
 
+    // Shutdown previously started Ollama server
     if let Some(ExecutorChild::Wet(mut child)) = server {
         let _ = child.kill();
         let _ = child.wait();
-    }
-
-    if failed == remote_models.len() {
-        bail!("All Ollama model pulls failed");
     }
 
     Ok(())
