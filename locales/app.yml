@@ -566,6 +566,14 @@ _version: 2
   zh_CN: "固件升级"
   zh_TW: "韌體更新"
   de: "Firmware-Updates"
+"fwupdmgr found firmware updates, but applying these is disabled in the config. Run 'fwupdmgr update' to update firmware manually.":
+  en: "fwupdmgr found firmware updates, but applying these is disabled in the config. Run 'fwupdmgr update' to update firmware manually."
+  lt: "fwupdmgr rado programinės aparatinės įrangos atnaujinimų, tačiau jų taikymas išjungtas konfigūracijoje. Paleiskite 'fwupdmgr update', kad atnaujintumėte rankiniu būdu."
+  es: "fwupdmgr encontró actualizaciones de firmware, pero su aplicación está deshabilitada en la configuración. Ejecute 'fwupdmgr update' para actualizar el firmware manualmente."
+  fr: "fwupdmgr a trouvé des mises à jour du firmware, mais leur application est désactivée dans la configuration. Exécutez 'fwupdmgr update' pour mettre à jour le firmware manuellement."
+  zh_CN: "fwupdmgr 找到了固件更新，但配置中已禁用自动应用。运行 'fwupdmgr update' 手动更新固件。"
+  zh_TW: "fwupdmgr 找到了韌體更新，但設定中已停用自動套用。執行 'fwupdmgr update' 手動更新韌體。"
+  de: "fwupdmgr hat Firmware-Updates gefunden, aber deren Anwendung ist in der Konfiguration deaktiviert. Führen Sie 'fwupdmgr update' aus, um die Firmware manuell zu aktualisieren."
 "Flatpak System Packages":
   en: "Flatpak System Packages"
   lt: "Flatpak sistemos paketai"
