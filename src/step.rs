@@ -124,6 +124,7 @@ pub enum Step {
     Pacdef,
     Pacstall,
     Pearl,
+    Pi,
     Pip3,
     PipReview,
     PipReviewLocal,
@@ -496,6 +497,7 @@ impl Step {
                 #[cfg(unix)]
                 runner.execute(*self, "pearl", || unix::run_pearl(ctx))?
             }
+            Pi => runner.execute(*self, "pi", || generic::run_pi(ctx))?,
             Pip3 => runner.execute(*self, "pip3", || generic::run_pip3_update(ctx))?,
             PipReview => runner.execute(*self, "pip-review", || generic::run_pip_review_update(ctx))?,
             PipReviewLocal => runner.execute(*self, "pip-review (local)", || {
@@ -829,6 +831,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Emacs,
         Opam,
         Vcpkg,
+        Pi,
         Pipx,
         Pipxu,
         Vscode,
