@@ -14,11 +14,12 @@ use std::{env, path::Path};
 use std::{fs, io::Write};
 use tempfile::{tempdir, tempfile_in};
 use tracing::{debug, error, warn};
+use walkdir::WalkDir;
 
 use crate::HOME_DIR;
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
-use crate::executor::ExecutorOutput;
+use crate::executor::{ExecutorChild, ExecutorOutput};
 use crate::output_changed_message;
 use crate::step::Step;
 use crate::sudo::SudoExecuteOpts;
@@ -2119,4 +2120,125 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
     command.args(["skills", "update", "--global"]);
 
     command.status_checked()
+}
+
+fn ollama_serve(ctx: &ExecutionContext, ollama: &Path) -> Result<ExecutorChild> {
+    ctx.execute(ollama)
+        .arg("serve")
+        .stdin(std::process::Stdio::null())
+        .spawn()
+        .context("Failed to start Ollama server")
+}
+
+fn ollama_manifests_path() -> PathBuf {
+    env::var_os("OLLAMA_MODELS")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| HOME_DIR.join(".ollama/models"))
+        .join("manifests/registry.ollama.ai")
+}
+
+struct OllamaModel {
+    name: String,
+    manifest_path: PathBuf,
+}
+
+fn ollama_list_models() -> impl Iterator<Item = OllamaModel> {
+    let manifests = ollama_manifests_path();
+
+    WalkDir::new(&manifests)
+        .min_depth(3)
+        .max_depth(3)
+        .into_iter()
+        .filter_map(move |entry| {
+            let entry = entry.ok()?;
+            if !entry.file_type().is_file() {
+                return None;
+            }
+
+            let path = entry.path();
+            let tag = path.file_name()?.to_string_lossy();
+            let name = path.parent()?.file_name()?.to_string_lossy();
+            let namespace = path.parent()?.parent()?.file_name()?.to_string_lossy();
+
+            Some(OllamaModel {
+                name: if namespace == "library" {
+                    format!("{name}:{tag}")
+                } else {
+                    format!("{namespace}/{name}:{tag}")
+                },
+                manifest_path: path.to_path_buf(),
+            })
+        })
+}
+
+#[derive(Deserialize)]
+struct OllamaManifest {
+    layers: Vec<OllamaLayer>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct OllamaLayer {
+    media_type: String,
+    #[serde(default)]
+    from: Option<String>,
+}
+
+// Locally created model manifests have a `from` field on their model layers
+fn is_local_ollama_model(manifest_path: &Path) -> bool {
+    let Ok(content) = fs::read_to_string(manifest_path) else {
+        return false;
+    };
+    let Ok(manifest) = serde_json::from_str::<OllamaManifest>(&content) else {
+        return false;
+    };
+    manifest
+        .layers
+        .iter()
+        .any(|l| l.media_type == "application/vnd.ollama.image.model" && l.from.is_some())
+}
+
+pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
+    let ollama = require("ollama")?;
+
+    let mut remote_models = ollama_list_models()
+        .filter(|m| !is_local_ollama_model(&m.manifest_path))
+        .peekable();
+    if remote_models.peek().is_none() {
+        return Err(SkipStep("No Ollama models to pull".to_string()).into());
+    }
+
+    print_separator("Ollama");
+
+    let mut server: Option<ExecutorChild> = None;
+    if let ExecutorOutput::Wet(out) = ctx.execute(&ollama).always().args(["list"]).output()?
+        && String::from_utf8_lossy(&out.stderr).contains("could not connect")
+        && !ctx.run_type().dry()
+    {
+        debug!("Ollama server not running, starting temporary server");
+        server = Some(ollama_serve(ctx, &ollama)?);
+        // wait max 2 seconds for server to start
+        for _ in 0..10 {
+            std::thread::sleep(std::time::Duration::from_millis(200));
+            if ctx.execute(&ollama).args(["list"]).status_checked().is_ok() {
+                break;
+            }
+        }
+    }
+
+    let mut pull_result = Ok(());
+    for model in remote_models {
+        if let Err(e) = ctx.execute(&ollama).args(["pull", &model.name]).status_checked() {
+            pull_result = Err(e);
+            break;
+        }
+    }
+
+    // kill temporary Ollama server - must run, don't add early returns before this
+    if let Some(ExecutorChild::Wet(mut child)) = server {
+        let _ = child.kill();
+        let _ = child.wait();
+    }
+
+    pull_result
 }
