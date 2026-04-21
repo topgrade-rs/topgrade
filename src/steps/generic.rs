@@ -2119,47 +2119,35 @@ struct OllamaModel {
     manifest_path: PathBuf,
 }
 
-fn ollama_list_models() -> Result<Vec<OllamaModel>> {
+fn ollama_list_models() -> Result<impl Iterator<Item = OllamaModel>> {
     let manifests = ollama_manifests_path();
-    let mut models = Vec::new();
-    if !manifests.exists() {
-        return Ok(models);
-    }
+    
+    let iter = WalkDir::new(&manifests)
+        .min_depth(3)
+        .max_depth(3)
+        .into_iter()
+        .filter_map(move |entry| {
+            let entry = entry.ok()?;
+            if !entry.file_type().is_file() {
+                return None;
+            }
 
-    for entry in WalkDir::new(&manifests).min_depth(3).max_depth(3) {
-        let entry = entry?;
-        if !entry.file_type().is_file() {
-            continue;
-        }
+            let path = entry.path();
+            let tag = path.file_name()?.to_string_lossy();
+            let name = path.parent()?.file_name()?.to_string_lossy();
+            let namespace = path.parent()?.parent()?.file_name()?.to_string_lossy();
 
-        let path = entry.path();
-        let tag = path
-            .file_name()
-            .ok_or_else(|| eyre!("invalid manifest path: {}", path.display()))?
-            .to_string_lossy();
-        let name = path
-            .parent()
-            .and_then(|p| p.file_name())
-            .ok_or_else(|| eyre!("invalid manifest path: {}", path.display()))?
-            .to_string_lossy();
-        let namespace = path
-            .parent()
-            .and_then(|p| p.parent())
-            .and_then(|p| p.file_name())
-            .ok_or_else(|| eyre!("invalid manifest path: {}", path.display()))?
-            .to_string_lossy();
-
-        models.push(OllamaModel {
-            name: if namespace == "library" {
-                format!("{name}:{tag}")
-            } else {
-                format!("{namespace}/{name}:{tag}")
-            },
-            manifest_path: path.to_path_buf(),
+            Some(OllamaModel {
+                name: if namespace == "library" {
+                    format!("{name}:{tag}")
+                } else {
+                    format!("{namespace}/{name}:{tag}")
+                },
+                manifest_path: path.to_path_buf(),
+            })
         });
-    }
 
-    Ok(models)
+    Ok(iter)
 }
 
 #[derive(Deserialize)]
@@ -2192,11 +2180,10 @@ fn is_local_ollama_model(manifest_path: &Path) -> bool {
 pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
     let ollama = require("ollama")?;
 
-    let remote_models: Vec<OllamaModel> = ollama_list_models()?
-        .into_iter()
+    let mut remote_models = ollama_list_models()?
         .filter(|m| !is_local_ollama_model(&m.manifest_path))
-        .collect();
-    if remote_models.is_empty() {
+        .peekable();
+    if remote_models.peek().is_none() {
         return Err(SkipStep("No Ollama models to pull".to_string()).into());
     }
 
@@ -2209,7 +2196,7 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
     {
         debug!("Ollama server not running, starting temporary server");
         server = Some(ollama_serve(ctx, &ollama)?);
-        // Poll for server readiness (2-second budget: 10 × 200ms).
+        // wait max 2 seconds for server to start
         for _ in 0..10 {
             std::thread::sleep(std::time::Duration::from_millis(200));
             if ctx.execute(&ollama).args(["list"]).status_checked().is_ok() {
@@ -2219,14 +2206,14 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
     }
 
     let mut pull_result = Ok(());
-    for model in &remote_models {
+    for model in remote_models {
         if let Err(e) = ctx.execute(&ollama).args(["pull", &model.name]).status_checked() {
             pull_result = Err(e);
             break;
         }
     }
 
-    // Do not add early returns between here and the server shutdown
+    // kill temporary Ollama server - must run, don't add early returns before this
     if let Some(ExecutorChild::Wet(mut child)) = server {
         let _ = child.kill();
         let _ = child.wait();
