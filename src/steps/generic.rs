@@ -12,7 +12,7 @@ use std::path::PathBuf;
 use std::sync::LazyLock;
 use std::{env, path::Path};
 use std::{fs, io::Write};
-use tempfile::tempfile_in;
+use tempfile::{tempdir, tempfile_in};
 use tracing::{debug, error, warn};
 
 use crate::HOME_DIR;
@@ -651,6 +651,20 @@ pub fn run_windsurf_extensions_update(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_antigravity_extensions_update(ctx: &ExecutionContext) -> Result<()> {
     run_vscode_compatible(VSCodeVariant::Antigravity, ctx)
+}
+
+pub fn run_pi(ctx: &ExecutionContext) -> Result<()> {
+    let pi = require("pi")?;
+    let temp_dir = tempdir()?;
+
+    print_separator("pi");
+
+    // `pi` reads project-local settings from `./.pi/settings.json`, so run
+    // from a fresh directory to restrict this step to global packages.
+    ctx.execute(pi)
+        .current_dir(temp_dir.path())
+        .arg("update")
+        .status_checked()
 }
 
 pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
