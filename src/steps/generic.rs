@@ -2121,7 +2121,7 @@ struct OllamaModel {
 
 fn ollama_list_models() -> Result<impl Iterator<Item = OllamaModel>> {
     let manifests = ollama_manifests_path();
-    
+
     let iter = WalkDir::new(&manifests)
         .min_depth(3)
         .max_depth(3)
