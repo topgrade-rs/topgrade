@@ -875,7 +875,7 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
         .code()
         .ok_or_eyre("Couldn't get status code (terminated by signal)")?;
     let stderr = std::str::from_utf8(&output.stderr).wrap_err("Expected output to be valid UTF-8")?;
-    if stderr.contains("mise is installed via a package manager") && status_code == 1 {
+    if stderr.contains("cannot update") && status_code == 1 {
         debug!("Mise self-update not available")
     } else {
         // Write the output
