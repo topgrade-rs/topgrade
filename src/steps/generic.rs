@@ -2119,10 +2119,10 @@ struct OllamaModel {
     manifest_path: PathBuf,
 }
 
-fn ollama_list_models() -> Result<impl Iterator<Item = OllamaModel>> {
+fn ollama_list_models() -> impl Iterator<Item = OllamaModel> {
     let manifests = ollama_manifests_path();
 
-    let iter = WalkDir::new(&manifests)
+    WalkDir::new(&manifests)
         .min_depth(3)
         .max_depth(3)
         .into_iter()
@@ -2145,9 +2145,7 @@ fn ollama_list_models() -> Result<impl Iterator<Item = OllamaModel>> {
                 },
                 manifest_path: path.to_path_buf(),
             })
-        });
-
-    Ok(iter)
+        })
 }
 
 #[derive(Deserialize)]
@@ -2180,7 +2178,7 @@ fn is_local_ollama_model(manifest_path: &Path) -> bool {
 pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
     let ollama = require("ollama")?;
 
-    let mut remote_models = ollama_list_models()?
+    let mut remote_models = ollama_list_models()
         .filter(|m| !is_local_ollama_model(&m.manifest_path))
         .peekable();
     if remote_models.peek().is_none() {
