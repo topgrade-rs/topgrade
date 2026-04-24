@@ -445,10 +445,6 @@ pub struct Misc {
     #[merge(strategy = merge::option::overwrite_none)]
     auto_retry: Option<u16>,
 
-    /// TODO: Remove this in favor of ask_retry = false
-    #[merge(strategy = merge::option::overwrite_none)]
-    no_retry: Option<bool>,
-
     #[merge(strategy = merge::option::overwrite_none)]
     show_skipped: Option<bool>,
 
@@ -916,10 +912,6 @@ pub struct CommandLineArgs {
     #[arg(short = 'r', long = "run-type", value_enum, default_value_t)]
     run_type: RunType,
 
-    /// Do not ask to retry failed steps (same as --no-ask-retry, kept for legacy compatibility)
-    #[arg(long = "no-retry", hide = true)]
-    no_retry: bool,
-
     /// Do not ask what to do after a step fails
     #[arg(long = "no-ask-retry")]
     no_ask_retry: bool,
@@ -1291,20 +1283,6 @@ impl Config {
     /// Determine whether to ask for retry after a step fails
     pub fn ask_retry(&self) -> bool {
         if self.opt.no_ask_retry {
-            return false;
-        }
-
-        if self.opt.no_retry {
-            return false;
-        }
-
-        if self
-            .config_file
-            .misc
-            .as_ref()
-            .and_then(|misc| misc.no_retry)
-            .unwrap_or(false)
-        {
             return false;
         }
 
