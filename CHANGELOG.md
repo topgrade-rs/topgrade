@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.4.0](https://github.com/topgrade-rs/topgrade/compare/v17.3.0...v17.4.0) - 2026-04-21
+
+### Added
+
+- *(step)* support Ollama model pulling ([#1968](https://github.com/topgrade-rs/topgrade/pull/1968))
+- *(step)* add support for pi ([#1975](https://github.com/topgrade-rs/topgrade/pull/1975))
+- *(firmware)* hint user to run fwupdmgr update when updates are available ([#1957](https://github.com/topgrade-rs/topgrade/pull/1957))
+- *(skills)* pass --global([#1952](https://github.com/topgrade-rs/topgrade/pull/1952))
+- *(step)* add vite+ ([#1953](https://github.com/topgrade-rs/topgrade/pull/1953))
+
+### Fixed
+
+- *(mise)* handle all self-update errors ([#1978](https://github.com/topgrade-rs/topgrade/pull/1978))
+- *(chezmoi)* support non-standard `sourceDir` ([#1971](https://github.com/topgrade-rs/topgrade/pull/1971))
+- *(sparkle)* correct CLI argument usage ([#1912](https://github.com/topgrade-rs/topgrade/pull/1912))
+
 ## [17.3.0](https://github.com/topgrade-rs/topgrade/compare/v17.2.1...v17.3.0) - 2026-04-09
 
 ### Added
