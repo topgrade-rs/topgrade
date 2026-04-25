@@ -77,6 +77,9 @@ assets = [
   ["deployment/deb/_topgrade", "usr/share/zsh/vendor-completions/", "644"],
 ]
 
+[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
+system_shutdown = "4.1.0"
+
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.31", features = ["hostname", "signal", "user"] }
 rust-ini = "0.21"

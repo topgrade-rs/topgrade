@@ -281,7 +281,7 @@ fn run() -> Result<()> {
     }
 
     if config.keep_at_end() {
-        print_info(t!("\n(R)eboot\n(S)hell\n(Q)uit"));
+        print_info(t!("\n(R)eboot\n(P)oweroff\n(S)hell\n(Q)uit"));
         loop {
             match get_key() {
                 Ok(Key::Char('s' | 'S')) => {
@@ -290,6 +290,10 @@ fn run() -> Result<()> {
                 Ok(Key::Char('r' | 'R')) => {
                     println!("{}", t!("Rebooting..."));
                     reboot(&ctx).context("Failed to reboot")?;
+                }
+                Ok(Key::Char('p' | 'P')) => {
+                    println!("{}", t!("Shutting down..."));
+                    shutdown(&ctx).context("Failed to shut down")?;
                 }
                 Ok(Key::Char('q' | 'Q')) => (),
                 _ => {
