@@ -1097,7 +1097,7 @@ pub fn shutdown(ctx: &ExecutionContext) -> Result<()> {
         return Ok(());
     }
     match ctx.sudo() {
-        Some(sudo) => sudo.execute(ctx, "shutdown")?.args(["-h", "now"]).status_checked(),
-        None => ctx.execute("shutdown").args(["-h", "now"]).status_checked(),
+        Some(sudo) => sudo.execute(ctx, "shutdown")?.args(["now"]).status_checked(),
+        None => ctx.execute("shutdown").args(["now"]).status_checked(),
     }
 }
