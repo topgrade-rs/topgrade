@@ -270,10 +270,12 @@ pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-pub fn reboot(ctx: &ExecutionContext) -> Result<()> {
-    // If this works, it won't return, but if it doesn't work, it may return a useful error
-    // message.
-    ctx.execute("shutdown.exe").args(["/R", "/T", "0"]).status_checked()
+pub fn reboot(_ctx: &ExecutionContext) -> Result<()> {
+    system_shutdown::reboot().map_err(Into::into)
+}
+
+pub fn shutdown(_ctx: &ExecutionContext) -> Result<()> {
+    system_shutdown::shutdown().map_err(Into::into)
 }
 
 pub fn insert_startup_scripts(ctx: &ExecutionContext, git_repos: &mut RepoStep) -> Result<()> {

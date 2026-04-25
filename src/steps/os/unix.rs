@@ -1081,8 +1081,23 @@ pub fn run_atuin(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn reboot(ctx: &ExecutionContext) -> Result<()> {
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    if let Ok(()) = system_shutdown::reboot() {
+        return Ok(());
+    }
     match ctx.sudo() {
         Some(sudo) => sudo.execute(ctx, "reboot")?.status_checked(),
         None => ctx.execute("reboot").status_checked(),
+    }
+}
+
+pub fn shutdown(ctx: &ExecutionContext) -> Result<()> {
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    if let Ok(()) = system_shutdown::shutdown() {
+        return Ok(());
+    }
+    match ctx.sudo() {
+        Some(sudo) => sudo.execute(ctx, "shutdown")?.args(["now"]).status_checked(),
+        None => ctx.execute("shutdown").args(["now"]).status_checked(),
     }
 }
