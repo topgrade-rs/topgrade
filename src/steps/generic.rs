@@ -80,6 +80,9 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     if ctx.config().cargo_update_quiet() {
         command.arg("--quiet");
     }
+    if ctx.config().cargo_update_locked() {
+        command.arg("--locked");
+    }
     command.status_checked()?;
 
     if ctx.config().cleanup() {

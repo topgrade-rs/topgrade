@@ -566,6 +566,8 @@ pub struct Cargo {
     git: Option<bool>,
     #[merge(strategy = merge::option::overwrite_none)]
     quiet: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    locked: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1875,6 +1877,14 @@ impl Config {
             .cargo
             .as_ref()
             .and_then(|cargo| cargo.quiet)
+            .unwrap_or(false)
+    }
+
+    pub fn cargo_update_locked(&self) -> bool {
+        self.config_file
+            .cargo
+            .as_ref()
+            .and_then(|cargo| cargo.locked)
             .unwrap_or(false)
     }
 
