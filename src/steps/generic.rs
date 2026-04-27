@@ -1437,6 +1437,22 @@ pub fn run_certbot(ctx: &ExecutionContext) -> Result<()> {
 /// doc: https://docs.clamav.net/manual/Usage/SignatureManagement.html#freshclam
 pub fn run_freshclam(ctx: &ExecutionContext) -> Result<()> {
     let freshclam = require("freshclam")?;
+
+    #[cfg(target_os = "linux")]
+    if let Ok(systemctl) = require("systemctl") {
+        for unit in ["clamav-freshclam.service", "clamav-freshclam-once.timer"] {
+            if ctx
+                .execute(&systemctl)
+                .always()
+                .args(["is-active", "--quiet", unit])
+                .status_checked()
+                .is_ok()
+            {
+                return Err(SkipStep("ClamAV freshclam autoupdate is active via systemd".to_string()).into());
+            }
+        }
+    }
+
     print_separator(t!("Update ClamAV Database(FreshClam)"));
 
     let output = ctx.execute(&freshclam).output()?;
