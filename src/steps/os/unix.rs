@@ -898,6 +898,22 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
         cmd.arg("--bump");
     }
 
+    if ctx.config().mise_silent() {
+        cmd.arg("--silent");
+    }
+
+    if ctx.config().mise_quiet() {
+        cmd.arg("--quiet");
+    }
+
+    if ctx.config().mise_verbose() {
+        cmd.arg("--quiet");
+    }
+
+    if ctx.config().mise_yes() {
+        cmd.arg("--yes");
+    }
+
     if ctx.config().mise_jobs() != 4 {
         cmd.args(["--jobs", &ctx.config().mise_jobs().to_string()]);
     }

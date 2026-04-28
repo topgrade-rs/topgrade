@@ -336,6 +336,22 @@
 # (default: false)
 # interactive = false
 
+# Suppress non-error messages
+# (default: false)
+# quiet = false
+
+# Suppress all task output and mise non-error messages
+# (default: false)
+# silent = false
+
+# Show extra output
+# (default: false)
+# verbose = false
+
+# Answer yes to all confirmation prompts
+# (default: false)
+# yes = false
+
 [go]
 # Exclude specified binaries from `gup update`
 # gup_exclude = ["kind", "pkgsite"]
