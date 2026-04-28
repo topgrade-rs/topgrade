@@ -24,6 +24,33 @@ defaults:
     shell: bash
 
 jobs:
+  auto-fix:
+    name: Auto-fix (cargo fmt & clippy --fix)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.TOKEN }}
+
+      - name: Run auto-fix
+        run: |
+          cargo fmt --all
+          cargo clippy --fix --allow-dirty --quiet
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -u
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: apply cargo fmt and clippy fixes"
+            git push
+          fi
+
   format:
     name: Format (cargo fmt)
     runs-on: ubuntu-latest
@@ -191,8 +218,6 @@ jobs:
       - name: Setup cross
         if: matrix.use_cross == true
         run: curl -fL --retry 3 "https://github.com/cross-rs/cross/releases/download/v${CROSS_VER}/cross-x86_64-unknown-linux-musl.tar.gz" | tar vxz -C /usr/local/bin
-
-      - run: rustup component add clippy
 
       - name: Print toolchain version
         run: rustc --version
