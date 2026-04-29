@@ -2216,14 +2216,6 @@ impl Config {
             .unwrap_or(false)
     }
 
-    pub fn mise_yes(&self) -> bool {
-        self.config_file
-            .mise
-            .as_ref()
-            .and_then(|mise| mise.yes)
-            .unwrap_or(false)
-    }
-
     pub fn mise_silent(&self) -> bool {
         self.config_file
             .mise
