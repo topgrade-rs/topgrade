@@ -226,8 +226,6 @@ pub struct Mise {
     quiet: Option<bool>,
     #[merge(strategy = merge::option::overwrite_none)]
     silent: Option<bool>,
-    #[merge(strategy = merge::option::overwrite_none)]
-    yes: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]

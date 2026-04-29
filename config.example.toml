@@ -348,9 +348,6 @@
 # (default: false)
 # verbose = false
 
-# Answer yes to all confirmation prompts
-# (default: false)
-# yes = false
 
 [go]
 # Exclude specified binaries from `gup update`
