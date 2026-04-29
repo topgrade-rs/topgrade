@@ -907,7 +907,7 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
     }
 
     if ctx.config().mise_verbose() {
-        cmd.arg("--quiet");
+        cmd.arg("--verbose");
     }
 
     if ctx.config().yes(Step::Mise) {
