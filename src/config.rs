@@ -220,6 +220,12 @@ pub struct Mise {
     interactive: Option<bool>,
     #[merge(strategy = merge::option::overwrite_none)]
     jobs: Option<u32>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    verbose: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    quiet: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    silent: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -2197,6 +2203,30 @@ impl Config {
             .mise
             .as_ref()
             .and_then(|mise| mise.interactive)
+            .unwrap_or(false)
+    }
+
+    pub fn mise_quiet(&self) -> bool {
+        self.config_file
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.quiet)
+            .unwrap_or(false)
+    }
+
+    pub fn mise_silent(&self) -> bool {
+        self.config_file
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.silent)
+            .unwrap_or(false)
+    }
+
+    pub fn mise_verbose(&self) -> bool {
+        self.config_file
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.verbose)
             .unwrap_or(false)
     }
 
