@@ -2152,7 +2152,11 @@ fn ollama_serve(ctx: &ExecutionContext, ollama: &Path) -> Result<ExecutorChild> 
 fn ollama_manifests_path() -> PathBuf {
     env::var_os("OLLAMA_MODELS")
         .map(PathBuf::from)
-        .unwrap_or_else(|| HOME_DIR.join(".ollama/models"))
+        .or_else(|| {
+            let path = HOME_DIR.join(".ollama/models");
+            path.exists().then_some(path)
+        })
+        .unwrap_or_else(|| PathBuf::from("/usr/share/ollama/.ollama/models"))
         .join("manifests/registry.ollama.ai")
 }
 
