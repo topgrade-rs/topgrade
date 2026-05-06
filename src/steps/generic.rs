@@ -1210,7 +1210,8 @@ pub fn run_powershell(ctx: &ExecutionContext) -> Result<()> {
     // For Windows PowerShell, use sudo (defaults to AllUsers scope).
     let use_sudo = !powershell.is_pwsh();
 
-    if !ctx.run_type().dry() && !powershell_update_module_available(ctx, use_sudo)? {
+    let check_use_sudo = use_sudo && !ctx.run_type().dry();
+    if !powershell.has_command(ctx, "Update-Module", check_use_sudo)? {
         let message = t!(
             "PowerShellGet Update-Module is unavailable or could not be loaded. Skipping PowerShell module updates."
         )
@@ -1226,34 +1227,23 @@ pub fn run_powershell(ctx: &ExecutionContext) -> Result<()> {
     powershell.build_command(ctx, &cmd, use_sudo)?.status_checked()
 }
 
-fn powershell_update_module_available(ctx: &ExecutionContext, use_sudo: bool) -> Result<bool> {
-    let output = ctx
-        .require_powershell()?
-        .build_command(
-            ctx,
-            "if (Get-Command Update-Module -ErrorAction SilentlyContinue) { Write-Output 'true' }",
-            use_sudo,
-        )?
-        .output_checked_utf8()?;
-
-    Ok(output.stdout.trim().eq_ignore_ascii_case("true"))
-}
-
 fn powershell_update_modules_command(verbose: bool, assume_yes: bool) -> String {
-    let mut cmd = "$topgradeUpdateModuleParams = @{};".to_string();
-    cmd.push_str(" $topgradeUpdateModuleCommand = Get-Command Update-Module -ErrorAction Stop;");
+    let mut cmd = "$params = @{};".to_string();
+    cmd.push_str(" $updateModule = Get-Command Update-Module -ErrorAction Stop;");
 
     if verbose {
-        cmd.push_str(" $topgradeUpdateModuleParams['Verbose'] = $true;");
+        cmd.push_str(" $params['Verbose'] = $true;");
     }
     if assume_yes {
         // Avoid -Force here: PowerShellGet uses it to reinstall already-current modules,
         // which can lock PackageManagement in the running Windows PowerShell session.
-        cmd.push_str(" $topgradeUpdateModuleParams['Confirm'] = $false;");
-        cmd.push_str(" if ($topgradeUpdateModuleCommand.Parameters.ContainsKey('AcceptLicense')) { $topgradeUpdateModuleParams['AcceptLicense'] = $true; }");
+        cmd.push_str(" $params['Confirm'] = $false;");
+        cmd.push_str(
+            " if ($updateModule.Parameters.ContainsKey('AcceptLicense')) { $params['AcceptLicense'] = $true; }",
+        );
     }
 
-    cmd.push_str(" & $topgradeUpdateModuleCommand @topgradeUpdateModuleParams");
+    cmd.push_str(" & $updateModule @params");
     cmd
 }
 
@@ -1265,18 +1255,21 @@ mod powershell_tests {
     fn assume_yes_suppresses_confirmation_without_force() {
         let cmd = powershell_update_modules_command(false, true);
 
-        assert!(cmd.contains("$topgradeUpdateModuleParams['Confirm'] = $false"));
-        assert!(cmd.contains("AcceptLicense"));
+        assert!(cmd.contains("$params['Confirm'] = $false"));
+        assert!(cmd.contains("$updateModule.Parameters.ContainsKey('AcceptLicense')"));
+        assert!(cmd.contains("$params['AcceptLicense'] = $true"));
         assert!(cmd.contains("Get-Command Update-Module -ErrorAction Stop"));
+        assert!(cmd.contains("& $updateModule @params"));
         assert!(!cmd.contains("-Force"));
         assert!(!cmd.contains("exit 0"));
+        assert!(!cmd.contains("topgradeUpdateModule"));
     }
 
     #[test]
     fn verbose_sets_verbose_parameter() {
         let cmd = powershell_update_modules_command(true, false);
 
-        assert!(cmd.contains("$topgradeUpdateModuleParams['Verbose'] = $true"));
+        assert!(cmd.contains("$params['Verbose'] = $true"));
         assert!(!cmd.contains("AcceptLicense"));
     }
 }

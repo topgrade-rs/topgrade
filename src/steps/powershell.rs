@@ -58,6 +58,18 @@ impl Powershell {
         self.is_pwsh
     }
 
+    pub fn has_command(&self, ctx: &ExecutionContext, command_name: &str, use_sudo: bool) -> Result<bool> {
+        let cmd = has_command_script(command_name);
+
+        let output = if use_sudo {
+            self.build_command(ctx, &cmd, true)?.output_checked_utf8()?
+        } else {
+            self.build_command_internal(ctx, &cmd).output_checked_utf8()?
+        };
+
+        Ok(output.stdout.trim().eq_ignore_ascii_case("true"))
+    }
+
     /// Builds an "internal" powershell command
     pub fn build_command_internal(&self, ctx: &ExecutionContext, cmd: &str) -> Executor {
         let mut command = ctx.execute(&self.path).always();
@@ -155,5 +167,42 @@ impl Powershell {
             .output_checked()
             .map(|output| !output.stdout.trim_ascii().is_empty())
             .unwrap_or(false)
+    }
+}
+
+fn has_command_script(command_name: &str) -> String {
+    format!(
+        "if (Get-Command -Name {} -ErrorAction SilentlyContinue) {{ Write-Output 'true' }}",
+        powershell_single_quote(command_name)
+    )
+}
+
+fn powershell_single_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "''"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{has_command_script, powershell_single_quote};
+
+    #[test]
+    fn has_command_script_checks_quoted_command_name() {
+        assert_eq!(
+            has_command_script("Update-Module"),
+            "if (Get-Command -Name 'Update-Module' -ErrorAction SilentlyContinue) { Write-Output 'true' }"
+        );
+    }
+
+    #[test]
+    fn has_command_script_escapes_command_name_as_data() {
+        assert_eq!(
+            has_command_script("Bob's-Command"),
+            "if (Get-Command -Name 'Bob''s-Command' -ErrorAction SilentlyContinue) { Write-Output 'true' }"
+        );
+    }
+
+    #[test]
+    fn powershell_single_quote_escapes_single_quotes() {
+        assert_eq!(powershell_single_quote("Bob's-Command"), "'Bob''s-Command'");
     }
 }
