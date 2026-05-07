@@ -152,6 +152,14 @@ _version: 2
   zh_CN: "未安装 Powershell"
   zh_TW: "未安裝 Powershell"
   de: "Powershell ist nicht installiert"
+"PowerShellGet Update-Module is unavailable or could not be loaded. Skipping PowerShell module updates.":
+  en: "PowerShellGet Update-Module is unavailable or could not be loaded. Skipping PowerShell module updates."
+  lt: "PowerShellGet Update-Module nepasiekiama arba jos nepavyko įkelti. Praleidžiamas PowerShell modulių atnaujinimas."
+  es: "PowerShellGet Update-Module no está disponible o no se pudo cargar. Se omite la actualización de módulos de PowerShell."
+  fr: "PowerShellGet Update-Module n'est pas disponible ou n'a pas pu être chargé. Mise à jour des modules PowerShell ignorée."
+  zh_CN: "PowerShellGet Update-Module 不可用或无法加载。正在跳过 PowerShell 模块更新。"
+  zh_TW: "PowerShellGet Update-Module 無法使用或無法載入。正在略過 PowerShell 模組更新。"
+  de: "PowerShellGet Update-Module ist nicht verfügbar oder konnte nicht geladen werden. PowerShell-Modulaktualisierung wird übersprungen."
 "Error detecting current distribution: {error}":
   en: "Error detecting current distribution: %{error}"
   lt: "Klaida nustatant dabartinę distribuciją: %{error}"
