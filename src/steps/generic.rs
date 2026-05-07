@@ -1210,8 +1210,7 @@ pub fn run_powershell(ctx: &ExecutionContext) -> Result<()> {
     // For Windows PowerShell, use sudo (defaults to AllUsers scope).
     let use_sudo = !powershell.is_pwsh();
 
-    let check_use_sudo = use_sudo && !ctx.run_type().dry();
-    if !powershell.has_command(ctx, "Update-Module", check_use_sudo)? {
+    if !powershell.has_command(ctx, "Update-Module", use_sudo)? {
         let message = t!(
             "PowerShellGet Update-Module is unavailable or could not be loaded. Skipping PowerShell module updates."
         )
