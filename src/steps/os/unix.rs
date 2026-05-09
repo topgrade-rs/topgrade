@@ -1117,3 +1117,25 @@ pub fn shutdown(ctx: &ExecutionContext) -> Result<()> {
         None => ctx.execute("shutdown").args(["now"]).status_checked(),
     }
 }
+
+/// See: <https://github.com/Rishang/install-release>
+pub fn run_install_release(ctx: &ExecutionContext) -> Result<()> {
+    let ir = require_one(["ir", "install-release"])?;
+
+    print_separator("Install Release");
+
+    let mut command = ctx.execute(&ir);
+    command.args(["upgrade", "--pkg"]);
+    if ctx.config().yes(Step::InstallRelease) {
+        command.arg("-y");
+    }
+    command.status_checked()?;
+
+    let mut command = ctx.execute(&ir);
+    command.arg("upgrade");
+    if ctx.config().yes(Step::InstallRelease) {
+        command.arg("-y");
+    }
+    command.status_checked()?;
+    Ok(())
+}
