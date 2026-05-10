@@ -157,3 +157,54 @@ pub fn run_voom(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(voom).arg("update").status_checked()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    fn upgrade_script_contents() -> String {
+        let script = upgrade_script().expect("upgrade script should be written");
+        fs::read_to_string(script.path()).expect("upgrade script should be readable")
+    }
+
+    #[test]
+    fn upgrade_script_updates_vim_pack_managed_packages() {
+        let script = upgrade_script_contents();
+
+        assert!(script.contains("if has(\"nvim\")"));
+        assert!(script.contains("vim.pack"));
+        assert!(script.contains("vim.pack.get(nil, { info = false })"));
+        assert!(script.contains("vim.pack.update(nil, { force = true })"));
+    }
+
+    #[test]
+    fn upgrade_script_runs_vim_pack_before_other_neovim_package_managers() {
+        let script = upgrade_script_contents();
+        let vim_pack = script
+            .find("vim.pack.update(nil, { force = true })")
+            .expect("vim.pack update should be present");
+        let lazy = script
+            .find("if exists(\":Lazy\")")
+            .expect("Lazy branch should be present");
+        let packer = script
+            .find("if exists(':PackerSync')")
+            .expect("Packer branch should be present");
+
+        assert!(vim_pack < lazy);
+        assert!(vim_pack < packer);
+    }
+
+    #[test]
+    fn upgrade_script_does_not_finish_after_vim_pack_update() {
+        let script = upgrade_script_contents();
+        let vim_pack = script
+            .find("vim.pack.update(nil, { force = true })")
+            .expect("vim.pack update should be present");
+        let lazy = script
+            .find("if exists(\":Lazy\")")
+            .expect("Lazy branch should be present");
+
+        assert!(!script[vim_pack..lazy].contains("finish"));
+    }
+}
