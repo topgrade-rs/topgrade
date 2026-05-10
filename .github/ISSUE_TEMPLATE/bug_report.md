@@ -3,6 +3,7 @@ name: Bug report
 about: Topgrade is misbehaving
 title: ''
 type: Bug
+labels: needs triage
 assignees: ''
 
 ---

@@ -3,6 +3,7 @@ name: General feature request
 about: Suggest a general feature, or feature within an already existing step
 title: ''
 type: Feature
+labels: needs triage
 assignees: ''
 
 ---
