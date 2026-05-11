@@ -11,6 +11,10 @@ if exists(":AstroUpdate")
     finish
 endif
 
+if has("nvim")
+    lua if vim.pack and next(vim.pack.get(nil, { info = false })) ~= nil then vim.pack.update(nil, { force = true }) end
+endif
+
 if exists(":MasonUpdate")
 	echo "MasonUpdate"
 	MasonUpdate
