@@ -798,12 +798,31 @@ impl ConfigFile {
             The Function was called without a config_path, we need
             to read the include directory before returning the main config path
             */
+            let include_base_dir = path
+                .parent()
+                .map(|p| p.join("topgrade.d"))
+                .ok_or_eyre("Unable to determine configuration directory for include validation")?;
+            let include_base_dir = include_base_dir
+                .canonicalize()
+                .wrap_err("Unable to canonicalize include base directory")?;
+
             for include in dir_include {
-                let include_contents = fs::read_to_string(&include).inspect_err(|_| {
-                    error!("Unable to read {}", include.display());
+                let include_canonical = include
+                    .canonicalize()
+                    .wrap_err_with(|| format!("Unable to canonicalize {}", include.display()))?;
+
+                if !include_canonical.starts_with(&include_base_dir) {
+                    return Err(color_eyre::eyre::eyre!(
+                        "Refusing to read include outside topgrade.d: {}",
+                        include.display()
+                    ));
+                }
+
+                let include_contents = fs::read_to_string(&include_canonical).inspect_err(|_| {
+                    error!("Unable to read {}", include_canonical.display());
                 })?;
                 let include_contents_parsed = toml::from_str(include_contents.as_str()).inspect_err(|_| {
-                    error!("Failed to deserialize {}", include.display());
+                    error!("Failed to deserialize {}", include_canonical.display());
                 })?;
 
                 result.merge(include_contents_parsed);
@@ -817,6 +836,10 @@ impl ConfigFile {
             // If empty, Self:: ensure() would have created the default config.
             return Ok(result);
         }
+
+        let config_path = config_path
+            .canonicalize()
+            .wrap_err_with(|| format!("Unable to canonicalize {}", config_path.display()))?;
 
         let mut contents_non_split = fs::read_to_string(&config_path).inspect_err(|_| {
             error!("Unable to read {}", config_path.display());
