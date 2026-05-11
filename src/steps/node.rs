@@ -1,7 +1,7 @@
 use std::fmt::Display;
 #[cfg(target_os = "linux")]
 use std::os::unix::fs::MetadataExt;
-use std::path::PathBuf;
+use std::path::{Component, PathBuf};
 
 use crate::HOME_DIR;
 use color_eyre::eyre::Result;
@@ -302,8 +302,16 @@ impl VitePlus {
         let vp_home = match std::env::var_os("VP_HOME") {
             None => return Ok(false),
             Some(s) if s.is_empty() => return Ok(false),
-            Some(s) => s,
+            Some(s) => PathBuf::from(s),
         };
+
+        if !vp_home.is_absolute()
+            || vp_home
+                .components()
+                .any(|component| matches!(component, Component::ParentDir))
+        {
+            return Ok(false);
+        }
 
         let uid = Uid::effective();
         let metadata = std::fs::metadata(&vp_home)?;
