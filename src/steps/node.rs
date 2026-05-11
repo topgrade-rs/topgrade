@@ -1,7 +1,9 @@
 use std::fmt::Display;
 #[cfg(target_os = "linux")]
 use std::os::unix::fs::MetadataExt;
-use std::path::{Component, PathBuf};
+use std::path::PathBuf;
+#[cfg(target_os = "linux")]
+use std::path::Component;
 
 use crate::HOME_DIR;
 use color_eyre::eyre::Result;
