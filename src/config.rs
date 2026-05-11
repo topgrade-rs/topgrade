@@ -3,7 +3,7 @@
 use std::collections::HashSet;
 use std::fs::{File, write};
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::{env, fmt, fs};
 
 use clap::{Parser, ValueEnum};
@@ -903,6 +903,15 @@ impl ConfigFile {
         if !contents.contains("[misc]") {
             debug!("Adding [misc] section to {}", path.display());
             string_prepend_str(contents, "[misc]\n");
+
+            let is_safe_path = path.components().all(|component| matches!(component, Component::Normal(_) | Component::CurDir));
+            if !is_safe_path {
+                error!(
+                    "Refusing to auto-migrate config for unsafe path: {}",
+                    path.display()
+                );
+                return;
+            }
 
             File::create(path)
                 .and_then(|mut f| f.write_all(contents.as_bytes()))
