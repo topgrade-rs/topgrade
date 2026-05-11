@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::PathBuf;
 use std::{env, fs};
 
 fn main() {
@@ -8,8 +8,11 @@ fn main() {
 }
 
 fn breaking_changes() {
-    let out_dir_s = &env::var("OUT_DIR").unwrap();
-    let out_dir = Path::new(out_dir_s);
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    if !out_dir.is_absolute() {
+        panic!("OUT_DIR must be an absolute path");
+    }
+    let out_dir = out_dir.canonicalize().expect("OUT_DIR must exist and be canonicalizable");
     let version_str = env::var("CARGO_PKG_VERSION").unwrap();
     let changelog = parse_changelog::parse(include_str!("CHANGELOG.md")).expect("Invalid CHANGELOG.md");
     let release = changelog
