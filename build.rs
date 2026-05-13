@@ -12,7 +12,9 @@ fn breaking_changes() {
     if !out_dir.is_absolute() {
         panic!("OUT_DIR must be an absolute path");
     }
-    let out_dir = out_dir.canonicalize().expect("OUT_DIR must exist and be canonicalizable");
+    let out_dir = out_dir
+        .canonicalize()
+        .expect("OUT_DIR must exist and be canonicalizable");
     let version_str = env::var("CARGO_PKG_VERSION").unwrap();
     let changelog = parse_changelog::parse(include_str!("CHANGELOG.md")).expect("Invalid CHANGELOG.md");
     let release = changelog
