@@ -17,10 +17,7 @@ impl SelfRenamer {
 
         // Reject paths with traversal components after canonicalization
         // (shouldn't happen, but defense in depth)
-        if exe_path
-            .components()
-            .any(|c| matches!(c, Component::ParentDir))
-        {
+        if exe_path.components().any(|c| matches!(c, Component::ParentDir)) {
             return Err(color_eyre::eyre::eyre!(
                 "Refusing to operate on exe path with traversal: {}",
                 exe_path.display()
