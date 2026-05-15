@@ -49,7 +49,7 @@ struct Terminal {
 struct RawTerminalMode;
 
 impl RawTerminalMode {
-    fn enter() -> Result<Self, io::Error> {
+    fn enter() -> io::Result<Self> {
         enable_raw_mode()?;
         let guard = Self;
         crossterm::execute!(io::stdout(), EnableBracketedPaste)?;
@@ -278,18 +278,17 @@ impl Terminal {
     }
 
     fn get_char(&self) -> Result<Key, io::Error> {
-        let _terminal_mode = RawTerminalMode::enter()?;
+        let _raw_mode_guard = RawTerminalMode::enter()?;
         loop {
-            match read()? {
-                Event::Key(key) if key.kind == KeyEventKind::Press => {
-                    break Ok(match key.code {
-                        KeyCode::Char(c) => Key::Char(c),
-                        KeyCode::Enter => Key::Enter,
-                        _ => Key::Unknown,
-                    });
-                }
-                _ => (),
+            let Event::Key(key) = read()? else { continue };
+            if key.kind != KeyEventKind::Press {
+                continue;
             }
+            break Ok(match key.code {
+                KeyCode::Char(c) => Key::Char(c),
+                KeyCode::Enter => Key::Enter,
+                _ => Key::Unknown,
+            });
         }
     }
 }
