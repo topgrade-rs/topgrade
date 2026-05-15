@@ -2475,30 +2475,4 @@ last = ["cargo"]
         assert!(config.steps().is_err());
     }
 
-    #[test]
-    fn test_ensure_misc_safe_path_accepts_absolute_paths() {
-        // The path safety check must accept normal absolute paths
-        // (they contain RootDir / Prefix components).
-        let unix_path = PathBuf::from("/home/user/.config/topgrade.toml");
-        assert!(unix_path.components().all(|c| matches!(
-            c,
-            Component::Normal(_) | Component::CurDir | Component::RootDir | Component::Prefix(_)
-        )));
-
-        let windows_path = PathBuf::from(r"C:\Users\user\topgrade.toml");
-        assert!(windows_path.components().all(|c| matches!(
-            c,
-            Component::Normal(_) | Component::CurDir | Component::RootDir | Component::Prefix(_)
-        )));
-    }
-
-    #[test]
-    fn test_ensure_misc_safe_path_rejects_traversal() {
-        // Paths with ParentDir (..) must be rejected.
-        let traversal_path = PathBuf::from("/home/user/../../etc/shadow");
-        assert!(!traversal_path.components().all(|c| matches!(
-            c,
-            Component::Normal(_) | Component::CurDir | Component::RootDir | Component::Prefix(_)
-        )));
-    }
 }

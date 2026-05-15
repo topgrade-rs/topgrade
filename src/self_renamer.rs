@@ -1,5 +1,4 @@
 use color_eyre::eyre::Result;
-use std::path::Component;
 use std::{env::current_exe, fs, path::PathBuf};
 use tracing::{debug, error};
 
@@ -14,15 +13,6 @@ impl SelfRenamer {
         let temp_path = tempdir.path().join("topgrade.exe");
         let exe_path = current_exe()?;
         let exe_path = exe_path.canonicalize()?;
-
-        // Reject paths with traversal components after canonicalization
-        // (shouldn't happen, but defense in depth)
-        if exe_path.components().any(|c| matches!(c, Component::ParentDir)) {
-            return Err(color_eyre::eyre::eyre!(
-                "Refusing to operate on exe path with traversal: {}",
-                exe_path.display()
-            ));
-        }
 
         debug!("Current exe in {:?}. Moving it to {:?}", exe_path, temp_path);
 

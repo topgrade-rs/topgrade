@@ -307,14 +307,6 @@ impl VitePlus {
             Some(s) => PathBuf::from(s),
         };
 
-        if !vp_home.is_absolute()
-            || vp_home
-                .components()
-                .any(|component| matches!(component, Component::ParentDir))
-        {
-            return Ok(false);
-        }
-
         let uid = Uid::effective();
         let metadata = std::fs::metadata(&vp_home)?;
 

@@ -9,9 +9,6 @@ fn main() {
 
 fn breaking_changes() {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-    if !out_dir.is_absolute() {
-        panic!("OUT_DIR must be an absolute path");
-    }
     let out_dir = out_dir
         .canonicalize()
         .expect("OUT_DIR must exist and be canonicalizable");
