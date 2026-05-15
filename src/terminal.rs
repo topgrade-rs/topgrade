@@ -59,8 +59,8 @@ impl RawTerminalMode {
 
 impl Drop for RawTerminalMode {
     fn drop(&mut self) {
-        crossterm::execute!(io::stdout(), DisableBracketedPaste).ok();
-        disable_raw_mode().ok();
+        crossterm::execute!(io::stdout(), DisableBracketedPaste).unwrap();
+        disable_raw_mode().unwrap();
     }
 }
 
