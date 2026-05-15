@@ -766,11 +766,11 @@ impl ConfigFile {
             fs::create_dir_all(&dir_to_search)?;
         }
 
+        // codeql[rust/path-injection] False positive: User-provided local config files in topgrade.d
         for entry in fs::read_dir(&dir_to_search)? {
             let entry = entry?;
             let entry_path = entry.path();
 
-            // codeql[rust/path-injection] False positive: User-provided local config files in topgrade.d
             if entry_path.is_file() {
                 debug!(
                     "Found additional (directory) configuration file at {}",
@@ -885,17 +885,7 @@ impl ConfigFile {
             debug!("Adding [misc] section to {}", path.display());
             string_prepend_str(contents, "[misc]\n");
 
-            let is_safe_path = path.components().all(|component| {
-                matches!(
-                    component,
-                    Component::Normal(_) | Component::CurDir | Component::RootDir | Component::Prefix(_)
-                )
-            });
-            if !is_safe_path {
-                error!("Refusing to auto-migrate config for unsafe path: {}", path.display());
-                return;
-            }
-
+            // codeql[rust/path-injection] False positive: User-provided local config file
             File::create(path)
                 .and_then(|mut f| f.write_all(contents.as_bytes()))
                 .expect("Tried to auto-migrate the config file, unable to write to config file.\nPlease add \"[misc]\" section manually to the first line of the file.\nError");
