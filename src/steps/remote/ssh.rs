@@ -14,6 +14,7 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
     let ssh = utils::require("ssh")?;
 
     let topgrade = ctx.config().remote_topgrade_path();
+    let verbose = ctx.config().verbose();
     let mut args = vec!["-t", hostname];
 
     if let Some(ssh_arguments) = ctx.config().ssh_arguments() {
@@ -22,6 +23,9 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
 
     let env = format!("TOPGRADE_PREFIX={hostname}");
     args.extend(["env", &env, "$SHELL", "-lc", topgrade]);
+    if verbose {
+        args.push("-v");
+    }
 
     #[cfg(unix)]
     if ctx.config().run_in_tmux() && !ctx.run_type().dry() {
@@ -43,6 +47,9 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
 
         let env = format!("TOPGRADE_PREFIX={hostname}");
         args.extend(["env", &env, "$SHELL", "-lc", topgrade]);
+        if verbose {
+            args.push("-v");
+        }
 
         print_separator(format!("Remote ({hostname})"));
         println!("{}", t!("Connecting to {hostname}...", hostname = hostname));

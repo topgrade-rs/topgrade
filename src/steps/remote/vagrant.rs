@@ -200,6 +200,9 @@ pub fn topgrade_vagrant_box(ctx: &ExecutionContext, vagrant_box: &VagrantBox) ->
     if ctx.config().yes(Step::Vagrant) {
         command.push_str(" -y");
     }
+    if ctx.config().verbose() {
+        command.push_str(" -v");
+    }
 
     ctx.execute(&vagrant.path)
         .current_dir(&vagrant_box.path)

@@ -61,6 +61,9 @@ pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
         if ctx.config().yes(Step::Toolbx) {
             args.push("--yes");
         }
+        if ctx.config().verbose() {
+            args.push("-v");
+        }
 
         ctx.execute(&toolbx).args(&args).status_checked()?;
     }
