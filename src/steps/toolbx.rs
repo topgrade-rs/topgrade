@@ -1,6 +1,7 @@
 use color_eyre::eyre::Result;
 
 use crate::command::CommandExt;
+use crate::error::SkipStep;
 use crate::step::Step;
 use crate::terminal::print_separator;
 use crate::{execution_context::ExecutionContext, utils::require};
@@ -13,7 +14,17 @@ fn list_toolboxes(ctx: &ExecutionContext, toolbx: &Path) -> Result<Vec<String>> 
         .execute(toolbx)
         .always()
         .args(["list", "--containers"])
-        .output_checked_utf8()?;
+        .output_checked_with_utf8(|output| {
+            if output.status.success() || is_opensuse_toolbox_error(&output.stderr) {
+                Ok(())
+            } else {
+                Err(())
+            }
+        })?;
+
+    if is_opensuse_toolbox_error(&output.stderr) {
+        return Err(SkipStep("Command `toolbox` is openSUSE Toolbox, not Toolbx".to_string()).into());
+    }
 
     let proc: Vec<String> = output
         .stdout
@@ -30,11 +41,17 @@ fn list_toolboxes(ctx: &ExecutionContext, toolbx: &Path) -> Result<Vec<String>> 
     Ok(proc)
 }
 
+fn is_opensuse_toolbox_error(stderr: &str) -> bool {
+    stderr.contains("unrecognized option '--containers'")
+        || stderr.contains("unrecognized option '--container'")
+        || stderr.contains("unrecognized option: containers")
+}
+
 pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
     let toolbx = require("toolbox")?;
+    let toolboxes = list_toolboxes(ctx, &toolbx)?;
 
     print_separator("Toolbx");
-    let toolboxes = list_toolboxes(ctx, &toolbx)?;
     debug!("Toolboxes to inspect: {:?}", toolboxes);
 
     let mut topgrade_path = PathBuf::from("/run/host");
@@ -66,4 +83,19 @@ pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_opensuse_toolbox_error;
+
+    #[test]
+    fn detects_opensuse_toolbox_unrecognized_containers_option() {
+        assert!(is_opensuse_toolbox_error("toolbox: unrecognized option '--containers'"));
+    }
+
+    #[test]
+    fn does_not_treat_other_errors_as_opensuse_toolbox() {
+        assert!(!is_opensuse_toolbox_error("toolbox: failed to list containers"));
+    }
 }
