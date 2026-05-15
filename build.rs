@@ -9,9 +9,6 @@ fn main() {
 
 fn breaking_changes() {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-    let out_dir = out_dir
-        .canonicalize()
-        .expect("OUT_DIR must exist and be canonicalizable");
     let version_str = env::var("CARGO_PKG_VERSION").unwrap();
     let changelog = parse_changelog::parse(include_str!("CHANGELOG.md")).expect("Invalid CHANGELOG.md");
     let release = changelog

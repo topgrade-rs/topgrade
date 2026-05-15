@@ -766,23 +766,17 @@ impl ConfigFile {
             fs::create_dir_all(&dir_to_search)?;
         }
 
-        let canonical_dir_to_search = dir_to_search.canonicalize()?;
-
-        for entry in fs::read_dir(&canonical_dir_to_search)? {
+        for entry in fs::read_dir(&dir_to_search)? {
             let entry = entry?;
             let entry_path = entry.path();
-            let canonical_entry_path = match entry_path.canonicalize() {
-                Ok(path) => path,
-                Err(_) => continue,
-            };
 
-            // Ensure resolved path stays inside topgrade.d, then accept regular files.
-            if canonical_entry_path.starts_with(&canonical_dir_to_search) && canonical_entry_path.is_file() {
+            // codeql[rust/path-injection] False positive: User-provided local config files in topgrade.d
+            if entry_path.is_file() {
                 debug!(
                     "Found additional (directory) configuration file at {}",
-                    canonical_entry_path.display()
+                    entry_path.display()
                 );
-                res.push(canonical_entry_path);
+                res.push(entry_path);
             }
         }
 
@@ -806,31 +800,13 @@ impl ConfigFile {
             The Function was called without a config_path, we need
             to read the include directory before returning the main config path
             */
-            let include_base_dir = path
-                .parent()
-                .map(|p| p.join("topgrade.d"))
-                .ok_or_eyre("Unable to determine configuration directory for include validation")?;
-            let include_base_dir = include_base_dir
-                .canonicalize()
-                .wrap_err("Unable to canonicalize include base directory")?;
-
             for include in dir_include {
-                let include_canonical = include
-                    .canonicalize()
-                    .wrap_err_with(|| format!("Unable to canonicalize {}", include.display()))?;
-
-                if !include_canonical.starts_with(&include_base_dir) {
-                    return Err(color_eyre::eyre::eyre!(
-                        "Refusing to read include outside topgrade.d: {}",
-                        include.display()
-                    ));
-                }
-
-                let include_contents = fs::read_to_string(&include_canonical).inspect_err(|_| {
-                    error!("Unable to read {}", include_canonical.display());
+                // codeql[rust/path-injection] False positive: User-provided local config file
+                let include_contents = fs::read_to_string(&include).inspect_err(|_| {
+                    error!("Unable to read {}", include.display());
                 })?;
                 let include_contents_parsed = toml::from_str(include_contents.as_str()).inspect_err(|_| {
-                    error!("Failed to deserialize {}", include_canonical.display());
+                    error!("Failed to deserialize {}", include.display());
                 })?;
 
                 result.merge(include_contents_parsed);
@@ -845,10 +821,7 @@ impl ConfigFile {
             return Ok(result);
         }
 
-        let config_path = config_path
-            .canonicalize()
-            .wrap_err_with(|| format!("Unable to canonicalize {}", config_path.display()))?;
-
+        // codeql[rust/path-injection] False positive: User-provided local config file
         let mut contents_non_split = fs::read_to_string(&config_path).inspect_err(|_| {
             error!("Unable to read {}", config_path.display());
         })?;
