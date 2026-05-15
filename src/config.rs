@@ -3,7 +3,7 @@
 use std::collections::HashSet;
 use std::fs::{File, write};
 use std::io::Write;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Path, PathBuf};
 use std::{env, fmt, fs};
 
 use clap::{Parser, ValueEnum};
