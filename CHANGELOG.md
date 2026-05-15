@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.5.0](https://github.com/topgrade-rs/topgrade/compare/v17.4.0...v17.5.0) - 2026-05-15
+
+### Added
+
+- *(step)* add install-release ([#2011](https://github.com/topgrade-rs/topgrade/pull/2011))
+- *(vim)* support neovim vim.pack updates ([#2010](https://github.com/topgrade-rs/topgrade/pull/2010))
+- *(protonplus)* support flatpak installation of ProtonPlus ([#2006](https://github.com/topgrade-rs/topgrade/pull/2006))
+- *(mise)* add options for quiet, silent, verbose, and add assume_yes support ([#1990](https://github.com/topgrade-rs/topgrade/pull/1990))
+- *(clamav)* don't run if systemd autoupdater is active ([#1988](https://github.com/topgrade-rs/topgrade/pull/1988))
+- passwordless reboot and shutdown using `system_shutdown` ([#1985](https://github.com/topgrade-rs/topgrade/pull/1985))
+- *(cargo)* add locked option for cargo install-update ([#1980](https://github.com/topgrade-rs/topgrade/pull/1980))
+
+### Fixed
+
+- *(terminal)* only accept actual keypresses in menus ([#2020](https://github.com/topgrade-rs/topgrade/pull/2020))
+- *(oh-my-bash)* fix oh-my-bash failing in non-bash shells ([#2014](https://github.com/topgrade-rs/topgrade/pull/2014))
+
 ## [17.4.0](https://github.com/topgrade-rs/topgrade/compare/v17.3.0...v17.4.0) - 2026-04-21
 
 ### Added
