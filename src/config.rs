@@ -912,9 +912,12 @@ impl ConfigFile {
             debug!("Adding [misc] section to {}", path.display());
             string_prepend_str(contents, "[misc]\n");
 
-            let is_safe_path = path
-                .components()
-                .all(|component| matches!(component, Component::Normal(_) | Component::CurDir));
+            let is_safe_path = path.components().all(|component| {
+                matches!(
+                    component,
+                    Component::Normal(_) | Component::CurDir | Component::RootDir | Component::Prefix(_)
+                )
+            });
             if !is_safe_path {
                 error!("Refusing to auto-migrate config for unsafe path: {}", path.display());
                 return;
