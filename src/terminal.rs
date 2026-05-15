@@ -51,11 +51,9 @@ struct RawTerminalMode;
 impl RawTerminalMode {
     fn enter() -> Result<Self, io::Error> {
         enable_raw_mode()?;
-        if let Err(error) = crossterm::execute!(io::stdout(), EnableBracketedPaste) {
-            disable_raw_mode().ok();
-            return Err(error);
-        }
-        Ok(Self)
+        let guard = Self;
+        crossterm::execute!(io::stdout(), EnableBracketedPaste)?;
+        Ok(guard)
     }
 }
 
