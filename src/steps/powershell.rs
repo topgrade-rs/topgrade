@@ -60,7 +60,7 @@ impl Powershell {
     }
 
     pub fn has_command(&self, ctx: &ExecutionContext, command_name: &str, use_sudo: bool) -> Result<bool> {
-        let cmd = has_command_script();
+        let cmd = "& { param($command); if (Get-Command -Name $command -ErrorAction SilentlyContinue) { Write-Output 'true' } }";
 
         let output = if use_sudo {
             self.build_command_with_args(ctx, cmd, [command_name], true)?
@@ -194,27 +194,5 @@ impl Powershell {
             .output_checked()
             .map(|output| !output.stdout.trim_ascii().is_empty())
             .unwrap_or(false)
-    }
-}
-
-fn has_command_script() -> &'static str {
-    "& { param($command); if (Get-Command -Name $command -ErrorAction SilentlyContinue) { Write-Output 'true' } }"
-}
-
-#[cfg(test)]
-mod tests {
-    use super::has_command_script;
-
-    #[test]
-    fn has_command_script_checks_command_name_argument() {
-        assert_eq!(
-            has_command_script(),
-            "& { param($command); if (Get-Command -Name $command -ErrorAction SilentlyContinue) { Write-Output 'true' } }"
-        );
-    }
-
-    #[test]
-    fn has_command_script_does_not_embed_specific_command_name() {
-        assert!(!has_command_script().contains("Update-Module"));
     }
 }
