@@ -3,7 +3,7 @@ name: New step request
 about: Suggest a new step/package manager to update
 title: ''
 type: Feature
-labels: request step
+labels: request step,needs triage
 assignees: ''
 
 ---

@@ -249,10 +249,15 @@ pub fn run_oh_my_bash(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("oh-my-bash");
 
-    let mut update_script = oh_my_bash;
+    let mut update_script = oh_my_bash.clone();
     update_script.push_str("/tools/upgrade.sh");
 
-    ctx.execute("bash").arg(update_script).status_checked()
+    ctx.execute("bash")
+        .arg(update_script)
+        // oh-my-bash fails if $OSH does not point to its installation path.
+        // if $OSH was unset (e.g. if we run from zsh) but we found OMB anyway, we want to tell it where.
+        .env("OSH", oh_my_bash)
+        .status_checked()
 }
 
 pub fn run_oh_my_fish(ctx: &ExecutionContext) -> Result<()> {
@@ -1116,4 +1121,26 @@ pub fn shutdown(ctx: &ExecutionContext) -> Result<()> {
         Some(sudo) => sudo.execute(ctx, "shutdown")?.args(["now"]).status_checked(),
         None => ctx.execute("shutdown").args(["now"]).status_checked(),
     }
+}
+
+/// See: <https://github.com/Rishang/install-release>
+pub fn run_install_release(ctx: &ExecutionContext) -> Result<()> {
+    let ir = require_one(["ir", "install-release"])?;
+
+    print_separator("Install Release");
+
+    let mut command = ctx.execute(&ir);
+    command.args(["upgrade", "--pkg"]);
+    if ctx.config().yes(Step::InstallRelease) {
+        command.arg("-y");
+    }
+    command.status_checked()?;
+
+    let mut command = ctx.execute(&ir);
+    command.arg("upgrade");
+    if ctx.config().yes(Step::InstallRelease) {
+        command.arg("-y");
+    }
+    command.status_checked()?;
+    Ok(())
 }

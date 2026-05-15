@@ -1259,18 +1259,31 @@ pub fn run_cinnamon_spices_updater(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_protonplus_update(ctx: &ExecutionContext) -> Result<()> {
-    let protonplus = require("protonplus")?;
+    let (program, flatpak) = match require("protonplus") {
+        Ok(protonplus) => (protonplus, false),
+        Err(_) => {
+            require_flatpak(ctx, "com.vysp3r.ProtonPlus")?;
+            (require("flatpak")?, true)
+        }
+    };
+    let cmd = || {
+        let mut cmd = ctx.execute(&program);
+        if flatpak {
+            cmd.args(["run", "com.vysp3r.ProtonPlus"]);
+        }
+        cmd
+    };
 
-    if let Err(e) = ctx.execute(&protonplus).args(["invalidarg67"]).output_checked()
+    if let Err(e) = cmd().args(["invalidarg67"]).output_checked()
         && let Some(TopgradeError::ProcessFailedWithOutput(_, _, stderr)) = e.downcast_ref()
         && stderr.contains("This application can not open files")
     {
         return Err(SkipStep("Updates unsupported for ProtonPlus versions under v0.5.17".to_string()).into());
     }
 
-    print_separator("ProtonPlus");
+    print_separator(if flatpak { "ProtonPlus (Flatpak)" } else { "ProtonPlus" });
 
-    ctx.execute(&protonplus).args(["update", "all"]).status_checked()
+    cmd().args(["update", "all"]).status_checked()
 }
 
 #[cfg(test)]
