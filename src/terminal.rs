@@ -9,6 +9,8 @@ use chrono::{Local, Timelike};
 use color_eyre::eyre;
 use color_eyre::eyre::Context;
 use console::{Key, Term, measure_text_width, style};
+use crossterm::event::{DisableBracketedPaste, EnableBracketedPaste, Event, KeyCode, KeyEventKind, read};
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use notify_rust::{Notification, Timeout};
 use rust_i18n::t;
 use tracing::{debug, error};
@@ -42,6 +44,26 @@ struct Terminal {
     set_title: bool,
     display_time: bool,
     desktop_notification: bool,
+}
+
+struct RawTerminalMode;
+
+impl RawTerminalMode {
+    fn enter() -> Result<Self, io::Error> {
+        enable_raw_mode()?;
+        if let Err(error) = crossterm::execute!(io::stdout(), EnableBracketedPaste) {
+            disable_raw_mode().ok();
+            return Err(error);
+        }
+        Ok(Self)
+    }
+}
+
+impl Drop for RawTerminalMode {
+    fn drop(&mut self) {
+        crossterm::execute!(io::stdout(), DisableBracketedPaste).ok();
+        disable_raw_mode().ok();
+    }
 }
 
 impl Terminal {
@@ -195,9 +217,9 @@ impl Terminal {
             .ok();
 
         loop {
-            match self.term.read_char()? {
-                'y' | 'Y' => break Ok(true),
-                'n' | 'N' | '\r' | '\n' => break Ok(false),
+            match self.get_char()? {
+                Key::Char('y' | 'Y') => break Ok(true),
+                Key::Char('n' | 'N') | Key::Enter => break Ok(false),
                 _ => (),
             }
         }
@@ -222,7 +244,7 @@ impl Terminal {
 
         let answer = loop {
             self.term.write_fmt(format_args!("\n{prompt_inner}")).ok();
-            match self.term.read_key() {
+            match self.get_char() {
                 Ok(Key::Char('y' | 'Y')) => break Ok(ShouldRetry::Yes),
                 Ok(Key::Char('s' | 'S')) => {
                     println!(
@@ -258,7 +280,19 @@ impl Terminal {
     }
 
     fn get_char(&self) -> Result<Key, io::Error> {
-        self.term.read_key()
+        let _terminal_mode = RawTerminalMode::enter()?;
+        loop {
+            match read()? {
+                Event::Key(key) if key.kind == KeyEventKind::Press => {
+                    break Ok(match key.code {
+                        KeyCode::Char(c) => Key::Char(c),
+                        KeyCode::Enter => Key::Enter,
+                        _ => Key::Unknown,
+                    });
+                }
+                _ => (),
+            }
+        }
     }
 }
 
