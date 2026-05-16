@@ -1206,25 +1206,70 @@ pub fn run_powershell(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Powershell Modules Update"));
 
-    let mut cmd = "Update-Module".to_string();
+    // For PowerShell Core, run without sudo (defaults to CurrentUser scope).
+    // For Windows PowerShell, use sudo (defaults to AllUsers scope).
+    let use_sudo = !powershell.is_pwsh();
 
-    if ctx.config().verbose() {
-        cmd.push_str(" -Verbose");
+    if !powershell.has_command(ctx, "Update-Module", use_sudo)? {
+        let message = t!(
+            "PowerShellGet Update-Module is unavailable or could not be loaded. Skipping PowerShell module updates."
+        )
+        .to_string();
+        print_warning(&message);
+        return Err(SkipStep(message).into());
     }
-    if ctx.config().yes(Step::Powershell) {
-        cmd.push_str(" -Force");
-    }
+
+    let cmd = powershell_update_modules_command(ctx.config().verbose(), ctx.config().yes(Step::Powershell));
 
     println!("{}", t!("Updating modules..."));
 
-    if powershell.is_pwsh() {
-        // For PowerShell Core, run Update-Module without sudo since it defaults to CurrentUser scope
-        // and Update-Module updates all modules regardless of their original installation scope
-        powershell.build_command(ctx, &cmd, false)?.status_checked()
-    } else {
-        // For (Windows) PowerShell, use sudo since it defaults to AllUsers scope
-        // and may need administrator privileges
-        powershell.build_command(ctx, &cmd, true)?.status_checked()
+    powershell.build_command(ctx, &cmd, use_sudo)?.status_checked()
+}
+
+fn powershell_update_modules_command(verbose: bool, assume_yes: bool) -> String {
+    let mut cmd = "$params = @{};".to_string();
+    cmd.push_str(" $updateModule = Get-Command Update-Module -ErrorAction Stop;");
+
+    if verbose {
+        cmd.push_str(" $params['Verbose'] = $true;");
+    }
+    if assume_yes {
+        // Avoid -Force here: PowerShellGet uses it to reinstall already-current modules,
+        // which can lock PackageManagement in the running Windows PowerShell session.
+        cmd.push_str(" $params['Confirm'] = $false;");
+        cmd.push_str(
+            " if ($updateModule.Parameters.ContainsKey('AcceptLicense')) { $params['AcceptLicense'] = $true; }",
+        );
+    }
+
+    cmd.push_str(" & $updateModule @params");
+    cmd
+}
+
+#[cfg(test)]
+mod powershell_tests {
+    use super::powershell_update_modules_command;
+
+    #[test]
+    fn assume_yes_suppresses_confirmation_without_force() {
+        let cmd = powershell_update_modules_command(false, true);
+
+        assert!(cmd.contains("$params['Confirm'] = $false"));
+        assert!(cmd.contains("$updateModule.Parameters.ContainsKey('AcceptLicense')"));
+        assert!(cmd.contains("$params['AcceptLicense'] = $true"));
+        assert!(cmd.contains("Get-Command Update-Module -ErrorAction Stop"));
+        assert!(cmd.contains("& $updateModule @params"));
+        assert!(!cmd.contains("-Force"));
+        assert!(!cmd.contains("exit 0"));
+        assert!(!cmd.contains("topgradeUpdateModule"));
+    }
+
+    #[test]
+    fn verbose_sets_verbose_parameter() {
+        let cmd = powershell_update_modules_command(true, false);
+
+        assert!(cmd.contains("$params['Verbose'] = $true"));
+        assert!(!cmd.contains("AcceptLicense"));
     }
 }
 
