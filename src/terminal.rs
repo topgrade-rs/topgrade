@@ -8,7 +8,9 @@ use std::time::Duration;
 use chrono::{Local, Timelike};
 use color_eyre::eyre;
 use color_eyre::eyre::Context;
-use console::{Key, Term, measure_text_width, style};
+use console::{Term, measure_text_width, style};
+use crossterm::event::{DisableBracketedPaste, EnableBracketedPaste, Event, KeyCode, KeyEventKind, read};
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use notify_rust::{Notification, Timeout};
 use rust_i18n::t;
 use tracing::{debug, error};
@@ -42,6 +44,24 @@ struct Terminal {
     set_title: bool,
     display_time: bool,
     desktop_notification: bool,
+}
+
+struct RawTerminalMode;
+
+impl RawTerminalMode {
+    fn enter() -> io::Result<Self> {
+        enable_raw_mode()?;
+        let guard = Self;
+        crossterm::execute!(io::stdout(), EnableBracketedPaste)?;
+        Ok(guard)
+    }
+}
+
+impl Drop for RawTerminalMode {
+    fn drop(&mut self) {
+        crossterm::execute!(io::stdout(), DisableBracketedPaste).unwrap();
+        disable_raw_mode().unwrap();
+    }
 }
 
 impl Terminal {
@@ -195,9 +215,9 @@ impl Terminal {
             .ok();
 
         loop {
-            match self.term.read_char()? {
-                'y' | 'Y' => break Ok(true),
-                'n' | 'N' | '\r' | '\n' => break Ok(false),
+            match self.get_char()? {
+                KeyCode::Char('y' | 'Y') => break Ok(true),
+                KeyCode::Char('n' | 'N') | KeyCode::Enter => break Ok(false),
                 _ => (),
             }
         }
@@ -222,9 +242,9 @@ impl Terminal {
 
         let answer = loop {
             self.term.write_fmt(format_args!("\n{prompt_inner}")).ok();
-            match self.term.read_key() {
-                Ok(Key::Char('y' | 'Y')) => break Ok(ShouldRetry::Yes),
-                Ok(Key::Char('s' | 'S')) => {
+            match self.get_char() {
+                Ok(KeyCode::Char('y' | 'Y')) => break Ok(ShouldRetry::Yes),
+                Ok(KeyCode::Char('s' | 'S')) => {
                     println!(
                         "\n\n{}\n",
                         t!("Dropping you to shell. Fix what you need and then exit the shell.")
@@ -235,7 +255,7 @@ impl Terminal {
                         break Ok(ShouldRetry::Yes);
                     }
                 }
-                Ok(Key::Char('n' | 'N') | Key::Enter) => break Ok(ShouldRetry::No),
+                Ok(KeyCode::Char('n' | 'N') | KeyCode::Enter) => break Ok(ShouldRetry::No),
                 Err(e) => {
                     if let io::ErrorKind::Interrupted = e.kind() {
                         println!();
@@ -245,7 +265,7 @@ impl Terminal {
                     error!("Error reading from terminal: {}", e);
                     break Ok(ShouldRetry::No);
                 }
-                Ok(Key::Char('q' | 'Q')) => {
+                Ok(KeyCode::Char('q' | 'Q')) => {
                     break Ok(ShouldRetry::Quit);
                 }
                 _ => (),
@@ -257,8 +277,15 @@ impl Terminal {
         answer
     }
 
-    fn get_char(&self) -> Result<Key, io::Error> {
-        self.term.read_key()
+    fn get_char(&self) -> io::Result<KeyCode> {
+        let _raw_mode_guard = RawTerminalMode::enter()?;
+        loop {
+            let Event::Key(key) = read()? else { continue };
+            if key.kind != KeyEventKind::Press {
+                continue;
+            }
+            break Ok(key.code);
+        }
     }
 }
 
@@ -307,7 +334,7 @@ pub fn is_dumb() -> bool {
     TERMINAL.lock().unwrap().width.is_none()
 }
 
-pub fn get_key() -> Result<Key, io::Error> {
+pub fn get_key() -> io::Result<KeyCode> {
     TERMINAL.lock().unwrap().get_char()
 }
 

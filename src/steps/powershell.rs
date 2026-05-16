@@ -1,3 +1,4 @@
+use std::ffi::OsStr;
 use std::path::PathBuf;
 
 use color_eyre::eyre::Result;
@@ -58,12 +59,41 @@ impl Powershell {
         self.is_pwsh
     }
 
+    pub fn has_command(&self, ctx: &ExecutionContext, command_name: &str, use_sudo: bool) -> Result<bool> {
+        let cmd = "& { param($command); if (Get-Command -Name $command -ErrorAction SilentlyContinue) { Write-Output 'true' } }";
+
+        let output = if use_sudo {
+            self.build_command_with_args(ctx, cmd, [command_name], true)?
+                .always()
+                .output_checked_utf8()?
+        } else {
+            self.build_command_internal_with_args(ctx, cmd, [command_name])
+                .output_checked_utf8()?
+        };
+
+        Ok(output.stdout.trim().eq_ignore_ascii_case("true"))
+    }
+
     /// Builds an "internal" powershell command
     pub fn build_command_internal(&self, ctx: &ExecutionContext, cmd: &str) -> Executor {
+        self.build_command_internal_with_args(ctx, cmd, std::iter::empty::<&str>())
+    }
+
+    /// Builds an "internal" powershell command with arguments passed after `-Command`
+    pub fn build_command_internal_with_args<S>(
+        &self,
+        ctx: &ExecutionContext,
+        cmd: &str,
+        args: impl IntoIterator<Item = S>,
+    ) -> Executor
+    where
+        S: AsRef<OsStr>,
+    {
         let mut command = ctx.execute(&self.path).always();
 
         command.args(["-NoProfile", "-Command"]);
         command.arg(cmd);
+        command.args(args);
 
         // If topgrade was run from pwsh, but we are trying to run powershell, then
         // the inherited PSModulePath breaks module imports
@@ -76,12 +106,20 @@ impl Powershell {
 
     /// Builds a "primary" powershell command (uses dry-run if required):
     /// {powershell} -NoProfile -Command {cmd}
-    pub fn build_command<'a>(
+    pub fn build_command(&self, ctx: &ExecutionContext, cmd: &str, use_sudo: bool) -> Result<Executor> {
+        self.build_command_with_args(ctx, cmd, std::iter::empty::<&str>(), use_sudo)
+    }
+
+    pub fn build_command_with_args<S>(
         &self,
-        ctx: &'a ExecutionContext,
+        ctx: &ExecutionContext,
         cmd: &str,
+        args: impl IntoIterator<Item = S>,
         use_sudo: bool,
-    ) -> Result<impl CommandExt + 'a> {
+    ) -> Result<Executor>
+    where
+        S: AsRef<OsStr>,
+    {
         let mut command = if use_sudo {
             let sudo = ctx.require_sudo()?;
             sudo.execute(ctx, &self.path)?
@@ -97,6 +135,7 @@ impl Powershell {
 
         command.args(["-NoProfile", "-Command"]);
         command.arg(cmd);
+        command.args(args);
 
         // If topgrade was run from pwsh, but we are trying to run powershell, then
         // the inherited PSModulePath breaks module imports
