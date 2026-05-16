@@ -11,7 +11,6 @@ impl SelfRenamer {
     pub fn create() -> Result<Self> {
         let tempdir = tempfile::tempdir()?;
         let temp_path = tempdir.path().join("topgrade.exe");
-        // codeql[rust/path-injection] False positive: current_exe() returns a trusted system path
         let exe_path = current_exe()?;
 
         debug!("Current exe in {:?}. Moving it to {:?}", exe_path, temp_path);
