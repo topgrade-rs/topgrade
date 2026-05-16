@@ -766,10 +766,8 @@ impl ConfigFile {
             fs::create_dir_all(&dir_to_search)?;
         }
 
-        // codeql[rust/path-injection] False positive: User-provided local config files in topgrade.d
         for entry in fs::read_dir(&dir_to_search)? {
-            let entry = entry?;
-            let entry_path = entry.path();
+            let entry_path = entry?.path();
 
             if entry_path.is_file() {
                 debug!(
@@ -801,7 +799,6 @@ impl ConfigFile {
             to read the include directory before returning the main config path
             */
             for include in dir_include {
-                // codeql[rust/path-injection] False positive: User-provided local config file
                 let include_contents = fs::read_to_string(&include).inspect_err(|_| {
                     error!("Unable to read {}", include.display());
                 })?;
@@ -821,7 +818,6 @@ impl ConfigFile {
             return Ok(result);
         }
 
-        // codeql[rust/path-injection] False positive: User-provided local config file
         let mut contents_non_split = fs::read_to_string(&config_path).inspect_err(|_| {
             error!("Unable to read {}", config_path.display());
         })?;
@@ -885,7 +881,6 @@ impl ConfigFile {
             debug!("Adding [misc] section to {}", path.display());
             string_prepend_str(contents, "[misc]\n");
 
-            // codeql[rust/path-injection] False positive: User-provided local config file
             File::create(path)
                 .and_then(|mut f| f.write_all(contents.as_bytes()))
                 .expect("Tried to auto-migrate the config file, unable to write to config file.\nPlease add \"[misc]\" section manually to the first line of the file.\nError");
