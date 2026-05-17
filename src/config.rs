@@ -1415,7 +1415,6 @@ impl Config {
             .and_then(|misc| misc.notify_end)
             .unwrap_or(self.opt.notify_end);
 
-        // TODO: deprecate skip_notify
         if skip_notify {
             return NotifyEnd::Never;
         }
