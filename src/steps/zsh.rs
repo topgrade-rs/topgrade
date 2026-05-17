@@ -94,6 +94,20 @@ pub fn run_zplug(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(zsh).args(["-i", "-c", "zplug update"]).status_checked()
 }
 
+/// Build the zsh command used to update zinit/zi.
+///
+/// Disables history expansion so zinit `mv`/`atclone` hooks register and run correctly
+/// when invoked from a non-login `zsh -c` subprocess (see topgrade-rs/topgrade#238 and
+/// zdharma-continuum/zinit#199). `PAGER=cat` avoids blocking on self-update changelogs.
+fn plugin_manager_update_command(zshrc: &std::path::Path, manager: &str) -> String {
+    format!(
+        "emulate -L zsh; setopt NO_HIST_EXPAND 2>/dev/null; \
+         source {}; \
+         PAGER=cat LESS= {manager} self-update && {manager} update --all",
+        zshrc.display()
+    )
+}
+
 pub fn run_zinit(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
     let zshrc = zshrc().require()?;
@@ -104,8 +118,8 @@ pub fn run_zinit(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zinit");
 
-    let cmd = format!("source {} && zinit self-update && zinit update --all", zshrc.display());
-    ctx.execute(zsh).args(["-i", "-c", cmd.as_str()]).status_checked()
+    let cmd = plugin_manager_update_command(&zshrc, "zinit");
+    ctx.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
 }
 
 pub fn run_zi(ctx: &ExecutionContext) -> Result<()> {
@@ -116,8 +130,8 @@ pub fn run_zi(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zi");
 
-    let cmd = format!("source {} && zi self-update && zi update --all", zshrc.display());
-    ctx.execute(zsh).args(["-i", "-c", &cmd]).status_checked()
+    let cmd = plugin_manager_update_command(&zshrc, "zi");
+    ctx.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
 }
 
 pub fn run_zim(ctx: &ExecutionContext) -> Result<()> {
