@@ -1879,6 +1879,12 @@ pub fn run_jetbrains_toolbox(ctx: &ExecutionContext) -> Result<()> {
             // Skip
             Err(SkipStep(format!("{}", t!("No JetBrains Toolbox installation found"))).into())
         }
+        Err(FindError::NoDesktopFile(_)) => {
+            // Skip: the JetBrains/Toolbox directory exists but no Toolbox binary or desktop
+            // file is present. This can happen when Toolbox running on another machine remotely
+            // installed an IDE here, leaving the directory behind without a local Toolbox.
+            Err(SkipStep(format!("{}", t!("No JetBrains Toolbox installation found"))).into())
+        }
         Err(FindError::UnsupportedOS(os)) => {
             // Skip
             Err(SkipStep(format!("{}", t!("Unsupported operating system {os}", os = os))).into())
