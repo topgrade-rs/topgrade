@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.5.1](https://github.com/topgrade-rs/topgrade/compare/v17.5.0...v17.5.1) - 2026-05-20
+
+### Fixed
+
+- *(install-release)* remove ir alias to avoid conflict with mono-mdk ([#2036](https://github.com/topgrade-rs/topgrade/pull/2036))
+- *(powershell)* handle unavailable Update-Module ([#1993](https://github.com/topgrade-rs/topgrade/pull/1993))
+
 ## [17.5.0](https://github.com/topgrade-rs/topgrade/compare/v17.4.0...v17.5.0) - 2026-05-15
 
 ### Added
