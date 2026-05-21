@@ -392,6 +392,9 @@ pub struct Composer {
 pub struct Vim {
     #[merge(strategy = merge::option::overwrite_none)]
     force_plug_update: Option<bool>,
+
+    #[merge(strategy = merge::option::overwrite_none)]
+    vim_pack_prune: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1575,6 +1578,15 @@ impl Config {
             .unwrap_or(false)
     }
 
+    /// Whether to prune inactive `vim.pack` packages in Neovim
+    pub fn vim_pack_prune(&self) -> bool {
+        self.config_file
+            .vim
+            .as_ref()
+            .and_then(|c| c.vim_pack_prune)
+            .unwrap_or(false)
+    }
+
     /// Binaries to exclude from `gup update`
     pub fn gup_exclude(&self) -> &[String] {
         self.config_file
@@ -2382,6 +2394,23 @@ x = "cmd_x"
             config_file: toml::from_str(toml_str).expect("toml parse error"),
             allowed_steps: Vec::new(),
         }
+    }
+
+    #[test]
+    fn test_vim_pack_prune_defaults_to_false() {
+        assert!(!config().vim_pack_prune());
+    }
+
+    #[test]
+    fn test_vim_pack_prune_can_be_enabled() {
+        let config = config_from_toml(
+            r#"
+        [vim]
+        vim_pack_prune = true
+        "#,
+        );
+
+        assert!(config.vim_pack_prune());
     }
 
     #[test]

@@ -12,7 +12,14 @@ if exists(":AstroUpdate")
 endif
 
 if has("nvim")
-    lua if vim.pack and next(vim.pack.get(nil, { info = false })) ~= nil then vim.pack.update(nil, { force = true }) end
+    lua << EOF
+if vim.pack and next(vim.pack.get(nil, { info = false })) ~= nil then
+    if vim.env.TOPGRADE_VIM_PACK_PRUNE == "true" and vim.fn.exists(":packdel") ~= 0 then
+        vim.cmd("packdel ++all")
+    end
+    vim.pack.update(nil, { force = true })
+end
+EOF
 endif
 
 if exists(":MasonUpdate")
