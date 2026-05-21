@@ -65,6 +65,9 @@ fn upgrade(command: &mut Executor, ctx: &ExecutionContext) -> Result<()> {
     if ctx.config().force_vim_plug_update() {
         command.env("TOPGRADE_FORCE_PLUGUPDATE", "true");
     }
+    if ctx.config().vim_pack_prune() {
+        command.env("TOPGRADE_VIM_PACK_PRUNE", "true");
+    }
 
     let output = command.output()?;
 
@@ -156,4 +159,38 @@ pub fn run_voom(ctx: &ExecutionContext) -> Result<()> {
     print_separator("voom");
 
     ctx.execute(voom).arg("update").status_checked()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::UPGRADE_VIM;
+
+    #[test]
+    fn vim_pack_update_can_prune_before_updating() {
+        let prune = "vim.env.TOPGRADE_VIM_PACK_PRUNE == \"true\"";
+        let packdel = "local ok, err = pcall(vim.cmd, \"packdel ++all\")";
+        let ignore_empty_prune = "tostring(err):find(\"E5809: Nothing to remove\", 1, true)";
+        let empty_prune_message = "print(\"No inactive vim.pack packages to prune\")";
+        let update = "vim.pack.update(nil, { force = true })";
+
+        let prune_pos = UPGRADE_VIM
+            .find(prune)
+            .expect("vim.pack prune gate should be controlled by env");
+        let packdel_pos = UPGRADE_VIM
+            .find(packdel)
+            .expect("vim.pack prune gate should catch packdel ++all errors");
+        let ignore_empty_prune_pos = UPGRADE_VIM
+            .find(ignore_empty_prune)
+            .expect("vim.pack prune should ignore empty prune errors");
+        let empty_prune_message_pos = UPGRADE_VIM
+            .find(empty_prune_message)
+            .expect("vim.pack prune should report empty prune as informational");
+        let update_pos = UPGRADE_VIM.find(update).expect("vim.pack update should still run");
+
+        assert!(prune_pos < packdel_pos);
+        assert!(packdel_pos < ignore_empty_prune_pos);
+        assert!(ignore_empty_prune_pos < empty_prune_message_pos);
+        assert!(empty_prune_message_pos < update_pos);
+        assert!(packdel_pos < update_pos);
+    }
 }

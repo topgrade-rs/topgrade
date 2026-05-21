@@ -377,6 +377,8 @@
 [vim]
 # For `vim-plug`, execute `PlugUpdate!` instead of `PlugUpdate`
 # force_plug_update = true
+# For Neovim's `vim.pack`, remove inactive packages before updating
+# vim_pack_prune = true
 
 
 [firmware]
