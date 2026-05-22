@@ -107,6 +107,14 @@ impl Executor {
         self
     }
 
+    /// See `std::process::Command::stdout`
+    pub fn stdout<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Executor {
+        if let Executor::Wet(c) | Executor::Damp(c) = self {
+            c.stdout(cfg);
+        }
+        self
+    }
+
     #[allow(dead_code)]
     /// See `std::process::Command::remove_env`
     pub fn env_remove<K>(&mut self, key: K) -> &mut Executor
