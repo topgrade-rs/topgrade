@@ -2397,23 +2397,6 @@ x = "cmd_x"
     }
 
     #[test]
-    fn test_vim_pack_prune_defaults_to_false() {
-        assert!(!config().vim_pack_prune());
-    }
-
-    #[test]
-    fn test_vim_pack_prune_can_be_enabled() {
-        let config = config_from_toml(
-            r#"
-        [vim]
-        vim_pack_prune = true
-        "#,
-        );
-
-        assert!(config.vim_pack_prune());
-    }
-
-    #[test]
     fn test_steps_default_order_without_first_or_last() {
         let steps: Vec<Step> = config().steps().unwrap().collect();
         assert_eq!(steps, crate::step::default_steps());
