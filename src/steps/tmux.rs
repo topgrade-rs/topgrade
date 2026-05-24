@@ -18,7 +18,7 @@ const TPM_PATH: &str = "plugins/tpm";
 pub fn run_tpm(ctx: &ExecutionContext) -> Result<()> {
     let tpm = match env::var("TMUX_PLUGIN_MANAGER_PATH") {
         // Use `$TMUX_PLUGIN_MANAGER_PATH` if set,
-        Ok(var) => PathBuf::from(var).join(UPDATE_PLUGINS),
+        Ok(var) => PathBuf::from(var).join("tpm").join(UPDATE_PLUGINS),
         Err(_) => {
             // otherwise, use the default XDG location `~/.config/tmux`
             #[cfg(unix)]

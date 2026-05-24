@@ -1125,7 +1125,7 @@ pub fn shutdown(ctx: &ExecutionContext) -> Result<()> {
 
 /// See: <https://github.com/Rishang/install-release>
 pub fn run_install_release(ctx: &ExecutionContext) -> Result<()> {
-    let ir = require_one(["ir", "install-release"])?;
+    let ir = require("install-release")?;
 
     print_separator("Install Release");
 
