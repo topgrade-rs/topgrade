@@ -761,24 +761,24 @@ impl ConfigFile {
         let mut res = Vec::new();
         let dir_to_search = config_directory.join("topgrade.d");
 
-        if dir_to_search.exists() {
-            for entry in fs::read_dir(dir_to_search)? {
-                let entry = entry?;
-                // Use `Path::is_file()` here to traverse symbolic links.
-                // `DirEntry::file_type()` and `FileType::is_file()` will not traverse symbolic links.
-                if entry.path().is_file() {
-                    debug!(
-                        "Found additional (directory) configuration file at {}",
-                        entry.path().display()
-                    );
-                    res.push(entry.path());
-                }
-            }
-            res.sort();
-        } else {
+        if !dir_to_search.exists() {
             debug!("No additional configuration directory exists, creating one");
             fs::create_dir_all(&dir_to_search)?;
         }
+
+        for entry in fs::read_dir(&dir_to_search)? {
+            let entry_path = entry?.path();
+
+            if entry_path.is_file() {
+                debug!(
+                    "Found additional (directory) configuration file at {}",
+                    entry_path.display()
+                );
+                res.push(entry_path);
+            }
+        }
+
+        res.sort();
 
         Ok(res)
     }

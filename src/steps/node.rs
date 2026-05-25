@@ -302,7 +302,7 @@ impl VitePlus {
         let vp_home = match std::env::var_os("VP_HOME") {
             None => return Ok(false),
             Some(s) if s.is_empty() => return Ok(false),
-            Some(s) => s,
+            Some(s) => PathBuf::from(s),
         };
 
         let uid = Uid::effective();

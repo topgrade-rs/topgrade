@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::PathBuf;
 use std::{env, fs};
 
 fn main() {
@@ -8,8 +8,7 @@ fn main() {
 }
 
 fn breaking_changes() {
-    let out_dir_s = &env::var("OUT_DIR").unwrap();
-    let out_dir = Path::new(out_dir_s);
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     let version_str = env::var("CARGO_PKG_VERSION").unwrap();
     let changelog = parse_changelog::parse(include_str!("CHANGELOG.md")).expect("Invalid CHANGELOG.md");
     let release = changelog
