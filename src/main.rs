@@ -38,6 +38,7 @@ mod error;
 mod execution_context;
 mod executor;
 mod runner;
+mod runtime_env;
 #[cfg(windows)]
 mod self_renamer;
 #[cfg(feature = "self-update")]

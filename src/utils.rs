@@ -62,7 +62,7 @@ where
 }
 
 pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBuf> {
-    match which_crate::which(&binary_name) {
+    match find_binary(&binary_name) {
         Ok(path) => {
             debug!("Detected {:?} as {:?}", &path, &binary_name);
             Some(path)
@@ -83,7 +83,7 @@ pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBuf> {
 }
 
 pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
-    match which_crate::which(&binary_name) {
+    match find_binary(&binary_name) {
         Ok(path) => {
             debug!("Detected {:?} as {:?}", &path, &binary_name);
             Ok(path)
@@ -101,6 +101,15 @@ pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
                 panic!("Detecting {:?} failed: {}", &binary_name, e);
             }
         },
+    }
+}
+
+fn find_binary<T: AsRef<OsStr> + Debug>(binary_name: &T) -> std::result::Result<PathBuf, which_crate::Error> {
+    if let Some(path) = crate::runtime_env::path() {
+        let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        which_crate::which_in(binary_name, Some(path), cwd)
+    } else {
+        which_crate::which(binary_name)
     }
 }
 
@@ -333,4 +342,36 @@ macro_rules! output_changed_message {
             $message,
         )
     };
+}
+
+#[cfg(test)]
+mod test {
+    use std::collections::BTreeMap;
+    use std::ffi::OsString;
+
+    use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn which_uses_runtime_env_path_without_mutating_process_env() {
+        use std::fs;
+        use std::os::unix::fs::PermissionsExt;
+
+        let _guard = crate::runtime_env::test_guard();
+        let original_path = std::env::var_os("PATH");
+        let tempdir = tempfile::tempdir().unwrap();
+        let executable = tempdir.path().join("topgrade-runtime-env-test");
+        fs::write(&executable, "#!/bin/sh\nexit 0\n").unwrap();
+        let mut permissions = fs::metadata(&executable).unwrap().permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&executable, permissions).unwrap();
+
+        crate::runtime_env::replace(BTreeMap::from([(
+            OsString::from("PATH"),
+            tempdir.path().as_os_str().to_os_string(),
+        )]));
+
+        assert_eq!(which("topgrade-runtime-env-test"), Some(executable));
+        assert_eq!(std::env::var_os("PATH"), original_path);
+    }
 }
