@@ -392,6 +392,9 @@ pub struct Composer {
 pub struct Vim {
     #[merge(strategy = merge::option::overwrite_none)]
     force_plug_update: Option<bool>,
+
+    #[merge(strategy = merge::option::overwrite_none)]
+    vim_pack_prune: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1572,6 +1575,15 @@ impl Config {
             .vim
             .as_ref()
             .and_then(|c| c.force_plug_update)
+            .unwrap_or(false)
+    }
+
+    /// Whether to prune inactive `vim.pack` packages in Neovim
+    pub fn vim_pack_prune(&self) -> bool {
+        self.config_file
+            .vim
+            .as_ref()
+            .and_then(|c| c.vim_pack_prune)
             .unwrap_or(false)
     }
 

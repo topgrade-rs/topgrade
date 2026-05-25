@@ -65,6 +65,9 @@ fn upgrade(command: &mut Executor, ctx: &ExecutionContext) -> Result<()> {
     if ctx.config().force_vim_plug_update() {
         command.env("TOPGRADE_FORCE_PLUGUPDATE", "true");
     }
+    if ctx.config().vim_pack_prune() {
+        command.env("TOPGRADE_VIM_PACK_PRUNE", "true");
+    }
 
     let output = command.output()?;
 
