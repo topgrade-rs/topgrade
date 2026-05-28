@@ -99,6 +99,65 @@ impl NPM {
         Ok(())
     }
 
+    /// Detects whether pnpm was installed as a standalone binary, i.e. the only
+    /// globally installed "package" is `@pnpm/exe` itself.
+    ///
+    /// The official `curl | sh` installer extracts the standalone binary into a
+    /// `mktemp` directory and then runs `pnpm add -g @pnpm/exe@<version>` from
+    /// there, so the global manifest registers `@pnpm/exe` as a `file:` link
+    /// into that temp dir. Once the temp dir is cleaned up (e.g. on reboot),
+    /// `pnpm update -g` can no longer resolve the dangling link and fails with
+    /// `ERR_PNPM_LINKED_PKG_DIR_NOT_FOUND`. For such installs `pnpm self-update`
+    /// is the correct tool. Corepack-managed installs do not register
+    /// `@pnpm/exe` as a global package, so they are unaffected by this check.
+    ///
+    /// See <https://github.com/topgrade-rs/topgrade/issues/632>.
+    fn is_standalone_pnpm(&self, ctx: &ExecutionContext) -> bool {
+        if !matches!(self.variant, NPMVariant::Pnpm) {
+            return false;
+        }
+
+        let output = ctx
+            .execute(&self.command)
+            .always()
+            .args(["list", "-g", "--depth=0", "--json"])
+            .output_checked_utf8();
+        let stdout = match output {
+            Ok(output) => output.stdout,
+            Err(err) => {
+                debug!("Could not list global pnpm packages, assuming a non-standalone install: {err}");
+                return false;
+            }
+        };
+
+        // `pnpm list -g --json` prints an array of project objects, each with a
+        // `dependencies` map keyed by package name.
+        let parsed: serde_json::Value = match serde_json::from_str(&stdout) {
+            Ok(parsed) => parsed,
+            Err(err) => {
+                debug!("Could not parse `pnpm list -g --json` output: {err}");
+                return false;
+            }
+        };
+
+        let global_packages: Vec<&str> = parsed
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|project| project.get("dependencies"))
+            .filter_map(|dependencies| dependencies.as_object())
+            .flat_map(|dependencies| dependencies.keys().map(String::as_str))
+            .collect();
+
+        global_packages == ["@pnpm/exe"]
+    }
+
+    /// Update a standalone pnpm binary via `pnpm self-update`.
+    fn self_update(&self, ctx: &ExecutionContext) -> Result<()> {
+        ctx.execute(&self.command).arg("self-update").status_checked()?;
+        Ok(())
+    }
+
     #[cfg(target_os = "linux")]
     pub fn should_use_sudo(&self, ctx: &ExecutionContext) -> Result<bool> {
         let npm_root = self.root(ctx)?;
@@ -374,6 +433,13 @@ pub fn run_pnpm_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let pnpm = require("pnpm").map(|b| NPM::new(b, NPMVariant::Pnpm))?;
 
     print_separator(t!("Performant Node Package Manager"));
+
+    // For a standalone pnpm install, `pnpm update -g` is the wrong tool and can
+    // fail outright, so update the binary itself instead. See `is_standalone_pnpm`.
+    if pnpm.is_standalone_pnpm(ctx) {
+        debug!("Detected a standalone pnpm install, using `pnpm self-update`");
+        return pnpm.self_update(ctx);
+    }
 
     #[cfg(target_os = "linux")]
     {
