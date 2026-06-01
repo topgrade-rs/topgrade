@@ -2137,7 +2137,7 @@ pub fn run_claude_code(ctx: &ExecutionContext) -> Result<()> {
         .stdout(Stdio::piped())
         .spawn()?
     else {
-        todo!()
+        unreachable!(".always() handles this")
     };
 
     let stdout = child.stdout.take().expect("stdout was piped");
