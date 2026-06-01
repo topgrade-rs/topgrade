@@ -661,7 +661,7 @@ mod pnpm_registry_tests {
         assert!(!pnpm_global_registry_is_broken_from_list_json("[]"));
     }
 
-    /// Unparseable output is treated as healthy (we don't want to self-update on
+    /// Unparsable output is treated as healthy (we don't want to self-update on
     /// a transient/garbled response).
     #[test]
     fn malformed_json_is_not_broken() {
