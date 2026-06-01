@@ -56,14 +56,14 @@ fn brew_get_sudo() -> Option<String> {
     #[cfg(target_os = "linux")]
     {
         let sudo_uid = brew_linux_sudo_uid();
-        // if brew is owned by another user, execute "sudo -Hu <uid> brew update"
+        // if brew is owned by another user, execute "sudo -Hu <user> brew update"
         if let Some(user_id) = sudo_uid {
             let uid = nix::unistd::Uid::from_raw(user_id);
-            let user = nix::unistd::User::from_uid(uid)
-                .expect("failed to call getpwuid()")
-                .expect("this user should exist");
-
-            return Some(user.name);
+            match nix::unistd::User::from_uid(uid) {
+                Ok(Some(user)) => return Some(user.name),
+                Ok(None) => warn!("no matching owner of linuxbrew found; running brew as the current user"),
+                Err(err) => warn!("getpwuid() failed for UID {user_id}: {err}; running brew as the current user"),
+            }
         }
     }
     None
