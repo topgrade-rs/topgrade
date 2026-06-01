@@ -99,20 +99,28 @@ impl NPM {
         Ok(())
     }
 
-    /// Detects whether pnpm was installed as a standalone binary, i.e. the only
-    /// globally installed "package" is `@pnpm/exe` itself.
+    /// Detects whether pnpm's global registry is in the fragile/broken state
+    /// produced by the standalone `curl | sh` installer.
     ///
-    /// The official `curl | sh` installer extracts the standalone binary into a
-    /// `mktemp` directory and then runs `pnpm add -g @pnpm/exe@<version>` from
-    /// there, so the global manifest registers `@pnpm/exe` as a `file:` link
-    /// into that temp dir. Once the temp dir is cleaned up (e.g. on reboot),
-    /// `pnpm update -g` can no longer resolve the dangling link and fails with
-    /// `ERR_PNPM_LINKED_PKG_DIR_NOT_FOUND`. For such installs `pnpm self-update`
-    /// is the correct tool. Corepack-managed installs do not register
-    /// `@pnpm/exe` as a global package, so they are unaffected by this check.
+    /// That installer extracts the standalone binary into a `mktemp` directory
+    /// and then runs `pnpm add -g @pnpm/exe@<version>` from there, so the global
+    /// manifest registers `@pnpm/exe` as a `file:` link into that temp dir.
+    /// While the temp dir still exists `pnpm update -g` happens to work, but once
+    /// it is cleaned up (e.g. on reboot) the dangling link makes `pnpm update -g`
+    /// fail outright with `ERR_PNPM_LINKED_PKG_DIR_NOT_FOUND`. Running
+    /// `pnpm self-update` re-registers `@pnpm/exe` against a stable,
+    /// registry-resolved version, permanently repairing the manifest so that a
+    /// subsequent `pnpm update -g` can run normally again.
+    ///
+    /// We detect this by the `file:` version specifier that `pnpm list -g --json`
+    /// reports for `@pnpm/exe` (a healthy install reports a plain semver
+    /// version). `pnpm list -g --json` itself keeps working in the broken state,
+    /// so this probe is reliable. Corepack-managed installs do not register
+    /// `@pnpm/exe` as a global package at all, so they are unaffected (and
+    /// `pnpm self-update` does not support them anyway).
     ///
     /// See <https://github.com/topgrade-rs/topgrade/issues/632>.
-    fn is_standalone_pnpm(&self, ctx: &ExecutionContext) -> bool {
+    fn pnpm_global_registry_is_broken(&self, ctx: &ExecutionContext) -> bool {
         if !matches!(self.variant, NPMVariant::Pnpm) {
             return false;
         }
@@ -125,13 +133,15 @@ impl NPM {
         let stdout = match output {
             Ok(output) => output.stdout,
             Err(err) => {
-                debug!("Could not list global pnpm packages, assuming a non-standalone install: {err}");
+                debug!("Could not list global pnpm packages, assuming a healthy install: {err}");
                 return false;
             }
         };
 
         // `pnpm list -g --json` prints an array of project objects, each with a
-        // `dependencies` map keyed by package name.
+        // `dependencies` map keyed by package name. The standalone installer
+        // registers `@pnpm/exe` with a `file:` version specifier pointing into a
+        // temp dir; a healthy registry install reports a plain semver version.
         let parsed: serde_json::Value = match serde_json::from_str(&stdout) {
             Ok(parsed) => parsed,
             Err(err) => {
@@ -140,16 +150,16 @@ impl NPM {
             }
         };
 
-        let global_packages: Vec<&str> = parsed
+        parsed
             .as_array()
             .into_iter()
             .flatten()
             .filter_map(|project| project.get("dependencies"))
             .filter_map(|dependencies| dependencies.as_object())
-            .flat_map(|dependencies| dependencies.keys().map(String::as_str))
-            .collect();
-
-        global_packages == ["@pnpm/exe"]
+            .filter_map(|dependencies| dependencies.get("@pnpm/exe"))
+            .filter_map(|exe| exe.get("version"))
+            .filter_map(|version| version.as_str())
+            .any(|version| version.starts_with("file:"))
     }
 
     /// Update a standalone pnpm binary via `pnpm self-update`.
@@ -434,11 +444,15 @@ pub fn run_pnpm_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Performant Node Package Manager"));
 
-    // For a standalone pnpm install, `pnpm update -g` is the wrong tool and can
-    // fail outright, so update the binary itself instead. See `is_standalone_pnpm`.
-    if pnpm.is_standalone_pnpm(ctx) {
-        debug!("Detected a standalone pnpm install, using `pnpm self-update`");
-        return pnpm.self_update(ctx);
+    // A standalone (`curl | sh`) pnpm install registers `@pnpm/exe` as a `file:`
+    // link into a temp dir, which eventually breaks `pnpm update -g`. Repair the
+    // registry with `pnpm self-update` first, then fall through to the normal
+    // `pnpm update -g` so every global package (including pnpm itself) is still
+    // updated, which is this step's original purpose. See
+    // `pnpm_global_registry_is_broken`.
+    if pnpm.pnpm_global_registry_is_broken(ctx) {
+        debug!("Detected a broken standalone pnpm registry; running `pnpm self-update` to repair it");
+        pnpm.self_update(ctx)?;
     }
 
     #[cfg(target_os = "linux")]
