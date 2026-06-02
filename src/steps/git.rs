@@ -5,7 +5,7 @@ use std::process::{Output, Stdio};
 
 use color_eyre::eyre::Context;
 use color_eyre::eyre::{Result, eyre};
-use console::style;
+use crossterm::style::Stylize;
 use futures::stream::{FuturesUnordered, StreamExt, iter};
 use glob::{MatchOptions, glob_with};
 use tokio::process::Command as AsyncCommand;
@@ -16,7 +16,7 @@ use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::steps::emacs::Emacs;
-use crate::terminal::print_separator;
+use crate::terminal::{print_separator, style};
 use crate::utils::{PathExt, require};
 use crate::{HOME_DIR, error::SkipStep, terminal::print_warning};
 use etcetera::base_strategy::BaseStrategy;
@@ -323,7 +323,7 @@ impl RepoStep {
 
         if ctx.config().verbose() {
             let action = if is_fetch_only { t!("Fetching") } else { t!("Pulling") };
-            println!("{} {}", style(action).cyan().bold(), repo.as_ref().display());
+            println!("{} {}", style(action, |s| s.cyan().bold()), repo.as_ref().display());
         }
 
         let mut command = AsyncCommand::new(&self.git);
@@ -349,7 +349,7 @@ impl RepoStep {
             let action = if is_fetch_only { t!("fetching") } else { t!("pulling") };
             println!(
                 "{} {} {}",
-                style(t!("Failed")).red().bold(),
+                style(t!("Failed"), |s| s.red().bold()),
                 action,
                 repo.as_ref().display()
             );
@@ -358,7 +358,11 @@ impl RepoStep {
 
             match (&before_revision, &after_revision) {
                 (Some(before), Some(after)) if before != after => {
-                    println!("{} {}", style(t!("Changed")).yellow().bold(), repo.as_ref().display());
+                    println!(
+                        "{} {}",
+                        style(t!("Changed"), |s| s.yellow().bold()),
+                        repo.as_ref().display()
+                    );
 
                     ctx.execute(&self.git)
                         .always()
@@ -376,7 +380,11 @@ impl RepoStep {
                 }
                 _ => {
                     if ctx.config().verbose() {
-                        println!("{} {}", style(t!("Up-to-date")).green().bold(), repo.as_ref().display());
+                        println!(
+                            "{} {}",
+                            style(t!("Up-to-date"), |s| s.green().bold()),
+                            repo.as_ref().display()
+                        );
                     }
                 }
             }
@@ -409,7 +417,7 @@ impl RepoStep {
         if !ctx.config().verbose() {
             println!(
                 "\n{} {}\n",
-                style(t!("Only")).green().bold(),
+                style(t!("Only"), |s| s.green().bold()),
                 t!("updated repositories will be shown...")
             );
         }
@@ -421,7 +429,7 @@ impl RepoStep {
                 Some(false) => {
                     println!(
                         "{} {} {}",
-                        style(t!("Skipping")).yellow().bold(),
+                        style(t!("Skipping"), |s| s.yellow().bold()),
                         repo.display(),
                         t!("because it has no remotes")
                     );
