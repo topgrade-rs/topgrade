@@ -834,7 +834,7 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
 
     if cfg!(target_os = "android") {
         return Err(
-            SkipStep("Skip pip3 update because upgrading pip via pip is forbidden on termux".to_string()).into(),
+            SkipStep("pip is managed by termux".to_string()).into(),
         );
     }
 
