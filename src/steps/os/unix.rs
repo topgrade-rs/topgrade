@@ -631,14 +631,14 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let nix = require("nix")?;
 
     // Should we attempt to upgrade Nix with `nix upgrade-nix`?
-    let should_self_upgrade = cfg_select! {
-        target_os = "linux" => match ctx.distribution() {
-            // We can't use `nix upgrade-nix` on NixOS.
-            Ok(Distribution::NixOS) => false,
-            _ => true,
-        }
-        _ => cfg!(target_os = "macos")
+    #[cfg(target_os = "linux")]
+    let should_self_upgrade = match ctx.distribution() {
+        // We can't use `nix upgrade-nix` on NixOS.
+        Ok(Distribution::NixOS) => false,
+        _ => true,
     };
+    #[cfg(not(target_os = "linux"))]
+    let should_self_upgrade = cfg!(target_os = "macos");
 
     if !should_self_upgrade {
         return Err(SkipStep(t!("`nix upgrade-nix` can only be used on macOS or non-NixOS Linux").to_string()).into());
