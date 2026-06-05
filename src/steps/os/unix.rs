@@ -33,39 +33,56 @@ use crate::step::Step;
 use crate::terminal::print_separator;
 use crate::utils::{PathExt, require};
 
-#[cfg(target_os = "linux")]
-fn brew_linux_sudo_uid() -> Option<u32> {
-    let linuxbrew_directory = "/home/linuxbrew/.linuxbrew";
-    if let Ok(metadata) = fs::metadata(linuxbrew_directory) {
+#[cfg(target_family = "unix")]
+fn get_sudo_uid<P: AsRef<Path>>(path: P) -> Option<u32> {
+    if let Ok(metadata) = fs::metadata(&path) {
         let owner_id = metadata.uid();
         let current_id = nix::unistd::Uid::effective();
         // print debug these two values
-        debug!("linuxbrew_directory owner_id: {owner_id}, current_id: {current_id}");
+        debug!(
+            "path: {path:?}, owner_id: {owner_id}, current_id: {current_id}",
+            path = path.as_ref()
+        );
         return if owner_id == current_id.as_raw() {
-            None // no need for sudo if linuxbrew is owned by the current user
+            None // no need for sudo if path is owned by the current user
         } else {
-            Some(owner_id) // otherwise use sudo to run brew as the owner
+            Some(owner_id) // otherwise use sudo to run as the owner
         };
+    }
+    None
+}
+
+#[cfg(target_family = "unix")]
+fn get_sudo<P: AsRef<Path>>(path: P) -> Option<String> {
+    let sudo_uid = get_sudo_uid(path);
+    // if path is owned by another user, execute "sudo -Hu <uid> <binary_name>"
+    if let Some(user_id) = sudo_uid {
+        let uid = nix::unistd::Uid::from_raw(user_id);
+        let user = nix::unistd::User::from_uid(uid)
+            .expect("failed to call getpwuid()")
+            .expect("this user should exist");
+
+        return Some(user.name);
     }
     None
 }
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 fn brew_get_sudo() -> Option<String> {
-    #[cfg(target_os = "linux")]
+    #[cfg(target_family = "unix")]
     {
-        let sudo_uid = brew_linux_sudo_uid();
-        // if brew is owned by another user, execute "sudo -Hu <uid> brew update"
-        if let Some(user_id) = sudo_uid {
-            let uid = nix::unistd::Uid::from_raw(user_id);
-            let user = nix::unistd::User::from_uid(uid)
-                .expect("failed to call getpwuid()")
-                .expect("this user should exist");
-
-            return Some(user.name);
-        }
+        let linuxbrew_directory = "/home/linuxbrew/.linuxbrew";
+        get_sudo(linuxbrew_directory)
     }
+    #[cfg(not(target_family = "unix"))]
     None
+}
+
+fn nix_get_sudo<P: AsRef<Path>>(profile_path: P) -> Option<String> {
+    #[cfg(target_family = "unix")]
+    return get_sudo(profile_path);
+    #[cfg(not(target_family = "unix"))]
+    return None;
 }
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -612,6 +629,7 @@ fn nix_get_user_profile_link(ctx: &ExecutionContext, nix: &Path) -> Result<PathB
 /// Ref: https://nix.dev/manual/nix/2.34/package-management/profiles
 fn nix_get_current_profile_path(ctx: &ExecutionContext, nix: &Path) -> Result<PathBuf> {
     let user_profile_link = nix_get_user_profile_link(ctx, nix)?;
+    debug!("nix user profile link: {:?}", user_profile_link);
 
     match user_profile_link.read_link() {
         Ok(profile_link) => Ok(profile_link),
@@ -662,7 +680,14 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
             warn!("`nix-channel --update` failed: {e}");
         }
         print_separator("Nix Profiles");
-        ctx.execute(nix)
+        let mut command = match &nix_get_sudo(profile_path) {
+            None => ctx.execute(nix),
+            Some(user) => {
+                let sudo = ctx.require_sudo()?;
+                sudo.execute_opts(ctx, &nix, SudoExecuteOpts::new().set_home().user(user).login_shell())?
+            }
+        };
+        command
             .args(nix_args())
             .arg("profile")
             .arg("upgrade")
@@ -675,7 +700,17 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
         let nix_env = require("nix-env")?;
         print_separator("Nix");
 
-        let mut command = ctx.execute(nix_env);
+        let mut command = match &nix_get_sudo(profile_path) {
+            None => ctx.execute(nix_env),
+            Some(user) => {
+                let sudo = ctx.require_sudo()?;
+                sudo.execute_opts(
+                    ctx,
+                    &nix_env,
+                    SudoExecuteOpts::new().set_home().user(user).login_shell(),
+                )?
+            }
+        };
         command.arg("--upgrade");
         if let Some(args) = ctx.config().nix_env_arguments() {
             command.args(args.split_whitespace());
