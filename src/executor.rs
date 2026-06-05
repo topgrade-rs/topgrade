@@ -147,7 +147,7 @@ impl Executor {
     /// See `std::process::Command::spawn`
     pub fn spawn(&mut self) -> Result<ExecutorChild> {
         self.log_command();
-        self.apply_runtime_env();
+        self.apply_env_overlay();
         let result = match self {
             Executor::Wet(c) | Executor::Damp(c) => {
                 debug!("Running {:?}", c);
@@ -165,7 +165,7 @@ impl Executor {
     /// See `std::process::Command::output`
     pub fn output(&mut self) -> Result<ExecutorOutput> {
         self.log_command();
-        self.apply_runtime_env();
+        self.apply_env_overlay();
         match self {
             Executor::Wet(c) | Executor::Damp(c) => {
                 // We should use `output()` here rather than `output_checked()` since
@@ -182,7 +182,7 @@ impl Executor {
     #[allow(dead_code)]
     pub fn status_checked_with_codes(&mut self, codes: &[i32]) -> Result<()> {
         self.log_command();
-        self.apply_runtime_env();
+        self.apply_env_overlay();
         match self {
             Executor::Wet(c) | Executor::Damp(c) => c.status_checked_with(|status| {
                 if status.success() || status.code().as_ref().is_some_and(|c| codes.contains(c)) {
@@ -217,9 +217,9 @@ impl Executor {
         }
     }
 
-    fn apply_runtime_env(&mut self) {
+    fn apply_env_overlay(&mut self) {
         match self {
-            Executor::Wet(command) | Executor::Damp(command) => apply_runtime_env(command),
+            Executor::Wet(command) | Executor::Damp(command) => crate::env_overlay::apply_to_command(command),
             Executor::Dry(_) => {}
         }
     }
@@ -289,7 +289,7 @@ impl CommandExt for Executor {
 
     fn output_checked_with(&mut self, succeeded: impl Fn(&Output) -> Result<(), ()>) -> Result<Output> {
         self.log_command();
-        self.apply_runtime_env();
+        self.apply_env_overlay();
         match self {
             Executor::Wet(c) | Executor::Damp(c) => c.output_checked_with(succeeded),
             Executor::Dry(_) => Err(DryRun().into()),
@@ -298,7 +298,7 @@ impl CommandExt for Executor {
 
     fn status_checked_with(&mut self, succeeded: impl Fn(ExitStatus) -> Result<(), ()>) -> Result<()> {
         self.log_command();
-        self.apply_runtime_env();
+        self.apply_env_overlay();
         match self {
             Executor::Wet(c) | Executor::Damp(c) => c.status_checked_with(succeeded),
             Executor::Dry(_) => Ok(()),
@@ -307,20 +307,6 @@ impl CommandExt for Executor {
 
     fn spawn_checked(&mut self) -> Result<Self::Child> {
         self.spawn()
-    }
-}
-
-fn apply_runtime_env(command: &mut Command) {
-    let explicit_envs = command
-        .get_envs()
-        .map(|(key, _)| key.to_os_string())
-        .collect::<Vec<_>>();
-
-    for (key, value) in crate::runtime_env::snapshot() {
-        if explicit_envs.iter().any(|explicit| explicit == &key) {
-            continue;
-        }
-        command.env(key, value);
     }
 }
 
@@ -464,17 +450,17 @@ mod test {
     #[cfg(unix)]
     #[test]
     #[allow(clippy::disallowed_methods)]
-    fn test_runtime_env_overlay_is_visible_to_child() {
+    fn test_env_overlay_is_visible_to_child() {
         use std::collections::BTreeMap;
 
-        let _guard = crate::runtime_env::test_guard();
-        crate::runtime_env::replace(BTreeMap::from([(
-            OsString::from("TOPGRADE_RUNTIME_ENV_TEST"),
+        let _guard = crate::env_overlay::test_guard();
+        crate::env_overlay::replace(BTreeMap::from([(
+            OsString::from("TOPGRADE_ENV_OVERLAY_TEST"),
             OsString::from("overlay_value"),
         )]));
 
         let mut executor = Executor::Wet(Command::new("sh"));
-        executor.args(["-c", "printf %s \"$TOPGRADE_RUNTIME_ENV_TEST\""]);
+        executor.args(["-c", "printf %s \"$TOPGRADE_ENV_OVERLAY_TEST\""]);
 
         let output = executor.output().unwrap();
         match output {
@@ -489,19 +475,19 @@ mod test {
     #[cfg(unix)]
     #[test]
     #[allow(clippy::disallowed_methods)]
-    fn test_explicit_executor_env_wins_over_runtime_env_overlay() {
+    fn test_explicit_executor_env_wins_over_env_overlay() {
         use std::collections::BTreeMap;
 
-        let _guard = crate::runtime_env::test_guard();
-        crate::runtime_env::replace(BTreeMap::from([(
-            OsString::from("TOPGRADE_RUNTIME_ENV_TEST"),
+        let _guard = crate::env_overlay::test_guard();
+        crate::env_overlay::replace(BTreeMap::from([(
+            OsString::from("TOPGRADE_ENV_OVERLAY_TEST"),
             OsString::from("overlay_value"),
         )]));
 
         let mut executor = Executor::Wet(Command::new("sh"));
         executor
-            .args(["-c", "printf %s \"$TOPGRADE_RUNTIME_ENV_TEST\""])
-            .env("TOPGRADE_RUNTIME_ENV_TEST", "explicit_value");
+            .args(["-c", "printf %s \"$TOPGRADE_ENV_OVERLAY_TEST\""])
+            .env("TOPGRADE_ENV_OVERLAY_TEST", "explicit_value");
 
         let output = executor.output().unwrap();
         match output {

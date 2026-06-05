@@ -941,20 +941,17 @@ fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path) -> Result<()> {
     let raw = std::str::from_utf8(&output.stdout).wrap_err("failed to refresh mise environment after upgrade")?;
     let vars = parse_mise_env_json(raw).wrap_err("failed to refresh mise environment after upgrade")?;
 
-    crate::runtime_env::replace(vars);
-    debug!("Refreshed runtime environment from mise");
+    crate::env_overlay::replace(vars);
+    debug!("Refreshed env overlay from mise");
     Ok(())
 }
 
 fn parse_mise_env_json(raw: &str) -> Result<BTreeMap<OsString, OsString>> {
-    let value: serde_json::Value = serde_json::from_str(raw).wrap_err("failed to parse mise environment JSON")?;
-    let object = value
-        .as_object()
-        .ok_or_else(|| eyre!("mise environment JSON was not an object"))?;
+    let vars: BTreeMap<String, String> = serde_json::from_str(raw).wrap_err("failed to parse mise environment JSON")?;
 
-    Ok(object
-        .iter()
-        .filter_map(|(key, value)| value.as_str().map(|value| (OsString::from(key), OsString::from(value))))
+    Ok(vars
+        .into_iter()
+        .map(|(key, value)| (OsString::from(key), OsString::from(value)))
         .collect())
 }
 
@@ -1188,8 +1185,7 @@ mod test {
             r#"{
                 "PATH": "/tmp/mise-bin:/usr/bin",
                 "MISE_SHELL": "zsh",
-                "MISE_LEVEL": 2,
-                "MISE_NULL": null
+                "MISE_LEVEL": "2"
             }"#,
         )
         .unwrap();
@@ -1199,13 +1195,25 @@ mod test {
             Some(&OsString::from("/tmp/mise-bin:/usr/bin"))
         );
         assert_eq!(vars.get(&OsString::from("MISE_SHELL")), Some(&OsString::from("zsh")));
-        assert!(!vars.contains_key(&OsString::from("MISE_LEVEL")));
-        assert!(!vars.contains_key(&OsString::from("MISE_NULL")));
+        assert_eq!(vars.get(&OsString::from("MISE_LEVEL")), Some(&OsString::from("2")));
     }
 
     #[test]
     fn parse_mise_env_json_rejects_invalid_json() {
         let error = parse_mise_env_json("{not-json").unwrap_err();
+
+        assert!(format!("{error:#}").contains("failed to parse mise environment JSON"));
+    }
+
+    #[test]
+    fn parse_mise_env_json_rejects_non_string_values() {
+        let error = parse_mise_env_json(
+            r#"{
+                "PATH": "/tmp/mise-bin:/usr/bin",
+                "MISE_LEVEL": 2
+            }"#,
+        )
+        .unwrap_err();
 
         assert!(format!("{error:#}").contains("failed to parse mise environment JSON"));
     }

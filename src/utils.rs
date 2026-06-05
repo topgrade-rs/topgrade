@@ -105,7 +105,7 @@ pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
 }
 
 fn find_binary<T: AsRef<OsStr> + Debug>(binary_name: &T) -> std::result::Result<PathBuf, which_crate::Error> {
-    if let Some(path) = crate::runtime_env::path() {
+    if let Some(path) = crate::env_overlay::path() {
         let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         which_crate::which_in(binary_name, Some(path), cwd)
     } else {
@@ -353,11 +353,11 @@ mod test {
 
     #[cfg(unix)]
     #[test]
-    fn which_uses_runtime_env_path_without_mutating_process_env() {
+    fn which_uses_env_overlay_path_without_mutating_process_env() {
         use std::fs;
         use std::os::unix::fs::PermissionsExt;
 
-        let _guard = crate::runtime_env::test_guard();
+        let _guard = crate::env_overlay::test_guard();
         let original_path = std::env::var_os("PATH");
         let tempdir = tempfile::tempdir().unwrap();
         let executable = tempdir.path().join("topgrade-runtime-env-test");
@@ -366,7 +366,7 @@ mod test {
         permissions.set_mode(0o755);
         fs::set_permissions(&executable, permissions).unwrap();
 
-        crate::runtime_env::replace(BTreeMap::from([(
+        crate::env_overlay::replace(BTreeMap::from([(
             OsString::from("PATH"),
             tempdir.path().as_os_str().to_os_string(),
         )]));
