@@ -351,27 +351,43 @@ mod test {
 
     use super::*;
 
-    #[cfg(unix)]
     #[test]
     fn which_uses_env_overlay_path_without_mutating_process_env() {
         use std::fs;
-        use std::os::unix::fs::PermissionsExt;
 
         let _guard = crate::env_overlay::test_guard();
         let original_path = std::env::var_os("PATH");
         let tempdir = tempfile::tempdir().unwrap();
-        let executable = tempdir.path().join("topgrade-runtime-env-test");
-        fs::write(&executable, "#!/bin/sh\nexit 0\n").unwrap();
-        let mut permissions = fs::metadata(&executable).unwrap().permissions();
-        permissions.set_mode(0o755);
-        fs::set_permissions(&executable, permissions).unwrap();
+        let executable = if cfg!(windows) {
+            let path = tempdir.path().join("topgrade-runtime-env-test.cmd");
+            fs::write(&path, "@echo off\r\nexit /B 0\r\n").unwrap();
+            path
+        } else {
+            let path = tempdir.path().join("topgrade-runtime-env-test");
+            fs::write(&path, "#!/bin/sh\nexit 0\n").unwrap();
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+
+                let mut permissions = fs::metadata(&path).unwrap().permissions();
+                permissions.set_mode(0o755);
+                fs::set_permissions(&path, permissions).unwrap();
+            }
+            path
+        };
 
         crate::env_overlay::replace(BTreeMap::from([(
             OsString::from("PATH"),
             tempdir.path().as_os_str().to_os_string(),
         )]));
 
-        assert_eq!(which("topgrade-runtime-env-test"), Some(executable));
+        let binary_name = if cfg!(windows) {
+            "topgrade-runtime-env-test.cmd"
+        } else {
+            "topgrade-runtime-env-test"
+        };
+
+        assert_eq!(which(binary_name), Some(executable));
         assert_eq!(std::env::var_os("PATH"), original_path);
     }
 }

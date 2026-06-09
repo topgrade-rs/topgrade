@@ -17,6 +17,7 @@ fn env() -> &'static Mutex<EnvOverlay> {
     ENV.get_or_init(|| Mutex::new(EnvOverlay::new()))
 }
 
+#[cfg(any(unix, test))]
 pub fn replace(vars: BTreeMap<OsString, OsString>) {
     *env().lock().expect("env overlay lock poisoned") = vars;
 }

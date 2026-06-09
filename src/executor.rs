@@ -447,7 +447,6 @@ mod test {
         }
     }
 
-    #[cfg(unix)]
     #[test]
     #[allow(clippy::disallowed_methods)]
     fn test_env_overlay_is_visible_to_child() {
@@ -459,20 +458,25 @@ mod test {
             OsString::from("overlay_value"),
         )]));
 
-        let mut executor = Executor::Wet(Command::new("sh"));
-        executor.args(["-c", "printf %s \"$TOPGRADE_ENV_OVERLAY_TEST\""]);
+        let (program, args): (&str, Vec<&str>) = if cfg!(windows) {
+            ("cmd", vec!["/C", "echo %TOPGRADE_ENV_OVERLAY_TEST%"])
+        } else {
+            ("sh", vec!["-c", "printf %s \"$TOPGRADE_ENV_OVERLAY_TEST\""])
+        };
+
+        let mut executor = Executor::Wet(Command::new(program));
+        executor.args(args);
 
         let output = executor.output().unwrap();
         match output {
             ExecutorOutput::Wet(o) => {
                 assert!(o.status.success());
-                assert_eq!(String::from_utf8_lossy(&o.stdout), "overlay_value");
+                assert_eq!(String::from_utf8_lossy(&o.stdout).trim(), "overlay_value");
             }
             ExecutorOutput::Dry => panic!("Expected Wet output"),
         }
     }
 
-    #[cfg(unix)]
     #[test]
     #[allow(clippy::disallowed_methods)]
     fn test_explicit_executor_env_wins_over_env_overlay() {
@@ -484,16 +488,20 @@ mod test {
             OsString::from("overlay_value"),
         )]));
 
-        let mut executor = Executor::Wet(Command::new("sh"));
-        executor
-            .args(["-c", "printf %s \"$TOPGRADE_ENV_OVERLAY_TEST\""])
-            .env("TOPGRADE_ENV_OVERLAY_TEST", "explicit_value");
+        let (program, args): (&str, Vec<&str>) = if cfg!(windows) {
+            ("cmd", vec!["/C", "echo %TOPGRADE_ENV_OVERLAY_TEST%"])
+        } else {
+            ("sh", vec!["-c", "printf %s \"$TOPGRADE_ENV_OVERLAY_TEST\""])
+        };
+
+        let mut executor = Executor::Wet(Command::new(program));
+        executor.args(args).env("TOPGRADE_ENV_OVERLAY_TEST", "explicit_value");
 
         let output = executor.output().unwrap();
         match output {
             ExecutorOutput::Wet(o) => {
                 assert!(o.status.success());
-                assert_eq!(String::from_utf8_lossy(&o.stdout), "explicit_value");
+                assert_eq!(String::from_utf8_lossy(&o.stdout).trim(), "explicit_value");
             }
             ExecutorOutput::Dry => panic!("Expected Wet output"),
         }
