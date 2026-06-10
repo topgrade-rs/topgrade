@@ -179,10 +179,6 @@ impl Distribution {
             archlinux::show_pacnew();
         }
     }
-
-    pub fn redhat_based(self) -> bool {
-        matches!(self, Distribution::CentOS | Distribution::Fedora)
-    }
 }
 
 fn update_bedrock(ctx: &ExecutionContext) -> Result<()> {
