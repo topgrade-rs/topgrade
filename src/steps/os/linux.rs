@@ -883,10 +883,10 @@ fn upgrade_kde_linux(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-/// `needrestart` should be skipped if system update will run and its hooks exist
-fn should_skip_needrestart(ctx: &ExecutionContext) -> Result<()> {
-    let msg = t!("needrestart will be ran by the package manager");
+pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
+    let needrestart = require("needrestart")?;
 
+    /// `needrestart` should be skipped if system update will run and its hooks exist
     const HOOKS: &[&str] = &[
         "/usr/share/libalpm/hooks/needrestart.hook",
         "/etc/pacman.d/hooks/needrestart.hook",
@@ -894,16 +894,8 @@ fn should_skip_needrestart(ctx: &ExecutionContext) -> Result<()> {
     ];
 
     if HOOKS.iter().any(|hook| Path::new(hook).exists()) && ctx.config().should_run(Step::System) {
-        return Err(SkipStep(String::from(msg)).into());
+        return Err(SkipStep(String::from(t!("needrestart will be ran by the package manager"))).into());
     }
-
-    Ok(())
-}
-
-pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
-    let needrestart = require("needrestart")?;
-
-    should_skip_needrestart(ctx)?;
 
     print_separator(t!("Check for needed restarts"));
 
