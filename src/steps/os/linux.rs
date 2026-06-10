@@ -886,7 +886,7 @@ fn upgrade_kde_linux(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
     let needrestart = require("needrestart")?;
 
-    /// `needrestart` should be skipped if system update will run and its hooks exist
+    // `needrestart` should be skipped if system update will run and its hooks exist
     const HOOKS: &[&str] = &[
         "/usr/share/libalpm/hooks/needrestart.hook",
         "/etc/pacman.d/hooks/needrestart.hook",
