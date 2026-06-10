@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.6.0](https://github.com/topgrade-rs/topgrade/compare/v17.5.1...v17.6.0) - 2026-06-10
+
+### Added
+
+- *(vim)* add opt-in vim.pack pruning ([#2044](https://github.com/topgrade-rs/topgrade/pull/2044))
+
+### Fixed
+
+- *(needrestart)* skip if hooks already run it ([#2066](https://github.com/topgrade-rs/topgrade/pull/2066))
+- *(tmux)* update path to tpm update script ([#2050](https://github.com/topgrade-rs/topgrade/pull/2050))
+- *(jetbrains-toolbox)* skip step when Toolbox is not installed, but remotely managed IDEs are installed ([#2038](https://github.com/topgrade-rs/topgrade/pull/2038))
+
 ## [17.5.1](https://github.com/topgrade-rs/topgrade/compare/v17.5.0...v17.5.1) - 2026-05-20
 
 ### Fixed
