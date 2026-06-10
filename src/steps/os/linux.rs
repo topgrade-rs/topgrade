@@ -893,29 +893,16 @@ fn upgrade_kde_linux(ctx: &ExecutionContext) -> Result<()> {
 /// 2. This is a debian-based distribution and it is using `nala` as the `apt`
 ///    alternative
 /// 3. There are package manager hooks that auto run `needrestart`
-fn should_skip_needrestart() -> Result<()> {
-    let distribution = Distribution::detect()?;
+fn should_skip_needrestart(ctx: &ExecutionContext) -> Result<()> {
     let msg = t!("needrestart will be ran by the package manager");
 
-    if distribution.redhat_based() {
-        return Err(SkipStep(String::from(msg)).into());
-    }
-
-    if let Distribution::Debian = distribution {
-        let (apt_kind, _) = detect_apt()?;
-        if let AptKind::Nala = apt_kind {
-            return Err(SkipStep(String::from(msg)).into());
-        }
-    }
-
-    // ez add more hook files here for detection if needed
     const HOOKS: &[&str] = &[
         "/usr/share/libalpm/hooks/needrestart.hook",
         "/etc/pacman.d/hooks/needrestart.hook",
         "/etc/apt/apt.conf.d/99needrestart",
     ];
 
-    if HOOKS.iter().any(|hook| Path::new(hook).exists()) {
+    if HOOKS.iter().any(|hook| Path::new(hook).exists()) && ctx.config().should_run(Step::System) {
         return Err(SkipStep(String::from(msg)).into());
     }
 
@@ -925,7 +912,7 @@ fn should_skip_needrestart() -> Result<()> {
 pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
     let needrestart = require("needrestart")?;
 
-    should_skip_needrestart()?;
+    should_skip_needrestart(ctx)?;
 
     print_separator(t!("Check for needed restarts"));
 
