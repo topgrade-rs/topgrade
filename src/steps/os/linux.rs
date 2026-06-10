@@ -883,12 +883,7 @@ fn upgrade_kde_linux(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-/// `needrestart` should be skipped if:
-///
-/// 1. This is a redhat-based distribution
-/// 2. This is a debian-based distribution and it is using `nala` as the `apt`
-///    alternative
-/// 3. There are package manager hooks that auto run `needrestart`
+/// `needrestart` should be skipped if system update will run and its hooks exist
 fn should_skip_needrestart(ctx: &ExecutionContext) -> Result<()> {
     let msg = t!("needrestart will be ran by the package manager");
 
