@@ -6,18 +6,16 @@ use std::sync::{Mutex, OnceLock};
 
 use clap::ValueEnum;
 use color_eyre::eyre::Result;
-use rust_i18n::t;
 use serde::Deserialize;
 use strum::EnumString;
 
 use crate::config::Config;
-use crate::error::MissingSudo;
+use crate::error::{MissingSudo, SkipStep};
 use crate::executor::{DryCommand, Executor};
 use crate::powershell::Powershell;
 #[cfg(target_os = "linux")]
 use crate::steps::linux::Distribution;
 use crate::sudo::Sudo;
-use crate::utils::require_option;
 
 /// An enum telling whether Topgrade should perform dry runs or actually perform the steps.
 #[derive(Clone, Copy, Debug, Deserialize, Default, EnumString, ValueEnum)]
@@ -66,7 +64,7 @@ pub struct ExecutionContext<'a> {
     under_ssh: bool,
     #[cfg(target_os = "linux")]
     distribution: &'a Result<Distribution>,
-    powershell: OnceLock<Option<Powershell>>,
+    powershell: OnceLock<Result<Powershell, SkipStep>>,
 }
 
 impl<'a> ExecutionContext<'a> {
@@ -131,14 +129,13 @@ impl<'a> ExecutionContext<'a> {
         self.distribution
     }
 
-    pub fn powershell(&self) -> &Option<Powershell> {
+    pub fn powershell(&self) -> &Result<Powershell, SkipStep> {
         self.powershell.get_or_init(|| Powershell::new(self))
     }
 
     pub fn require_powershell(&self) -> Result<&Powershell> {
-        require_option(
-            self.powershell().as_ref(),
-            t!("Powershell is not installed").to_string(),
-        )
+        self.powershell()
+            .as_ref()
+            .map_err(|skip| SkipStep(skip.0.clone()).into())
     }
 }

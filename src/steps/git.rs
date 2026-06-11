@@ -58,7 +58,7 @@ pub fn run_git_pull_or_fetch(ctx: &ExecutionContext) -> Result<()> {
                 repos.insert_if_repo(ctx, HOME_DIR.join(".dotfiles"));
             }
 
-            if let Some(powershell) = ctx.powershell()
+            if let Ok(powershell) = ctx.powershell()
                 && let Some(profile) = powershell.profile()
             {
                 repos.insert_if_repo(ctx, profile);
