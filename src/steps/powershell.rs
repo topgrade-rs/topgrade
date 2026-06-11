@@ -25,8 +25,13 @@ impl Powershell {
         }
 
         let (path, is_pwsh) = which("pwsh")
+            .filter(|p| !p.has_shebang())
             .map(|p| (Some(p), true))
-            .or_else(|| which("powershell").map(|p| (Some(p), false)))
+            .or_else(|| {
+                which("powershell")
+                    .filter(|p| !p.has_shebang())
+                    .map(|p| (Some(p), false))
+            })
             .unwrap_or((None, false));
 
         path.map(|path| {
