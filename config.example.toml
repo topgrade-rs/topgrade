@@ -298,9 +298,9 @@
 
 # wsl_update_use_web_download = true
 
-# The default for winget_install_silently is true,
+# The default for winget_silent_install is true,
 # this example turns off silent install.
-# winget_install_silently = false
+# winget_silent_install = false
 
 # Causes Topgrade to rename itself during the run to allow package managers
 # to upgrade it. Use this only if you installed Topgrade by using a package
