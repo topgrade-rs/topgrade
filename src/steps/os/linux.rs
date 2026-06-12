@@ -179,10 +179,6 @@ impl Distribution {
             archlinux::show_pacnew();
         }
     }
-
-    pub fn redhat_based(self) -> bool {
-        matches!(self, Distribution::CentOS | Distribution::Fedora)
-    }
 }
 
 fn update_bedrock(ctx: &ExecutionContext) -> Result<()> {
@@ -887,33 +883,19 @@ fn upgrade_kde_linux(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
-/// `needrestart` should be skipped if:
-///
-/// 1. This is a redhat-based distribution
-/// 2. This is a debian-based distribution and it is using `nala` as the `apt`
-///    alternative
-fn should_skip_needrestart() -> Result<()> {
-    let distribution = Distribution::detect()?;
-    let msg = t!("needrestart will be ran by the package manager");
-
-    if distribution.redhat_based() {
-        return Err(SkipStep(String::from(msg)).into());
-    }
-
-    if let Distribution::Debian = distribution {
-        let (apt_kind, _) = detect_apt()?;
-        if let AptKind::Nala = apt_kind {
-            return Err(SkipStep(String::from(msg)).into());
-        }
-    }
-
-    Ok(())
-}
-
 pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
     let needrestart = require("needrestart")?;
 
-    should_skip_needrestart()?;
+    // `needrestart` should be skipped if system update will run and its hooks exist
+    const HOOKS: &[&str] = &[
+        "/usr/share/libalpm/hooks/needrestart.hook",
+        "/etc/pacman.d/hooks/needrestart.hook",
+        "/etc/apt/apt.conf.d/99needrestart",
+    ];
+
+    if HOOKS.iter().any(|hook| Path::new(hook).exists()) && ctx.config().should_run(Step::System) {
+        return Err(SkipStep(String::from(t!("needrestart will be ran by the package manager"))).into());
+    }
 
     print_separator(t!("Check for needed restarts"));
 
