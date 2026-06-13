@@ -832,6 +832,10 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
         .output_checked_utf8()
         .map_err(|_| SkipStep("pip does not exist".to_string()))?;
 
+    if cfg!(target_os = "android") {
+        return Err(SkipStep("pip is managed by termux".to_string()).into());
+    }
+
     let check_extern_managed_script = "import sysconfig; from os import path; print('Y') if path.isfile(path.join(sysconfig.get_path('stdlib'), 'EXTERNALLY-MANAGED')) else print('N')";
     let output = ctx
         .execute(&python3)
