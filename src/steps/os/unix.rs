@@ -6,7 +6,6 @@ use ini::Ini;
 use regex::Regex;
 use rust_i18n::t;
 use semver::Version;
-use std::env::home_dir;
 use std::ffi::OsStr;
 use std::io::Write;
 use std::os::unix::fs::MetadataExt;
@@ -21,7 +20,7 @@ use crate::XDG_DIRS;
 use crate::command::CommandExt;
 use crate::config::NixHandler;
 use crate::sudo::SudoExecuteOpts;
-use crate::utils::require_one;
+use crate::utils::{is_elevated, require_one};
 use crate::{HOME_DIR, output_changed_message};
 
 #[cfg(target_os = "linux")]
@@ -34,39 +33,56 @@ use crate::step::Step;
 use crate::terminal::print_separator;
 use crate::utils::{PathExt, require};
 
-#[cfg(target_os = "linux")]
-fn brew_linux_sudo_uid() -> Option<u32> {
-    let linuxbrew_directory = "/home/linuxbrew/.linuxbrew";
-    if let Ok(metadata) = fs::metadata(linuxbrew_directory) {
+#[cfg(target_family = "unix")]
+fn get_sudo_uid<P: AsRef<Path>>(path: P) -> Option<u32> {
+    if let Ok(metadata) = fs::metadata(&path) {
         let owner_id = metadata.uid();
         let current_id = nix::unistd::Uid::effective();
         // print debug these two values
-        debug!("linuxbrew_directory owner_id: {owner_id}, current_id: {current_id}");
+        debug!(
+            "path: {path:?}, owner_id: {owner_id}, current_id: {current_id}",
+            path = path.as_ref()
+        );
         return if owner_id == current_id.as_raw() {
-            None // no need for sudo if linuxbrew is owned by the current user
+            None // no need for sudo if path is owned by the current user
         } else {
-            Some(owner_id) // otherwise use sudo to run brew as the owner
+            Some(owner_id) // otherwise use sudo to run as the owner
         };
+    }
+    None
+}
+
+#[cfg(target_family = "unix")]
+fn get_sudo<P: AsRef<Path>>(path: P) -> Option<String> {
+    let sudo_uid = get_sudo_uid(path);
+    // if path is owned by another user, execute "sudo -Hu <uid> <binary_name>"
+    if let Some(user_id) = sudo_uid {
+        let uid = nix::unistd::Uid::from_raw(user_id);
+        let user = nix::unistd::User::from_uid(uid)
+            .expect("failed to call getpwuid()")
+            .expect("this user should exist");
+
+        return Some(user.name);
     }
     None
 }
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 fn brew_get_sudo() -> Option<String> {
-    #[cfg(target_os = "linux")]
+    #[cfg(target_family = "unix")]
     {
-        let sudo_uid = brew_linux_sudo_uid();
-        // if brew is owned by another user, execute "sudo -Hu <uid> brew update"
-        if let Some(user_id) = sudo_uid {
-            let uid = nix::unistd::Uid::from_raw(user_id);
-            let user = nix::unistd::User::from_uid(uid)
-                .expect("failed to call getpwuid()")
-                .expect("this user should exist");
-
-            return Some(user.name);
-        }
+        let linuxbrew_directory = "/home/linuxbrew/.linuxbrew";
+        get_sudo(linuxbrew_directory)
     }
+    #[cfg(not(target_family = "unix"))]
     None
+}
+
+fn nix_get_sudo<P: AsRef<Path>>(profile_path: P) -> Option<String> {
+    #[cfg(target_family = "unix")]
+    return get_sudo(profile_path);
+    #[cfg(not(target_family = "unix"))]
+    return None;
 }
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -558,18 +574,77 @@ impl NixVersion {
     }
 }
 
-pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
-    let nix = require("nix")?;
-    // TODO: Is None possible here? Should we use HOME_DIR instead?
-    let profile_path = match home_dir() {
-        Some(home) => XDG_DIRS
+fn nix_state_dir() -> PathBuf {
+    PathBuf::from(std::env::var_os("NIX_STATE_DIR").unwrap_or("/nix/var/nix".into()))
+}
+
+/// Get the path to the user profile link.
+/// User profile link is a symbolic link to the user's current profile:
+/// - `~/.nix-profile`
+/// - `$XDG_STATE_HOME/nix/profile` if `use-xdg-base-directories` is set to `true`.
+///
+/// Ref: https://nix.dev/manual/nix/2.34/command-ref/new-cli/nix3-profile#user-profile-link
+fn nix_get_user_profile_link(ctx: &ExecutionContext, nix: &Path) -> Result<PathBuf> {
+    let config_output = ctx
+        .execute(nix)
+        .always()
+        .args(nix_args())
+        .arg("config")
+        .arg("show")
+        .arg("use-xdg-base-directories")
+        .output_checked_utf8()?;
+
+    debug!(
+        output=%config_output,
+        "`nix config show use-xdg-base-directories` output"
+    );
+
+    let config_value_string = config_output.stdout.lines().next().unwrap_or("");
+
+    let use_xdg_base_directories = match config_value_string {
+        "true" => Ok(true),
+        "false" => Ok(false),
+        _ => Err(eyre!(
+            "`nix config show use-xdg-base-directories` returned unexpected value"
+        )),
+    }?;
+
+    if use_xdg_base_directories {
+        XDG_DIRS
             .state_dir()
             .map(|d| d.join("nix/profile"))
-            .filter(|p| p.exists())
-            .unwrap_or(Path::new(&home).join(".nix-profile")),
-        None => Path::new("/nix/var/nix/profiles/per-user/default").into(),
-    };
-    debug!("nix profile: {:?}", profile_path);
+            .ok_or_else(|| eyre!("Unable to get the user's state directory"))
+    } else {
+        Ok(HOME_DIR.join(".nix-profile"))
+    }
+}
+
+/// Get the path to the user's current profile.
+/// This will try to resolve the user profile link or use the default values,
+/// if it couldn't be resolved,
+///
+/// Note that the return value of this is expected to be another symlink
+/// as that's what a profile is - a symlink to a specific generation of a user environment.
+///
+/// Ref: https://nix.dev/manual/nix/2.34/package-management/profiles
+fn nix_get_current_profile_path(ctx: &ExecutionContext, nix: &Path) -> Result<PathBuf> {
+    let user_profile_link = nix_get_user_profile_link(ctx, nix)?;
+    debug!("nix user profile link: {:?}", user_profile_link);
+
+    match user_profile_link.read_link() {
+        Ok(profile_link) => Ok(profile_link),
+        Err(_) if is_elevated() => Ok(nix_state_dir().join("profiles/per-user/root/profile")),
+        Err(_) => XDG_DIRS
+            .state_dir()
+            .map(|d| d.join("nix/profiles/profile"))
+            .ok_or_else(|| eyre!("Unable to get the user's state directory")),
+    }
+}
+
+pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
+    let nix = require("nix")?;
+    let profile_path = nix_get_current_profile_path(ctx, &nix)?;
+    debug!("nix current profile: {:?}", profile_path);
     let manifest_json_path = profile_path.join("manifest.json");
 
     #[cfg(target_os = "macos")]
@@ -605,7 +680,14 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
             warn!("`nix-channel --update` failed: {e}");
         }
         print_separator("Nix Profiles");
-        ctx.execute(nix)
+        let mut command = match &nix_get_sudo(profile_path) {
+            None => ctx.execute(nix),
+            Some(user) => {
+                let sudo = ctx.require_sudo()?;
+                sudo.execute_opts(ctx, &nix, SudoExecuteOpts::new().set_home().user(user).login_shell())?
+            }
+        };
+        command
             .args(nix_args())
             .arg("profile")
             .arg("upgrade")
@@ -618,7 +700,17 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
         let nix_env = require("nix-env")?;
         print_separator("Nix");
 
-        let mut command = ctx.execute(nix_env);
+        let mut command = match &nix_get_sudo(profile_path) {
+            None => ctx.execute(nix_env),
+            Some(user) => {
+                let sudo = ctx.require_sudo()?;
+                sudo.execute_opts(
+                    ctx,
+                    &nix_env,
+                    SudoExecuteOpts::new().set_home().user(user).login_shell(),
+                )?
+            }
+        };
         command.arg("--upgrade");
         if let Some(args) = ctx.config().nix_env_arguments() {
             command.args(args.split_whitespace());
