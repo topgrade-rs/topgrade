@@ -382,6 +382,10 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
     let mut command = brew.execute(ctx)?;
     command.args(["upgrade", "--formula"]);
 
+    if ctx.config().yes(Step::BrewFormula) {
+        command.arg("-y");
+    }
+
     if ctx.config().brew_fetch_head() {
         command.arg("--fetch-HEAD");
     }
@@ -459,6 +463,9 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
         }
     } else {
         brew_args.extend(["upgrade", "--cask"]);
+        if ctx.config().yes(Step::BrewCask) {
+            brew_args.push("-y");
+        }
         if ctx.config().brew_cask_greedy() {
             brew_args.push("--greedy");
         }
