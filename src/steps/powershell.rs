@@ -25,7 +25,7 @@ impl Powershell {
     /// surface it as its skip message instead of a generic "not installed"
     pub fn new(ctx: &ExecutionContext) -> Result<Self, SkipStep> {
         if terminal::is_dumb() {
-            return Err(SkipStep("Cannot detect PowerShell in a dumb terminal".to_string()));
+            return Err(SkipStep(t!("Cannot detect PowerShell in a dumb terminal").to_string()));
         }
 
         let (path, is_pwsh) = Self::detect_path()?;
@@ -48,7 +48,14 @@ impl Powershell {
             };
 
             if path.has_shebang() {
-                skip_reason = SkipStep(format!("{binary} at {} is a wrapper script", path.display()));
+                skip_reason = SkipStep(
+                    t!(
+                        "{binary} at {path} is a wrapper script",
+                        binary = binary,
+                        path = path.display()
+                    )
+                    .to_string(),
+                );
                 debug!("{skip_reason}");
                 continue;
             }
