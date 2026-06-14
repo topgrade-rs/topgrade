@@ -644,12 +644,6 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep(t!("`nix upgrade-nix` can only be used on macOS or non-NixOS Linux").to_string()).into());
     }
 
-    if nix_profile_dir(&nix)?.is_none() {
-        return Err(
-            SkipStep(t!("`nix upgrade-nix` cannot be run when Nix is installed in a profile").to_string()).into(),
-        );
-    }
-
     print_separator(t!("Nix (self-upgrade)"));
 
     let nix_version = NixVersion::new(ctx, &nix)?;
@@ -669,6 +663,12 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
             .execute_opts(ctx, nixd, SudoExecuteOpts::new().login_shell())?
             .arg("upgrade")
             .status_checked();
+    }
+
+    if nix_profile_dir(&nix)?.is_none() {
+        return Err(
+            SkipStep(t!("`nix upgrade-nix` cannot be run when Nix is installed in a profile").to_string()).into(),
+        );
     }
 
     let multi_user = fs::metadata(&nix)?.uid() == 0;
