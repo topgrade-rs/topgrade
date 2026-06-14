@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use color_eyre::eyre::Result;
 #[cfg(windows)]
 use color_eyre::eyre::eyre;
+use rust_i18n::t;
 use tracing::debug;
 
 use crate::command::CommandExt;
@@ -39,7 +40,7 @@ impl Powershell {
     }
 
     fn detect_path() -> Result<(PathBuf, bool), SkipStep> {
-        let mut skip_reason = SkipStep("Powershell is not installed".to_string());
+        let mut skip_reason = SkipStep(t!("Powershell is not installed").to_string());
 
         for (binary, is_pwsh) in [("pwsh", true), ("powershell", false)] {
             let Some(path) = which(binary) else {

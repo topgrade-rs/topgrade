@@ -136,6 +136,7 @@ impl<'a> ExecutionContext<'a> {
     pub fn require_powershell(&self) -> Result<&Powershell> {
         self.powershell()
             .as_ref()
+            // necessary because `skip` is a `&SkipStep` borrowed from `self` (`skip.into()` gives E0521)
             .map_err(|skip| SkipStep(skip.0.clone()).into())
     }
 }
