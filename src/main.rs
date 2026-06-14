@@ -34,6 +34,7 @@ mod breaking_changes;
 mod command;
 mod config;
 mod ctrlc;
+mod env_overlay;
 mod error;
 mod execution_context;
 mod executor;

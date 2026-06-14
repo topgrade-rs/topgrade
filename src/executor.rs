@@ -147,6 +147,7 @@ impl Executor {
     /// See `std::process::Command::spawn`
     pub fn spawn(&mut self) -> Result<ExecutorChild> {
         self.log_command();
+        self.apply_env_overlay();
         let result = match self {
             Executor::Wet(c) | Executor::Damp(c) => {
                 debug!("Running {:?}", c);
@@ -164,6 +165,7 @@ impl Executor {
     /// See `std::process::Command::output`
     pub fn output(&mut self) -> Result<ExecutorOutput> {
         self.log_command();
+        self.apply_env_overlay();
         match self {
             Executor::Wet(c) | Executor::Damp(c) => {
                 // We should use `output()` here rather than `output_checked()` since
@@ -180,6 +182,7 @@ impl Executor {
     #[allow(dead_code)]
     pub fn status_checked_with_codes(&mut self, codes: &[i32]) -> Result<()> {
         self.log_command();
+        self.apply_env_overlay();
         match self {
             Executor::Wet(c) | Executor::Damp(c) => c.status_checked_with(|status| {
                 if status.success() || status.code().as_ref().is_some_and(|c| codes.contains(c)) {
@@ -211,6 +214,13 @@ impl Executor {
                 iter::empty(),
                 c.directory.as_ref(),
             ),
+        }
+    }
+
+    fn apply_env_overlay(&mut self) {
+        match self {
+            Executor::Wet(command) | Executor::Damp(command) => crate::env_overlay::apply_to_command(command),
+            Executor::Dry(_) => {}
         }
     }
 }
@@ -279,6 +289,7 @@ impl CommandExt for Executor {
 
     fn output_checked_with(&mut self, succeeded: impl Fn(&Output) -> Result<(), ()>) -> Result<Output> {
         self.log_command();
+        self.apply_env_overlay();
         match self {
             Executor::Wet(c) | Executor::Damp(c) => c.output_checked_with(succeeded),
             Executor::Dry(_) => Err(DryRun().into()),
@@ -287,6 +298,7 @@ impl CommandExt for Executor {
 
     fn status_checked_with(&mut self, succeeded: impl Fn(ExitStatus) -> Result<(), ()>) -> Result<()> {
         self.log_command();
+        self.apply_env_overlay();
         match self {
             Executor::Wet(c) | Executor::Damp(c) => c.status_checked_with(succeeded),
             Executor::Dry(_) => Ok(()),
@@ -432,6 +444,66 @@ mod test {
                 assert_eq!(String::from_utf8_lossy(&o.stdout).trim(), "preserved_value");
             }
             ExecutorOutput::Dry => panic!("Expected Wet output after .always()"),
+        }
+    }
+
+    #[test]
+    #[allow(clippy::disallowed_methods)]
+    fn test_env_overlay_is_visible_to_child() {
+        use std::collections::BTreeMap;
+
+        let _guard = crate::env_overlay::test_guard();
+        crate::env_overlay::replace(BTreeMap::from([(
+            OsString::from("TOPGRADE_ENV_OVERLAY_TEST"),
+            OsString::from("overlay_value"),
+        )]));
+
+        let (program, args): (&str, Vec<&str>) = if cfg!(windows) {
+            ("cmd", vec!["/C", "echo %TOPGRADE_ENV_OVERLAY_TEST%"])
+        } else {
+            ("sh", vec!["-c", "printf %s \"$TOPGRADE_ENV_OVERLAY_TEST\""])
+        };
+
+        let mut executor = Executor::Wet(Command::new(program));
+        executor.args(args);
+
+        let output = executor.output().unwrap();
+        match output {
+            ExecutorOutput::Wet(o) => {
+                assert!(o.status.success());
+                assert_eq!(String::from_utf8_lossy(&o.stdout).trim(), "overlay_value");
+            }
+            ExecutorOutput::Dry => panic!("Expected Wet output"),
+        }
+    }
+
+    #[test]
+    #[allow(clippy::disallowed_methods)]
+    fn test_explicit_executor_env_wins_over_env_overlay() {
+        use std::collections::BTreeMap;
+
+        let _guard = crate::env_overlay::test_guard();
+        crate::env_overlay::replace(BTreeMap::from([(
+            OsString::from("TOPGRADE_ENV_OVERLAY_TEST"),
+            OsString::from("overlay_value"),
+        )]));
+
+        let (program, args): (&str, Vec<&str>) = if cfg!(windows) {
+            ("cmd", vec!["/C", "echo %TOPGRADE_ENV_OVERLAY_TEST%"])
+        } else {
+            ("sh", vec!["-c", "printf %s \"$TOPGRADE_ENV_OVERLAY_TEST\""])
+        };
+
+        let mut executor = Executor::Wet(Command::new(program));
+        executor.args(args).env("TOPGRADE_ENV_OVERLAY_TEST", "explicit_value");
+
+        let output = executor.output().unwrap();
+        match output {
+            ExecutorOutput::Wet(o) => {
+                assert!(o.status.success());
+                assert_eq!(String::from_utf8_lossy(&o.stdout).trim(), "explicit_value");
+            }
+            ExecutorOutput::Dry => panic!("Expected Wet output"),
         }
     }
 }

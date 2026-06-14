@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use color_eyre::eyre::{OptionExt, bail, eyre};
@@ -7,7 +9,7 @@ use regex::Regex;
 use rust_i18n::t;
 use semver::Version;
 use std::env::home_dir;
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::io::Write;
 use std::os::unix::fs::MetadataExt;
 use std::path::Component;
@@ -921,7 +923,34 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
         cmd.args(["--jobs", &ctx.config().mise_jobs().to_string()]);
     }
 
-    cmd.status_checked()
+    cmd.status_checked()?;
+    if ctx.run_type().dry() {
+        return Ok(());
+    }
+    refresh_mise_env(ctx, &mise)
+}
+
+fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path) -> Result<()> {
+    let output = ctx
+        .execute(mise)
+        .args(["env", "--json"])
+        .output_checked()
+        .wrap_err("failed to refresh mise environment after upgrade")?;
+    let raw = std::str::from_utf8(&output.stdout).wrap_err("failed to refresh mise environment after upgrade")?;
+    let vars = parse_mise_env_json(raw).wrap_err("failed to refresh mise environment after upgrade")?;
+
+    crate::env_overlay::replace(vars);
+    debug!("Refreshed env overlay from mise");
+    Ok(())
+}
+
+fn parse_mise_env_json(raw: &str) -> Result<BTreeMap<OsString, OsString>> {
+    let vars: BTreeMap<String, String> = serde_json::from_str(raw).wrap_err("failed to parse mise environment JSON")?;
+
+    Ok(vars
+        .into_iter()
+        .map(|(key, value)| (OsString::from(key), OsString::from(value)))
+        .collect())
 }
 
 pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
@@ -1141,4 +1170,49 @@ pub fn run_install_release(ctx: &ExecutionContext) -> Result<()> {
     }
     command.status_checked()?;
     Ok(())
+}
+#[cfg(test)]
+mod test {
+    use std::ffi::OsString;
+
+    use super::*;
+
+    #[test]
+    fn parse_mise_env_json_keeps_string_values() {
+        let vars = parse_mise_env_json(
+            r#"{
+                "PATH": "/tmp/mise-bin:/usr/bin",
+                "MISE_SHELL": "zsh",
+                "MISE_LEVEL": "2"
+            }"#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            vars.get(&OsString::from("PATH")),
+            Some(&OsString::from("/tmp/mise-bin:/usr/bin"))
+        );
+        assert_eq!(vars.get(&OsString::from("MISE_SHELL")), Some(&OsString::from("zsh")));
+        assert_eq!(vars.get(&OsString::from("MISE_LEVEL")), Some(&OsString::from("2")));
+    }
+
+    #[test]
+    fn parse_mise_env_json_rejects_invalid_json() {
+        let error = parse_mise_env_json("{not-json").unwrap_err();
+
+        assert!(format!("{error:#}").contains("failed to parse mise environment JSON"));
+    }
+
+    #[test]
+    fn parse_mise_env_json_rejects_non_string_values() {
+        let error = parse_mise_env_json(
+            r#"{
+                "PATH": "/tmp/mise-bin:/usr/bin",
+                "MISE_LEVEL": 2
+            }"#,
+        )
+        .unwrap_err();
+
+        assert!(format!("{error:#}").contains("failed to parse mise environment JSON"));
+    }
 }
