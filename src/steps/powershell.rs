@@ -4,9 +4,11 @@ use std::path::PathBuf;
 use color_eyre::eyre::Result;
 #[cfg(windows)]
 use color_eyre::eyre::eyre;
+use rust_i18n::t;
 use tracing::debug;
 
 use crate::command::CommandExt;
+use crate::error::SkipStep;
 use crate::execution_context::ExecutionContext;
 use crate::executor::Executor;
 use crate::terminal;
@@ -19,25 +21,49 @@ pub struct Powershell {
 }
 
 impl Powershell {
-    pub fn new(ctx: &ExecutionContext) -> Option<Self> {
+    /// Detects a usable PowerShell. The `Err` carries the reason so the step can
+    /// surface it as its skip message instead of a generic "not installed"
+    pub fn new(ctx: &ExecutionContext) -> Result<Self, SkipStep> {
         if terminal::is_dumb() {
-            return None;
+            return Err(SkipStep(t!("Cannot detect PowerShell in a dumb terminal").to_string()));
         }
 
-        let (path, is_pwsh) = which("pwsh")
-            .map(|p| (Some(p), true))
-            .or_else(|| which("powershell").map(|p| (Some(p), false)))
-            .unwrap_or((None, false));
+        let (path, is_pwsh) = Self::detect_path()?;
 
-        path.map(|path| {
-            let mut ret = Self {
-                path,
-                profile: None,
-                is_pwsh,
+        let mut ret = Self {
+            path,
+            profile: None,
+            is_pwsh,
+        };
+        ret.set_profile(ctx);
+        Ok(ret)
+    }
+
+    fn detect_path() -> Result<(PathBuf, bool), SkipStep> {
+        let mut skip_reason = SkipStep(t!("Powershell is not installed").to_string());
+
+        for (binary, is_pwsh) in [("pwsh", true), ("powershell", false)] {
+            let Some(path) = which(binary) else {
+                continue;
             };
-            ret.set_profile(ctx);
-            ret
-        })
+
+            if path.has_shebang() {
+                skip_reason = SkipStep(
+                    t!(
+                        "{binary} at {path} is a wrapper script",
+                        binary = binary,
+                        path = path.display()
+                    )
+                    .to_string(),
+                );
+                debug!("{skip_reason}");
+                continue;
+            }
+
+            return Ok((path, is_pwsh));
+        }
+
+        Err(skip_reason)
     }
 
     pub fn profile(&self) -> Option<&PathBuf> {

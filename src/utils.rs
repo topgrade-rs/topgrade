@@ -25,6 +25,9 @@ where
     fn if_exists(self) -> Option<Self>;
     fn is_descendant_of(&self, ancestor: &Path) -> bool;
 
+    /// Used to check for UNIX launcher shims that shadow a real executable
+    fn has_shebang(&self) -> bool;
+
     /// Returns the path if it exists or ErrorKind::SkipStep otherwise
     fn require(self) -> Result<Self>;
 }
@@ -45,6 +48,17 @@ where
 
     fn is_descendant_of(&self, ancestor: &Path) -> bool {
         self.as_ref().iter().zip(ancestor.iter()).all(|(a, b)| a == b)
+    }
+
+    fn has_shebang(&self) -> bool {
+        use std::io::Read;
+
+        // checks for `#!` by the reading the first 2 bytes of the file
+        let mut magic = [0u8; 2];
+        std::fs::File::open(self.as_ref())
+            .and_then(|mut file| file.read_exact(&mut magic))
+            .is_ok()
+            && &magic == b"#!"
     }
 
     fn require(self) -> Result<Self> {
