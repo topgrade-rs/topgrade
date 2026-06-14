@@ -99,6 +99,54 @@ impl NPM {
         Ok(())
     }
 
+    /// Detects whether pnpm's global registry is in the fragile/broken state
+    /// produced by the standalone `curl | sh` installer.
+    ///
+    /// That installer extracts the standalone binary into a `mktemp` directory
+    /// and then runs `pnpm add -g @pnpm/exe@<version>` from there, so the global
+    /// manifest registers `@pnpm/exe` as a `file:` link into that temp dir.
+    /// While the temp dir exists, `pnpm update -g` continues to work, but once
+    /// it is cleaned up (e.g. on reboot) the dangling link makes `pnpm update -g`
+    /// fail outright with `ERR_PNPM_LINKED_PKG_DIR_NOT_FOUND`. Running
+    /// `pnpm self-update` re-registers `@pnpm/exe` against a stable,
+    /// registry-resolved version, permanently repairing the manifest so that a
+    /// subsequent `pnpm update -g` can run normally again.
+    ///
+    /// The below detects this by the `file:` version specifier that
+    /// `pnpm list -g --json` reports for `@pnpm/exe` (a healthy install reports
+    /// a plain semver version). `pnpm list -g --json` itself keeps working in
+    /// the broken state, so this probe is reliable. Corepack-managed installs do
+    /// not register `@pnpm/exe` as a global package at all, so they are
+    /// unaffected (and `pnpm self-update` does not support them anyway).
+    ///
+    /// See <https://github.com/topgrade-rs/topgrade/issues/632>.
+    fn pnpm_global_registry_is_broken(&self, ctx: &ExecutionContext) -> bool {
+        if !matches!(self.variant, NPMVariant::Pnpm) {
+            return false;
+        }
+
+        let output = ctx
+            .execute(&self.command)
+            .always()
+            .args(["list", "-g", "--depth=0", "--json"])
+            .output_checked_utf8();
+        let stdout = match output {
+            Ok(output) => output.stdout,
+            Err(err) => {
+                debug!("Could not list global pnpm packages, assuming a healthy install: {err}");
+                return false;
+            }
+        };
+
+        pnpm_global_registry_is_broken_from_list_json(&stdout)
+    }
+
+    /// Update a standalone pnpm binary via `pnpm self-update`.
+    fn self_update(&self, ctx: &ExecutionContext) -> Result<()> {
+        ctx.execute(&self.command).arg("self-update").status_checked()?;
+        Ok(())
+    }
+
     #[cfg(target_os = "linux")]
     pub fn should_use_sudo(&self, ctx: &ExecutionContext) -> Result<bool> {
         let npm_root = self.root(ctx)?;
@@ -111,6 +159,36 @@ impl NPM {
 
         Ok(metadata.uid() != uid.as_raw() && metadata.uid() == 0)
     }
+}
+
+/// Parses the output of `pnpm list -g --depth=0 --json` and returns whether the
+/// global registry is broken, i.e. `@pnpm/exe` is registered with a `file:`
+/// version specifier (the signature of the standalone `curl | sh` installer).
+///
+/// `pnpm list -g --json` prints an array of project objects, each with a
+/// `dependencies` map keyed by package name. The standalone installer registers
+/// `@pnpm/exe` with a `file:` version pointing into a temp dir; a healthy
+/// registry install reports a plain semver version. Anything we can't parse or
+/// recognize is treated as healthy.
+fn pnpm_global_registry_is_broken_from_list_json(list_json: &str) -> bool {
+    let parsed: serde_json::Value = match serde_json::from_str(list_json) {
+        Ok(parsed) => parsed,
+        Err(err) => {
+            debug!("Could not parse `pnpm list -g --json` output: {err}");
+            return false;
+        }
+    };
+
+    parsed
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|project| project.get("dependencies"))
+        .filter_map(|dependencies| dependencies.as_object())
+        .filter_map(|dependencies| dependencies.get("@pnpm/exe"))
+        .filter_map(|exe| exe.get("version"))
+        .filter_map(|version| version.as_str())
+        .any(|version| version.starts_with("file:"))
 }
 
 struct Yarn {
@@ -375,6 +453,16 @@ pub fn run_pnpm_upgrade(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Performant Node Package Manager"));
 
+    // A standalone (`curl | sh`) pnpm install registers `@pnpm/exe` as a `file:`
+    // link into a temp dir, which eventually breaks `pnpm update -g`. Repair the
+    // registry with `pnpm self-update` first, then fall through to the normal
+    // `pnpm update -g` so every global package (including pnpm itself) is still
+    // updated, which is this step's original purpose.
+    if pnpm.pnpm_global_registry_is_broken(ctx) {
+        debug!("Detected a broken standalone pnpm registry; running `pnpm self-update` to repair it");
+        pnpm.self_update(ctx)?;
+    }
+
     #[cfg(target_os = "linux")]
     {
         pnpm.upgrade(ctx, should_use_sudo(&pnpm, ctx)?)
@@ -484,4 +572,114 @@ pub fn run_volta_packages_upgrade(ctx: &ExecutionContext) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod pnpm_registry_tests {
+    use super::pnpm_global_registry_is_broken_from_list_json;
+
+    /// A healthy standalone install (post `pnpm self-update`) reports `@pnpm/exe`
+    /// with a plain semver version, so it is not considered broken.
+    #[test]
+    fn healthy_standalone_install_is_not_broken() {
+        let list_json = r#"[
+            {
+                "path": "/home/user/.local/share/pnpm/global/v11",
+                "private": true,
+                "dependencies": {
+                    "@pnpm/exe": {
+                        "from": "@pnpm/exe",
+                        "version": "11.4.0",
+                        "path": "/home/user/.local/share/pnpm/global/v11/abc/node_modules/@pnpm/exe"
+                    }
+                }
+            }
+        ]"#;
+        assert!(!pnpm_global_registry_is_broken_from_list_json(list_json));
+    }
+
+    /// The `curl | sh` installer registers `@pnpm/exe` with a `file:` version
+    /// pointing into a temp dir, which is the broken state we must repair.
+    #[test]
+    fn standalone_install_with_file_version_is_broken() {
+        let list_json = r#"[
+            {
+                "path": "/home/user/.local/share/pnpm/global/v11",
+                "private": true,
+                "dependencies": {
+                    "@pnpm/exe": {
+                        "from": "@pnpm/exe",
+                        "version": "file:/tmp/tmp.xmRqYYgq7B",
+                        "path": "/home/user/.local/share/pnpm/global/v11/abc/node_modules/@pnpm/exe"
+                    }
+                }
+            }
+        ]"#;
+        assert!(pnpm_global_registry_is_broken_from_list_json(list_json));
+    }
+
+    /// A broken `@pnpm/exe` alongside other global packages is still broken.
+    #[test]
+    fn file_version_mixed_with_other_packages_is_broken() {
+        let list_json = r#"[
+            {
+                "path": "/home/user/.local/share/pnpm/global/v11",
+                "dependencies": {
+                    "@pnpm/exe": { "from": "@pnpm/exe", "version": "file:../tmp.cIve4D5zno" },
+                    "prettier": { "from": "prettier", "version": "3.2.5" }
+                }
+            }
+        ]"#;
+        assert!(pnpm_global_registry_is_broken_from_list_json(list_json));
+    }
+
+    /// Corepack-managed installs do not register `@pnpm/exe` at all, so a global
+    /// list of ordinary packages is not broken.
+    #[test]
+    fn corepack_install_without_pnpm_exe_is_not_broken() {
+        let list_json = r#"[
+            {
+                "path": "/home/user/Library/pnpm/global/5",
+                "dependencies": {
+                    "prettier": { "from": "prettier", "version": "3.2.5" }
+                }
+            }
+        ]"#;
+        assert!(!pnpm_global_registry_is_broken_from_list_json(list_json));
+    }
+
+    /// No global packages at all (no `dependencies` key) is not broken.
+    #[test]
+    fn empty_global_install_is_not_broken() {
+        let list_json = r#"[{ "path": "/home/user/.local/share/pnpm/global/v11", "private": true }]"#;
+        assert!(!pnpm_global_registry_is_broken_from_list_json(list_json));
+    }
+
+    /// An empty project array is not broken.
+    #[test]
+    fn empty_array_is_not_broken() {
+        assert!(!pnpm_global_registry_is_broken_from_list_json("[]"));
+    }
+
+    /// Unparsable output is treated as healthy (we don't want to self-update on
+    /// a transient/garbled response).
+    #[test]
+    fn malformed_json_is_not_broken() {
+        assert!(!pnpm_global_registry_is_broken_from_list_json("not json at all"));
+        assert!(!pnpm_global_registry_is_broken_from_list_json(""));
+    }
+
+    /// A version that merely contains "file:" later in the string (not a `file:`
+    /// specifier) is not treated as broken.
+    #[test]
+    fn semver_version_is_not_broken() {
+        let list_json = r#"[
+            {
+                "dependencies": {
+                    "@pnpm/exe": { "from": "@pnpm/exe", "version": "11.4.0" }
+                }
+            }
+        ]"#;
+        assert!(!pnpm_global_registry_is_broken_from_list_json(list_json));
+    }
 }
