@@ -7,10 +7,8 @@ use rust_i18n::t;
 use semver::Version;
 use serde::Deserialize;
 use std::ffi::OsString;
-use std::io::BufReader;
 use std::iter::once;
 use std::path::PathBuf;
-use std::process::Stdio;
 use std::sync::LazyLock;
 use std::{env, path::Path};
 use std::{fs, io::Write};
@@ -2130,28 +2128,24 @@ pub fn run_claude_code(ctx: &ExecutionContext) -> Result<()> {
         .args(["plugin", "marketplace", "update"])
         .status_checked()?;
 
-    let ExecutorChild::Wet(mut child) = ctx
-        .execute(&claude)
+    // https://github.com/topgrade-rs/topgrade/pull/2062#issuecomment-4703754240
+    let temp_dir = tempdir().context("Failed to create temp dir for `claude plugin list`")?;
+    let json_path = temp_dir.path().join("plugins.json");
+    let json_file = fs::File::create(&json_path).context("Failed to create temp file for `claude plugin list`")?;
+
+    ctx.execute(&claude)
         .always()
         .args(["plugin", "list", "--json"])
-        .stdout(Stdio::piped())
-        .spawn()?
-    else {
-        unreachable!(".always() handles this")
-    };
+        .stdout(json_file)
+        .status_checked()?;
 
-    let stdout = child.stdout.take().expect("stdout was piped");
-    let plugins: Vec<ClaudePlugin> = serde_json::from_reader(BufReader::new(stdout)).wrap_err_with(|| {
+    let json = fs::read_to_string(&json_path).context("Failed to read `claude plugin list --json` output")?;
+    let plugins: Vec<ClaudePlugin> = serde_json::from_str(&json).wrap_err_with(|| {
         output_changed_message!(
             "claude plugin list --json",
             "json output is invalid or does not match expected structure"
         )
     })?;
-
-    let status = child.wait().context("Failed to wait for `claude plugin list --json`")?;
-    if !status.success() {
-        bail!("`claude plugin list --json` exited with {status}");
-    }
 
     let mut success = true;
     for plugin in &plugins {
