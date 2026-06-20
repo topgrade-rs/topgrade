@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.6.2](https://github.com/topgrade-rs/topgrade/compare/v17.6.1...v17.6.2) - 2026-06-20
+
+### Fixed
+
+- *(brew)* add assume_yes support ([#2090](https://github.com/topgrade-rs/topgrade/pull/2090))
+- *(powershell)* skip step if there is a wrapper script ([#2087](https://github.com/topgrade-rs/topgrade/pull/2087))
+- *(brew)* don't panic when linuxbrew owner uid has no passwd entry ([#2063](https://github.com/topgrade-rs/topgrade/pull/2063))
+- *(pip3)* skip self-update on Termux ([#2065](https://github.com/topgrade-rs/topgrade/pull/2065))
+- *(nix)* don't skip self-upgrade on non-NixOS Linux ([#2072](https://github.com/topgrade-rs/topgrade/pull/2072))
+
 ## [17.6.1](https://github.com/topgrade-rs/topgrade/compare/v17.5.1...v17.6.1) - 2026-06-10
 
 ### Added
