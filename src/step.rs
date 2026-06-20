@@ -764,6 +764,10 @@ pub(crate) fn default_steps() -> Vec<Step> {
     use Step::*;
     // For now, SelfRenamer and SelfUpdate aren't included as they're ran before the other non-steps (pre-commands, sudo, etc)
     vec![
+        // Steps that should run first
+        // Falconf can install programs we want to immediately detect and update
+        Falconf,
+        // Steps that don't have to run in a particular order
         Remotes,
         Wsl,
         WslUpdate,
@@ -794,7 +798,6 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Distrobox,
         DkpPacman,
         Firmware,
-        Restarts,
         Flatpak,
         Gearlever,
         Lure,
@@ -931,11 +934,14 @@ pub(crate) fn default_steps() -> Vec<Step> {
         // JetBrains Space Desktop does not have a CLI
         JetbrainsWebstorm,
         Yazi,
-        Falconf,
         Powershell,
-        CustomCommands,
-        Vagrant,
         Typst,
         InstallRelease,
+        Vagrant,
+        // Steps that should run last
+        // Last out of convention
+        CustomCommands,
+        // Last because it prompts for restart
+        Restarts,
     ]
 }
