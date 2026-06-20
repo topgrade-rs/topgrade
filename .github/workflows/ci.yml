@@ -65,10 +65,15 @@ jobs:
       - name: Check if `default_steps` contains every step
         run: |
           # Extract all variants from enum Step
-          all_variants=$(sed -n '/^pub enum Step {/,/^}/p' src/step.rs | grep -Po '^\s*\K[A-Z][A-Za-z0-9_]*' | sort)
+          all_variants=$(sed -n '/^pub enum Step {/,/^}/p' src/step.rs | \
+            grep -Po '^\s*\K[A-Z][A-Za-z0-9_]*' | \
+            # Ignore SelfUpdate as it's ran manually in main.rs
+            grep -v '^SelfUpdate$' | \
+          sort)
 
           # Extract variants used inside default_steps
           used_variants=$(sed -n '/^pub(crate) fn default_steps()/,/^}/p' src/step.rs | \
+            grep -Pv '^\s*//' | \
             grep -Po '\b[A-Z][A-Za-z0-9_]*\b' | \
             grep -Fx -f <(echo "$all_variants") | \
           sort)
