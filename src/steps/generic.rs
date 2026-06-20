@@ -1,12 +1,16 @@
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use color_eyre::eyre::{OptionExt, bail, eyre};
+#[cfg(unix)]
+use etcetera::BaseStrategy;
 use jetbrains_toolbox_updater::{FindError, find_jetbrains_toolbox, update_jetbrains_toolbox};
 use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
 use serde::Deserialize;
 use std::ffi::OsString;
+#[cfg(unix)]
+use std::fs::remove_dir_all;
 use std::iter::once;
 use std::path::PathBuf;
 use std::sync::LazyLock;
@@ -17,6 +21,8 @@ use tracing::{debug, error, warn};
 use walkdir::WalkDir;
 
 use crate::HOME_DIR;
+#[cfg(unix)]
+use crate::XDG_DIRS;
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::{ExecutorChild, ExecutorOutput};
@@ -1945,6 +1951,15 @@ pub fn run_jetbrains_toolbox(ctx: &ExecutionContext) -> Result<()> {
         );
         println!("{e:?}");
         return Err(StepFailed.into());
+    }
+
+    #[cfg(unix)]
+    if ctx.config().cleanup() {
+        let path = XDG_DIRS.cache_dir().join("JetBrains/Toolbox/download");
+        if path.exists() {
+            println!("Removing download cache at {}", path.display());
+            remove_dir_all(&path)?;
+        }
     }
 
     Ok(())
