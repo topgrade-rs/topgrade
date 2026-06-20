@@ -883,6 +883,8 @@ fn upgrade_kde_linux(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+// `dnf4` runs `needrestart` itself via the EPEL plugin during a system upgrade, but `dnf5`
+// doesn't. The plugin config exists in both cases, so `dnf` version check is needed here.
 fn dnf_runs_needrestart(ctx: &ExecutionContext) -> bool {
     if !Path::new("/etc/dnf/plugins/needrestart.conf").exists() {
         return false;
