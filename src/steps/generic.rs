@@ -665,10 +665,35 @@ pub fn run_pi(ctx: &ExecutionContext) -> Result<()> {
 
     // `pi` reads project-local settings from `./.pi/settings.json`, so run
     // from a fresh directory to restrict this step to global packages.
-    ctx.execute(pi)
+    // Newer Pi versions expose explicit update targets. Feature-detect those flags
+    // so Topgrade updates Pi itself and global extensions, while older Pi versions
+    // keep the previous combined `pi update` behavior.
+    let pi_update_help = ctx
+        .execute(&pi)
+        .always()
         .current_dir(temp_dir.path())
-        .arg("update")
-        .status_checked()
+        .args(["update", "--help"])
+        .output_checked_utf8()?;
+
+    let supports_explicit_update_targets =
+        pi_update_help.stdout.contains("--self") && pi_update_help.stdout.contains("--extensions");
+
+    if supports_explicit_update_targets {
+        ctx.execute(&pi)
+            .current_dir(temp_dir.path())
+            .args(["update", "--self"])
+            .status_checked()?;
+
+        ctx.execute(&pi)
+            .current_dir(temp_dir.path())
+            .args(["update", "--extensions"])
+            .status_checked()
+    } else {
+        ctx.execute(&pi)
+            .current_dir(temp_dir.path())
+            .arg("update")
+            .status_checked()
+    }
 }
 
 pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
