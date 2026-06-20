@@ -883,6 +883,23 @@ fn upgrade_kde_linux(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+// `dnf4` runs `needrestart` itself via the EPEL plugin during a system upgrade, but `dnf5`
+// doesn't. The plugin config exists in both cases, so `dnf` version check is needed here.
+fn dnf_runs_needrestart(ctx: &ExecutionContext) -> bool {
+    if !Path::new("/etc/dnf/plugins/needrestart.conf").exists() {
+        return false;
+    }
+    let Some(dnf) = which("dnf") else {
+        return false;
+    };
+    ctx.execute(&dnf)
+        .always()
+        .arg("--version")
+        .output_checked_utf8()
+        .map(|output| !output.stdout.contains("dnf5"))
+        .unwrap_or(false)
+}
+
 pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
     let needrestart = require("needrestart")?;
 
@@ -893,7 +910,9 @@ pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
         "/etc/apt/apt.conf.d/99needrestart",
     ];
 
-    if HOOKS.iter().any(|hook| Path::new(hook).exists()) && ctx.config().should_run(Step::System) {
+    if (HOOKS.iter().any(|hook| Path::new(hook).exists()) || dnf_runs_needrestart(ctx))
+        && ctx.config().should_run(Step::System)
+    {
         return Err(SkipStep(String::from(t!("needrestart will be ran by the package manager"))).into());
     }
 
