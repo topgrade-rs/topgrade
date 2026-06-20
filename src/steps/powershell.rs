@@ -1,161 +1,224 @@
-#[cfg(windows)]
-use std::path::Path;
+use std::ffi::OsStr;
 use std::path::PathBuf;
-use std::process::Command;
 
 use color_eyre::eyre::Result;
+#[cfg(windows)]
+use color_eyre::eyre::eyre;
 use rust_i18n::t;
+use tracing::debug;
 
 use crate::command::CommandExt;
+use crate::error::SkipStep;
 use crate::execution_context::ExecutionContext;
-use crate::terminal::{is_dumb, print_separator};
-use crate::utils::{require_option, which, PathExt};
-use crate::Step;
+use crate::executor::Executor;
+use crate::terminal;
+use crate::utils::{PathExt, which};
 
 pub struct Powershell {
-    path: Option<PathBuf>,
+    path: PathBuf,
     profile: Option<PathBuf>,
+    is_pwsh: bool,
 }
 
 impl Powershell {
-    /// Returns a powershell instance.
-    ///
-    /// If the powershell binary is not found, or the current terminal is dumb
-    /// then the instance of this struct will skip all the powershell steps.
-    pub fn new() -> Self {
-        let path = which("pwsh").or_else(|| which("powershell")).filter(|_| !is_dumb());
-
-        let profile = path.as_ref().and_then(|path| {
-            Command::new(path)
-                .args(["-NoProfile", "-Command", "Split-Path $profile"])
-                .output_checked_utf8()
-                .map(|output| PathBuf::from(output.stdout.trim()))
-                .and_then(|p| p.require())
-                .ok()
-        });
-
-        Powershell { path, profile }
-    }
-
-    #[cfg(windows)]
-    pub fn windows_powershell() -> Self {
-        Powershell {
-            path: which("powershell").filter(|_| !is_dumb()),
-            profile: None,
+    /// Detects a usable PowerShell. The `Err` carries the reason so the step can
+    /// surface it as its skip message instead of a generic "not installed"
+    pub fn new(ctx: &ExecutionContext) -> Result<Self, SkipStep> {
+        if terminal::is_dumb() {
+            return Err(SkipStep(t!("Cannot detect PowerShell in a dumb terminal").to_string()));
         }
+
+        let (path, is_pwsh) = Self::detect_path()?;
+
+        let mut ret = Self {
+            path,
+            profile: None,
+            is_pwsh,
+        };
+        ret.set_profile(ctx);
+        Ok(ret)
     }
 
-    #[cfg(windows)]
-    pub fn has_module(powershell: &Path, command: &str) -> bool {
-        Command::new(powershell)
-            .args([
-                "-NoProfile",
-                "-Command",
-                &format!("Get-Module -ListAvailable {command}"),
-            ])
-            .output_checked_utf8()
-            .map(|result| !result.stdout.is_empty())
-            .unwrap_or(false)
+    fn detect_path() -> Result<(PathBuf, bool), SkipStep> {
+        let mut skip_reason = SkipStep(t!("Powershell is not installed").to_string());
+
+        for (binary, is_pwsh) in [("pwsh", true), ("powershell", false)] {
+            let Some(path) = which(binary) else {
+                continue;
+            };
+
+            if path.has_shebang() {
+                skip_reason = SkipStep(
+                    t!(
+                        "{binary} at {path} is a wrapper script",
+                        binary = binary,
+                        path = path.display()
+                    )
+                    .to_string(),
+                );
+                debug!("{skip_reason}");
+                continue;
+            }
+
+            return Ok((path, is_pwsh));
+        }
+
+        Err(skip_reason)
     }
 
     pub fn profile(&self) -> Option<&PathBuf> {
         self.profile.as_ref()
     }
 
-    pub fn update_modules(&self, ctx: &ExecutionContext) -> Result<()> {
-        let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
+    fn set_profile(&mut self, ctx: &ExecutionContext) {
+        let profile = self
+            .build_command_internal(ctx, "Split-Path $PROFILE")
+            .output_checked_utf8()
+            .map(|output| output.stdout.trim().to_string())
+            .and_then(|s| PathBuf::from(s).require())
+            .ok();
+        debug!("Found PowerShell profile: {:?}", profile);
+        self.profile = profile;
+    }
 
-        print_separator(t!("Powershell Modules Update"));
+    pub fn is_pwsh(&self) -> bool {
+        self.is_pwsh
+    }
 
-        let mut cmd = vec!["Update-Module"];
+    pub fn has_command(&self, ctx: &ExecutionContext, command_name: &str, use_sudo: bool) -> Result<bool> {
+        let cmd = "& { param($command); if (Get-Command -Name $command -ErrorAction SilentlyContinue) { Write-Output 'true' } }";
 
-        if ctx.config().verbose() {
-            cmd.push("-Verbose")
+        let output = if use_sudo {
+            self.build_command_with_args(ctx, cmd, [command_name], true)?
+                .always()
+                .output_checked_utf8()?
+        } else {
+            self.build_command_internal_with_args(ctx, cmd, [command_name])
+                .output_checked_utf8()?
+        };
+
+        Ok(output.stdout.trim().eq_ignore_ascii_case("true"))
+    }
+
+    /// Builds an "internal" powershell command
+    pub fn build_command_internal(&self, ctx: &ExecutionContext, cmd: &str) -> Executor {
+        self.build_command_internal_with_args(ctx, cmd, std::iter::empty::<&str>())
+    }
+
+    /// Builds an "internal" powershell command with arguments passed after `-Command`
+    pub fn build_command_internal_with_args<S>(
+        &self,
+        ctx: &ExecutionContext,
+        cmd: &str,
+        args: impl IntoIterator<Item = S>,
+    ) -> Executor
+    where
+        S: AsRef<OsStr>,
+    {
+        let mut command = ctx.execute(&self.path).always();
+
+        command.args(["-NoProfile", "-Command"]);
+        command.arg(cmd);
+        command.args(args);
+
+        // If topgrade was run from pwsh, but we are trying to run powershell, then
+        // the inherited PSModulePath breaks module imports
+        if !self.is_pwsh {
+            command.env_remove("PSModulePath");
         }
 
-        if ctx.config().yes(Step::Powershell) {
-            cmd.push("-Force")
+        command
+    }
+
+    /// Builds a "primary" powershell command (uses dry-run if required):
+    /// {powershell} -NoProfile -Command {cmd}
+    pub fn build_command(&self, ctx: &ExecutionContext, cmd: &str, use_sudo: bool) -> Result<Executor> {
+        self.build_command_with_args(ctx, cmd, std::iter::empty::<&str>(), use_sudo)
+    }
+
+    pub fn build_command_with_args<S>(
+        &self,
+        ctx: &ExecutionContext,
+        cmd: &str,
+        args: impl IntoIterator<Item = S>,
+        use_sudo: bool,
+    ) -> Result<Executor>
+    where
+        S: AsRef<OsStr>,
+    {
+        let mut command = if use_sudo {
+            let sudo = ctx.require_sudo()?;
+            sudo.execute(ctx, &self.path)?
+        } else {
+            ctx.execute(&self.path)
+        };
+
+        #[cfg(windows)]
+        {
+            // Check execution policy and return early if it's not set correctly
+            self.execution_policy_args_if_needed(ctx)?;
         }
 
-        println!("{}", t!("Updating modules..."));
-        ctx.run_type()
-            .execute(powershell)
-            // This probably doesn't need `shell_words::join`.
-            .args(["-NoProfile", "-Command", &cmd.join(" ")])
-            .status_checked()
+        command.args(["-NoProfile", "-Command"]);
+        command.arg(cmd);
+        command.args(args);
+
+        // If topgrade was run from pwsh, but we are trying to run powershell, then
+        // the inherited PSModulePath breaks module imports
+        if !self.is_pwsh {
+            command.env_remove("PSModulePath");
+        }
+
+        Ok(command)
     }
 
     #[cfg(windows)]
-    pub fn supports_windows_update(&self) -> bool {
-        self.path
-            .as_ref()
-            .map(|p| Self::has_module(p, "PSWindowsUpdate"))
+    fn execution_policy_args_if_needed(&self, ctx: &ExecutionContext) -> Result<()> {
+        if !self.is_execution_policy_set(ctx, "RemoteSigned") {
+            Err(eyre!(
+                "PowerShell execution policy is too restrictive. \
+                Please run 'Set-ExecutionPolicy RemoteSigned -Scope CurrentUser' in PowerShell \
+                (or use Unrestricted/Bypass if you're sure about the security implications)"
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
+    #[cfg(windows)]
+    fn is_execution_policy_set(&self, ctx: &ExecutionContext, policy: &str) -> bool {
+        // These policies are ordered from most restrictive to least restrictive
+        let valid_policies = ["Restricted", "AllSigned", "RemoteSigned", "Unrestricted", "Bypass"];
+
+        // Find the index of our target policy
+        let target_idx = valid_policies.iter().position(|&p| p == policy);
+
+        let current_policy = self
+            .build_command_internal(ctx, "Get-ExecutionPolicy")
+            .output_checked_utf8()
+            .map(|output| output.stdout.trim().to_string());
+
+        debug!("Found PowerShell ExecutionPolicy: {:?}", current_policy);
+
+        current_policy.is_ok_and(|current_policy| {
+            // Find the index of the current policy
+            let current_idx = valid_policies.iter().position(|&p| p == current_policy);
+
+            // Check if current policy exists and is at least as permissive as the target
+            match (current_idx, target_idx) {
+                (Some(current), Some(target)) => current >= target,
+                _ => false,
+            }
+        })
+    }
+
+    #[cfg(windows)]
+    pub fn has_module(&self, ctx: &ExecutionContext, module_name: &str) -> bool {
+        let cmd = format!("Get-Module -ListAvailable {}", module_name);
+
+        self.build_command_internal(ctx, &cmd)
+            .output_checked()
+            .map(|output| !output.stdout.trim_ascii().is_empty())
             .unwrap_or(false)
-    }
-
-    #[cfg(windows)]
-    pub fn windows_update(&self, ctx: &ExecutionContext) -> Result<()> {
-        let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
-
-        debug_assert!(self.supports_windows_update());
-
-        let accept_all = if ctx.config().accept_all_windows_updates() {
-            "-AcceptAll"
-        } else {
-            ""
-        };
-
-        let install_windowsupdate_verbose = "Install-WindowsUpdate -Verbose".to_string();
-
-        let mut command = if let Some(sudo) = ctx.sudo() {
-            let mut command = ctx.run_type().execute(sudo);
-            command.arg(powershell);
-            command
-        } else {
-            ctx.run_type().execute(powershell)
-        };
-
-        command
-            .args(["-NoProfile", &install_windowsupdate_verbose, accept_all])
-            .status_checked()
-    }
-
-    #[cfg(windows)]
-    pub fn microsoft_store(&self, ctx: &ExecutionContext) -> Result<()> {
-        let powershell = require_option(self.path.as_ref(), t!("Powershell is not installed").to_string())?;
-
-        let mut command = if let Some(sudo) = ctx.sudo() {
-            let mut command = ctx.run_type().execute(sudo);
-            command.arg(powershell);
-            command
-        } else {
-            ctx.run_type().execute(powershell)
-        };
-
-        println!("{}", t!("Scanning for updates..."));
-
-        // Scan for updates using the MDM UpdateScanMethod
-        // This method is also available for non-MDM devices
-        let update_command = "(Get-CimInstance -Namespace \"Root\\cimv2\\mdm\\dmmap\" -ClassName \"MDM_EnterpriseModernAppManagement_AppManagement01\" | Invoke-CimMethod -MethodName UpdateScanMethod).ReturnValue";
-
-        command.args(["-NoProfile", update_command]);
-
-        command
-            .output_checked_with_utf8(|output| {
-                if output.stdout.trim() == "0" {
-                    println!(
-                        "{}",
-                        t!("Success, Microsoft Store apps are being updated in the background")
-                    );
-                    Ok(())
-                } else {
-                    println!(
-                        "{}",
-                        t!("Unable to update Microsoft Store apps, manual intervention is required")
-                    );
-                    Err(())
-                }
-            })
-            .map(|_| ())
     }
 }

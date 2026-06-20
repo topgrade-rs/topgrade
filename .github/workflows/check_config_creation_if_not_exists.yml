@@ -6,16 +6,23 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+permissions:
+  contents: read
 
 jobs:
   TestConfig:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - run: |
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+
+      - run: |
           CONFIG_PATH=~/.config/topgrade.toml;
           if [ -f "$CONFIG_PATH" ]; then rm $CONFIG_PATH; fi
-          cargo build; 
+          cargo build;
           TOPGRADE_SKIP_BRKC_NOTIFY=true ./target/debug/topgrade --dry-run --only system;
           stat $CONFIG_PATH;

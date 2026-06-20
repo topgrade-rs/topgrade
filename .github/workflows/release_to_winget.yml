@@ -1,13 +1,22 @@
 name: Publish to WinGet
+
 on:
-  release:
-    types: [released]
+  repository_dispatch:
+    types: [release-assets-built]
+  workflow_dispatch:
+
+permissions: {}
+
 jobs:
   publish:
-    runs-on: windows-latest
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
     steps:
-      - uses: vedantmgoyal2009/winget-releaser@main
+      - uses: michidk/winget-updater@d2e9ce38251edda66e37724af400506240502d35 # v1.1.7
         with:
+          komac-token: ${{ secrets.WINGET_TOKEN }}
           identifier: topgrade-rs.topgrade
-          max-versions-to-keep: 5 # keep only latest 5 versions
-          token: ${{ secrets.WINGET_TOKEN }}
+          repo: topgrade-rs/topgrade
+          url: "https://github.com/topgrade-rs/topgrade/releases/download/v{VERSION}/topgrade-v{VERSION}-x86_64-pc-windows-msvc.zip"
+          custom-fork-owner: topgrade-rs

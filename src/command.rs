@@ -5,8 +5,8 @@ use std::process::Child;
 use std::process::{Command, ExitStatus, Output};
 
 use color_eyre::eyre;
-use color_eyre::eyre::eyre;
 use color_eyre::eyre::Context;
+use color_eyre::eyre::eyre;
 
 use crate::error::TopgradeError;
 
@@ -45,13 +45,13 @@ impl TryFrom<&Output> for Utf8Output {
     type Error = eyre::Error;
 
     fn try_from(Output { status, stdout, stderr }: &Output) -> Result<Self, Self::Error> {
-        let stdout = String::from_utf8(stdout.to_vec()).map_err(|err| {
+        let stdout = String::from_utf8(stdout.clone()).map_err(|err| {
             eyre!(
                 "Stdout contained invalid UTF-8: {}",
                 String::from_utf8_lossy(err.as_bytes())
             )
         })?;
-        let stderr = String::from_utf8(stderr.to_vec()).map_err(|err| {
+        let stderr = String::from_utf8(stderr.clone()).map_err(|err| {
             eyre!(
                 "Stderr contained invalid UTF-8: {}",
                 String::from_utf8_lossy(err.as_bytes())
@@ -115,6 +115,9 @@ pub trait CommandExt {
     ///
     /// Returns an `Err` if the command failed to execute, if `succeeded` returns an `Err`, or if
     /// the output contains invalid UTF-8.
+    // This function is currently unused, but is useful and makes sense with `output_checked_with`
+    //  and `output_checked_utf8` existing.
+    #[allow(dead_code)]
     #[track_caller]
     fn output_checked_with_utf8(
         &mut self,
@@ -149,6 +152,7 @@ pub trait CommandExt {
     /// Like [`Command::spawn`], but gives a nice error message if the command fails to
     /// execute.
     #[track_caller]
+    #[allow(dead_code)]
     fn spawn_checked(&mut self) -> eyre::Result<Self::Child>;
 }
 

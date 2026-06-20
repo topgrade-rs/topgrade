@@ -1,30 +1,30 @@
 #![allow(dead_code)]
 
-use std::collections::BTreeMap;
-use std::fs::{write, File};
+use std::collections::HashSet;
+use std::fs::{File, write};
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::{env, fmt, fs};
 
 use clap::{Parser, ValueEnum};
 use clap_complete::Shell;
-use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
+use color_eyre::eyre::{Context, OptionExt};
 use etcetera::base_strategy::BaseStrategy;
+use indexmap::IndexMap;
 use merge::Merge;
 use regex::Regex;
 use regex_split::RegexSplit;
 use rust_i18n::t;
 use serde::Deserialize;
-use strum::{EnumIter, EnumString, IntoEnumIterator, VariantNames};
-use which_crate::which;
-
-use super::utils::editor;
-use crate::command::CommandExt;
-use crate::sudo::SudoKind;
-use crate::utils::string_prepend_str;
+use strum::IntoEnumIterator;
 use tracing::{debug, error};
+
+use crate::execution_context::RunType;
+use crate::step::{DEPRECATED_STEPS, Step};
+use crate::sudo::SudoKind;
+use crate::terminal::print_warning;
+use crate::utils::string_prepend_str;
 
 // TODO: Add i18n to this. Tracking issue: https://github.com/topgrade-rs/topgrade/issues/859
 pub static EXAMPLE_CONFIG: &str = include_str!("../config.example.toml");
@@ -44,134 +44,7 @@ macro_rules! str_value {
     };
 }
 
-pub type Commands = BTreeMap<String, String>;
-
-#[derive(ValueEnum, EnumString, VariantNames, Debug, Clone, PartialEq, Eq, Deserialize, EnumIter, Copy)]
-#[clap(rename_all = "snake_case")]
-#[serde(rename_all = "snake_case")]
-#[strum(serialize_all = "snake_case")]
-pub enum Step {
-    AM,
-    AppMan,
-    Asdf,
-    Atom,
-    Aqua,
-    Audit,
-    AutoCpufreq,
-    Bin,
-    Bob,
-    BrewCask,
-    BrewFormula,
-    Bun,
-    BunPackages,
-    Cargo,
-    Certbot,
-    Chezmoi,
-    Chocolatey,
-    Choosenim,
-    ClamAvDb,
-    Composer,
-    Conda,
-    ConfigUpdate,
-    Containers,
-    CustomCommands,
-    DebGet,
-    Deno,
-    Distrobox,
-    DkpPacman,
-    Dotnet,
-    Elan,
-    Emacs,
-    Firmware,
-    Flatpak,
-    Flutter,
-    Fossil,
-    Gcloud,
-    Gem,
-    Ghcup,
-    GithubCliExtensions,
-    GitRepos,
-    GnomeShellExtensions,
-    Go,
-    Guix,
-    Haxelib,
-    Helm,
-    HomeManager,
-    Jetpack,
-    Julia,
-    Juliaup,
-    Kakoune,
-    Helix,
-    Krew,
-    Lure,
-    Lensfun,
-    Macports,
-    Mamba,
-    Miktex,
-    Mas,
-    Maza,
-    Micro,
-    MicrosoftStore,
-    Mise,
-    Myrepos,
-    Nix,
-    Node,
-    Opam,
-    Pacdef,
-    Pacstall,
-    Pearl,
-    Pip3,
-    PipReview,
-    PipReviewLocal,
-    Pipupgrade,
-    Pipx,
-    Pixi,
-    Pkg,
-    Pkgin,
-    PlatformioCore,
-    Pnpm,
-    Poetry,
-    Powershell,
-    Protonup,
-    Pyenv,
-    Raco,
-    Rcm,
-    Remotes,
-    Restarts,
-    Rtcl,
-    RubyGems,
-    Rustup,
-    Rye,
-    Scoop,
-    Sdkman,
-    SelfUpdate,
-    Sheldon,
-    Shell,
-    Snap,
-    Sparkle,
-    Spicetify,
-    Stack,
-    Stew,
-    System,
-    Tldr,
-    Tlmgr,
-    Tmux,
-    Toolbx,
-    Uv,
-    Vagrant,
-    Vcpkg,
-    Vim,
-    VoltaPackages,
-    Vscode,
-    Waydroid,
-    Winget,
-    Wsl,
-    WslUpdate,
-    Xcodes,
-    Yadm,
-    Yarn,
-    Zvm,
-}
+pub type Commands = IndexMap<String, String>;
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
@@ -185,12 +58,25 @@ pub struct Include {
 pub struct Containers {
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     ignored_containers: Option<Vec<String>>,
+    #[merge(strategy = merge::option::overwrite_none)]
     runtime: Option<ContainerRuntime>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    system_prune: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    use_sudo: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct Mandb {
+    #[merge(strategy = merge::option::overwrite_none)]
+    enable: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Git {
+    #[merge(strategy = merge::option::overwrite_none)]
     max_concurrency: Option<usize>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
@@ -199,7 +85,11 @@ pub struct Git {
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     repos: Option<Vec<String>>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     pull_predefined: Option<bool>,
+
+    #[merge(strategy = merge::option::overwrite_none)]
+    fetch_only: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -208,33 +98,72 @@ pub struct Vagrant {
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     directories: Option<Vec<String>>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     power_on: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     always_suspend: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Copy, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum UpdatesAutoReboot {
+    Yes,
+    #[default]
+    No,
+    Ask,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Windows {
+    #[merge(strategy = merge::option::overwrite_none)]
     accept_all_updates: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    updates_auto_reboot: Option<UpdatesAutoReboot>,
+    #[merge(strategy = merge::option::overwrite_none)]
     self_rename: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     open_remotes_in_new_terminal: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     wsl_update_pre_release: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     wsl_update_use_web_download: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    winget_silent_install: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    winget_use_sudo: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Python {
+    #[merge(strategy = merge::option::overwrite_none)]
     enable_pip_review: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     enable_pip_review_local: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     enable_pipupgrade: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     pipupgrade_arguments: Option<String>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    poetry_force_self_update: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct Conda {
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    env_names: Option<Vec<String>>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    env_paths: Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct Distrobox {
+    #[merge(strategy = merge::option::overwrite_none)]
     use_root: Option<bool>,
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
@@ -245,6 +174,15 @@ pub struct Distrobox {
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct Yarn {
+    #[merge(strategy = merge::option::overwrite_none)]
+    use_sudo: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
+pub struct VitePlus {
+    #[merge(strategy = merge::option::overwrite_none)]
     use_sudo: Option<bool>,
 }
 
@@ -252,13 +190,49 @@ pub struct Yarn {
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct NPM {
+    #[merge(strategy = merge::option::overwrite_none)]
     use_sudo: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
+pub struct Deno {
+    #[merge(strategy = merge::option::overwrite_none)]
+    version: Option<String>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
+pub struct Chezmoi {
+    #[merge(strategy = merge::option::overwrite_none)]
+    exclude_encrypted: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
+pub struct Mise {
+    #[merge(strategy = merge::option::overwrite_none)]
+    bump: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    interactive: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    jobs: Option<u32>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    verbose: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    quiet: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    silent: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct Firmware {
+    #[merge(strategy = merge::option::overwrite_none)]
     upgrade: Option<bool>,
 }
 
@@ -266,22 +240,44 @@ pub struct Firmware {
 #[serde(deny_unknown_fields)]
 #[allow(clippy::upper_case_acronyms)]
 pub struct Flatpak {
+    #[merge(strategy = merge::option::overwrite_none)]
     use_sudo: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+#[allow(clippy::upper_case_acronyms)]
+pub struct Pixi {
+    #[merge(strategy = merge::option::overwrite_none)]
+    include_release_notes: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 pub struct Brew {
+    #[merge(strategy = merge::option::overwrite_none)]
     greedy_cask: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     greedy_latest: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     greedy_auto_updates: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     autoremove: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     fetch_head: Option<bool>,
 }
 
-#[derive(Debug, Deserialize, Clone, Copy)]
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct Go {
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    gup_exclude: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ArchPackageManager {
+    #[default]
     Autodetect,
     Aura,
     GarudaUpdate,
@@ -289,13 +285,15 @@ pub enum ArchPackageManager {
     Pamac,
     Paru,
     Pikaur,
+    Shelly,
     Trizen,
     Yay,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ContainerRuntime {
+    #[default] // defaults to a popular choice
     Docker,
     Podman,
 }
@@ -309,6 +307,15 @@ impl fmt::Display for ContainerRuntime {
     }
 }
 
+#[derive(Debug, Deserialize, Clone, Copy, Default, PartialEq)]
+#[serde(rename_all = "kebab-case")]
+pub enum NixHandler {
+    #[default]
+    Autodetect,
+    Nh,
+    Vanilla,
+}
+
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Linux {
@@ -320,7 +327,9 @@ pub struct Linux {
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     aura_pacman_arguments: Option<String>,
+    #[merge(strategy = merge::option::overwrite_none)]
     arch_package_manager: Option<ArchPackageManager>,
+    #[merge(strategy = merge::option::overwrite_none)]
     show_arch_news: Option<bool>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
@@ -336,6 +345,9 @@ pub struct Linux {
     pamac_arguments: Option<String>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
+    shelly_arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     dnf_arguments: Option<String>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
@@ -347,10 +359,16 @@ pub struct Linux {
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     apt_arguments: Option<String>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     enable_tlmgr: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     redhat_distro_sync: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     suse_dup: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
     rpm_ostree: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    bootc: Option<bool>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     emerge_sync_flags: Option<String>,
@@ -365,24 +383,46 @@ pub struct Linux {
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Composer {
+    #[merge(strategy = merge::option::overwrite_none)]
     self_update: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Vim {
+    #[merge(strategy = merge::option::overwrite_none)]
     force_plug_update: Option<bool>,
+
+    #[merge(strategy = merge::option::overwrite_none)]
+    vim_pack_prune: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Misc {
+    #[merge(strategy = merge::option::overwrite_none)]
+    allow_root: Option<bool>,
+
+    #[merge(strategy = merge::option::overwrite_none)]
     pre_sudo: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
+    sudo_loop: Option<bool>,
+
+    #[merge(strategy = merge::option::overwrite_none)]
+    sudo_loop_interval: Option<u16>,
+
+    #[merge(strategy = merge::option::overwrite_none)]
     sudo_command: Option<SudoKind>,
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     disable: Option<Vec<Step>>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    first: Option<Vec<Step>>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    last: Option<Vec<Step>>,
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     ignore_failures: Option<Vec<Step>>,
@@ -390,6 +430,7 @@ pub struct Misc {
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     remote_topgrades: Option<Vec<String>>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     remote_topgrade_path: Option<String>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
@@ -398,40 +439,87 @@ pub struct Misc {
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     tmux_arguments: Option<String>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     set_title: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     display_time: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     assume_yes: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
+    ask_retry: Option<bool>,
+
+    #[merge(strategy = merge::option::overwrite_none)]
+    auto_retry: Option<u16>,
+
+    /// TODO: Remove this in favor of ask_retry = false
+    #[merge(strategy = merge::option::overwrite_none)]
     no_retry: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
+    show_skipped: Option<bool>,
+
+    #[merge(strategy = merge::option::overwrite_none)]
     run_in_tmux: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     tmux_session_mode: Option<TmuxSessionMode>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     cleanup: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     notify_each_step: Option<bool>,
 
+    /// Deprecated: use `notify_end = "never"` instead
+    #[merge(strategy = merge::option::overwrite_none)]
     skip_notify: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
+    notify_end: Option<NotifyEnd>,
+
+    #[merge(strategy = merge::option::overwrite_none)]
     bashit_branch: Option<String>,
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     only: Option<Vec<Step>>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     no_self_update: Option<bool>,
 
+    #[merge(strategy = merge::option::overwrite_none)]
     log_filters: Option<Vec<String>>,
+
+    #[merge(strategy = merge::option::overwrite_none)]
+    show_distribution_summary: Option<bool>,
+
+    #[merge(strategy = merge::option::overwrite_none)]
+    nix_handler: Option<NixHandler>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, ValueEnum)]
+#[derive(Clone, Copy, Debug, Deserialize, ValueEnum, Default)]
 #[clap(rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum TmuxSessionMode {
+    #[default]
     AttachIfNotInSession,
     AttachAlways,
+}
+
+/// Controls when the end-of-run desktop notification is sent.
+#[derive(Clone, Copy, Debug, Deserialize, ValueEnum, Default)]
+#[clap(rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum NotifyEnd {
+    /// Always send a notification (default)
+    #[default]
+    Always,
+    /// Never send a notification
+    Never,
+    /// Only send a notification if there were failures
+    OnFailure,
 }
 
 pub struct TmuxConfig {
@@ -442,7 +530,67 @@ pub struct TmuxConfig {
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Lensfun {
+    #[merge(strategy = merge::option::overwrite_none)]
     use_sudo: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct JuliaConfig {
+    #[merge(strategy = merge::option::overwrite_none)]
+    startup_file: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct Zigup {
+    #[merge(strategy = merge::option::overwrite_none)]
+    target_versions: Option<Vec<String>>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    install_dir: Option<String>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    path_link: Option<String>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    cleanup: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct VscodeConfig {
+    #[merge(strategy = merge::option::overwrite_none)]
+    profile: Option<String>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct DoomConfig {
+    #[merge(strategy = merge::option::overwrite_none)]
+    aot: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct Cargo {
+    #[merge(strategy = merge::option::overwrite_none)]
+    git: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    quiet: Option<bool>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    locked: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct Rustup {
+    #[merge(strategy = merge::option::overwrite_none)]
+    channels: Option<Vec<String>>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct Pkgfile {
+    #[merge(strategy = merge::option::overwrite_none)]
+    enable: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -465,6 +613,9 @@ pub struct ConfigFile {
     commands: Option<Commands>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    conda: Option<Conda>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     python: Option<Python>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
@@ -477,7 +628,13 @@ pub struct ConfigFile {
     linux: Option<Linux>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    mandb: Option<Mandb>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     git: Option<Git>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    go: Option<Go>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     containers: Option<Containers>,
@@ -489,7 +646,16 @@ pub struct ConfigFile {
     npm: Option<NPM>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    chezmoi: Option<Chezmoi>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    mise: Option<Mise>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     yarn: Option<Yarn>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    deno: Option<Deno>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     vim: Option<Vim>,
@@ -504,10 +670,37 @@ pub struct ConfigFile {
     flatpak: Option<Flatpak>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    pixi: Option<Pixi>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     distrobox: Option<Distrobox>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     lensfun: Option<Lensfun>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    julia: Option<JuliaConfig>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    zigup: Option<Zigup>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    vscode: Option<VscodeConfig>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    doom: Option<DoomConfig>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    cargo: Option<Cargo>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    rustup: Option<Rustup>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    pkgfile: Option<Pkgfile>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    viteplus: Option<VitePlus>,
 }
 
 fn config_directory() -> PathBuf {
@@ -539,7 +732,7 @@ impl ConfigFile {
         ];
 
         // Search for the main config file
-        for path in possible_config_paths.iter() {
+        for path in &possible_config_paths {
             if path.exists() {
                 debug!("Configuration at {}", path.display());
                 res.0.clone_from(path);
@@ -571,24 +764,24 @@ impl ConfigFile {
         let mut res = Vec::new();
         let dir_to_search = config_directory.join("topgrade.d");
 
-        if dir_to_search.exists() {
-            for entry in fs::read_dir(dir_to_search)? {
-                let entry = entry?;
-                // Use `Path::is_file()` here to traverse symbolic links.
-                // `DirEntry::file_type()` and `FileType::is_file()` will not traverse symbolic links.
-                if entry.path().is_file() {
-                    debug!(
-                        "Found additional (directory) configuration file at {}",
-                        entry.path().display()
-                    );
-                    res.push(entry.path());
-                }
-            }
-            res.sort();
-        } else {
+        if !dir_to_search.exists() {
             debug!("No additional configuration directory exists, creating one");
             fs::create_dir_all(&dir_to_search)?;
         }
+
+        for entry in fs::read_dir(&dir_to_search)? {
+            let entry_path = entry?.path();
+
+            if entry_path.is_file() {
+                debug!(
+                    "Found additional (directory) configuration file at {}",
+                    entry_path.display()
+                );
+                res.push(entry_path);
+            }
+        }
+
+        res.sort();
 
         Ok(res)
     }
@@ -674,34 +867,15 @@ impl ConfigFile {
             }
         }
 
-        if let Some(paths) = result.git.as_mut().and_then(|git| git.repos.as_mut()) {
-            for path in paths.iter_mut() {
-                let expanded = shellexpand::tilde::<&str>(&path.as_ref()).into_owned();
-                debug!(
-                    "{}",
-                    t!("Path {path} expanded to {expanded}", path = path, expanded = expanded)
-                );
-                *path = expanded;
-            }
-        }
-
         debug!("Loaded configuration: {:?}", result);
         Ok(result)
     }
 
     fn edit() -> Result<()> {
         let config_path = Self::ensure()?.0;
-        let editor = editor();
-        debug!("Editor: {:?}", editor);
+        debug!("Editing config file: {:?}", config_path);
 
-        let command = which(&editor[0])?;
-        let args: Vec<&String> = editor.iter().skip(1).collect();
-
-        Command::new(command)
-            .args(args)
-            .arg(config_path)
-            .status_checked()
-            .context("Failed to open configuration file editor")
+        edit::edit_file(&config_path).context("Failed to open configuration file editor")
     }
 
     /// [Misc] was added later, here we check if it is present in the config file and add it if not
@@ -721,7 +895,7 @@ impl ConfigFile {
 // TODO: i18n of clap currently not easily possible. Waiting for https://github.com/clap-rs/clap/issues/380
 // Tracking issue for i18n: https://github.com/topgrade-rs/topgrade/issues/859
 #[derive(Parser, Debug)]
-#[command(name = "topgrade", version)]
+#[command(name = "topgrade", version, styles = clap_cargo::style::CLAP_STYLING)]
 pub struct CommandLineArgs {
     /// Edit the configuration file
     #[arg(long = "edit-config")]
@@ -735,17 +909,35 @@ pub struct CommandLineArgs {
     #[arg(short = 't', long = "tmux")]
     run_in_tmux: bool,
 
+    /// Don't run inside tmux
+    #[arg(long = "no-tmux")]
+    no_tmux: bool,
+
     /// Cleanup temporary or old files
     #[arg(short = 'c', long = "cleanup")]
     cleanup: bool,
 
     /// Print what would be done
+    ///
+    /// Alias for --run-type dry
     #[arg(short = 'n', long = "dry-run")]
     dry_run: bool,
 
-    /// Do not ask to retry failed steps
-    #[arg(long = "no-retry")]
+    /// Pick between just running commands, running and logging commands, and just logging commands
+    #[arg(short = 'r', long = "run-type", value_enum, default_value_t)]
+    run_type: RunType,
+
+    /// Do not ask to retry failed steps (same as --no-ask-retry, kept for legacy compatibility)
+    #[arg(long = "no-retry", hide = true)]
     no_retry: bool,
+
+    /// Do not ask what to do after a step fails
+    #[arg(long = "no-ask-retry")]
+    no_ask_retry: bool,
+
+    /// Automatically retry failed steps up to COUNT times
+    #[arg(long = "auto-retry", value_name = "COUNT")]
+    auto_retry: Option<u16>,
 
     /// Do not perform upgrades for the given steps
     #[arg(long = "disable", value_name = "STEP", value_enum, num_args = 1..)]
@@ -760,8 +952,8 @@ pub struct CommandLineArgs {
     custom_commands: Vec<String>,
 
     /// Set environment variables
-    #[arg(long = "env", value_name = "NAME=VALUE", num_args = 1..)]
-    env: Vec<String>,
+    #[arg(long = "env", value_name = "NAME=VALUE", value_parser = env_args_parser, num_args = 1..)]
+    env: Vec<(String, String)>,
 
     /// Output debug logs. Alias for `--log-filter debug`.
     #[arg(short = 'v', long = "verbose")]
@@ -771,9 +963,13 @@ pub struct CommandLineArgs {
     #[arg(short = 'k', long = "keep")]
     keep_at_end: bool,
 
-    /// Skip sending a notification at the end of a run
-    #[arg(long = "skip-notify")]
+    /// Skip sending a notification at the end of a run (deprecated: use --notify-end never)
+    #[arg(long = "skip-notify", hide = true)]
     skip_notify: bool,
+
+    /// When to send a notification at the end of a run
+    #[arg(long = "notify-end", value_enum, default_value_t)]
+    notify_end: NotifyEnd,
 
     /// Say yes to package manager's prompt
     #[arg(
@@ -801,9 +997,21 @@ pub struct CommandLineArgs {
     #[arg(long = "show-skipped")]
     show_skipped: bool,
 
+    /// Suppress warning and confirmation prompt if running as root
+    #[arg(long = "allow-root")]
+    allow_root: bool,
+
+    /// Periodically run `sudo -v` to avoid password re-prompts during updates
+    #[arg(long = "sudoloop")]
+    sudo_loop: bool,
+
+    /// Interval in seconds between `sudo -v` invocations when --sudoloop is active (default: 240)
+    #[arg(long = "sudoloop-interval", value_name = "SECONDS")]
+    sudo_loop_interval: Option<u16>,
+
     /// Tracing filter directives.
     ///
-    /// See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/struct.EnvFilter.html
+    /// See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
     #[arg(long, default_value = DEFAULT_LOG_LEVEL)]
     pub log_filter: String,
 
@@ -820,6 +1028,13 @@ pub struct CommandLineArgs {
     pub no_self_update: bool,
 }
 
+fn env_args_parser(arg: &str) -> Result<(String, String)> {
+    let (key, value) = arg
+        .split_once("=")
+        .ok_or_eyre("Environment variable must be in the format NAME=VALUE")?;
+    Ok((key.to_string(), value.to_string()))
+}
+
 impl CommandLineArgs {
     pub fn edit_config(&self) -> bool {
         self.edit_config
@@ -829,7 +1044,7 @@ impl CommandLineArgs {
         self.show_config_reference
     }
 
-    pub fn env_variables(&self) -> &Vec<String> {
+    pub fn env_variables(&self) -> &Vec<(String, String)> {
         &self.env
     }
 
@@ -914,6 +1129,22 @@ impl Config {
         &self.config_file.commands
     }
 
+    /// The list of additional named conda environments.
+    pub fn conda_env_names(&self) -> Option<&Vec<String>> {
+        self.config_file
+            .conda
+            .as_ref()
+            .and_then(|conda| conda.env_names.as_ref())
+    }
+
+    /// The list of additional conda environment paths.
+    pub fn conda_env_paths(&self) -> Option<&Vec<String>> {
+        self.config_file
+            .conda
+            .as_ref()
+            .and_then(|conda| conda.env_paths.as_ref())
+    }
+
     /// The list of additional git repositories to pull.
     pub fn git_repos(&self) -> Option<&Vec<String>> {
         self.config_file.git.as_ref().and_then(|git| git.repos.as_ref())
@@ -933,7 +1164,25 @@ impl Config {
             .containers
             .as_ref()
             .and_then(|containers| containers.runtime)
-            .unwrap_or(ContainerRuntime::Docker) // defaults to a popular choice
+            .unwrap_or_default()
+    }
+
+    /// Whether to run system prune for containers.
+    pub fn containers_system_prune(&self) -> bool {
+        self.config_file
+            .containers
+            .as_ref()
+            .and_then(|containers| containers.system_prune)
+            .unwrap_or(false)
+    }
+
+    /// Whether to use sudo for container operations.
+    pub fn containers_use_sudo(&self) -> bool {
+        self.config_file
+            .containers
+            .as_ref()
+            .and_then(|containers| containers.use_sudo)
+            .unwrap_or(false)
     }
 
     /// Tell whether the specified step should run.
@@ -945,27 +1194,47 @@ impl Config {
     }
 
     fn allowed_steps(opt: &CommandLineArgs, config_file: &ConfigFile) -> Vec<Step> {
+        // The enabled steps are
         let mut enabled_steps: Vec<Step> = Vec::new();
+        // Any steps that are passed with `--only`
         enabled_steps.extend(&opt.only);
 
-        if let Some(misc) = config_file.misc.as_ref() {
-            if let Some(only) = misc.only.as_ref() {
-                enabled_steps.extend(only);
-            }
+        // Plus any steps in the config file's `misc.only`
+        if let Some(misc) = config_file.misc.as_ref()
+            && let Some(only) = misc.only.as_ref()
+        {
+            enabled_steps.extend(only);
         }
 
+        let step_is_deprecated = |x| DEPRECATED_STEPS.contains(&x);
+
+        // If neither of those contain anything
         if enabled_steps.is_empty() {
+            // All steps are enabled
             enabled_steps.extend(Step::iter());
+            // Handle deprecated steps. Disable automatically when not explicitly mentioned in the
+            // config, so that the warning doesn't print.
+            enabled_steps.retain(|x| !step_is_deprecated(*x));
         }
 
         let mut disabled_steps: Vec<Step> = Vec::new();
         disabled_steps.extend(&opt.disable);
-        if let Some(misc) = config_file.misc.as_ref() {
-            if let Some(disabled) = misc.disable.as_ref() {
-                disabled_steps.extend(disabled);
-            }
+        if let Some(misc) = config_file.misc.as_ref()
+            && let Some(disabled) = misc.disable.as_ref()
+        {
+            disabled_steps.extend(disabled);
         }
 
+        // When a deprecated step is mentioned,
+        for step in enabled_steps
+            .iter()
+            .chain(disabled_steps.iter())
+            .filter(|x| step_is_deprecated(**x))
+        {
+            print_warning(t!("`{step}` step is deprecated", step = format!("{step:?}")));
+        }
+
+        // All steps that are disabled are not enabled, except ones that are passed to `--only`
         enabled_steps.retain(|e| !disabled_steps.contains(e) || opt.only.contains(e));
         enabled_steps
     }
@@ -983,13 +1252,14 @@ impl Config {
 
     /// Tell whether we should run in tmux.
     pub fn run_in_tmux(&self) -> bool {
-        self.opt.run_in_tmux
-            || self
-                .config_file
-                .misc
-                .as_ref()
-                .and_then(|misc| misc.run_in_tmux)
-                .unwrap_or(false)
+        !self.opt.no_tmux
+            && (self.opt.run_in_tmux
+                || self
+                    .config_file
+                    .misc
+                    .as_ref()
+                    .and_then(|misc| misc.run_in_tmux)
+                    .unwrap_or(false))
     }
 
     /// The preferred way to run the new tmux session.
@@ -998,7 +1268,7 @@ impl Config {
             .misc
             .as_ref()
             .and_then(|misc| misc.tmux_session_mode)
-            .unwrap_or(TmuxSessionMode::AttachIfNotInSession)
+            .unwrap_or_default()
     }
 
     /// Tell whether we should perform cleanup steps.
@@ -1012,20 +1282,53 @@ impl Config {
                 .unwrap_or(false)
     }
 
-    /// Tell whether we are dry-running.
-    pub fn dry_run(&self) -> bool {
-        self.opt.dry_run
+    /// Get the [RunType] for the current execution
+    pub fn run_type(&self) -> RunType {
+        if self.opt.dry_run {
+            RunType::Dry
+        } else {
+            self.opt.run_type
+        }
     }
 
-    /// Tell whether we should not attempt to retry anything.
-    pub fn no_retry(&self) -> bool {
-        self.opt.no_retry
-            || self
-                .config_file
-                .misc
-                .as_ref()
-                .and_then(|misc| misc.no_retry)
-                .unwrap_or(false)
+    /// Get the auto retry count for failed steps
+    pub fn auto_retry(&self) -> u16 {
+        self.opt
+            .auto_retry
+            .or_else(|| self.config_file.misc.as_ref().and_then(|misc| misc.auto_retry))
+            .unwrap_or(0)
+    }
+
+    /// Determine whether to ask for retry after a step fails
+    pub fn ask_retry(&self) -> bool {
+        if self.opt.no_ask_retry {
+            return false;
+        }
+
+        if self.opt.no_retry {
+            return false;
+        }
+
+        if self
+            .config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.no_retry)
+            .unwrap_or(false)
+        {
+            return false;
+        }
+
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.ask_retry)
+            .unwrap_or(true)
+    }
+
+    /// List of user-defined environment variables
+    pub fn env_variables(&self) -> &Vec<(String, String)> {
+        self.opt.env_variables()
     }
 
     /// List of remote hosts to run Topgrade in
@@ -1056,6 +1359,15 @@ impl Config {
     /// Extra Git arguments
     pub fn git_arguments(&self) -> Option<&String> {
         self.config_file.git.as_ref().and_then(|git| git.arguments.as_ref())
+    }
+
+    /// Only fetch repositories instead of pulling
+    pub fn git_fetch_only(&self) -> bool {
+        self.config_file
+            .git
+            .as_ref()
+            .and_then(|git| git.fetch_only)
+            .unwrap_or(false)
     }
 
     pub fn tmux_config(&self) -> Result<TmuxConfig> {
@@ -1090,13 +1402,28 @@ impl Config {
         self.opt.keep_at_end || env::var("TOPGRADE_KEEP_END").is_ok()
     }
 
-    /// Skip sending a notification at the end of a run
-    pub fn skip_notify(&self) -> bool {
-        if let Some(yes) = self.config_file.misc.as_ref().and_then(|misc| misc.skip_notify) {
-            return yes;
+    /// When to send a notification at the end of a run
+    pub fn notify_end(&self) -> NotifyEnd {
+        let skip_notify = self
+            .config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.skip_notify)
+            .unwrap_or(self.opt.skip_notify);
+
+        let notify_end = self
+            .config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.notify_end)
+            .unwrap_or(self.opt.notify_end);
+
+        // TODO: deprecate skip_notify
+        if skip_notify {
+            return NotifyEnd::Never;
         }
 
-        self.opt.skip_notify
+        notify_end
     }
 
     /// Whether to set the terminal title
@@ -1143,6 +1470,15 @@ impl Config {
             .unwrap_or(true)
     }
 
+    /// Whether to auto reboot for Windows updates that require it
+    pub fn windows_updates_auto_reboot(&self) -> UpdatesAutoReboot {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|windows| windows.updates_auto_reboot)
+            .unwrap_or_default()
+    }
+
     /// Whether to self rename the Topgrade executable during the run
     pub fn self_rename(&self) -> bool {
         self.config_file
@@ -1167,6 +1503,15 @@ impl Config {
             .windows
             .as_ref()
             .and_then(|w| w.wsl_update_use_web_download)
+            .unwrap_or(false)
+    }
+
+    /// Should use sudo for Winget
+    pub fn winget_use_sudo(&self) -> bool {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|w| w.winget_use_sudo)
             .unwrap_or(false)
     }
 
@@ -1230,7 +1575,25 @@ impl Config {
             .vim
             .as_ref()
             .and_then(|c| c.force_plug_update)
-            .unwrap_or_default()
+            .unwrap_or(false)
+    }
+
+    /// Whether to prune inactive `vim.pack` packages in Neovim
+    pub fn vim_pack_prune(&self) -> bool {
+        self.config_file
+            .vim
+            .as_ref()
+            .and_then(|c| c.vim_pack_prune)
+            .unwrap_or(false)
+    }
+
+    /// Binaries to exclude from `gup update`
+    pub fn gup_exclude(&self) -> &[String] {
+        self.config_file
+            .go
+            .as_ref()
+            .and_then(|g| g.gup_exclude.as_deref())
+            .unwrap_or(&[])
     }
 
     /// Whether to send a desktop notification at the beginning of every step
@@ -1279,6 +1642,24 @@ impl Config {
             .unwrap_or("")
     }
 
+    /// Extra Shelly arguments
+    pub fn shelly_arguments(&self) -> &str {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|s| s.shelly_arguments.as_deref())
+            .unwrap_or("")
+    }
+
+    /// Show release notes of latest pixi release
+    pub fn show_pixi_release_notes(&self) -> bool {
+        self.config_file
+            .pixi
+            .as_ref()
+            .and_then(|s| s.include_release_notes)
+            .unwrap_or(false)
+    }
+
     /// Show news on Arch Linux
     pub fn show_arch_news(&self) -> bool {
         self.config_file
@@ -1294,7 +1675,7 @@ impl Config {
             .linux
             .as_ref()
             .and_then(|s| s.arch_package_manager)
-            .unwrap_or(ArchPackageManager::Autodetect)
+            .unwrap_or_default()
     }
 
     /// Extra yay arguments
@@ -1336,6 +1717,15 @@ impl Config {
             .linux
             .as_ref()
             .and_then(|linux| linux.dnf_arguments.as_deref())
+    }
+
+    /// Get the handler to use for NixOS/home-manager
+    pub fn nix_handler(&self) -> NixHandler {
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|s| s.nix_handler)
+            .unwrap_or_default()
     }
 
     /// Extra nix arguments
@@ -1438,14 +1828,48 @@ impl Config {
             .unwrap_or(false)
     }
 
+    /// Use bootc in *when bootc is detected* (default: false)
+    pub fn bootc(&self) -> bool {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|linux| linux.bootc)
+            .unwrap_or(false)
+    }
+
+    /// Returns the steps to execute in order, prioritizing `misc.first` and `misc.last`
+    /// to over the default step list.
+    ///
+    /// Steps in `first` run first (in the order listed), then any remaining default
+    /// steps in their normal order, then steps in `last` (in the order listed).
+    pub fn steps(&self) -> Result<impl Iterator<Item = Step> + '_> {
+        let misc = self.config_file.misc.as_ref();
+        let first = misc.and_then(|m| m.first.as_deref()).unwrap_or_default();
+        let last = misc.and_then(|m| m.last.as_deref()).unwrap_or_default();
+
+        let specified: HashSet<Step> = first.iter().chain(last).copied().collect();
+        if specified.len() != first.len() + last.len() {
+            color_eyre::eyre::bail!("All steps included in `misc.first` and `misc.last` must be unique");
+        }
+
+        Ok(first
+            .iter()
+            .copied()
+            .chain(
+                crate::step::default_steps()
+                    .into_iter()
+                    .filter(move |s| !specified.contains(s)),
+            )
+            .chain(last.iter().copied()))
+    }
+
     /// Determine if we should ignore failures for this step
     pub fn ignore_failure(&self, step: Step) -> bool {
         self.config_file
             .misc
             .as_ref()
             .and_then(|misc| misc.ignore_failures.as_ref())
-            .map(|v| v.contains(&step))
-            .unwrap_or(false)
+            .is_some_and(|v| v.contains(&step))
     }
 
     pub fn use_predefined_git_repos(&self) -> bool {
@@ -1456,6 +1880,38 @@ impl Config {
                 .as_ref()
                 .and_then(|git| git.pull_predefined)
                 .unwrap_or(true)
+    }
+
+    pub fn cargo_update_git(&self) -> bool {
+        self.config_file
+            .cargo
+            .as_ref()
+            .and_then(|cargo| cargo.git)
+            .unwrap_or(true)
+    }
+
+    pub fn cargo_update_quiet(&self) -> bool {
+        self.config_file
+            .cargo
+            .as_ref()
+            .and_then(|cargo| cargo.quiet)
+            .unwrap_or(false)
+    }
+
+    pub fn cargo_update_locked(&self) -> bool {
+        self.config_file
+            .cargo
+            .as_ref()
+            .and_then(|cargo| cargo.locked)
+            .unwrap_or(false)
+    }
+
+    pub fn rustup_channels(&self) -> Vec<String> {
+        self.config_file
+            .rustup
+            .as_ref()
+            .and_then(|rustup| rustup.channels.clone())
+            .unwrap_or_default()
     }
 
     pub fn verbose(&self) -> bool {
@@ -1485,6 +1941,20 @@ impl Config {
 
     pub fn show_skipped(&self) -> bool {
         self.opt.show_skipped
+            || self
+                .config_file
+                .misc
+                .as_ref()
+                .and_then(|misc| misc.show_skipped)
+                .unwrap_or(false)
+    }
+
+    pub fn enable_mandb(&self) -> bool {
+        self.config_file
+            .mandb
+            .as_ref()
+            .and_then(|mandb| mandb.enable)
+            .unwrap_or(false)
     }
 
     pub fn open_remotes_in_new_terminal(&self) -> bool {
@@ -1495,18 +1965,62 @@ impl Config {
             .unwrap_or(false)
     }
 
+    pub fn winget_silent_install(&self) -> bool {
+        self.config_file
+            .windows
+            .as_ref()
+            .and_then(|windows| windows.winget_silent_install)
+            .unwrap_or(true)
+    }
+
+    pub fn allow_root(&self) -> bool {
+        self.opt.allow_root
+            || self
+                .config_file
+                .misc
+                .as_ref()
+                .and_then(|misc| misc.allow_root)
+                .unwrap_or(false)
+    }
+
     pub fn sudo_command(&self) -> Option<SudoKind> {
         self.config_file.misc.as_ref().and_then(|misc| misc.sudo_command)
     }
 
-    /// If `true`, `sudo` should be called after `pre_commands` in order to elevate at the
-    /// start of the session (and not in the middle).
+    /// If `true`, `sudo -v` should be called to cache credentials at the start of the run
     pub fn pre_sudo(&self) -> bool {
         self.config_file
             .misc
             .as_ref()
             .and_then(|misc| misc.pre_sudo)
             .unwrap_or(false)
+    }
+
+    /// If `true`, periodically run `sudo -v` to keep credentials alive during the run
+    pub fn sudo_loop(&self) -> bool {
+        self.opt.sudo_loop
+            || self
+                .config_file
+                .misc
+                .as_ref()
+                .and_then(|misc| misc.sudo_loop)
+                .unwrap_or(false)
+    }
+
+    /// Interval in seconds between `sudo -v` invocations when sudo_loop is active
+    pub fn sudo_loop_interval(&self) -> u16 {
+        self.opt
+            .sudo_loop_interval
+            .or_else(|| self.config_file.misc.as_ref().and_then(|misc| misc.sudo_loop_interval))
+            .unwrap_or(240)
+    }
+
+    pub fn show_distribution_summary(&self) -> bool {
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.show_distribution_summary)
+            .unwrap_or(true)
     }
 
     #[cfg(target_os = "linux")]
@@ -1524,6 +2038,18 @@ impl Config {
             .as_ref()
             .and_then(|yarn| yarn.use_sudo)
             .unwrap_or(false)
+    }
+    #[cfg(target_os = "linux")]
+    pub fn viteplus_use_sudo(&self) -> bool {
+        self.config_file
+            .viteplus
+            .as_ref()
+            .and_then(|viteplus| viteplus.use_sudo)
+            .unwrap_or(false)
+    }
+
+    pub fn deno_version(&self) -> Option<&str> {
+        self.config_file.deno.as_ref().and_then(|deno| deno.version.as_deref())
     }
 
     #[cfg(target_os = "linux")]
@@ -1553,10 +2079,10 @@ impl Config {
     pub fn should_execute_remote(&self, hostname: Result<String>, remote: &str) -> bool {
         let remote_host = remote.split_once('@').map_or(remote, |(_, host)| host);
 
-        if let Ok(hostname) = hostname {
-            if remote_host == hostname {
-                return false;
-            }
+        if let Ok(hostname) = hostname
+            && remote_host == hostname
+        {
+            return false;
         }
 
         if let Some(limit) = &self.opt.remote_host_limit.as_ref() {
@@ -1594,6 +2120,13 @@ impl Config {
             .and_then(|python| python.enable_pip_review_local)
             .unwrap_or(false)
     }
+    pub fn poetry_force_self_update(&self) -> bool {
+        self.config_file
+            .python
+            .as_ref()
+            .and_then(|python| python.poetry_force_self_update)
+            .unwrap_or(false)
+    }
 
     pub fn display_time(&self) -> bool {
         self.config_file
@@ -1618,6 +2151,123 @@ impl Config {
             .and_then(|lensfun| lensfun.use_sudo)
             .unwrap_or(false)
     }
+
+    pub fn julia_use_startup_file(&self) -> bool {
+        self.config_file
+            .julia
+            .as_ref()
+            .and_then(|julia| julia.startup_file)
+            .unwrap_or(true)
+    }
+
+    pub fn zigup_target_versions(&self) -> Vec<String> {
+        self.config_file
+            .zigup
+            .as_ref()
+            .and_then(|zigup| zigup.target_versions.clone())
+            .unwrap_or(vec!["master".to_owned()])
+    }
+
+    pub fn zigup_install_dir(&self) -> Option<&str> {
+        self.config_file
+            .zigup
+            .as_ref()
+            .and_then(|zigup| zigup.install_dir.as_deref())
+    }
+
+    pub fn zigup_path_link(&self) -> Option<&str> {
+        self.config_file
+            .zigup
+            .as_ref()
+            .and_then(|zigup| zigup.path_link.as_deref())
+    }
+
+    pub fn zigup_cleanup(&self) -> bool {
+        self.config_file
+            .zigup
+            .as_ref()
+            .and_then(|zigup| zigup.cleanup)
+            .unwrap_or(false)
+    }
+
+    pub fn chezmoi_exclude_encrypted(&self) -> bool {
+        self.config_file
+            .chezmoi
+            .as_ref()
+            .and_then(|chezmoi| chezmoi.exclude_encrypted)
+            .unwrap_or(false)
+    }
+
+    pub fn mise_bump(&self) -> bool {
+        self.config_file
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.bump)
+            .unwrap_or(false)
+    }
+
+    pub fn mise_jobs(&self) -> u32 {
+        self.config_file.mise.as_ref().and_then(|mise| mise.jobs).unwrap_or(4)
+    }
+
+    pub fn mise_interactive(&self) -> bool {
+        self.config_file
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.interactive)
+            .unwrap_or(false)
+    }
+
+    pub fn mise_quiet(&self) -> bool {
+        self.config_file
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.quiet)
+            .unwrap_or(false)
+    }
+
+    pub fn mise_silent(&self) -> bool {
+        self.config_file
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.silent)
+            .unwrap_or(false)
+    }
+
+    pub fn mise_verbose(&self) -> bool {
+        self.config_file
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.verbose)
+            .unwrap_or(false)
+    }
+
+    pub fn vscode_profile(&self) -> Option<&str> {
+        let vscode_cfg = self.config_file.vscode.as_ref()?;
+        let profile = vscode_cfg.profile.as_ref()?;
+
+        if profile.is_empty() {
+            None
+        } else {
+            Some(profile.as_str())
+        }
+    }
+
+    pub fn doom_aot(&self) -> bool {
+        self.config_file
+            .doom
+            .as_ref()
+            .and_then(|doom| doom.aot)
+            .unwrap_or(false)
+    }
+
+    pub fn enable_pkgfile(&self) -> bool {
+        self.config_file
+            .pkgfile
+            .as_ref()
+            .and_then(|pkgfile| pkgfile.enable)
+            .unwrap_or(false)
+    }
 }
 
 #[cfg(test)]
@@ -1625,6 +2275,33 @@ mod test {
 
     use crate::config::*;
     use color_eyre::eyre::eyre;
+    use merge::Merge;
+
+    /// Regression test: verify that `overwrite_none` merge strategy preserves
+    /// existing (left) values and only fills in `None` fields from right.
+    /// Guards against future `merge` crate upgrades changing config precedence.
+    #[test]
+    fn merge_overwrite_none_preserves_left_values() {
+        let mut left = Containers {
+            ignored_containers: None,
+            runtime: Some(ContainerRuntime::Podman),
+            system_prune: Some(false),
+            use_sudo: None,
+        };
+        let right = Containers {
+            ignored_containers: None,
+            runtime: Some(ContainerRuntime::Docker),
+            system_prune: None,
+            use_sudo: Some(true),
+        };
+        left.merge(right);
+
+        // Left Some is preserved even when right is also Some
+        assert!(matches!(left.runtime, Some(ContainerRuntime::Podman)));
+        assert_eq!(left.system_prune, Some(false));
+        // Left None is filled from right
+        assert_eq!(left.use_sudo, Some(true));
+    }
 
     /// Test the default configuration in `config.example.toml` is valid.
     #[test]
@@ -1644,40 +2321,127 @@ mod test {
 
     #[test]
     fn test_should_execute_remote_different_hostname() {
-        assert!(config().should_execute_remote(Ok("hostname".to_string()), "remote_hostname"))
+        assert!(config().should_execute_remote(Ok("hostname".to_string()), "remote_hostname"));
     }
 
     #[test]
     fn test_should_execute_remote_different_hostname_with_user() {
-        assert!(config().should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"))
+        assert!(config().should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"));
     }
 
     #[test]
     fn test_should_execute_remote_unknown_hostname() {
-        assert!(config().should_execute_remote(Err(eyre!("failed to get hostname")), "remote_hostname"))
+        assert!(config().should_execute_remote(Err(eyre!("failed to get hostname")), "remote_hostname"));
     }
 
     #[test]
     fn test_should_not_execute_remote_same_hostname() {
-        assert!(!config().should_execute_remote(Ok("hostname".to_string()), "hostname"))
+        assert!(!config().should_execute_remote(Ok("hostname".to_string()), "hostname"));
     }
 
     #[test]
     fn test_should_not_execute_remote_same_hostname_with_user() {
-        assert!(!config().should_execute_remote(Ok("hostname".to_string()), "user@hostname"))
+        assert!(!config().should_execute_remote(Ok("hostname".to_string()), "user@hostname"));
     }
 
     #[test]
     fn test_should_execute_remote_matching_limit() {
         let mut config = config();
         config.opt = CommandLineArgs::parse_from(["topgrade", "--remote-host-limit", "remote_hostname"]);
-        assert!(config.should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"))
+        assert!(config.should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"));
     }
 
     #[test]
     fn test_should_not_execute_remote_not_matching_limit() {
         let mut config = config();
         config.opt = CommandLineArgs::parse_from(["topgrade", "--remote-host-limit", "other_hostname"]);
-        assert!(!config.should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"))
+        assert!(!config.should_execute_remote(Ok("hostname".to_string()), "user@remote_hostname"));
+    }
+
+    /// Ensure that custom commands are stored in insertion order.
+    #[test]
+    fn test_custom_commands_order() {
+        let toml_str = r#"
+[commands]
+z = "cmd_z"
+y = "cmd_y"
+x = "cmd_x"
+"#;
+        let order: Vec<_> = toml::from_str::<ConfigFile>(toml_str)
+            .expect("toml parse error")
+            .commands
+            .expect("commands field missing")
+            .keys()
+            .cloned()
+            .collect();
+
+        assert_eq!(order, vec!["z", "y", "x"]);
+    }
+
+    #[test]
+    fn test_env_variable_parser() {
+        let mut config = config();
+        config.opt = CommandLineArgs::parse_from(["topgrade", "--env", "VAR1=foo", "--env", "VAR2=bar"]);
+        let env_vars = config.env_variables();
+        assert_eq!(env_vars.len(), 2);
+        assert_eq!(env_vars[0], ("VAR1".to_string(), "foo".to_string()));
+        assert_eq!(env_vars[1], ("VAR2".to_string(), "bar".to_string()));
+    }
+
+    fn config_from_toml(toml_str: &str) -> Config {
+        Config {
+            opt: CommandLineArgs::parse_from::<_, String>([]),
+            config_file: toml::from_str(toml_str).expect("toml parse error"),
+            allowed_steps: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn test_steps_default_order_without_first_or_last() {
+        let steps: Vec<Step> = config().steps().unwrap().collect();
+        assert_eq!(steps, crate::step::default_steps());
+    }
+
+    #[test]
+    fn test_steps_first_and_last_reorder() {
+        let config = config_from_toml(
+            r#"
+[misc]
+first = ["cargo", "rustup"]
+last = ["chezmoi", "vim"]
+"#,
+        );
+        let steps: Vec<Step> = config.steps().unwrap().collect();
+
+        assert_eq!(&steps[..2], &[Step::Cargo, Step::Rustup]);
+        assert_eq!(&steps[steps.len() - 2..], &[Step::Chezmoi, Step::Vim]);
+        for reordered in [Step::Cargo, Step::Rustup, Step::Chezmoi, Step::Vim] {
+            assert_eq!(steps.iter().filter(|&&s| s == reordered).count(), 1);
+        }
+        // Untouched defaults still present.
+        assert!(steps.contains(&Step::Remotes));
+    }
+
+    #[test]
+    fn test_steps_rejects_duplicates_in_first() {
+        let config = config_from_toml(
+            r#"
+[misc]
+first = ["cargo", "cargo"]
+"#,
+        );
+        assert!(config.steps().is_err());
+    }
+
+    #[test]
+    fn test_steps_rejects_overlap_between_first_and_last() {
+        let config = config_from_toml(
+            r#"
+[misc]
+first = ["cargo"]
+last = ["cargo"]
+"#,
+        );
+        assert!(config.steps().is_err());
     }
 }

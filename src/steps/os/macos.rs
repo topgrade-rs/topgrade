@@ -1,33 +1,29 @@
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
+use crate::step::Step;
 use crate::terminal::{print_separator, prompt_yesno};
-use crate::utils::{get_require_sudo_string, require_option};
-use crate::{utils::require, Step};
+use crate::utils::require;
 use color_eyre::eyre::Result;
 use rust_i18n::t;
 use std::collections::HashSet;
 use std::fs;
-use std::process::Command;
+use std::io::{self, Write};
+use std::path::PathBuf;
 use tracing::debug;
 
 pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
-    require("port")?;
-    let sudo = require_option(ctx.sudo().as_ref(), get_require_sudo_string())?;
+    let port = require("port")?;
 
     print_separator("MacPorts");
-    ctx.run_type()
-        .execute(sudo)
-        .args(["port", "selfupdate"])
-        .status_checked()?;
-    ctx.run_type()
-        .execute(sudo)
-        .args(["port", "-u", "upgrade", "outdated"])
+
+    let sudo = ctx.require_sudo()?;
+
+    sudo.execute(ctx, &port)?.arg("selfupdate").status_checked()?;
+    sudo.execute(ctx, &port)?
+        .args(["-u", "upgrade", "outdated"])
         .status_checked()?;
     if ctx.config().cleanup() {
-        ctx.run_type()
-            .execute(sudo)
-            .args(["port", "-N", "reclaim"])
-            .status_checked()?;
+        sudo.execute(ctx, &port)?.args(["-N", "reclaim"]).status_checked()?;
     }
 
     Ok(())
@@ -37,16 +33,55 @@ pub fn run_mas(ctx: &ExecutionContext) -> Result<()> {
     let mas = require("mas")?;
     print_separator(t!("macOS App Store"));
 
-    ctx.run_type().execute(mas).arg("upgrade").status_checked()
+    ctx.execute(mas).arg("upgrade").status_checked()
+}
+
+pub fn run_microsoft_office(ctx: &ExecutionContext) -> Result<()> {
+    let msupdate = find_msupdate()?;
+    print_separator("Microsoft Office");
+
+    // Check for available updates first
+    let output = ctx.execute(&msupdate).always().arg("--list").output_checked_utf8()?;
+
+    debug!("msupdate --list output: {:?}", output);
+
+    if output.stdout.contains("No updates available") {
+        io::stdout().write_all(output.stdout.as_bytes())?;
+        io::stderr().write_all(output.stderr.as_bytes())?;
+        return Ok(());
+    }
+
+    // Install updates, waiting up to 600 seconds for completion
+    ctx.execute(&msupdate)
+        .args(["--install", "--wait", "600"])
+        .status_checked()
+}
+
+fn find_msupdate() -> Result<PathBuf> {
+    // Known paths where Microsoft AutoUpdate places msupdate
+    let candidates = [
+        "/Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app/Contents/MacOS/msupdate",
+        "/Library/Application Support/Microsoft/MAU 2.0/Microsoft AutoUpdate.app/Contents/MacOS/msupdate",
+    ];
+
+    for path in &candidates {
+        let p = PathBuf::from(path);
+        if p.exists() {
+            debug!("Found msupdate at {:?}", p);
+            return Ok(p);
+        }
+    }
+
+    Err(crate::error::SkipStep("Microsoft AutoUpdate (msupdate) not found".to_string()).into())
 }
 
 pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
     print_separator(t!("macOS system update"));
 
-    let should_ask = !(ctx.config().yes(Step::System) || ctx.config().dry_run());
+    let should_ask = !(ctx.config().yes(Step::System) || ctx.run_type().dry());
     if should_ask {
         println!("{}", t!("Finding available software"));
-        if system_update_available()? {
+        if system_update_available(ctx)? {
             let answer = prompt_yesno(t!("A system update is available. Do you wish to install it?").as_ref())?;
             if !answer {
                 return Ok(());
@@ -58,7 +93,7 @@ pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
         }
     }
 
-    let mut command = ctx.run_type().execute("softwareupdate");
+    let mut command = ctx.execute("softwareupdate");
     command.args(["--install", "--all"]);
 
     if should_ask {
@@ -68,8 +103,12 @@ pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
     command.status_checked()
 }
 
-fn system_update_available() -> Result<bool> {
-    let output = Command::new("softwareupdate").arg("--list").output_checked_utf8()?;
+fn system_update_available(ctx: &ExecutionContext) -> Result<bool> {
+    let output = ctx
+        .execute("softwareupdate")
+        .always()
+        .arg("--list")
+        .output_checked_utf8()?;
 
     debug!("{:?}", output);
 
@@ -82,14 +121,16 @@ pub fn run_sparkle(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Sparkle");
 
     for application in (fs::read_dir("/Applications")?).flatten() {
-        let probe = Command::new(&sparkle)
-            .args(["--probe", "--application"])
+        let probe = ctx
+            .execute(&sparkle)
+            .always()
             .arg(application.path())
+            .args(["--probe", "--user-agent-name", "topgrade"])
             .output_checked_utf8();
         if probe.is_ok() {
-            let mut command = ctx.run_type().execute(&sparkle);
-            command.args(["bundle", "--check-immediately", "--application"]);
+            let mut command = ctx.execute(&sparkle);
             command.arg(application.path());
+            command.args(["--check-immediately", "--user-agent-name", "topgrade"]);
             command.status_checked()?;
         }
     }
@@ -100,14 +141,9 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
     let xcodes = require("xcodes")?;
     print_separator("Xcodes");
 
-    let should_ask = !(ctx.config().yes(Step::Xcodes) || ctx.config().dry_run());
+    let should_ask = !(ctx.config().yes(Step::Xcodes) || ctx.run_type().dry());
 
-    let releases = ctx
-        .run_type()
-        .execute(&xcodes)
-        .args(["update"])
-        .output_checked_utf8()?
-        .stdout;
+    let releases = ctx.execute(&xcodes).args(["update"]).output_checked_utf8()?.stdout;
 
     let releases_installed: Vec<String> = releases
         .lines()
@@ -165,8 +201,8 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
     }
 
     let releases_new = ctx
-        .run_type()
         .execute(&xcodes)
+        .always()
         .args(["list"])
         .output_checked_utf8()?
         .stdout;
@@ -199,11 +235,10 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
                 prompt_yesno(t!("Would you like to move the former Xcode release to the trash?").as_ref())?;
             if answer_uninstall {
                 let _ = ctx
-                    .run_type()
                     .execute(&xcodes)
                     .args([
                         "uninstall",
-                        releases_new_installed.iter().next().cloned().unwrap_or_default(),
+                        releases_new_installed.iter().next().copied().unwrap_or_default(),
                     ])
                     .status_checked();
             }
@@ -216,12 +251,7 @@ pub fn update_xcodes(ctx: &ExecutionContext) -> Result<()> {
 pub fn process_xcodes_releases(releases_filtered: Vec<String>, should_ask: bool, ctx: &ExecutionContext) -> Result<()> {
     let xcodes = require("xcodes")?;
 
-    if releases_filtered
-        .last()
-        .map(|s| !s.contains("(Installed)"))
-        .unwrap_or(true)
-        && !releases_filtered.is_empty()
-    {
+    if releases_filtered.last().is_none_or(|s| !s.contains("(Installed)")) && !releases_filtered.is_empty() {
         println!(
             "{} {}",
             t!("New Xcode release detected:"),
@@ -231,7 +261,6 @@ pub fn process_xcodes_releases(releases_filtered: Vec<String>, should_ask: bool,
             let answer_install = prompt_yesno(t!("Would you like to install it?").as_ref())?;
             if answer_install {
                 let _ = ctx
-                    .run_type()
                     .execute(xcodes)
                     .args(["install", &releases_filtered.last().cloned().unwrap_or_default()])
                     .status_checked();

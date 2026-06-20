@@ -11,9 +11,9 @@ pub fn interrupted() -> bool {
 /// Clears the interrupted flag
 pub fn unset_interrupted() {
     debug_assert!(INTERRUPTED.load(Ordering::SeqCst));
-    INTERRUPTED.store(false, Ordering::SeqCst)
+    INTERRUPTED.store(false, Ordering::SeqCst);
 }
 
 pub fn set_interrupted() {
-    INTERRUPTED.store(true, Ordering::SeqCst)
+    INTERRUPTED.store(true, Ordering::SeqCst);
 }

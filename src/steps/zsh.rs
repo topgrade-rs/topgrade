@@ -1,18 +1,17 @@
 use std::env;
 use std::path::PathBuf;
-use std::process::Command;
 
 use color_eyre::eyre::Result;
 use tracing::debug;
 use walkdir::WalkDir;
 
+use crate::HOME_DIR;
+use crate::XDG_DIRS;
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::git::RepoStep;
 use crate::terminal::print_separator;
-use crate::utils::{require, PathExt};
-use crate::HOME_DIR;
-use crate::XDG_DIRS;
+use crate::utils::{PathExt, require};
 use etcetera::base_strategy::BaseStrategy;
 
 pub fn run_zr(ctx: &ExecutionContext) -> Result<()> {
@@ -23,16 +22,11 @@ pub fn run_zr(ctx: &ExecutionContext) -> Result<()> {
     print_separator("zr");
 
     let cmd = format!("source {} && zr --update", zshrc().display());
-    ctx.run_type()
-        .execute(zsh)
-        .args(["-l", "-c", cmd.as_str()])
-        .status_checked()
+    ctx.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
 }
 
 fn zdotdir() -> PathBuf {
-    env::var("ZDOTDIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| HOME_DIR.clone())
+    env::var("ZDOTDIR").map_or_else(|_| HOME_DIR.clone(), PathBuf::from)
 }
 
 pub fn zshrc() -> PathBuf {
@@ -46,8 +40,7 @@ pub fn run_antidote(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("antidote");
 
-    ctx.run_type()
-        .execute(zsh)
+    ctx.execute(zsh)
         .arg("-c")
         .arg(format!("source {} && antidote update", antidote.display()))
         .status_checked()
@@ -59,41 +52,33 @@ pub fn run_antibody(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("antibody");
 
-    ctx.run_type().execute(antibody).arg("update").status_checked()
+    ctx.execute(antibody).arg("update").status_checked()
 }
 
 pub fn run_antigen(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
     let zshrc = zshrc().require()?;
     env::var("ADOTDIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| HOME_DIR.join("antigen.zsh"))
+        .map_or_else(|_| HOME_DIR.join("antigen.zsh"), PathBuf::from)
         .require()?;
 
     print_separator("antigen");
 
     let cmd = format!("source {} && (antigen selfupdate ; antigen update)", zshrc.display());
-    ctx.run_type()
-        .execute(zsh)
-        .args(["-l", "-c", cmd.as_str()])
-        .status_checked()
+    ctx.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
 }
 
 pub fn run_zgenom(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
     let zshrc = zshrc().require()?;
     env::var("ZGEN_SOURCE")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| HOME_DIR.join(".zgenom"))
+        .map_or_else(|_| HOME_DIR.join(".zgenom"), PathBuf::from)
         .require()?;
 
     print_separator("zgenom");
 
     let cmd = format!("source {} && zgenom selfupdate && zgenom update", zshrc.display());
-    ctx.run_type()
-        .execute(zsh)
-        .args(["-l", "-c", cmd.as_str()])
-        .status_checked()
+    ctx.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
 }
 
 pub fn run_zplug(ctx: &ExecutionContext) -> Result<()> {
@@ -101,16 +86,12 @@ pub fn run_zplug(ctx: &ExecutionContext) -> Result<()> {
     zshrc().require()?;
 
     env::var("ZPLUG_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| HOME_DIR.join(".zplug"))
+        .map_or_else(|_| HOME_DIR.join(".zplug"), PathBuf::from)
         .require()?;
 
     print_separator("zplug");
 
-    ctx.run_type()
-        .execute(zsh)
-        .args(["-i", "-c", "zplug update"])
-        .status_checked()
+    ctx.execute(zsh).args(["-i", "-c", "zplug update"]).status_checked()
 }
 
 pub fn run_zinit(ctx: &ExecutionContext) -> Result<()> {
@@ -118,17 +99,13 @@ pub fn run_zinit(ctx: &ExecutionContext) -> Result<()> {
     let zshrc = zshrc().require()?;
 
     env::var("ZINIT_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| XDG_DIRS.data_dir().join("zinit"))
+        .map_or_else(|_| XDG_DIRS.data_dir().join("zinit"), PathBuf::from)
         .require()?;
 
     print_separator("zinit");
 
     let cmd = format!("source {} && zinit self-update && zinit update --all", zshrc.display());
-    ctx.run_type()
-        .execute(zsh)
-        .args(["-i", "-c", cmd.as_str()])
-        .status_checked()
+    ctx.execute(zsh).args(["-i", "-c", cmd.as_str()]).status_checked()
 }
 
 pub fn run_zi(ctx: &ExecutionContext) -> Result<()> {
@@ -140,27 +117,26 @@ pub fn run_zi(ctx: &ExecutionContext) -> Result<()> {
     print_separator("zi");
 
     let cmd = format!("source {} && zi self-update && zi update --all", zshrc.display());
-    ctx.run_type().execute(zsh).args(["-i", "-c", &cmd]).status_checked()
+    ctx.execute(zsh).args(["-i", "-c", &cmd]).status_checked()
 }
 
 pub fn run_zim(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
     env::var("ZIM_HOME")
         .or_else(|_| {
-            Command::new("zsh")
+            ctx.execute("zsh")
+                .always()
                 // TODO: Should these be quoted?
                 .args(["-c", "[[ -n ${ZIM_HOME} ]] && print -n ${ZIM_HOME}"])
                 .output_checked_utf8()
                 .map(|o| o.stdout)
         })
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| HOME_DIR.join(".zim"))
+        .map_or_else(|_| HOME_DIR.join(".zim"), PathBuf::from)
         .require()?;
 
     print_separator("zim");
 
-    ctx.run_type()
-        .execute(zsh)
+    ctx.execute(zsh)
         .args(["-i", "-c", "zimfw upgrade && zimfw update"])
         .status_checked()
 }
@@ -178,7 +154,9 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
     // children processes won't get it either, so we source the zshrc and set
     // the ZSH variable for topgrade here.
     if ctx.under_ssh() {
-        let res_env_zsh = Command::new("zsh")
+        let res_env_zsh = ctx
+            .execute("zsh")
+            .always()
             .args(["-ic", "print -rn -- ${ZSH:?}"])
             .output_checked_utf8();
 
@@ -186,7 +164,7 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
         if let Ok(output) = res_env_zsh {
             let env_zsh = output.stdout;
             debug!("Oh-my-zsh: under SSH, setting ZSH={}", env_zsh);
-            env::set_var("ZSH", env_zsh);
+            unsafe { env::set_var("ZSH", env_zsh) };
         }
     }
 
@@ -200,7 +178,8 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
 
     let custom_dir = env::var::<_>("ZSH_CUSTOM")
         .or_else(|_| {
-            Command::new("zsh")
+            ctx.execute("zsh")
+                .always()
                 // TODO: Should these be quoted?
                 .args(["-c", "test $ZSH_CUSTOM && echo -n $ZSH_CUSTOM"])
                 .output_checked_utf8()
@@ -222,12 +201,11 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
 
     for entry in WalkDir::new(custom_dir).max_depth(2) {
         let entry = entry?;
-        custom_repos.insert_if_repo(entry.path());
+        custom_repos.insert_if_repo(ctx, entry.path());
     }
 
     custom_repos.remove(&oh_my_zsh);
-    ctx.run_type()
-        .execute("zsh")
+    ctx.execute("zsh")
         .arg(oh_my_zsh.join("tools/upgrade.sh"))
         // oh-my-zsh returns 80 when it is already updated and no changes pulled
         // in this update.

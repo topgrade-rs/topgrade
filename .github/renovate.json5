@@ -1,0 +1,54 @@
+{
+    $schema: "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:best-practices",
+        ":semanticCommits",
+        ":semanticCommitTypeAll(chore)",
+        ":disableRateLimiting",
+    ],
+    customManagers: [
+        {
+            customType: "regex",
+            managerFilePatterns: [
+                "/(^|/)rust-toolchain\\.toml?$/",
+            ],
+            matchStrings: [
+                "channel\\s*=\\s*\"(?<currentValue>\\d+\\.\\d+(\\.\\d+)?)\"",
+            ],
+            depNameTemplate: "rust",
+            packageNameTemplate: "rust-lang/rust",
+            datasourceTemplate: "github-tags",
+        },
+    ],
+    packageRules: [
+        {
+            matchManagers: [
+                "cargo",
+            ],
+            matchDepTypes: [
+                "build-dependencies",
+                "dependencies",
+            ],
+            matchCurrentVersion: ">=0.1.0",
+            matchUpdateTypes: [
+                "patch",
+            ],
+            enabled: false,
+        },
+        {
+            matchManagers: [
+                "cargo",
+            ],
+            matchDepTypes: [
+                "build-dependencies",
+                "dependencies",
+            ],
+            matchCurrentVersion: ">=1.0.0",
+            matchUpdateTypes: [
+                "minor",
+                "patch",
+            ],
+            enabled: false,
+        },
+    ],
+}

@@ -2,17 +2,18 @@ use std::env;
 #[cfg(unix)]
 use std::os::unix::process::CommandExt as _;
 use std::process::Command;
+#[cfg(windows)]
+use std::process::exit;
 
-use crate::config::Step;
-use color_eyre::eyre::{bail, Result};
+use crate::step::Step;
+use color_eyre::eyre::Result;
+#[cfg(unix)]
+use color_eyre::eyre::bail;
 use rust_i18n::t;
 use self_update_crate::backends::github::Update;
 use self_update_crate::update::UpdateStatus;
 
-use super::terminal::*;
-#[cfg(windows)]
-use crate::error::Upgraded;
-
+use super::terminal::{print_info, print_separator};
 use crate::execution_context::ExecutionContext;
 
 pub fn self_update(ctx: &ExecutionContext) -> Result<()> {
@@ -26,6 +27,7 @@ pub fn self_update(ctx: &ExecutionContext) -> Result<()> {
         let current_exe = env::current_exe();
 
         let target = self_update_crate::get_target();
+        let current_version = self_update_crate::cargo_crate_version!();
         let result = Update::configure()
             .repo_owner("topgrade-rs")
             .repo_name("topgrade")
@@ -33,13 +35,20 @@ pub fn self_update(ctx: &ExecutionContext) -> Result<()> {
             .bin_name(if cfg!(windows) { "topgrade.exe" } else { "topgrade" })
             .show_output(true)
             .show_download_progress(true)
-            .current_version(self_update_crate::cargo_crate_version!())
+            .current_version(current_version)
             .no_confirm(assume_yes)
             .build()?
             .update_extended()?;
 
         if let UpdateStatus::Updated(release) = &result {
-            println!("{}", t!("Topgrade upgraded to {version}:\n", version = release.version));
+            println!(
+                "{}",
+                t!(
+                    "Topgrade upgraded from {from_version} to {to_version}:\n",
+                    from_version = current_version,
+                    to_version = release.version
+                )
+            );
             if let Some(body) = &release.body {
                 println!("{body}");
             }
@@ -50,6 +59,7 @@ pub fn self_update(ctx: &ExecutionContext) -> Result<()> {
         {
             if result.updated() {
                 print_info(t!("Respawning..."));
+                #[allow(clippy::disallowed_methods)]
                 let mut command = Command::new(current_exe?);
                 command.args(env::args().skip(1)).env("TOPGRADE_NO_SELF_UPGRADE", "");
 
@@ -63,7 +73,7 @@ pub fn self_update(ctx: &ExecutionContext) -> Result<()> {
                 {
                     #[allow(clippy::disallowed_methods)]
                     let status = command.status()?;
-                    bail!(Upgraded(status));
+                    exit(status.code().expect("This cannot return None on Windows"));
                 }
             }
         }

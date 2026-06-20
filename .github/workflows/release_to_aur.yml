@@ -1,30 +1,37 @@
 name: Publish to AUR
 
 on:
-  # workflow_run:
-  #   workflows: ["Check SemVer compliance"]
-  #   types:
-  #     - completed
-  push:
-    tags:
-      - "v*"
+  repository_dispatch:
+    types: [ release-assets-built ]
+
+permissions:
+  contents: read
 
 jobs:
   aur-publish:
     runs-on: ubuntu-latest
     steps:
+      - name: Determine version
+        id: determine_version
+        env:
+          tag: ${{ github.event.client_payload.tag }}
+        run: |
+          # tag should be something like "v16.0.4", remove the prefix v here
+          echo "version=${tag#v}" >> $GITHUB_OUTPUT
+
       - name: Publish source AUR package
-        uses: aksh1618/update-aur-package@v1.0.5
+        uses: varabyte/update-aur-package@572e31b1972fa289a27b1926c06a489eb89c7fd7 # v1.0.4
         with:
-          tag_version_prefix: v
+          version: ${{ steps.determine_version.outputs.version }}
           package_name: topgrade
           commit_username: "Thomas Schönauer"
           commit_email: t.schoenauer@hgs-wt.at
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+
       - name: Publish binary AUR package
-        uses: aksh1618/update-aur-package@v1.0.5
+        uses: varabyte/update-aur-package@572e31b1972fa289a27b1926c06a489eb89c7fd7 # v1.0.4
         with:
-          tag_version_prefix: v
+          version: ${{ steps.determine_version.outputs.version }}
           package_name: topgrade-bin
           commit_username: "Thomas Schönauer"
           commit_email: t.schoenauer@hgs-wt.at

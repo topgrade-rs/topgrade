@@ -1,34 +1,34 @@
 #![allow(clippy::cognitive_complexity)]
 
 use std::env;
+use std::env::home_dir;
 use std::io;
 use std::path::PathBuf;
 use std::process::exit;
 use std::time::Duration;
 
-use crate::breaking_changes::{first_run_of_major_release, print_breaking_changes, should_skip, write_keep_file};
 use clap::CommandFactory;
-use clap::{crate_version, Parser};
+use clap::{Parser, crate_version};
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
-use console::Key;
-use etcetera::base_strategy::BaseStrategy;
+use crossterm::event::KeyCode;
 #[cfg(windows)]
 use etcetera::base_strategy::Windows;
 #[cfg(unix)]
 use etcetera::base_strategy::Xdg;
-use once_cell::sync::Lazy;
 use rust_i18n::{i18n, t};
+use std::sync::LazyLock;
 use tracing::debug;
 
-use self::config::{CommandLineArgs, Config, Step};
+use self::config::{CommandLineArgs, Config};
 use self::error::StepFailed;
-#[cfg(all(windows, feature = "self-update"))]
-use self::error::Upgraded;
+use self::runner::StepResult;
+#[allow(clippy::wildcard_imports)]
 use self::steps::{remote::*, *};
+use self::sudo::{Sudo, SudoCreateError, SudoKind};
+#[allow(clippy::wildcard_imports)]
 use self::terminal::*;
-
-use self::utils::{hostname, install_color_eyre, install_tracing, update_tracing};
+use self::utils::{install_color_eyre, install_tracing, is_elevated, update_tracing};
 
 mod breaking_changes;
 mod command;
@@ -37,27 +37,30 @@ mod ctrlc;
 mod error;
 mod execution_context;
 mod executor;
-mod report;
 mod runner;
 #[cfg(windows)]
 mod self_renamer;
 #[cfg(feature = "self-update")]
 mod self_update;
+mod step;
 mod steps;
 mod sudo;
 mod terminal;
+#[cfg(unix)]
+mod tmux;
 mod utils;
 
-pub(crate) static HOME_DIR: Lazy<PathBuf> = Lazy::new(|| home::home_dir().expect("No home directory"));
+pub(crate) static HOME_DIR: LazyLock<PathBuf> = LazyLock::new(|| home_dir().expect("No home directory"));
 #[cfg(unix)]
-pub(crate) static XDG_DIRS: Lazy<Xdg> = Lazy::new(|| Xdg::new().expect("No home directory"));
+pub(crate) static XDG_DIRS: LazyLock<Xdg> = LazyLock::new(|| Xdg::new().expect("No home directory"));
 
 #[cfg(windows)]
-pub(crate) static WINDOWS_DIRS: Lazy<Windows> = Lazy::new(|| Windows::new().expect("No home directory"));
+pub(crate) static WINDOWS_DIRS: LazyLock<Windows> = LazyLock::new(|| Windows::new().expect("No home directory"));
 
 // Init and load the i18n files
 i18n!("locales", fallback = "en");
 
+#[allow(clippy::too_many_lines)]
 fn run() -> Result<()> {
     install_color_eyre()?;
     ctrlc::set_handler();
@@ -93,11 +96,8 @@ fn run() -> Result<()> {
         return Ok(());
     }
 
-    for env in opt.env_variables() {
-        let mut splitted = env.split('=');
-        let var = splitted.next().unwrap();
-        let value = splitted.next().unwrap();
-        env::set_var(var, value);
+    for (key, value) in opt.env_variables() {
+        unsafe { env::set_var(key, value) };
     }
 
     if opt.edit_config() {
@@ -119,8 +119,8 @@ fn run() -> Result<()> {
 
     debug!("Version: {}", crate_version!());
     debug!("OS: {}", env!("TARGET"));
-    debug!("{:?}", std::env::args());
-    debug!("Binary path: {:?}", std::env::current_exe());
+    debug!("{:?}", env::args());
+    debug!("Binary path: {:?}", env::current_exe());
     debug!("self-update Feature Enabled: {:?}", cfg!(feature = "self-update"));
     debug!("Configuration: {:?}", config);
 
@@ -132,44 +132,48 @@ fn run() -> Result<()> {
         }
     }
 
-    let powershell = powershell::Powershell::new();
-    let should_run_powershell = powershell.profile().is_some() && config.should_run(Step::Powershell);
-    let emacs = emacs::Emacs::new();
+    let elevated = is_elevated();
+
+    #[cfg(unix)]
+    if !config.allow_root() && elevated {
+        print_warning(t!(
+            "Topgrade should not be run as root, it will run commands with sudo or equivalent where needed."
+        ));
+        if !prompt_yesno(&t!("Continue?"))? {
+            exit(1)
+        }
+    }
+
+    let sudo = match config.sudo_command() {
+        Some(kind) => Sudo::new(kind),
+        None if elevated => Sudo::new(SudoKind::Null),
+        None => Sudo::detect(),
+    };
+    debug!("Sudo: {:?}", sudo);
+
+    let (sudo, sudo_err) = match sudo {
+        Ok(sudo) => (Some(sudo), None),
+        Err(e) => (None, Some(e)),
+    };
+
     #[cfg(target_os = "linux")]
     let distribution = linux::Distribution::detect();
 
-    let sudo = config.sudo_command().map_or_else(sudo::Sudo::detect, sudo::Sudo::new);
-    let run_type = executor::RunType::new(config.dry_run());
-    let ctx = execution_context::ExecutionContext::new(run_type, sudo, &config);
+    let run_type = config.run_type();
+    let ctx = execution_context::ExecutionContext::new(
+        run_type,
+        sudo,
+        &config,
+        #[cfg(target_os = "linux")]
+        &distribution,
+    );
     let mut runner = runner::Runner::new(&ctx);
 
-    // If
-    //
-    // 1. the breaking changes notification shouldnot be skipped
-    // 2. this is the first execution of a major release
-    //
-    // inform user of breaking changes
-    if !should_skip() && first_run_of_major_release()? {
-        print_breaking_changes();
-
-        if prompt_yesno("Confirmed?")? {
-            write_keep_file()?;
-        } else {
-            exit(1);
-        }
+    if !breaking_changes::should_skip() {
+        breaking_changes::run()?;
     }
 
-    // Self-Update step, this will execute only if:
-    // 1. the `self-update` feature is enabled
-    // 2. it is not disabled from configuration (env var/CLI opt/file)
-    #[cfg(feature = "self-update")]
-    {
-        let should_self_update = env::var("TOPGRADE_NO_SELF_UPGRADE").is_err() && !config.no_self_update();
-
-        if should_self_update {
-            runner.execute(Step::SelfUpdate, "Self Update", || self_update::self_update(&ctx))?;
-        }
-    }
+    step::Step::SelfUpdate.run(&mut runner, &ctx)?;
 
     #[cfg(windows)]
     let _self_rename = if config.self_rename() {
@@ -178,326 +182,120 @@ fn run() -> Result<()> {
         None
     };
 
+    if config.pre_sudo()
+        && let Some(sudo) = ctx.sudo()
+    {
+        sudo.elevate(&ctx)?;
+    }
+
+    // Held until `run()` returns — dropping would stop the background thread.
+    let _sudo_loop_guard = spawn_sudo_loop(&ctx, &config);
+
     if let Some(commands) = config.pre_commands() {
         for (name, command) in commands {
             generic::run_custom_command(name, command, &ctx)?;
         }
     }
 
-    if config.pre_sudo() {
-        if let Some(sudo) = ctx.sudo() {
-            sudo.elevate(&ctx)?;
-        }
-    }
-
-    if let Some(topgrades) = config.remote_topgrades() {
-        for remote_topgrade in topgrades.iter().filter(|t| config.should_execute_remote(hostname(), t)) {
-            runner.execute(Step::Remotes, format!("Remote ({remote_topgrade})"), || {
-                ssh::ssh_step(&ctx, remote_topgrade)
-            })?;
-        }
-    }
-
-    #[cfg(windows)]
-    {
-        runner.execute(Step::Wsl, "WSL", || windows::run_wsl_topgrade(&ctx))?;
-        runner.execute(Step::WslUpdate, "WSL", || windows::update_wsl(&ctx))?;
-        runner.execute(Step::Chocolatey, "Chocolatey", || windows::run_chocolatey(&ctx))?;
-        runner.execute(Step::Scoop, "Scoop", || windows::run_scoop(&ctx))?;
-        runner.execute(Step::Winget, "Winget", || windows::run_winget(&ctx))?;
-        runner.execute(Step::System, "Windows update", || windows::windows_update(&ctx))?;
-        runner.execute(Step::MicrosoftStore, "Microsoft Store", || {
-            windows::microsoft_store(&ctx)
-        })?;
-    }
-
-    #[cfg(target_os = "linux")]
-    {
-        // NOTE: Due to breaking `nu` updates, `packer.nu` needs to be updated before `nu` get updated
-        // by other package managers.
-        runner.execute(Step::Shell, "packer.nu", || linux::run_packer_nu(&ctx))?;
-
-        match &distribution {
-            Ok(distribution) => {
-                runner.execute(Step::System, "System update", || distribution.upgrade(&ctx))?;
+    for step in config.steps()? {
+        match step.run(&mut runner, &ctx) {
+            Ok(()) => (),
+            Err(error)
+                if error
+                    .downcast_ref::<io::Error>()
+                    .is_some_and(|e| e.kind() == io::ErrorKind::Interrupted) =>
+            {
+                println!();
+                debug!("Interrupted (possibly with 'q' during retry prompt). Printing summary.");
+                break;
             }
-            Err(e) => {
-                println!("{}", t!("Error detecting current distribution: {error}", error = e));
-            }
-        }
-        runner.execute(Step::ConfigUpdate, "config-update", || linux::run_config_update(&ctx))?;
-
-        runner.execute(Step::AM, "am", || linux::run_am(&ctx))?;
-        runner.execute(Step::AppMan, "appman", || linux::run_appman(&ctx))?;
-        runner.execute(Step::DebGet, "deb-get", || linux::run_deb_get(&ctx))?;
-        runner.execute(Step::Toolbx, "toolbx", || toolbx::run_toolbx(&ctx))?;
-        runner.execute(Step::Snap, "snap", || linux::run_snap(&ctx))?;
-        runner.execute(Step::Pacstall, "pacstall", || linux::run_pacstall(&ctx))?;
-        runner.execute(Step::Pacdef, "pacdef", || linux::run_pacdef(&ctx))?;
-        runner.execute(Step::Protonup, "protonup", || linux::run_protonup_update(&ctx))?;
-        runner.execute(Step::Distrobox, "distrobox", || linux::run_distrobox_update(&ctx))?;
-        runner.execute(Step::DkpPacman, "dkp-pacman", || linux::run_dkp_pacman_update(&ctx))?;
-        runner.execute(Step::System, "pihole", || linux::run_pihole_update(&ctx))?;
-        runner.execute(Step::Firmware, "Firmware upgrades", || linux::run_fwupdmgr(&ctx))?;
-        runner.execute(Step::Restarts, "Restarts", || linux::run_needrestart(&ctx))?;
-
-        runner.execute(Step::Flatpak, "Flatpak", || linux::run_flatpak(&ctx))?;
-        runner.execute(Step::BrewFormula, "Brew", || {
-            unix::run_brew_formula(&ctx, unix::BrewVariant::Path)
-        })?;
-        runner.execute(Step::Lure, "LURE", || linux::run_lure_update(&ctx))?;
-        runner.execute(Step::Waydroid, "Waydroid", || linux::run_waydroid(&ctx))?;
-        runner.execute(Step::AutoCpufreq, "auto-cpufreq", || linux::run_auto_cpufreq(&ctx))?;
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        runner.execute(Step::BrewFormula, "Brew (ARM)", || {
-            unix::run_brew_formula(&ctx, unix::BrewVariant::MacArm)
-        })?;
-        runner.execute(Step::BrewFormula, "Brew (Intel)", || {
-            unix::run_brew_formula(&ctx, unix::BrewVariant::MacIntel)
-        })?;
-        runner.execute(Step::BrewFormula, "Brew", || {
-            unix::run_brew_formula(&ctx, unix::BrewVariant::Path)
-        })?;
-        runner.execute(Step::BrewCask, "Brew Cask (ARM)", || {
-            unix::run_brew_cask(&ctx, unix::BrewVariant::MacArm)
-        })?;
-        runner.execute(Step::BrewCask, "Brew Cask (Intel)", || {
-            unix::run_brew_cask(&ctx, unix::BrewVariant::MacIntel)
-        })?;
-        runner.execute(Step::BrewCask, "Brew Cask", || {
-            unix::run_brew_cask(&ctx, unix::BrewVariant::Path)
-        })?;
-        runner.execute(Step::Macports, "MacPorts", || macos::run_macports(&ctx))?;
-        runner.execute(Step::Xcodes, "Xcodes", || macos::update_xcodes(&ctx))?;
-        runner.execute(Step::Sparkle, "Sparkle", || macos::run_sparkle(&ctx))?;
-        runner.execute(Step::Mas, "App Store", || macos::run_mas(&ctx))?;
-        runner.execute(Step::System, "System upgrade", || macos::upgrade_macos(&ctx))?;
-    }
-
-    #[cfg(target_os = "dragonfly")]
-    {
-        runner.execute(Step::Pkg, "DragonFly BSD Packages", || {
-            dragonfly::upgrade_packages(&ctx)
-        })?;
-        runner.execute(Step::Audit, "DragonFly Audit", || dragonfly::audit_packages(&ctx))?;
-    }
-
-    #[cfg(target_os = "freebsd")]
-    {
-        runner.execute(Step::Pkg, "FreeBSD Packages", || freebsd::upgrade_packages(&ctx))?;
-        runner.execute(Step::System, "FreeBSD Upgrade", || freebsd::upgrade_freebsd(&ctx))?;
-        runner.execute(Step::Audit, "FreeBSD Audit", || freebsd::audit_packages(&ctx))?;
-    }
-
-    #[cfg(target_os = "openbsd")]
-    {
-        runner.execute(Step::Pkg, "OpenBSD Packages", || openbsd::upgrade_packages(&ctx))?;
-        runner.execute(Step::System, "OpenBSD Upgrade", || openbsd::upgrade_openbsd(&ctx))?;
-    }
-
-    #[cfg(target_os = "android")]
-    {
-        runner.execute(Step::Pkg, "Termux Packages", || android::upgrade_packages(&ctx))?;
-    }
-
-    #[cfg(unix)]
-    {
-        runner.execute(Step::Yadm, "yadm", || unix::run_yadm(&ctx))?;
-        runner.execute(Step::Nix, "nix", || unix::run_nix(&ctx))?;
-        runner.execute(Step::Nix, "nix upgrade-nix", || unix::run_nix_self_upgrade(&ctx))?;
-        runner.execute(Step::Guix, "guix", || unix::run_guix(&ctx))?;
-        runner.execute(Step::HomeManager, "home-manager", || unix::run_home_manager(&ctx))?;
-        runner.execute(Step::Asdf, "asdf", || unix::run_asdf(&ctx))?;
-        runner.execute(Step::Mise, "mise", || unix::run_mise(&ctx))?;
-        runner.execute(Step::Pkgin, "pkgin", || unix::run_pkgin(&ctx))?;
-        runner.execute(Step::BunPackages, "bun-packages", || unix::run_bun_packages(&ctx))?;
-        runner.execute(Step::Shell, "zr", || zsh::run_zr(&ctx))?;
-        runner.execute(Step::Shell, "antibody", || zsh::run_antibody(&ctx))?;
-        runner.execute(Step::Shell, "antidote", || zsh::run_antidote(&ctx))?;
-        runner.execute(Step::Shell, "antigen", || zsh::run_antigen(&ctx))?;
-        runner.execute(Step::Shell, "zgenom", || zsh::run_zgenom(&ctx))?;
-        runner.execute(Step::Shell, "zplug", || zsh::run_zplug(&ctx))?;
-        runner.execute(Step::Shell, "zinit", || zsh::run_zinit(&ctx))?;
-        runner.execute(Step::Shell, "zi", || zsh::run_zi(&ctx))?;
-        runner.execute(Step::Shell, "zim", || zsh::run_zim(&ctx))?;
-        runner.execute(Step::Shell, "oh-my-zsh", || zsh::run_oh_my_zsh(&ctx))?;
-        runner.execute(Step::Shell, "oh-my-bash", || unix::run_oh_my_bash(&ctx))?;
-        runner.execute(Step::Shell, "fisher", || unix::run_fisher(&ctx))?;
-        runner.execute(Step::Shell, "bash-it", || unix::run_bashit(&ctx))?;
-        runner.execute(Step::Shell, "oh-my-fish", || unix::run_oh_my_fish(&ctx))?;
-        runner.execute(Step::Shell, "fish-plug", || unix::run_fish_plug(&ctx))?;
-        runner.execute(Step::Shell, "fundle", || unix::run_fundle(&ctx))?;
-        runner.execute(Step::Tmux, "tmux", || tmux::run_tpm(&ctx))?;
-        runner.execute(Step::Tldr, "TLDR", || unix::run_tldr(&ctx))?;
-        runner.execute(Step::Pearl, "pearl", || unix::run_pearl(&ctx))?;
-        #[cfg(not(any(target_os = "macos", target_os = "android")))]
-        runner.execute(Step::GnomeShellExtensions, "Gnome Shell Extensions", || {
-            unix::upgrade_gnome_extensions(&ctx)
-        })?;
-        runner.execute(Step::Pyenv, "pyenv", || unix::run_pyenv(&ctx))?;
-        runner.execute(Step::Sdkman, "SDKMAN!", || unix::run_sdkman(&ctx))?;
-        runner.execute(Step::Rcm, "rcm", || unix::run_rcm(&ctx))?;
-        runner.execute(Step::Maza, "maza", || unix::run_maza(&ctx))?;
-    }
-
-    #[cfg(not(any(
-        target_os = "freebsd",
-        target_os = "openbsd",
-        target_os = "netbsd",
-        target_os = "dragonfly"
-    )))]
-    {
-        runner.execute(Step::Atom, "apm", || generic::run_apm(&ctx))?;
-    }
-
-    // The following update function should be executed on all OSes.
-    runner.execute(Step::Fossil, "fossil", || generic::run_fossil(&ctx))?;
-    runner.execute(Step::Elan, "elan", || generic::run_elan(&ctx))?;
-    runner.execute(Step::Rye, "rye", || generic::run_rye(&ctx))?;
-    runner.execute(Step::Rustup, "rustup", || generic::run_rustup(&ctx))?;
-    runner.execute(Step::Juliaup, "juliaup", || generic::run_juliaup(&ctx))?;
-    runner.execute(Step::Dotnet, ".NET", || generic::run_dotnet_upgrade(&ctx))?;
-    runner.execute(Step::Choosenim, "choosenim", || generic::run_choosenim(&ctx))?;
-    runner.execute(Step::Cargo, "cargo", || generic::run_cargo_update(&ctx))?;
-    runner.execute(Step::Flutter, "Flutter", || generic::run_flutter_upgrade(&ctx))?;
-    runner.execute(Step::Go, "go-global-update", || go::run_go_global_update(&ctx))?;
-    runner.execute(Step::Go, "gup", || go::run_go_gup(&ctx))?;
-    runner.execute(Step::Emacs, "Emacs", || emacs.upgrade(&ctx))?;
-    runner.execute(Step::Opam, "opam", || generic::run_opam_update(&ctx))?;
-    runner.execute(Step::Vcpkg, "vcpkg", || generic::run_vcpkg_update(&ctx))?;
-    runner.execute(Step::Pipx, "pipx", || generic::run_pipx_update(&ctx))?;
-    runner.execute(Step::Vscode, "Visual Studio Code extensions", || {
-        generic::run_vscode_extensions_update(&ctx)
-    })?;
-    runner.execute(Step::Conda, "conda", || generic::run_conda_update(&ctx))?;
-    runner.execute(Step::Mamba, "mamba", || generic::run_mamba_update(&ctx))?;
-    runner.execute(Step::Pixi, "pixi", || generic::run_pixi_update(&ctx))?;
-    runner.execute(Step::Miktex, "miktex", || generic::run_miktex_packages_update(&ctx))?;
-    runner.execute(Step::Pip3, "pip3", || generic::run_pip3_update(&ctx))?;
-    runner.execute(Step::PipReview, "pip-review", || generic::run_pip_review_update(&ctx))?;
-    runner.execute(Step::PipReviewLocal, "pip-review (local)", || {
-        generic::run_pip_review_local_update(&ctx)
-    })?;
-    runner.execute(Step::Pipupgrade, "pipupgrade", || generic::run_pipupgrade_update(&ctx))?;
-    runner.execute(Step::Ghcup, "ghcup", || generic::run_ghcup_update(&ctx))?;
-    runner.execute(Step::Stack, "stack", || generic::run_stack_update(&ctx))?;
-    runner.execute(Step::Tlmgr, "tlmgr", || generic::run_tlmgr_update(&ctx))?;
-    runner.execute(Step::Myrepos, "myrepos", || generic::run_myrepos_update(&ctx))?;
-    runner.execute(Step::Chezmoi, "chezmoi", || generic::run_chezmoi_update(&ctx))?;
-    runner.execute(Step::Jetpack, "jetpack", || generic::run_jetpack(&ctx))?;
-    runner.execute(Step::Vim, "vim", || vim::upgrade_vim(&ctx))?;
-    runner.execute(Step::Vim, "Neovim", || vim::upgrade_neovim(&ctx))?;
-    runner.execute(Step::Vim, "The Ultimate vimrc", || vim::upgrade_ultimate_vimrc(&ctx))?;
-    runner.execute(Step::Vim, "voom", || vim::run_voom(&ctx))?;
-    runner.execute(Step::Kakoune, "Kakoune", || kakoune::upgrade_kak_plug(&ctx))?;
-    runner.execute(Step::Helix, "helix", || generic::run_helix_grammars(&ctx))?;
-    runner.execute(Step::Node, "npm", || node::run_npm_upgrade(&ctx))?;
-    runner.execute(Step::Yarn, "yarn", || node::run_yarn_upgrade(&ctx))?;
-    runner.execute(Step::Pnpm, "pnpm", || node::run_pnpm_upgrade(&ctx))?;
-    runner.execute(Step::VoltaPackages, "volta packages", || {
-        node::run_volta_packages_upgrade(&ctx)
-    })?;
-    runner.execute(Step::Containers, "Containers", || containers::run_containers(&ctx))?;
-    runner.execute(Step::Deno, "deno", || node::deno_upgrade(&ctx))?;
-    runner.execute(Step::Composer, "composer", || generic::run_composer_update(&ctx))?;
-    runner.execute(Step::Krew, "krew", || generic::run_krew_upgrade(&ctx))?;
-    runner.execute(Step::Helm, "helm", || generic::run_helm_repo_update(&ctx))?;
-    runner.execute(Step::Gem, "gem", || generic::run_gem(&ctx))?;
-    runner.execute(Step::RubyGems, "rubygems", || generic::run_rubygems(&ctx))?;
-    runner.execute(Step::Julia, "julia", || generic::update_julia_packages(&ctx))?;
-    runner.execute(Step::Haxelib, "haxelib", || generic::run_haxelib_update(&ctx))?;
-    runner.execute(Step::Sheldon, "sheldon", || generic::run_sheldon(&ctx))?;
-    runner.execute(Step::Stew, "stew", || generic::run_stew(&ctx))?;
-    runner.execute(Step::Rtcl, "rtcl", || generic::run_rtcl(&ctx))?;
-    runner.execute(Step::Bin, "bin", || generic::bin_update(&ctx))?;
-    runner.execute(Step::Gcloud, "gcloud", || generic::run_gcloud_components_update(&ctx))?;
-    runner.execute(Step::Micro, "micro", || generic::run_micro(&ctx))?;
-    runner.execute(Step::Raco, "raco", || generic::run_raco_update(&ctx))?;
-    runner.execute(Step::Spicetify, "spicetify", || generic::spicetify_upgrade(&ctx))?;
-    runner.execute(Step::GithubCliExtensions, "GitHub CLI Extensions", || {
-        generic::run_ghcli_extensions_upgrade(&ctx)
-    })?;
-    runner.execute(Step::Bob, "Bob", || generic::run_bob(&ctx))?;
-    runner.execute(Step::Certbot, "Certbot", || generic::run_certbot(&ctx))?;
-    runner.execute(Step::GitRepos, "Git Repositories", || git::run_git_pull(&ctx))?;
-    runner.execute(Step::ClamAvDb, "ClamAV Databases", || generic::run_freshclam(&ctx))?;
-    runner.execute(Step::PlatformioCore, "PlatformIO Core", || {
-        generic::run_platform_io(&ctx)
-    })?;
-    runner.execute(Step::Lensfun, "Lensfun's database update", || {
-        generic::run_lensfun_update_data(&ctx)
-    })?;
-    runner.execute(Step::Poetry, "Poetry", || generic::run_poetry(&ctx))?;
-    runner.execute(Step::Uv, "uv", || generic::run_uv(&ctx))?;
-    runner.execute(Step::Zvm, "ZVM", || generic::run_zvm(&ctx))?;
-    runner.execute(Step::Aqua, "aqua", || generic::run_aqua(&ctx))?;
-    runner.execute(Step::Bun, "bun", || generic::run_bun(&ctx))?;
-
-    if should_run_powershell {
-        runner.execute(Step::Powershell, "Powershell Modules Update", || {
-            powershell.update_modules(&ctx)
-        })?;
-    }
-
-    if let Some(commands) = config.commands() {
-        for (name, command) in commands {
-            if config.should_run_custom_command(name) {
-                runner.execute(Step::CustomCommands, name, || {
-                    generic::run_custom_command(name, command, &ctx)
-                })?;
-            }
+            Err(error) => return Err(error),
         }
     }
 
-    if config.should_run(Step::Vagrant) {
-        if let Ok(boxes) = vagrant::collect_boxes(&ctx) {
-            for vagrant_box in boxes {
-                runner.execute(Step::Vagrant, format!("Vagrant ({})", vagrant_box.smart_name()), || {
-                    vagrant::topgrade_vagrant_box(&ctx, &vagrant_box)
-                })?;
-            }
-        }
-    }
-    runner.execute(Step::Vagrant, "Vagrant boxes", || vagrant::upgrade_vagrant_boxes(&ctx))?;
+    let mut failed = false;
 
-    if !runner.report().data().is_empty() {
+    let report = runner.report();
+    if !report.is_empty() {
         print_separator(t!("Summary"));
 
-        for (key, result) in runner.report().data() {
+        let mut skipped_missing_sudo = false;
+
+        for (key, result) in report {
+            if !failed && result.failed() {
+                failed = true;
+            }
+            if let StepResult::SkippedMissingSudo = result {
+                skipped_missing_sudo = true;
+            }
             print_result(key, result);
         }
 
-        #[cfg(target_os = "linux")]
-        {
-            if let Ok(distribution) = &distribution {
-                distribution.show_summary();
+        if skipped_missing_sudo {
+            print_warning(t!(
+                "\nSome steps were skipped as sudo or equivalent could not be found."
+            ));
+            // Steps can only fail with SkippedMissingSudo if sudo is None,
+            // therefore we must have a sudo_err
+            match sudo_err.unwrap() {
+                SudoCreateError::CannotFindBinary => {
+                    #[cfg(unix)]
+                    print_warning(t!(
+                        "Install one of `sudo`, `doas`, `pkexec`, `run0` or `please` to run these steps."
+                    ));
+
+                    // if this windows version supported Windows Sudo, the error would have been WinSudoDisabled
+                    #[cfg(windows)]
+                    print_warning(t!("Install gsudo to run these steps."));
+                }
+                #[cfg(windows)]
+                SudoCreateError::WinSudoDisabled => {
+                    print_warning(t!(
+                        "Install gsudo or enable Windows Sudo to run these steps.\nFor Windows Sudo, the default 'In a new window' mode is not supported as it prevents Topgrade from waiting for commands to finish. Please configure it to use 'Inline' mode instead.\nGo to https://go.microsoft.com/fwlink/?linkid=2257346 to learn more."
+                    ));
+                }
+                #[cfg(windows)]
+                SudoCreateError::WinSudoNewWindowMode => {
+                    print_warning(t!(
+                        "Windows Sudo was found, but it is set to 'In a new window' mode, which prevents Topgrade from waiting for commands to finish. Please configure it to use 'Inline' mode instead.\nGo to https://go.microsoft.com/fwlink/?linkid=2257346 to learn more."
+                    ));
+                }
             }
         }
     }
 
-    let mut post_command_failed = false;
+    #[cfg(target_os = "linux")]
+    if config.show_distribution_summary()
+        && let Ok(distribution) = &distribution
+    {
+        distribution.show_summary();
+    }
+
     if let Some(commands) = config.post_commands() {
         for (name, command) in commands {
-            if generic::run_custom_command(name, command, &ctx).is_err() {
-                post_command_failed = true;
+            let result = generic::run_custom_command(name, command, &ctx);
+            if !failed && result.is_err() {
+                failed = true;
             }
         }
     }
 
     if config.keep_at_end() {
-        print_info(t!("\n(R)eboot\n(S)hell\n(Q)uit"));
+        print_info(t!("\n(R)eboot\n(P)oweroff\n(S)hell\n(Q)uit"));
         loop {
             match get_key() {
-                Ok(Key::Char('s')) | Ok(Key::Char('S')) => {
+                Ok(KeyCode::Char('s' | 'S')) => {
                     run_shell().context("Failed to execute shell")?;
                 }
-                Ok(Key::Char('r')) | Ok(Key::Char('R')) => {
-                    reboot().context("Failed to reboot")?;
+                Ok(KeyCode::Char('r' | 'R')) => {
+                    println!("{}", t!("Rebooting..."));
+                    reboot(&ctx).context("Failed to reboot")?;
                 }
-                Ok(Key::Char('q')) | Ok(Key::Char('Q')) => (),
+                Ok(KeyCode::Char('p' | 'P')) => {
+                    println!("{}", t!("Shutting down..."));
+                    shutdown(&ctx).context("Failed to shut down")?;
+                }
+                Ok(KeyCode::Char('q' | 'Q')) => (),
                 _ => {
                     continue;
                 }
@@ -506,9 +304,13 @@ fn run() -> Result<()> {
         }
     }
 
-    let failed = post_command_failed || runner.report().data().iter().any(|(_, result)| result.failed());
+    let should_notify = match config.notify_end() {
+        config::NotifyEnd::Always => true,
+        config::NotifyEnd::Never => false,
+        config::NotifyEnd::OnFailure => failed,
+    };
 
-    if !config.skip_notify() {
+    if should_notify {
         notify_desktop(
             if failed {
                 t!("Topgrade finished with errors")
@@ -516,14 +318,36 @@ fn run() -> Result<()> {
                 t!("Topgrade finished successfully")
             },
             Some(Duration::from_secs(10)),
-        )
+        );
     }
 
-    if failed {
-        Err(StepFailed.into())
-    } else {
-        Ok(())
+    if failed { Err(StepFailed.into()) } else { Ok(()) }
+}
+
+fn spawn_sudo_loop(ctx: &execution_context::ExecutionContext, config: &Config) -> Option<std::sync::mpsc::Sender<()>> {
+    if !config.sudo_loop() {
+        return None;
     }
+    let sudo = ctx.sudo().as_ref()?.clone();
+    let run_type = ctx.run_type();
+    let interval = Duration::from_secs(config.sudo_loop_interval().into());
+    let (tx, rx) = std::sync::mpsc::channel::<()>();
+    std::thread::Builder::new()
+        .name("sudo-loop".into())
+        .spawn(move || {
+            loop {
+                match rx.recv_timeout(interval) {
+                    Ok(()) | Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                        if let Err(err) = sudo.refresh(run_type) {
+                            print_warning(format!("Failed to refresh sudo credentials: {err:?}"));
+                        }
+                    }
+                }
+            }
+        })
+        .expect("failed to spawn sudo-loop thread");
+    Some(tx)
 }
 
 fn main() {
@@ -532,13 +356,6 @@ fn main() {
             exit(0);
         }
         Err(error) => {
-            #[cfg(all(windows, feature = "self-update"))]
-            {
-                if let Some(Upgraded(status)) = error.downcast_ref::<Upgraded>() {
-                    exit(status.code().unwrap());
-                }
-            }
-
             let skip_print = (error.downcast_ref::<StepFailed>().is_some())
                 || (error
                     .downcast_ref::<io::Error>()

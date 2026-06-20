@@ -1,0 +1,32 @@
+repos:
+- repo: https://github.com/gitleaks/gitleaks
+  rev: v8.30.0
+  hooks:
+  - id: gitleaks
+
+- repo: https://github.com/shellcheck-py/shellcheck-py
+  rev: v0.11.0.1
+  hooks:
+  - id: shellcheck
+    args: [--external-sources]
+
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v6.0.0
+  hooks:
+  - id: end-of-file-fixer
+  - id: trailing-whitespace
+
+- repo: https://github.com/adhtruong/mirrors-typos
+  rev: v1.47.2
+  hooks:
+  - id: typos
+    args:
+      - --write-changes
+      - --force-exclude
+      - --exclude=src/steps/os/os_release/**
+      - --exclude=locales/**
+      - --exclude=CHANGELOG.md  # Contains commit hashes and verbatim commit messages
+
+
+ci:
+  autoupdate_commit_msg: "chore(pre-commit): autoupdate"

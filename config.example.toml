@@ -6,16 +6,35 @@
 
 
 [misc]
+# On Unix systems, Topgrade should not be run as root, it
+# will run commands with sudo or equivalent where needed.
+# Set this to true to suppress the warning and confirmation
+# prompt if Topgrade detects it is being run as root.
+# (default: false)
+# allow_root = false
+
 # Run `sudo -v` to cache credentials at the start of the run
 # This avoids a blocking password prompt in the middle of an unattended run
 # (default: false)
 # pre_sudo = false
+
+# Periodically runs `sudo -v` or `please -w` to avoid password re-prompts during updates (default: false)
+# WARNING: This is a potential security risk; if you walk away from the computer while topgrade is running,
+# another person can come by, CTRL+C, and gain access to a sudo session.
+# sudo_loop = true
+# sudo_loop_interval = 240 # 4 minutes (240s); default if sudo_loop enabled
 
 # Sudo command to be used
 # sudo_command = "sudo"
 
 # Disable specific steps - same options as the command line flag
 # disable = ["system", "emacs"]
+
+# Run these steps before all others
+# first = ["chezmoi"]
+
+# Run these steps after all others
+# last = ["system"]
 
 # Ignore failures for these steps
 # ignore_failures = ["powershell"]
@@ -41,8 +60,18 @@
 # Don't ask for confirmations (no default value)
 # assume_yes = true
 
-# Do not ask to retry failed steps (default: false)
+# Whether to ask what to do after a step fails (default: true)
+# ask_retry = true
+
+# Number of times to automatically retry a step when it fails (default: 0)
+# auto_retry = 0
+
+# Same as ask_retry = false (default: false) - legacy
 # no_retry = true
+
+# Show the reason for skipped steps (default: false)
+# This has no effect if the "only" option is specified
+# show_skipped = true
 
 # Run inside tmux (default: false)
 # run_in_tmux = true
@@ -59,7 +88,11 @@
 # Send a notification for every step (default: false)
 # notify_each_step = false
 
-# Skip sending a notification at the end of a run (default: false)
+# When to send a notification at the end of a run
+# (default: "always", allowed values: "always", "never", "on_failure")
+# notify_end = "on_failure"
+
+# Deprecated: use `notify_end = "never"` instead (default: false)
 # skip_notify = true
 
 # The Bash-it branch to update (default: "stable")
@@ -79,6 +112,17 @@
 # These are prepended to the `--log-filter` argument
 # See: https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives
 # log_filters = ["topgrade::command=debug", "warn"]
+
+# Whether to show a distribution-specific summary if applicable, e.g. listing
+# Pacman backup configuration files (*.pacsave and *.pacnew)
+# (default: true)
+# show_distribution_summary = false
+
+# For NixOS/home-manager, there are multiple ways to switch to newer configurations.
+# When set to autodetect: use nh when available, fall back to vanilla
+# Allowed values:
+#   autodetect, nh, vanilla
+# nix_handler = "autodetect"
 
 
 # Commands to run before anything
@@ -102,6 +146,26 @@
 # enable_pip_review_local = true                   ###disabled by default
 # enable_pipupgrade = true                         ###disabled by default
 # pipupgrade_arguments = "-y -u --pip-path pip"    ###disabled by default
+
+# For the poetry step, by default, Topgrade skips its update if poetry is not
+# installed with the official script. This configuration entry forces Topgrade
+# to run the update in this case.
+#
+# (default: false)
+# poetry_force_self_update = true
+
+
+[conda]
+# Additional named conda environments to update (`conda env update -n env_name`)
+# env_names = [
+#     "Toolbox",
+#     "PyTorch"
+# ]
+# Additional conda environment paths to update (`conda env update -p env_path`)
+# env_paths = [
+#     "~/webserver/.conda/",
+#     "~/experiments/.conda/"
+# ]
 
 
 [composer]
@@ -138,7 +202,7 @@
 [linux]
 # Arch Package Manager to use.
 # Allowed values:
-#   autodetect, aura, garuda_update, pacman, pamac, paru, pikaur, trizen, yay
+#   autodetect, aura, garuda_update, pacman, pamac, paru, pikaur, shelly, trizen, yay
 # arch_package_manager = "pacman"
 
 # Arguments to pass yay (or paru) when updating packages
@@ -160,6 +224,8 @@
 
 # pamac_arguments = "--no-devel"
 
+# shelly_arguments = ""
+
 # enable_tlmgr = true
 
 # emerge_sync_flags = "-q"
@@ -172,6 +238,11 @@
 
 # rpm_ostree = false
 
+# For Fedora/CentOS/RHEL Atomic variants, if `bootc` is available and this configuration entry is set to true, use
+# it to do the update - Will also supersede rpm-ostree if enabled
+# (default: false)
+# bootc = false
+
 # nix_arguments = "--flake"
 
 # nix_env_arguments = "--prebuilt-only"
@@ -180,26 +251,46 @@
 # home_manager_arguments = ["--flake", "file"]
 
 
+[mandb]
+# Enable the mandb step (to update manual entries).
+# Mandb is updated in the background by a service on most systems by default.
+# (default: false)
+# enable = true
+
+
+[pkgfile]
+# Enable the pkgfile step (to update the pkgfile database).
+# Pkgfile is sometimes installed by default, but often not used and heavy to update.
+# (default: false)
+# enable = true
+
+
 [git]
-# How many repos to pull at max in parallel
+# How many repos to pull or fetch at max in parallel
 # max_concurrency = 5
 
-# Additional git repositories to pull
+# Additional git repositories to pull or fetch
 # repos = [
 #     "~/src/*/",
 #     "~/.config/something"
 # ]
 
-# Don't pull the predefined git repos
+# Set to `false` to skip pulling/fetching the predefined git repos
 # pull_predefined = false
 
-# Arguments to pass Git when pulling Repositories
+# Arguments to pass Git when pulling/fetching Repositories
 # arguments = "--rebase --autostash"
 
+# Whether to perform a `git fetch` instead of `git pull`
+# fetch_only = false
 
 [windows]
 # Manually select Windows updates
 # accept_all_updates = false
+
+# Controls whether to automatically reboot the computer when updates are
+# installed that request it. (default: "no", allowed values: "yes", "no", "ask")
+# updates_auto_reboot = "yes"
 
 # open_remotes_in_new_terminal = true
 
@@ -207,10 +298,60 @@
 
 # wsl_update_use_web_download = true
 
+# The default for winget_silent_install is true,
+# this example turns off silent install.
+# winget_silent_install = false
+
 # Causes Topgrade to rename itself during the run to allow package managers
 # to upgrade it. Use this only if you installed Topgrade by using a package
 # manager such as Scoop or Cargo
 # self_rename = true
+
+# Use sudo to elevate privileges for the Windows Package Manager (winget)
+# Only use this option if you want to run the Winget step in sudo-mode.
+# Running winget in sudo-mode is generally not recommended, as not every
+# package supports installing / upgrading in sudo-mode and it may cause issues
+# with some packages or may even cause the Winget-step to fail.
+# If any problems occur, please try running Topgrade without this option first
+# before reporting an issue.
+# (default: false)
+# winget_use_sudo = true
+
+
+[chezmoi]
+# Exclude encrypted files from update
+# (default: false)
+# exclude_encrypted = false
+
+[mise]
+# Upgrades to the latest version available, bumping the version in mise.toml
+# (default: false)
+# bump = false
+
+# Number of jobs to run in parallel
+# (default: 4)
+# jobs = 4
+
+# Run interactively
+# (default: false)
+# interactive = false
+
+# Suppress non-error messages
+# (default: false)
+# quiet = false
+
+# Suppress all task output and mise non-error messages
+# (default: false)
+# silent = false
+
+# Show extra output
+# (default: false)
+# verbose = false
+
+
+[go]
+# Exclude specified binaries from `gup update`
+# gup_exclude = ["kind", "pkgsite"]
 
 
 [npm]
@@ -223,9 +364,21 @@
 # use_sudo = true
 
 
+[deno]
+# Upgrade deno executable to the given version.
+# version = "stable"
+
+
+[viteplus]
+# Use sudo if the Vite+ directory isn't owned by the current user
+# use_sudo = true
+
+
 [vim]
 # For `vim-plug`, execute `PlugUpdate!` instead of `PlugUpdate`
 # force_plug_update = true
+# For Neovim's `vim.pack`, remove inactive packages before updating
+# vim_pack_prune = true
 
 
 [firmware]
@@ -259,9 +412,85 @@
 # Specify the runtime to use for containers (default: "docker", allowed values: "docker", "podman")
 # runtime = "podman"
 
+# Run 'docker system prune' to clean up unused containers, networks, and build cache
+# (default: false)
+# system_prune = false
+
+# Use sudo for updating containers. Necessary for non-rootless installs.
+# (default: false)
+# use_sudo = false
+
 [lensfun]
-# If disabled, Topgrade invokes `lensfun‑update‑data` without root priviledge,
+# If disabled, Topgrade invokes `lensfun‑update‑data` without root privilege,
 # then the update will be only available to you. Otherwise, `sudo` is required,
 # and the update will be installed system-wide, i.e., available to all users.
 # (default: false)
 # use_sudo = false
+
+[julia]
+# If disabled, Topgrade invokes julia with the --startup-file=no CLI option.
+#
+# This may be desirable to avoid loading outdated packages with "using" directives
+# in the startup file, which might cause the update run to fail.
+# (default: true)
+# startup_file = true
+
+[zigup]
+# Version strings passed to zigup.
+# These may be pinned versions such as "0.13.0" or branches such as "master".
+# Each one will be updated in its own zigup invocation.
+# (default: ["master"])
+# target_versions = ["master", "0.13.0"]
+
+# Specifies the directory that the zig files will be installed to.
+# If defined, passed with the --install-dir command line flag.
+# If not defined, zigup will use its default behaviour.
+# (default: not defined)
+# install_dir = "~/.zig"
+
+# Specifies the path of the symlink which will be set to point at the default compiler version.
+# If defined, passed with the --path-link command line flag.
+# If not defined, zigup will use its default behaviour.
+# This is not meaningful if set_default is not enabled.
+# (default: not defined)
+# path_link = "~/.bin/zig"
+
+# If enabled, run `zigup clean` after updating all versions.
+# If enabled, each updated version above will be marked with `zigup keep`.
+# (default: false)
+# cleanup = false
+
+[vscode]
+# If this is set and is a non-empty string, it specifies the profile the
+# extensions should be updated for.
+# (default: this won't be set by default)
+# profile = ""
+
+[pixi]
+# Show the release notes of the latest pixi release
+# during the pixi step
+# (default: false)
+# include_release_notes = false
+
+[doom]
+# If this is set to true, the `--aot` flag is added to `doom upgrade`,
+# which enables ahead-of-time native compilation of packages.
+# (default: false)
+# aot = true
+
+[cargo]
+# If this is set to true, `cargo install-update` also updates git-originating packages.
+# (default: true)
+# git = false
+
+# If this is set to true, `cargo install-update` is run quietly.
+# (default: false)
+# quiet = true
+
+# Other options like `--locked` or `--jobs` can be passed to `cargo install`
+# using the `CARGO_INSTALL_OPTS` environment variable.
+
+[rustup]
+# If set, updates only these channels.
+# (default: [] (all channels))
+# channels = ["stable"]

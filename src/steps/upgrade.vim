@@ -4,9 +4,29 @@
 "   skip_prompts = true,
 " },
 if exists(":AstroUpdate")
-   echo "AstroUpdate"
-   AstroUpdate
-   quitall
+    echo "AstroUpdate"
+    autocmd User AstroUpdateCompleted quitall
+    AstroUpdate
+    " Astro includes Lazy etc. So we end early.
+    finish
+endif
+
+if has("nvim")
+    lua << EOF
+if vim.pack and next(vim.pack.get(nil, { info = false })) ~= nil then
+    if vim.env.TOPGRADE_VIM_PACK_PRUNE == "true" and vim.fn.exists(":packdel") ~= 0 then
+        local ok, err = pcall(vim.cmd, "packdel ++all")
+        if not ok then
+            if tostring(err):find("E5809: Nothing to remove", 1, true) then
+                print("No inactive vim.pack packages to prune")
+            else
+                error(err)
+            end
+        end
+    end
+    vim.pack.update(nil, { force = true })
+end
+EOF
 endif
 
 if exists(":MasonUpdate")

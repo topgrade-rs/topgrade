@@ -1,26 +1,50 @@
-name: Publish release files for CD native environments
+name: Publish release files for CD native and non-cd-native environments
 
 on:
-  # workflow_run:
-  #   workflows: ["Check SemVer compliance"]
-  #   types:
-  #     - completed
-  release:
-    types: [ created ]
+  repository_dispatch:
+    types: [release-created]
+
+permissions:
+  # Write permissions to call the repository dispatch
+  contents: write
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  build:
+  # Publish release files for CD native environments
+  native_build:
+    permissions:
+      # Use to sign the release artifacts
+      id-token: write
+      # Used to upload release artifacts
+      contents: write
+      # Used to generate artifact attestations
+      attestations: write
     strategy:
       fail-fast: false
       matrix:
-        platform: [ ubuntu-latest, macos-latest, macos-13, windows-latest ]
+        # Use the Ubuntu 22.04 image to link with a low version of glibc
+        #
+        # https://github.com/topgrade-rs/topgrade/issues/1095
+        platform: [ubuntu-22.04, macos-latest, macos-15-intel, windows-latest]
     runs-on: ${{ matrix.platform }}
+    env:
+      tag: ${{ github.event.client_payload.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install needed components
+        run: |
+          rustup component add rustfmt
+          rustup component add clippy
 
       - name: Install cargo-deb
         run: cargo install cargo-deb
-        if: ${{ matrix.platform == 'ubuntu-latest' }}
+        if: ${{ startsWith(matrix.platform, 'ubuntu-') }}
         shell: bash
 
       - name: Check format
@@ -35,17 +59,43 @@ jobs:
       - name: Run tests
         run: cargo test
 
+      # Used `https://github.com/BurntSushi/ripgrep/blob/master/.github/workflows/release.yml`
+      # as a reference.
+      - name: Build debug binary to create release assets
+        shell: bash
+        run: |
+          cargo build --all-features
+          bin="target/debug/topgrade"
+          echo "BIN=$bin" >> $GITHUB_ENV
+
+      - name: Create deployment directory
+        shell: bash
+        run: |
+          dir=deployment/deb
+          mkdir -p "$dir"
+          echo "DEPLOY_DIR=$dir" >> $GITHUB_ENV
+
+      - name: Generate man page and shell completions
+        shell: bash
+        run: |
+          "$BIN" --gen-manpage > "$DEPLOY_DIR/topgrade.1"
+          "$BIN" --gen-completion bash > "$DEPLOY_DIR/topgrade.bash"
+          "$BIN" --gen-completion fish > "$DEPLOY_DIR/topgrade.fish"
+          "$BIN" --gen-completion zsh > "$DEPLOY_DIR/_topgrade"
+
       - name: Build in Release profile with all features enabled
         run: cargo build --release --all-features
 
+      - name: Install default-target
+        run: cargo install default-target
+
       - name: Rename Release (Unix)
         run: |
-          cargo install default-target
           mkdir -p assets
-          FILENAME=topgrade-${{github.event.release.tag_name}}-$(default-target)
+          FILENAME=topgrade-${tag}-$(default-target)
           mv target/release/topgrade assets
           cd assets
-          tar --format=ustar -czf $FILENAME.tar.gz topgrade
+          tar --format=ustar -czf "$FILENAME.tar.gz" topgrade
           rm topgrade
           ls .
         if: ${{ matrix.platform != 'windows-latest' }}
@@ -59,21 +109,20 @@ jobs:
           rm -rf target/release
           cargo build --release
           cargo deb --no-build --no-strip
-        if: ${{ matrix.platform == 'ubuntu-latest' }}
+        if: ${{ startsWith(matrix.platform, 'ubuntu-') }}
         shell: bash
 
       - name: Move Debian-based system package
         run: |
           mkdir -p assets
           mv target/debian/*.deb assets
-        if: ${{ matrix.platform == 'ubuntu-latest' }}
+        if: ${{ startsWith(matrix.platform, 'ubuntu-') }}
         shell: bash
 
       - name: Rename Release (Windows)
         run: |
-          cargo install default-target
           mkdir assets
-          FILENAME=topgrade-${{github.event.release.tag_name}}-$(default-target)
+          FILENAME=topgrade-${tag}-$(default-target)
           mv target/release/topgrade.exe assets/topgrade.exe
           cd assets
           powershell Compress-Archive -Path * -Destination ${FILENAME}.zip
@@ -82,7 +131,275 @@ jobs:
         if: ${{ matrix.platform == 'windows-latest' }}
         shell: bash
 
-      - name: Release
-        uses: softprops/action-gh-release@v2
+      - name: Upload assets
+        run: |
+          gh release upload "${tag}" assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate artifact attestations
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
-          files: assets/*
+          subject-path: assets/*
+
+  # Publish release files for non-CD-native environments
+  cross_build:
+    permissions:
+      # Use to sign the release artifacts
+      id-token: write
+      # Used to upload release artifacts
+      contents: write
+      # Used to generate artifact attestations
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          [
+            "aarch64-unknown-linux-gnu",
+            "armv7-unknown-linux-gnueabihf",
+            "x86_64-unknown-linux-musl",
+            "aarch64-unknown-linux-musl",
+            "x86_64-unknown-freebsd",
+          ]
+    # Run this one on an older version as well, to limit glibc to 2.34 instead of 2.39.
+    # Even though this is cross-compiled, it links to the libc6-<arch>-cross installed on the host
+    # (see the apt-get install calls below)
+    runs-on: ubuntu-22.04
+    env:
+      matrix_target: ${{ matrix.target }}
+      tag: ${{ github.event.client_payload.tag }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install needed components
+        run: |
+          rustup component add rustfmt
+          rustup component add clippy
+
+      - name: Install cargo-deb cross compilation dependencies
+        run: sudo apt-get install libc6-arm64-cross libgcc-s1-arm64-cross
+        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
+        shell: bash
+
+      - name: Install cargo-deb cross compilation dependencies for armv7
+        run: sudo apt-get install libc6-armhf-cross libgcc-s1-armhf-cross
+        if: ${{ matrix.target == 'armv7-unknown-linux-gnueabihf' }}
+        shell: bash
+
+      - name: Install cargo-deb
+        run: cargo install cargo-deb
+        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'armv7-unknown-linux-gnueabihf' }}
+        shell: bash
+
+      - name: install targets
+        run: rustup target add "${matrix_target}"
+
+      - name: install cross
+        # Install from source to fix `ld: cannot find -lgeom` for freebsd build
+        run: cargo +stable install --git https://github.com/cross-rs/cross cross
+
+      - name: Run clippy
+        run: cross clippy --all-targets --locked --target "${matrix_target}" -- -D warnings
+
+      - name: Run clippy (All features)
+        run: cross clippy --locked --all-features --target "${matrix_target}" -- -D warnings
+
+      - name: Run tests
+        run: cross test --target "${matrix_target}"
+        # Running tests on FreeBSD is impossible; see https://github.com/cross-rs/cross/wiki/FAQ#running-bsd-tests
+        # Not that this is *NOT* the same as the original issue with `ld: cannot find -lgeom`, but a new issue:
+        # error: test failed, to rerun pass `--lib`
+        # Caused by:
+        #   could not execute process `/target/x86_64-unknown-freebsd/debug/deps/topgrade-9b1670d87ca863dd` (never executed)
+        # Caused by:
+        #   No such file or directory (os error 2)
+        # TODO: I have not tested this in GHA yet, only locally
+        if: ${{ matrix.target != 'x86_64-unknown-freebsd' }}
+
+      # Used `https://github.com/BurntSushi/ripgrep/blob/master/.github/workflows/release.yml`
+      # as a reference.
+      - name: Build debug binary to create release assets
+        shell: bash
+        run: |
+          # This build is not using the target arch since this binary is only needed in CI. It needs
+          # to be the compiled for the runner since it has the run the binary to generate completion
+          # scripts.
+          cargo build --all-features
+          bin="target/debug/topgrade"
+          echo "BIN=$bin" >> $GITHUB_ENV
+
+      - name: Create deployment directory
+        shell: bash
+        run: |
+          dir=deployment/deb
+          mkdir -p "$dir"
+          echo "DEPLOY_DIR=$dir" >> $GITHUB_ENV
+
+      - name: Generate man page and shell completions
+        shell: bash
+        run: |
+          "$BIN" --gen-manpage > "$DEPLOY_DIR/topgrade.1"
+          "$BIN" --gen-completion bash > "$DEPLOY_DIR/topgrade.bash"
+          "$BIN" --gen-completion fish > "$DEPLOY_DIR/topgrade.fish"
+          "$BIN" --gen-completion zsh > "$DEPLOY_DIR/_topgrade"
+
+      - name: Build in Release profile with all features enabled
+        run: cross build --release --all-features --target "${matrix_target}"
+
+      - name: Rename Release
+        run: |
+          mkdir -p assets
+          FILENAME=topgrade-${tag}-${matrix_target}
+          mv "target/${matrix_target}/release/topgrade" assets
+          cd assets
+          tar --format=ustar -czf "$FILENAME.tar.gz" topgrade
+          rm topgrade
+          ls .
+
+      - name: Build Debian-based system package without autoupdate feature
+        # First remove the binary built by previous steps
+        # because we don't want the auto-update feature,
+        # then build the new binary without auto-updating.
+        run: |
+          rm -rf "target/${matrix_target}"
+          cross build --release --target "${matrix_target}"
+          cargo deb --target="${matrix_target}" --no-build --no-strip
+        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'armv7-unknown-linux-gnueabihf' }}
+        shell: bash
+
+      - name: Move Debian-based system package
+        run: |
+          mkdir -p assets
+          mv target/"${matrix_target}"/debian/*.deb assets
+        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'armv7-unknown-linux-gnueabihf' }}
+        shell: bash
+
+      - name: Upload assets
+        run: gh release upload "${tag}" assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate artifact attestations
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-path: assets/*
+
+  # Publish release files for OpenBSD
+  openbsd_build:
+    permissions:
+      id-token: write
+      contents: write
+      attestations: write
+    runs-on: ubuntu-latest
+    env:
+      tag: ${{ github.event.client_payload.tag }}
+
+    defaults:
+      run:
+        shell: openbsd {0}
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Start OpenBSD VM
+        uses: vmactions/openbsd-vm@fcf799d7ce9c305ad89eabef1fb2fa5c1c42d0ee # v1.4.3
+        with:
+          arch: x86_64
+          sync: nfs
+          usesh: true
+
+      - name: Install dependencies
+        run: >
+          pkg_add -v
+          rust
+          git
+          gmake
+          bash
+
+      - name: Install Rust components
+        run: |
+          pkg_add -v rust-rustfmt rust-clippy
+
+      - name: Check format
+        run: |
+          cd $GITHUB_WORKSPACE
+          cargo fmt --all -- --check
+
+      - name: Run clippy
+        run: |
+          cd $GITHUB_WORKSPACE
+          cargo clippy --all-targets --locked -- -D warnings
+
+      - name: Run clippy (All features)
+        run: |
+          cd $GITHUB_WORKSPACE
+          cargo clippy --all-targets --locked --all-features -- -D warnings
+
+      - name: Run tests
+        run: |
+          cd $GITHUB_WORKSPACE
+          cargo test
+
+      - name: Build Release binary
+        run: |
+          cd $GITHUB_WORKSPACE
+          cargo build --release --all-features
+
+      - name: Package OpenBSD release
+        run: |
+          cd $GITHUB_WORKSPACE
+          cargo install default-target
+          mkdir -p assets
+          # TODO: this should use the env var (${tag}), but can't because it's not set in the VM.
+          FILENAME=topgrade-${{ github.event.client_payload.tag }}-$(/root/.cargo/bin/default-target)
+          mv target/release/topgrade assets
+          cd assets
+          tar -F ustar -czf "$FILENAME.tar.gz" topgrade
+          rm topgrade
+          ls .
+
+      - name: Upload assets
+        shell: bash
+        run: gh release upload "${tag}" assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate artifact attestations
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-path: assets/*
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: [native_build, cross_build, openbsd_build]
+    env:
+      tag: ${{ github.event.client_payload.tag }}
+    permissions:
+      contents: write # `gh release edit`
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Publish release
+        run: gh release edit "$tag" --draft=false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  triggers:
+    runs-on: ubuntu-latest
+    needs: [publish]
+    env:
+      tag: ${{ github.event.client_payload.tag }}
+    steps:
+      - name: Trigger workflows
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/dispatches" \
+            -f "event_type=release-assets-built" \
+            -F "client_payload[tag]=${tag}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

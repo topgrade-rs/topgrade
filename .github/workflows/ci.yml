@@ -1,87 +1,212 @@
+name: Rust CI
+
 on:
   pull_request:
   push:
     branches:
       - main
 
-name: CI
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   CROSS_VER: '0.2.5'
   CARGO_NET_RETRY: 3
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: full
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  fmt:
-    name: Rustfmt
+  format:
+    name: Format (cargo fmt)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
-      - name: Run cargo fmt
-        env:
-          TERM: xterm-256color
+      - run: rustup component add rustfmt
+
+      - name: cargo fmt
+        run: cargo fmt --all -- --check
+
+  custom-checks:
+    name: Custom checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Check if `Step` enum is sorted
         run: |
-          cargo fmt --all -- --check
+          ENUM_NAME="Step"
+          FILE="src/step.rs"
+          awk "/enum $ENUM_NAME/,/}/" "$FILE" | \
+          grep -E '^\s*[A-Za-z_][A-Za-z0-9_]*\s*,?$' | \
+          sed 's/[, ]//g' > original.txt
+          sort original.txt > sorted.txt
+          diff original.txt sorted.txt
 
-  main:
-    needs: fmt
-    name: ${{ matrix.target_name }} (check, clippy)
+      - name: Check if `Step::run()`'s match is sorted
+        run: |
+          FILE="src/step.rs"
+          awk '/[[:alpha:]] =>/{print $1}' $FILE > original.txt
+          sort original.txt > sorted.txt
+          diff original.txt sorted.txt
+
+      - name: Check if `default_steps` contains every step
+        run: |
+          # Extract all variants from enum Step
+          all_variants=$(sed -n '/^pub enum Step {/,/^}/p' src/step.rs | \
+            grep -Po '^\s*\K[A-Z][A-Za-z0-9_]*' | \
+            # Ignore SelfUpdate as it's ran manually in main.rs
+            grep -v '^SelfUpdate$' | \
+          sort)
+
+          # Extract variants used inside default_steps
+          used_variants=$(sed -n '/^pub(crate) fn default_steps()/,/^}/p' src/step.rs | \
+            grep -Pv '^\s*//' | \
+            grep -Po '\b[A-Z][A-Za-z0-9_]*\b' | \
+            grep -Fx -f <(echo "$all_variants") | \
+          sort)
+
+          # Check for missing variants
+          missing=$(comm -23 <(echo "$all_variants") <(echo "$used_variants"))
+          if [[ -z "$missing" ]]; then
+            echo "All variants are used."
+            else
+            echo "Missing variants:"
+            echo "$missing"
+            exit 1
+          fi
+
+          # Check for duplicates
+          duplicates=$(echo "$used_variants" | uniq -c | awk '$1 > 1 {print $2}')
+          if [[ -z "$duplicates" ]]; then
+            echo "No duplicates found."
+            else
+            echo "Duplicates found:"
+            echo "$duplicates"
+            exit 1
+          fi
+
+  msrv:
+    needs: [ format, custom-checks ]
+    name: MSRV check (${{ matrix.target_name }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: x86_64-linux-android
-            target_name: Android
-            use_cross: true
+          - target_name: Linux
+            target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
 
-          - target: x86_64-unknown-freebsd
-            target_name: FreeBSD
-            use_cross: true
-            os: ubuntu-latest
+          - target_name: Windows
+            target: x86_64-pc-windows-msvc
+            os: windows-latest
 
-          - target: x86_64-unknown-linux-gnu
-            target_name: Linux
-            os: ubuntu-latest
-
-          - target: x86_64-apple-darwin
-            target_name: macOS-x86_64
-            os: macos-13
-
-          - target: aarch64-apple-darwin
-            target_name: macOS-aarch64
+          - target_name: macOS-aarch64
+            target: aarch64-apple-darwin
             os: macos-latest
 
-          - target: x86_64-unknown-netbsd
-            target_name: NetBSD
+          - target_name: macOS-x86_64
+            target: x86_64-apple-darwin
+            os: macos-15-intel
+
+          # Ignores the cross-compiled targets for simplicity; they contain a minimal amount of code anyway.
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Pin toolchain to MSRV
+        run: |
+          msrv=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[0].rust_version')
+          rustup override set "$msrv"
+
+      - name: Print toolchain version
+        run: rustc --version
+
+      - name: cargo check
+        run: cargo check --locked --all-features
+
+  main:
+    needs: [ format, custom-checks ]
+    name: ${{ matrix.target_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target_name: Linux
+            target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+
+          - target_name: Windows
+            target: x86_64-pc-windows-msvc
+            os: windows-latest
+
+          - target_name: macOS-aarch64
+            target: aarch64-apple-darwin
+            os: macos-latest
+
+          - target_name: macOS-x86_64
+            target: x86_64-apple-darwin
+            os: macos-15-intel
+
+          - target_name: FreeBSD
+            target: x86_64-unknown-freebsd
             use_cross: true
             os: ubuntu-latest
 
-          - target: x86_64-pc-windows-msvc
-            target_name: Windows
-            os: windows-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+          - target_name: NetBSD
+            target: x86_64-unknown-netbsd
+            use_cross: true
+            os: ubuntu-latest
 
-      - name: Setup Rust Cache
-        uses: Swatinem/rust-cache@v2
+          - target_name: Android
+            target: x86_64-linux-android
+            use_cross: true
+            os: ubuntu-latest
+    env:
+      cargo_cmd: ${{ matrix.use_cross == true && 'cross' || 'cargo' }}
+      matrix_target: ${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          prefix-key: ${{ matrix.target }}
+          persist-credentials: false
+
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+        with:
+          key: ${{ matrix.target }}
 
       - name: Setup cross
         if: matrix.use_cross == true
-        run: curl -fL --retry 3 https://github.com/cross-rs/cross/releases/download/v${{ env.CROSS_VER }}/cross-x86_64-unknown-linux-musl.tar.gz | tar vxz -C /usr/local/bin
+        run: curl -fL --retry 3 "https://github.com/cross-rs/cross/releases/download/v${CROSS_VER}/cross-x86_64-unknown-linux-musl.tar.gz" | tar vxz -C /usr/local/bin
 
-      - name: Run cargo/cross check
-        run: ${{ matrix.use_cross == true && 'cross' || 'cargo' }} check --locked --target ${{ matrix.target }}
+      - run: rustup component add clippy
 
-      - name: Run cargo/cross clippy
-        run: ${{ matrix.use_cross == true && 'cross' || 'cargo' }} clippy --locked --target ${{ matrix.target }} --all-features -- -D warnings
+      - name: Print toolchain version
+        run: rustc --version
 
-      - name: Run cargo test
+      - name: cargo clippy
+        run: |
+          "${cargo_cmd}" clippy --locked --target "${matrix_target}" --all-features -- --deny warnings
+
+      - name: cargo test
         # ONLY run test with cargo
         if: matrix.use_cross == false
-        run: cargo test --locked --target ${{ matrix.target }} 
+        run: cargo test --locked --target "${matrix_target}"
