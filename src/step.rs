@@ -474,11 +474,7 @@ impl Step {
                 runner.execute(*self, "Microsoft Store", || windows::microsoft_store(ctx))?
             }
             Miktex => runner.execute(*self, "miktex", || generic::run_miktex_packages_update(ctx))?,
-            Mise =>
-            {
-                #[cfg(unix)]
-                runner.execute(*self, "mise", || unix::run_mise(ctx))?
-            }
+            Mise => runner.execute(*self, "mise", || generic::run_mise(ctx))?,
             Myrepos => runner.execute(*self, "myrepos", || generic::run_myrepos_update(ctx))?,
             Nix => {
                 #[cfg(unix)]

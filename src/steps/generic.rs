@@ -2355,3 +2355,64 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
 
     pull_result
 }
+
+pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
+    let mise = require("mise")?;
+
+    print_separator("mise");
+
+    ctx.execute(&mise).args(["plugins", "update"]).status_checked()?;
+
+    let output = ctx
+        .execute(&mise)
+        .args(["self-update"])
+        .output_checked_with(|_| Ok(()))?;
+    let status_code = output
+        .status
+        .code()
+        .ok_or_eyre("Couldn't get status code (terminated by signal)")?;
+    let stderr = std::str::from_utf8(&output.stderr).wrap_err("Expected output to be valid UTF-8")?;
+    if stderr.contains("cannot update") && status_code == 1 {
+        debug!("Mise self-update not available")
+    } else {
+        std::io::stdout().lock().write_all(&output.stdout)?;
+        std::io::stderr().lock().write_all(&output.stderr)?;
+        if status_code != 0 {
+            return Err(StepFailed.into());
+        }
+    }
+
+    let mut cmd = ctx.execute(&mise);
+
+    cmd.arg("upgrade");
+
+    if ctx.config().mise_interactive() {
+        cmd.arg("--interactive");
+    }
+
+    if ctx.config().mise_bump() {
+        cmd.arg("--bump");
+    }
+
+    if ctx.config().mise_silent() {
+        cmd.arg("--silent");
+    }
+
+    if ctx.config().mise_quiet() {
+        cmd.arg("--quiet");
+    }
+
+    if ctx.config().mise_verbose() {
+        cmd.arg("--verbose");
+    }
+
+    if ctx.config().yes(Step::Mise) {
+        cmd.arg("--yes");
+    }
+
+    if ctx.config().mise_jobs() != 4 {
+        cmd.args(["--jobs", &ctx.config().mise_jobs().to_string()]);
+    }
+
+    cmd.status_checked()
+}
