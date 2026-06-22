@@ -90,6 +90,9 @@ pub struct Git {
 
     #[merge(strategy = merge::option::overwrite_none)]
     fetch_only: Option<bool>,
+
+    #[merge(strategy = merge::option::overwrite_none)]
+    fallback_to_fetch_default: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1367,6 +1370,15 @@ impl Config {
             .git
             .as_ref()
             .and_then(|git| git.fetch_only)
+            .unwrap_or(false)
+    }
+
+    /// Fetch the default branch instead of failing when a repo is on another branch
+    pub fn git_fallback_to_fetch_default(&self) -> bool {
+        self.config_file
+            .git
+            .as_ref()
+            .and_then(|git| git.fallback_to_fetch_default)
             .unwrap_or(false)
     }
 
