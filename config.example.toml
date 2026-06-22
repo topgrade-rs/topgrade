@@ -284,6 +284,11 @@
 # Whether to perform a `git fetch` instead of `git pull`
 # fetch_only = false
 
+# When a repo is not on its default branch, fetch the default branch (advancing
+# its local ref) instead of failing. The remote and default branch are detected
+# per repo. Has no effect on repos already on their default branch.
+# fallback_to_fetch_default = false
+
 [windows]
 # Manually select Windows updates
 # accept_all_updates = false
