@@ -646,11 +646,11 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep(t!("`nix upgrade-nix` can only be used on macOS or non-NixOS Linux").to_string()).into());
     }
 
-    print_separator(t!("Nix (self-upgrade)"));
-
     let nix_version = NixVersion::new(ctx, &nix)?;
 
     if nix_version.is_determinate_nix() {
+        print_separator(t!("Nix (self-upgrade)"));
+
         let nixd = require("determinate-nixd");
         let nixd = match nixd {
             Err(_) => {
@@ -672,6 +672,8 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
             SkipStep(t!("`nix upgrade-nix` cannot be run when Nix is installed in a profile").to_string()).into(),
         );
     }
+
+    print_separator(t!("Nix (self-upgrade)"));
 
     let multi_user = fs::metadata(&nix)?.uid() == 0;
     debug!("Multi user nix: {}", multi_user);
