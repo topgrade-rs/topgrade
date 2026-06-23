@@ -2223,9 +2223,9 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
         .as_deref()
         .filter(|state| !state.is_empty())
     {
-        Some(state) => Path::new(state).join("skills").join(".skill-lock.json"),
-        None => HOME_DIR.join(".agents").join(".skill-lock.json"),
-    };
+        Some(state) => Path::new(state).join("skills"),
+        None => HOME_DIR.join(".agents"),
+    }.join(".skill-lock.json");
 
     if !skill_lock.exists() {
         return Err(SkipStep(format!("No skill lock file found at {}", skill_lock.display())).into());
