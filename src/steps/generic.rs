@@ -8,6 +8,7 @@ use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
 use serde::Deserialize;
+use std::collections::BTreeMap;
 use std::ffi::OsString;
 #[cfg(unix)]
 use std::fs::remove_dir_all;
@@ -2424,5 +2425,39 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
         cmd.args(["--jobs", &jobs.to_string()]);
     }
 
-    cmd.status_checked()
+    cmd.status_checked()?;
+
+    refresh_mise_env(ctx, &mise)
+}
+
+/// Refresh the process environment after `mise upgrade` so later steps and binary
+/// lookups resolve the upgraded mise-managed tools. `mise env --json` reports the
+/// activated environment, which we apply to the `PATH`/vars that child commands inherit.
+/// See <https://github.com/topgrade-rs/topgrade/issues/2041>.
+fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path) -> Result<()> {
+    if ctx.run_type().dry() {
+        return Ok(());
+    }
+
+    let output = ctx
+        .execute(mise)
+        .args(["env", "--json"])
+        .output_checked()
+        .wrap_err("failed to run `mise env --json`")?;
+    let raw = std::str::from_utf8(&output.stdout).wrap_err("`mise env --json` output was not UTF-8")?;
+    let vars = parse_mise_env_json(raw)?;
+
+    for (key, value) in vars {
+        // SAFETY: `set_var` is not thread-safe; this mirrors the existing `env::set_var`
+        // calls in `main.rs` and `steps/zsh.rs`. Steps run sequentially, so the only
+        // concurrent reader is the sudo keep-alive loop, the same pre-existing condition
+        // those call sites already accept.
+        unsafe { std::env::set_var(key, value) };
+    }
+    debug!("Refreshed process environment from mise");
+    Ok(())
+}
+
+fn parse_mise_env_json(raw: &str) -> Result<BTreeMap<String, String>> {
+    serde_json::from_str(raw).wrap_err("failed to parse mise environment JSON")
 }
