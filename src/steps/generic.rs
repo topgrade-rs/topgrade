@@ -2410,8 +2410,8 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
         cmd.arg("--yes");
     }
 
-    if ctx.config().mise_jobs() != 4 {
-        cmd.args(["--jobs", &ctx.config().mise_jobs().to_string()]);
+    if let Some(jobs) = ctx.config().mise_jobs() {
+        cmd.args(["--jobs", &jobs.to_string()]);
     }
 
     cmd.status_checked()

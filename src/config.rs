@@ -2218,8 +2218,8 @@ impl Config {
             .unwrap_or(false)
     }
 
-    pub fn mise_jobs(&self) -> u32 {
-        self.config_file.mise.as_ref().and_then(|mise| mise.jobs).unwrap_or(4)
+    pub fn mise_jobs(&self) -> Option<u32> {
+        self.config_file.mise.as_ref().and_then(|mise| mise.jobs)
     }
 
     pub fn mise_interactive(&self) -> bool {
