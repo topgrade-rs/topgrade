@@ -2217,9 +2217,16 @@ pub fn run_colima(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
     let npx = require("npx")?;
 
-    let skill_lock = HOME_DIR.join(".agents").join(".skill-lock.json");
+    let skill_lock = match env::var_os("XDG_STATE_HOME")
+        .as_deref()
+        .filter(|state| !state.is_empty())
+    {
+        Some(state) => Path::new(state).join("skills").join(".skill-lock.json"),
+        None => HOME_DIR.join(".agents").join(".skill-lock.json"),
+    };
+
     if !skill_lock.exists() {
-        return Err(SkipStep("No ~/.agents/.skill-lock.json found".to_string()).into());
+        return Err(SkipStep(format!("No skill lock file found at {}", skill_lock.display())).into());
     }
 
     print_separator("Skills");
