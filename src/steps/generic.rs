@@ -2217,6 +2217,8 @@ pub fn run_colima(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
     let npx = require("npx")?;
 
+    // Can't use XDG_DIRS since its `state_dir()` falls back to `~/.local/state` instead
+    // of `~/.agents` and it'd also break on non-unix systems
     let skill_lock = match env::var_os("XDG_STATE_HOME")
         .as_deref()
         .filter(|state| !state.is_empty())
