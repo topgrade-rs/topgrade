@@ -333,9 +333,8 @@
 # (default: false)
 # bump = false
 
-# Number of jobs to run in parallel
-# (default: 4)
-# jobs = 4
+# Number of jobs to run in parallel (mise's default)
+# jobs = 8
 
 # Run interactively
 # (default: false)
