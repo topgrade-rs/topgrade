@@ -237,7 +237,7 @@ pub fn run_bashit(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Bash-it");
 
     ctx.execute("bash")
-        .args(["-lic", &format!("bash-it update {}", ctx.config().bashit_branch())])
+        .args(["-lic", r#"bash-it update "$1""#, "bash", ctx.config().bashit_branch()])
         .status_checked()
 }
 

@@ -196,7 +196,10 @@ pub fn topgrade_vagrant_box(ctx: &ExecutionContext, vagrant_box: &VagrantBox) ->
     } else {
         print_separator(separator);
     }
-    let mut command = format!("env TOPGRADE_PREFIX={} topgrade", vagrant_box.smart_name());
+    let mut command = format!(
+        "env TOPGRADE_PREFIX={} topgrade",
+        shell_words::quote(vagrant_box.smart_name())
+    );
     if ctx.config().yes(Step::Vagrant) {
         command.push_str(" -y");
     }

@@ -145,41 +145,23 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
 
     let mut command = ctx.execute(wsl);
 
-    // The `arg` method automatically quotes its arguments.
-    // This means we can't append additional arguments to `topgrade` in WSL
-    // by calling `arg` successively.
-    //
-    // For example:
-    //
-    // ```rust
-    // command
-    //  .args(["-d", dist, "bash", "-lc"])
-    //  .arg(format!("TOPGRADE_PREFIX={dist} exec {topgrade}"));
-    // ```
-    //
-    // creates a command string like:
-    // > `C:\WINDOWS\system32\wsl.EXE -d Ubuntu bash -lc 'TOPGRADE_PREFIX=Ubuntu exec /bin/topgrade'`
-    //
-    // Adding the following:
-    //
-    // ```rust
-    // command.arg("-v");
-    // ```
-    //
-    // appends the next argument like so:
-    // > `C:\WINDOWS\system32\wsl.EXE -d Ubuntu bash -lc 'TOPGRADE_PREFIX=Ubuntu exec /bin/topgrade' -v`
-    // which means `-v` isn't passed to `topgrade`.
-    let mut args = String::new();
-    if ctx.config().verbose() {
-        args.push_str("-v");
-    }
-
+    // Pass the distro name, discovered topgrade path, and forwarded flags as
+    // positional parameters so the inner `bash -lc` receives them as single argv
+    // elements instead of parsing their contents. `"${@:3}"` forwards the flags
+    // to `topgrade` (not `bash`) and expands to nothing when there are none.
     command
-        .args(["-d", dist, "bash", "-lc"])
-        .arg(format!("TOPGRADE_PREFIX={dist} exec {topgrade} {args}"));
-
-    if ctx.config().yes(Step::Wsl) {
-        command.arg("-y");
+        .args([
+            "-d",
+            dist,
+            "bash",
+            "-lc",
+            r#"TOPGRADE_PREFIX="$1" exec "$2" "${@:3}""#,
+            "bash",
+        ])
+        .arg(dist)
+        .arg(&topgrade);
+    if ctx.config().verbose() {
+        command.arg("-v");
     }
 
     command.status_checked()
