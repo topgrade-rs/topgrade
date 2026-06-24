@@ -54,8 +54,8 @@ pub fn run_antidote(ctx: &ExecutionContext) -> Result<()> {
         AntidoteUpdate::Shell => ctx.execute(zsh).args(["-i", "-c", "antidote update"]).status_checked(),
         AntidoteUpdate::Source(antidote) => ctx
             .execute(zsh)
-            .arg("-c")
-            .arg(format!("source {} && antidote update", antidote.display()))
+            .args(["-c", r#"source "$1" && antidote update"#, "zsh"])
+            .arg(&antidote)
             .status_checked(),
     }
 }
