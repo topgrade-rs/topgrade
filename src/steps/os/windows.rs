@@ -163,6 +163,9 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     if ctx.config().verbose() {
         command.arg("-v");
     }
+    if ctx.config().yes(Step::Wsl) {
+        command.arg("-y");
+    }
 
     command.status_checked()
 }
