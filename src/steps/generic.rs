@@ -2445,7 +2445,7 @@ fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path) -> Result<()> {
         .output_checked()
         .wrap_err("failed to run `mise env --json`")?;
     let raw = std::str::from_utf8(&output.stdout).wrap_err("`mise env --json` output was not UTF-8")?;
-    let vars = parse_mise_env_json(raw)?;
+    let vars: BTreeMap<String, String> = serde_json::from_str(raw).wrap_err("failed to parse mise environment JSON")?;
 
     for (key, value) in vars {
         // SAFETY: `set_var` is not thread-safe; this mirrors the existing `env::set_var`
@@ -2456,8 +2456,4 @@ fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path) -> Result<()> {
     }
     debug!("Refreshed process environment from mise");
     Ok(())
-}
-
-fn parse_mise_env_json(raw: &str) -> Result<BTreeMap<String, String>> {
-    serde_json::from_str(raw).wrap_err("failed to parse mise environment JSON")
 }
