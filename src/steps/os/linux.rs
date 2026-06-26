@@ -1259,6 +1259,12 @@ pub fn run_cinnamon_spices_updater(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(cinnamon_spice_updater).arg("--update-all").status_checked()
 }
 
+pub fn run_pkgit(ctx: &ExecutionContext) -> Result<()> {
+    let pkgit = require("pkgit")?;
+    print_separator("Pkgit");
+    ctx.execute(pkgit).arg("-u").status_checked()
+}
+
 pub fn run_protonplus_update(ctx: &ExecutionContext) -> Result<()> {
     let (program, flatpak) = match require("protonplus") {
         Ok(protonplus) => (protonplus, false),

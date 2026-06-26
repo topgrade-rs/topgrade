@@ -137,6 +137,7 @@ pub enum Step {
     Pkg,
     Pkgfile,
     Pkgin,
+    Pkgit,
     PlatformioCore,
     Pnpm,
     Poetry,
@@ -531,6 +532,11 @@ impl Step {
                 #[cfg(unix)]
                 runner.execute(*self, "pkgin", || unix::run_pkgin(ctx))?
             }
+            Pkgit =>
+            {
+                #[cfg(target_os = "linux")]
+                runner.execute(*self, "pkgit", || linux::run_pkgit(ctx))?
+            }
             PlatformioCore => runner.execute(*self, "PlatformIO Core", || generic::run_platform_io(ctx))?,
             Pnpm => runner.execute(*self, "pnpm", || node::run_pnpm_upgrade(ctx))?,
             Poetry => runner.execute(*self, "Poetry", || generic::run_poetry(ctx))?,
@@ -869,6 +875,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Node,
         Yarn,
         Pnpm,
+        Pkgit,
         VoltaPackages,
         VitePlus,
         Containers,
