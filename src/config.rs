@@ -772,9 +772,8 @@ impl ConfigFile {
             return Ok(res);
         }
 
-        let entries = fs::read_dir(&dir_to_search).inspect_err(|_| {
-            error!("Unable to read {}", dir_to_search.display());
-        })?;
+        let entries =
+            fs::read_dir(&dir_to_search).wrap_err_with(|| format!("Unable to read {}", dir_to_search.display()))?;
 
         for entry in entries {
             let entry_path = entry?.path();
