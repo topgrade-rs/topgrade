@@ -2471,6 +2471,10 @@ pub fn run_dprint(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("dprint");
 
+    if ctx.config().dprint_self_update() {
+        ctx.execute(&dprint).arg("upgrade").status_checked()?;
+    }
+
     let mut cmd = ctx.execute(&dprint);
     cmd.arg("config");
     cmd.arg("update");
