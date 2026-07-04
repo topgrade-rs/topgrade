@@ -328,7 +328,6 @@ impl Shelly {
 
 impl ArchPackageManager for Shelly {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
-
         if ctx.config().show_arch_news() {
             let mut cmd = ctx.execute(&self.executable);
             cmd.arg("news");
@@ -349,8 +348,11 @@ impl ArchPackageManager for Shelly {
 
         let mut cmd = ctx.execute(&self.executable);
         cmd.arg("upgrade-all")
-            .arg("--no-flatpak")
             .args(ctx.config().shelly_arguments().split_whitespace());
+
+        if ctx.config().should_run(Step::Flatpak) {
+            cmd.arg("--no-flatpak");
+        }
 
         if ctx.config().yes(Step::System) {
             cmd.arg("--no-confirm");
