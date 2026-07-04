@@ -328,19 +328,35 @@ impl Shelly {
 
 impl ArchPackageManager for Shelly {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
-        let mut command = ctx.execute(&self.executable);
+        let mut cmd = ctx.execute(&self.executable);
 
-        command
-            .arg("upgrade")
-            .arg("--all")
-            .arg("--sync")
+        cmd.arg("news").args(ctx.config().shelly_arguments().split_whitespace());
+
+        if ctx.config().yes(Step::System) {
+            cmd.arg("--no-confirm");
+        }
+
+        cmd.status_checked()?;
+
+        let mut cmd = ctx.execute(&self.executable);
+        cmd.arg("sync").args(ctx.config().shelly_arguments().split_whitespace());
+
+        if ctx.config().yes(Step::System) {
+            cmd.arg("--no-confirm");
+        }
+
+        cmd.status_checked()?;
+
+        let mut cmd = ctx.execute(&self.executable);
+        cmd.arg("upgrade-all")
+            .arg("--no-flatpak")
             .args(ctx.config().shelly_arguments().split_whitespace());
 
         if ctx.config().yes(Step::System) {
-            command.arg("--no-confirm");
+            cmd.arg("--no-confirm");
         }
 
-        command.status_checked()?;
+        cmd.status_checked()?;
 
         Ok(())
     }
