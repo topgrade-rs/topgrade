@@ -743,7 +743,7 @@ impl ConfigFile {
             }
         }
 
-        res.1 = Self::ensure_topgrade_d(&config_directory)?;
+        res.1 = Self::find_topgrade_d_configs(&config_directory)?;
 
         // If no config file exists, create a default one in the config directory
         if !res.0.exists() && res.1.is_empty() {
@@ -763,16 +763,19 @@ impl ConfigFile {
     }
 
     /// Searches topgrade.d for additional config files
-    fn ensure_topgrade_d(config_directory: &Path) -> Result<Vec<PathBuf>> {
+    fn find_topgrade_d_configs(config_directory: &Path) -> Result<Vec<PathBuf>> {
         let mut res = Vec::new();
         let dir_to_search = config_directory.join("topgrade.d");
 
         if !dir_to_search.exists() {
-            debug!("No additional configuration directory exists, creating one");
-            fs::create_dir_all(&dir_to_search)?;
+            debug!("No additional configuration directory exists, skipping");
+            return Ok(res);
         }
 
-        for entry in fs::read_dir(&dir_to_search)? {
+        let entries =
+            fs::read_dir(&dir_to_search).wrap_err_with(|| format!("Unable to read {}", dir_to_search.display()))?;
+
+        for entry in entries {
             let entry_path = entry?.path();
 
             if entry_path.is_file() {
@@ -2321,6 +2324,29 @@ mod test {
         let str = include_str!("../config.example.toml");
 
         assert!(toml::from_str::<ConfigFile>(str).is_ok());
+    }
+
+    /// `topgrade.d` must not be auto-created, only read when present.
+    /// See: https://github.com/topgrade-rs/topgrade/issues/624
+    #[test]
+    fn test_topgrade_d_not_auto_created() {
+        let dir = tempfile::tempdir().unwrap();
+
+        // Absent topgrade.d: contributes nothing and is not created.
+        let extra = ConfigFile::find_topgrade_d_configs(dir.path()).unwrap();
+        assert!(extra.is_empty(), "absent topgrade.d should yield no configs");
+        assert!(
+            !dir.path().join("topgrade.d").exists(),
+            "topgrade.d must not be auto-created"
+        );
+
+        // Present topgrade.d: files are picked up in sorted order.
+        let d = dir.path().join("topgrade.d");
+        std::fs::create_dir_all(&d).unwrap();
+        std::fs::write(d.join("b.toml"), "[misc]\n").unwrap();
+        std::fs::write(d.join("a.toml"), "[misc]\n").unwrap();
+        let extra = ConfigFile::find_topgrade_d_configs(dir.path()).unwrap();
+        assert_eq!(extra, vec![d.join("a.toml"), d.join("b.toml")]);
     }
 
     fn config() -> Config {
