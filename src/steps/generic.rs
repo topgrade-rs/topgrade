@@ -2466,21 +2466,29 @@ fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn run_dprint(ctx: &ExecutionContext) -> Result<()> {
+pub fn run_dprint_self_update(ctx: &ExecutionContext) -> Result<()> {
     let dprint = require("dprint")?;
 
-    print_separator("dprint");
+    print_separator("dprint self update");
 
     if ctx.config().dprint_self_update() {
         ctx.execute(&dprint).arg("upgrade").status_checked()?;
     }
+
+    Ok(())
+}
+
+pub fn run_dprint_plugins(ctx: &ExecutionContext) -> Result<()> {
+    let dprint = require("dprint")?;
+
+    print_separator("dprint plugins");
 
     let mut cmd = ctx.execute(&dprint);
     cmd.arg("config");
     cmd.arg("update");
     cmd.arg("--global");
 
-    if ctx.config().yes(Step::Dprint) {
+    if ctx.config().yes(Step::DprintPlugins) {
         cmd.arg("--yes");
     }
 
