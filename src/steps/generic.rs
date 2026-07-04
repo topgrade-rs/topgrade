@@ -2465,3 +2465,36 @@ fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path) -> Result<()> {
     debug!("Refreshed process environment from mise");
     Ok(())
 }
+
+pub fn run_dprint(ctx: &ExecutionContext) -> Result<()> {
+    let dprint = require("dprint")?;
+
+    print_separator("dprint");
+
+    let mut cmd = ctx.execute(&dprint);
+    cmd.arg("config");
+    cmd.arg("update");
+    cmd.arg("--global");
+
+    if ctx.config().yes(Step::Dprint) {
+        cmd.arg("--yes");
+    }
+
+    let output = cmd.output()?;
+    if let ExecutorOutput::Wet(output) = output {
+        let status_code = output
+            .status
+            .code()
+            .ok_or_eyre("Couldn't get status code (terminated by signal)")?;
+        if status_code == 11 {
+            return Err(SkipStep("dprint global config update not available"));
+        } else {
+            std::io::stdout().lock().write_all(&output.stdout)?;
+            std::io::stderr().lock().write_all(&output.stderr)?;
+            if status_code != 0 {
+                return Err(StepFailed.into());
+            }
+        }
+    }
+    Ok(())
+}
