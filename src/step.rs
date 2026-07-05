@@ -190,6 +190,7 @@ pub enum Step {
     Yadm,
     Yarn,
     Yazi,
+    Zerobrew,
     Zigup,
     Zvm,
 }
@@ -753,6 +754,11 @@ impl Step {
             }
             Yarn => runner.execute(*self, "yarn", || node::run_yarn_upgrade(ctx))?,
             Yazi => runner.execute(*self, "Yazi packages", || generic::run_yazi(ctx))?,
+            Zerobrew =>
+            {
+                #[cfg(unix)]
+                runner.execute(*self, "Zerobrew", || unix::run_zerobrew(ctx))?
+            }
             Zigup => runner.execute(*self, "zigup", || generic::run_zigup(ctx))?,
             Zvm => runner.execute(*self, "ZVM", || generic::run_zvm(ctx))?,
         }
@@ -780,6 +786,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         MicrosoftStore,
         BrewFormula,
         BrewCask,
+        Zerobrew,
         Macports,
         Xcodes,
         Sparkle,
