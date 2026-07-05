@@ -1138,6 +1138,14 @@ pub fn run_atuin(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(atuin).status_checked()
 }
 
+pub fn run_sera(ctx: &ExecutionContext) -> Result<()> {
+    let sera = require("sera")?;
+
+    print_separator("sera");
+
+    ctx.execute(sera).arg("upgrade").status_checked()
+}
+
 pub fn reboot(ctx: &ExecutionContext) -> Result<()> {
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     if let Ok(()) = system_shutdown::reboot() {

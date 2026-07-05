@@ -156,6 +156,7 @@ pub enum Step {
     Scoop,
     Sdkman,
     SelfUpdate,
+    Sera,
     Sheldon,
     Shell,
     Skills,
@@ -604,6 +605,11 @@ impl Step {
                     }
                 }
             }
+            Sera =>
+            {
+                #[cfg(all(unix, not(any(target_os = "macos", target_os = "android"))))]
+                runner.execute(*self, "sera", || unix::run_sera(ctx))?
+            }
             Sheldon => runner.execute(*self, "sheldon", || generic::run_sheldon(ctx))?,
             Shell => {
                 #[cfg(unix)]
@@ -806,6 +812,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Waydroid,
         AutoCpufreq,
         CinnamonSpices,
+        Sera,
         Mandb,
         Pkgfile,
         Yadm,
