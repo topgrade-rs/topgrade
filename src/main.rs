@@ -28,7 +28,7 @@ use self::steps::{remote::*, *};
 use self::sudo::{Sudo, SudoCreateError, SudoKind};
 #[allow(clippy::wildcard_imports)]
 use self::terminal::*;
-use self::utils::{install_color_eyre, install_tracing, is_elevated, update_tracing};
+use self::utils::{install_color_eyre, install_tracing, is_elevated, set_wsl_use_windows_path, update_tracing};
 
 mod breaking_changes;
 mod command;
@@ -116,6 +116,7 @@ fn run() -> Result<()> {
     set_title(config.set_title());
     display_time(config.display_time());
     set_desktop_notifications(config.notify_each_step());
+    set_wsl_use_windows_path(config.wsl_use_windows_path());
 
     debug!("Version: {}", crate_version!());
     debug!("OS: {}", env!("TARGET"));

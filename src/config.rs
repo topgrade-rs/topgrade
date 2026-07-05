@@ -381,6 +381,9 @@ pub struct Linux {
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     home_manager_arguments: Option<Vec<String>>,
+
+    #[merge(strategy = merge::option::overwrite_none)]
+    wsl_use_windows_path: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1518,6 +1521,15 @@ impl Config {
             .windows
             .as_ref()
             .and_then(|w| w.wsl_update_use_web_download)
+            .unwrap_or(false)
+    }
+
+    /// Should tool detection keep using Windows PATH binaries (under `/mnt`) inside WSL
+    pub fn wsl_use_windows_path(&self) -> bool {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|l| l.wsl_use_windows_path)
             .unwrap_or(false)
     }
 
