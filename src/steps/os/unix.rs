@@ -1138,6 +1138,7 @@ pub fn run_atuin(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(atuin).status_checked()
 }
 
+#[cfg(not(any(target_os = "android", target_os = "macos")))]
 pub fn run_sera(ctx: &ExecutionContext) -> Result<()> {
     let sera = require("sera")?;
 
