@@ -116,7 +116,7 @@ fn run() -> Result<()> {
     set_title(config.set_title());
     display_time(config.display_time());
     set_desktop_notifications(config.notify_each_step());
-    set_wsl_use_windows_path(config.wsl_use_windows_path());
+    set_wsl_use_windows_path(config.wsl_use_windows_path())?;
 
     debug!("Version: {}", crate_version!());
     debug!("OS: {}", env!("TARGET"));

@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{Result, eyre};
 use rust_i18n::t;
 
 use tracing::{debug, error, warn};
@@ -80,20 +80,17 @@ where
 /// default: off outside WSL, on inside.
 static WSL_USE_WINDOWS_PATH: OnceLock<bool> = OnceLock::new();
 
-pub fn set_wsl_use_windows_path(use_windows_path: bool) {
-    let _ = WSL_USE_WINDOWS_PATH.set(use_windows_path);
-}
-
-fn in_wsl() -> bool {
-    static IN_WSL: OnceLock<bool> = OnceLock::new();
-    *IN_WSL.get_or_init(|| crate::steps::generic::is_wsl().unwrap_or(false))
+pub fn set_wsl_use_windows_path(use_windows_path: bool) -> Result<()> {
+    WSL_USE_WINDOWS_PATH
+        .set(use_windows_path)
+        .map_err(|_| eyre!("WSL Windows-path setting was already initialized"))
 }
 
 /// Inside WSL a plain PATH lookup can resolve a Windows executable on `/mnt/*` that
 /// fails to run in the guest (topgrade-rs/topgrade#1243). When on, detection skips those.
 /// Off via `wsl_use_windows_path = true`.
 fn wsl_windows_path_filter_enabled() -> bool {
-    in_wsl() && !WSL_USE_WINDOWS_PATH.get().copied().unwrap_or(false)
+    crate::steps::generic::is_wsl().unwrap_or(false) && !WSL_USE_WINDOWS_PATH.get().copied().unwrap_or(false)
 }
 
 /// Mount points backed by Windows drives (drvfs on WSL1, 9p/virtiofs on WSL2).
@@ -142,16 +139,26 @@ fn which_native_in_wsl<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBu
     };
 
     let prefixes = windows_mount_prefixes();
-    match candidates.find(|path| !is_windows_mount_path(path, prefixes)) {
+    let mut saw_candidate = false;
+    let native = candidates.find(|path| {
+        saw_candidate = true;
+        !is_windows_mount_path(path, prefixes)
+    });
+    match native {
         Some(path) => {
             debug!("Detected {:?} as {:?}", &path, &binary_name);
             Some(path)
         }
-        None => {
+        // Every PATH match was a Windows binary on a drive mount.
+        None if saw_candidate => {
             debug!(
                 "Cannot find native {:?} in PATH (only Windows binaries via WSL interop)",
                 &binary_name
             );
+            None
+        }
+        None => {
+            debug!("Cannot find {:?}", &binary_name);
             None
         }
     }
