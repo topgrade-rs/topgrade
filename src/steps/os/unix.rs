@@ -493,6 +493,21 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
     Ok(())
 }
 
+pub fn run_zerobrew(ctx: &ExecutionContext) -> Result<()> {
+    let zb = require("zb")?;
+
+    print_separator("Zerobrew");
+
+    ctx.execute(&zb).arg("update").status_checked()?;
+    ctx.execute(&zb).arg("upgrade").status_checked()?;
+
+    if ctx.config().cleanup() {
+        ctx.execute(&zb).arg("gc").status_checked()?;
+    }
+
+    Ok(())
+}
+
 pub fn run_guix(ctx: &ExecutionContext) -> Result<()> {
     let guix = require("guix")?;
 
