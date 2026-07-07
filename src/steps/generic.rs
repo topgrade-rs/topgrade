@@ -2246,6 +2246,14 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
     command.status_checked()
 }
 
+fn run_opencode(ctx: &ExecutionContext) -> Result<()> {
+    let opencode = require("opencode")?;
+
+    print_separator("OpenCode");
+
+    ctx.execute(opencode).arg("upgrade").status_checked()
+}
+
 fn ollama_serve(ctx: &ExecutionContext, ollama: &Path) -> Result<ExecutorChild> {
     ctx.execute(ollama)
         .arg("serve")
