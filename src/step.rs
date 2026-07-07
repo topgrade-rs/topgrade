@@ -124,6 +124,7 @@ pub enum Step {
     Node,
     Ollama,
     Opam,
+    Opencode,
     Pacdef,
     Pacstall,
     Pearl,
@@ -490,6 +491,7 @@ impl Step {
             Node => runner.execute(*self, "npm", || node::run_npm_upgrade(ctx))?,
             Ollama => runner.execute(*self, "Ollama", || generic::run_ollama_pull(ctx))?,
             Opam => runner.execute(*self, "opam", || generic::run_opam_update(ctx))?,
+            Opencode => runner.execute(*self, "OpenCode", || generic::run_opencode(ctx))?,
             Pacdef =>
             {
                 #[cfg(target_os = "linux")]
@@ -911,6 +913,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         GitRepos,
         ClamAvDb,
         ClaudeCode,
+        Opencode,
         Colima,
         Skills,
         PlatformioCore,
