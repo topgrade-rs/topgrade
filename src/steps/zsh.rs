@@ -11,7 +11,7 @@ use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::git::RepoStep;
 use crate::terminal::print_separator;
-use crate::utils::{PathExt, require};
+use crate::utils::{PathExt, require, shell_source_command};
 use etcetera::base_strategy::BaseStrategy;
 
 pub fn run_zr(ctx: &ExecutionContext) -> Result<()> {
@@ -21,7 +21,7 @@ pub fn run_zr(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zr");
 
-    let cmd = format!("source {} && zr --update", zshrc().display());
+    let cmd = shell_source_command(&zshrc(), "zr --update");
     ctx.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
 }
 
@@ -55,7 +55,7 @@ pub fn run_antidote(ctx: &ExecutionContext) -> Result<()> {
         AntidoteUpdate::Source(antidote) => ctx
             .execute(zsh)
             .arg("-c")
-            .arg(format!("source {} && antidote update", antidote.display()))
+            .arg(shell_source_command(&antidote, "antidote update"))
             .status_checked(),
     }
 }
@@ -86,7 +86,7 @@ pub fn run_antigen(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("antigen");
 
-    let cmd = format!("source {} && (antigen selfupdate ; antigen update)", zshrc.display());
+    let cmd = shell_source_command(&zshrc, "(antigen selfupdate ; antigen update)");
     ctx.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
 }
 
@@ -99,7 +99,7 @@ pub fn run_zgenom(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zgenom");
 
-    let cmd = format!("source {} && zgenom selfupdate && zgenom update", zshrc.display());
+    let cmd = shell_source_command(&zshrc, "zgenom selfupdate && zgenom update");
     ctx.execute(zsh).args(["-l", "-c", cmd.as_str()]).status_checked()
 }
 
@@ -126,7 +126,7 @@ pub fn run_zinit(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zinit");
 
-    let cmd = format!("source {} && zinit self-update && zinit update --all", zshrc.display());
+    let cmd = shell_source_command(&zshrc, "zinit self-update && zinit update --all");
     ctx.execute(zsh).args(["-i", "-c", cmd.as_str()]).status_checked()
 }
 
@@ -138,7 +138,7 @@ pub fn run_zi(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zi");
 
-    let cmd = format!("source {} && zi self-update && zi update --all", zshrc.display());
+    let cmd = shell_source_command(&zshrc, "zi self-update && zi update --all");
     ctx.execute(zsh).args(["-i", "-c", &cmd]).status_checked()
 }
 
