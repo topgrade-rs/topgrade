@@ -2215,6 +2215,14 @@ pub fn run_colima(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(colima).arg("update").status_checked()
 }
 
+pub fn run_cursor_agent(ctx: &ExecutionContext) -> Result<()> {
+    let cursor_agent = require("cursor-agent")?;
+
+    print_separator("Cursor Agent");
+
+    ctx.execute(cursor_agent).arg("update").status_checked()
+}
+
 pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
     let npx = require("npx")?;
 

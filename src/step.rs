@@ -53,6 +53,7 @@ pub enum Step {
     ConfigUpdate,
     Containers,
     Cursor,
+    CursorAgent,
     CustomCommands,
     DebGet,
     Deno,
@@ -307,6 +308,7 @@ impl Step {
             Cursor => runner.execute(*self, "Cursor extensions", || {
                 generic::run_cursor_extensions_update(ctx)
             })?,
+            CursorAgent => runner.execute(*self, "Cursor Agent", || generic::run_cursor_agent(ctx))?,
             CustomCommands => {
                 if let Some(commands) = ctx.config().commands() {
                     for (name, command) in commands
@@ -846,6 +848,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Cargo,
         Antigravity,
         Cursor,
+        CursorAgent,
         Flutter,
         Go,
         Emacs,
