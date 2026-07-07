@@ -250,6 +250,9 @@
 # Extra Home Manager arguments
 # home_manager_arguments = ["--flake", "file"]
 
+# Resolve tools from the Windows PATH (drive mounts like `/mnt/c`) while inside WSL.
+# Off by default so only the distro's own tools update (default: false).
+# wsl_use_windows_path = false
 
 [mandb]
 # Enable the mandb step (to update manual entries).
