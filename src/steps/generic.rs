@@ -2469,7 +2469,7 @@ fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path) -> Result<()> {
 pub fn run_dprint_self_update(ctx: &ExecutionContext) -> Result<()> {
     let dprint = require("dprint")?;
 
-    print_separator("dprint self update");
+    print_separator("dprint");
 
     if ctx.config().dprint_self_update() {
         ctx.execute(&dprint).arg("upgrade").status_checked()?;
