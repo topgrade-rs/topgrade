@@ -2497,7 +2497,7 @@ pub fn run_dprint_plugins(ctx: &ExecutionContext) -> Result<()> {
             .code()
             .ok_or_eyre("Couldn't get status code (terminated by signal)")?;
         if status_code == 11 {
-            return Err(SkipStep("dprint global config update not available"));
+            return Err(SkipStep(t!("dprint global config update not available").to_string()).into());
         } else {
             std::io::stdout().lock().write_all(&output.stdout)?;
             std::io::stderr().lock().write_all(&output.stderr)?;
