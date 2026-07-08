@@ -2471,9 +2471,7 @@ pub fn run_dprint_self_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("dprint");
 
-    if ctx.config().dprint_self_update() {
-        ctx.execute(&dprint).arg("upgrade").status_checked()?;
-    }
+    ctx.execute(&dprint).arg("upgrade").status_checked()?;
 
     Ok(())
 }

@@ -405,13 +405,6 @@ pub struct Vim {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
-pub struct Dprint {
-    #[merge(strategy = merge::option::overwrite_none)]
-    self_update: Option<bool>,
-}
-
-#[derive(Deserialize, Default, Debug, Merge)]
-#[serde(deny_unknown_fields)]
 pub struct Misc {
     #[merge(strategy = merge::option::overwrite_none)]
     allow_root: Option<bool>,
@@ -714,9 +707,6 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     viteplus: Option<VitePlus>,
-
-    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
-    dprint: Option<Dprint>,
 }
 
 fn config_directory() -> PathBuf {
@@ -1871,15 +1861,6 @@ impl Config {
             .linux
             .as_ref()
             .and_then(|linux| linux.bootc)
-            .unwrap_or(false)
-    }
-
-    /// Whether dprint should update itself
-    pub fn dprint_self_update(&self) -> bool {
-        self.config_file
-            .dprint
-            .as_ref()
-            .and_then(|c| c.self_update)
             .unwrap_or(false)
     }
 

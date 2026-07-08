@@ -501,6 +501,3 @@
 # If set, updates only these channels.
 # (default: [] (all channels))
 # channels = ["stable"]
-
-[dprint]
-# self_update = true
