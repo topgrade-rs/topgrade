@@ -32,7 +32,7 @@ use crate::execution_context::ExecutionContext;
 use crate::executor::Executor;
 use crate::step::Step;
 use crate::terminal::print_separator;
-use crate::utils::{PathExt, require};
+use crate::utils::{PathExt, require, shell_source_command};
 
 fn get_sudo_uid<P: AsRef<Path>>(path: P) -> Option<u32> {
     if let Ok(metadata) = fs::metadata(&path) {
@@ -1059,8 +1059,7 @@ pub fn run_sdkman(ctx: &ExecutionContext) -> Result<()> {
         .map_or_else(|_| HOME_DIR.join(".sdkman"), PathBuf::from)
         .join("bin")
         .join("sdkman-init.sh")
-        .require()
-        .map(|p| format!("{}", &p.display()))?;
+        .require()?;
 
     print_separator("SDKMAN!");
 
@@ -1077,25 +1076,25 @@ pub fn run_sdkman(ctx: &ExecutionContext) -> Result<()> {
         .unwrap_or("false");
 
     if selfupdate_enabled == "true" {
-        let cmd_selfupdate = format!("source {} && sdk selfupdate", &sdkman_init_path);
+        let cmd_selfupdate = shell_source_command(&sdkman_init_path, "sdk selfupdate");
         ctx.execute(&bash)
             .args(["-c", cmd_selfupdate.as_str()])
             .status_checked()?;
     }
 
-    let cmd_update = format!("source {} && sdk update", &sdkman_init_path);
+    let cmd_update = shell_source_command(&sdkman_init_path, "sdk update");
     ctx.execute(&bash).args(["-c", cmd_update.as_str()]).status_checked()?;
 
-    let cmd_upgrade = format!("source {} && sdk upgrade", &sdkman_init_path);
+    let cmd_upgrade = shell_source_command(&sdkman_init_path, "sdk upgrade");
     ctx.execute(&bash).args(["-c", cmd_upgrade.as_str()]).status_checked()?;
 
     if ctx.config().cleanup() {
-        let cmd_flush_archives = format!("source {} && sdk flush archives", &sdkman_init_path);
+        let cmd_flush_archives = shell_source_command(&sdkman_init_path, "sdk flush archives");
         ctx.execute(&bash)
             .args(["-c", cmd_flush_archives.as_str()])
             .status_checked()?;
 
-        let cmd_flush_temp = format!("source {} && sdk flush temp", &sdkman_init_path);
+        let cmd_flush_temp = shell_source_command(&sdkman_init_path, "sdk flush temp");
         ctx.execute(&bash)
             .args(["-c", cmd_flush_temp.as_str()])
             .status_checked()?;

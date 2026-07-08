@@ -280,6 +280,15 @@ pub fn string_prepend_str(string: &mut String, s: &str) {
     *string = new_string;
 }
 
+/// Builds a shell command that sources `path` before running `command`.
+///
+/// Only `path` is quoted. `command` must be a trusted shell fragment.
+#[cfg(unix)]
+pub fn shell_source_command(path: &Path, command: &str) -> String {
+    let path = path.to_string_lossy();
+    format!("source {} && {command}", shell_words::quote(path.as_ref()))
+}
+
 #[cfg(unix)]
 pub fn hostname() -> Result<String> {
     match nix::unistd::gethostname() {
@@ -310,6 +319,33 @@ pub fn is_elevated() -> bool {
         debug!("Detected elevated process");
     }
     elevated
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use std::path::Path;
+
+    use super::shell_source_command;
+
+    #[test]
+    fn shell_source_command_preserves_paths_with_spaces() {
+        let command = shell_source_command(Path::new("/tmp/topgrade test/.zshrc"), "zr --update");
+
+        assert_eq!(
+            shell_words::split(&command).unwrap(),
+            ["source", "/tmp/topgrade test/.zshrc", "&&", "zr", "--update"]
+        );
+    }
+
+    #[test]
+    fn shell_source_command_preserves_paths_with_single_quotes() {
+        let command = shell_source_command(Path::new("/tmp/topgrade's test/.zshrc"), "zr --update");
+
+        assert_eq!(
+            shell_words::split(&command).unwrap(),
+            ["source", "/tmp/topgrade's test/.zshrc", "&&", "zr", "--update"]
+        );
+    }
 }
 
 pub mod merge_strategies {
