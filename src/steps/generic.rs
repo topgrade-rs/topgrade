@@ -2479,8 +2479,6 @@ pub fn run_dprint_self_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_dprint_plugins(ctx: &ExecutionContext) -> Result<()> {
     let dprint = require("dprint")?;
 
-    print_separator("dprint plugins");
-
     let mut cmd = ctx.execute(&dprint);
     cmd.arg("config");
     cmd.arg("update");
@@ -2499,6 +2497,8 @@ pub fn run_dprint_plugins(ctx: &ExecutionContext) -> Result<()> {
         if status_code == 11 {
             return Err(SkipStep(t!("dprint global config update not available").to_string()).into());
         } else {
+            print_separator("dprint plugins");
+
             std::io::stdout().lock().write_all(&output.stdout)?;
             std::io::stderr().lock().write_all(&output.stderr)?;
             if status_code != 0 {
