@@ -2051,7 +2051,7 @@ pub fn run_jetbrains_gateway(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_jetbrains_goland(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require_one(["goland", "goland-eap"])?, "Goland")
+    run_jetbrains_ide(ctx, require_one(["goland", "goland-eap"])?, "GoLand")
 }
 
 pub fn run_jetbrains_idea(ctx: &ExecutionContext) -> Result<()> {
