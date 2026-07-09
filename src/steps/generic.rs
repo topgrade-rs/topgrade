@@ -63,7 +63,7 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     let toml_file = cargo_dir.join(".crates.toml").require()?;
 
     if fs::metadata(&toml_file)?.len() == 0 {
-        return Err(SkipStep(format!("{} exists but empty", &toml_file.display())).into());
+        return Err(SkipStep(format!("{} exists but empty", toml_file.display())).into());
     }
 
     print_separator("Cargo");
