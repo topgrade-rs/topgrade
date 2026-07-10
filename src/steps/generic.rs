@@ -2377,13 +2377,20 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
     let mise = require("mise")?;
+    // Run from a fresh directory so caller project-local mise.toml files do not
+    // affect the mise step.
+    let temp_dir = tempdir()?;
 
     print_separator("mise");
 
-    ctx.execute(&mise).args(["plugins", "update"]).status_checked()?;
+    ctx.execute(&mise)
+        .current_dir(temp_dir.path())
+        .args(["plugins", "update"])
+        .status_checked()?;
 
     let output = ctx
         .execute(&mise)
+        .current_dir(temp_dir.path())
         .args(["self-update"])
         .output_checked_with(|_| Ok(()))?;
     let status_code = output
@@ -2404,6 +2411,7 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
     let mut cmd = ctx.execute(&mise);
 
     cmd.arg("upgrade");
+    cmd.current_dir(temp_dir.path());
 
     if ctx.config().mise_interactive() {
         cmd.arg("--interactive");
@@ -2435,20 +2443,21 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
 
     cmd.status_checked()?;
 
-    refresh_mise_env(ctx, &mise)
+    refresh_mise_env(ctx, &mise, temp_dir.path())
 }
 
 /// Refresh the process environment after `mise upgrade` so later steps and binary
 /// lookups resolve the upgraded mise-managed tools. `mise env --json` reports the
 /// activated environment, which we apply to the `PATH`/vars that child commands inherit.
 /// See <https://github.com/topgrade-rs/topgrade/issues/2041>.
-fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path) -> Result<()> {
+fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path, neutral_cwd: &Path) -> Result<()> {
     if ctx.run_type().dry() {
         return Ok(());
     }
 
     let output = ctx
         .execute(mise)
+        .current_dir(neutral_cwd)
         .args(["env", "--json"])
         .output_checked()
         .wrap_err("failed to run `mise env --json`")?;
