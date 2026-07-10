@@ -529,6 +529,7 @@ enum AptKind {
     AptFast,
     Mist,
     Nala,
+    Apt,
     AptGet,
 }
 
@@ -541,6 +542,8 @@ fn detect_apt() -> Result<(AptKind, PathBuf)> {
         Ok((Mist, mist))
     } else if Path::new("/usr/bin/nala").exists() {
         Ok((Nala, Path::new("/usr/bin/nala").to_path_buf()))
+    } else if let Some(apt) = which("apt") {
+        Ok((Apt, apt))
     } else {
         Ok((AptGet, require("apt-get")?))
     }
