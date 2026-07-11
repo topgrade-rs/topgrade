@@ -2270,7 +2270,13 @@ pub fn run_opencode(ctx: &ExecutionContext) -> Result<()> {
     let opencode = require("opencode")?;
 
     print_separator("OpenCode");
-
+    let script_install_path = HOME_DIR.join(".opencode").join("bin");
+    if !opencode
+        .canonicalize()
+        .is_ok_and(|p| p.is_descendant_of(&script_install_path))
+    {
+        return Err(SkipStep(t!("OpenCode not installed with the official script").to_string()).into());
+    }
     ctx.execute(opencode).arg("upgrade").status_checked()
 }
 
