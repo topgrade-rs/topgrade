@@ -2269,7 +2269,6 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_opencode(ctx: &ExecutionContext) -> Result<()> {
     let opencode = require("opencode")?;
 
-    print_separator("OpenCode");
     let script_install_path = HOME_DIR.join(".opencode").join("bin");
     if !opencode
         .canonicalize()
@@ -2277,6 +2276,7 @@ pub fn run_opencode(ctx: &ExecutionContext) -> Result<()> {
     {
         return Err(SkipStep(t!("OpenCode not installed with the official script").to_string()).into());
     }
+    print_separator("OpenCode");
     ctx.execute(opencode).arg("upgrade").status_checked()
 }
 
