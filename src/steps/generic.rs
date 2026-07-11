@@ -685,11 +685,23 @@ pub fn run_pi(ctx: &ExecutionContext) -> Result<()> {
     let supports_explicit_update_targets =
         pi_update_help.stdout.contains("--self") && pi_update_help.stdout.contains("--extensions");
 
+    // `pi update --self` errors when PI_SKIP_VERSION_CHECK is set. Homebrew sets it when it runs.
+    let pi_skip_version_check_env = std::env::var("PI_SKIP_VERSION_CHECK").is_ok();
+    let pi_installed_through_homebrew = pi
+        .canonicalize()
+        .is_ok_and(|p| p.to_string_lossy().contains("/Cellar/"));
+
     if supports_explicit_update_targets {
-        ctx.execute(&pi)
-            .current_dir(temp_dir.path())
-            .args(["update", "--self"])
-            .status_checked()?;
+        if pi_skip_version_check_env {
+            debug!("Skipping `pi update --self`: PI_SKIP_VERSION_CHECK is set");
+        } else if pi_installed_through_homebrew {
+            debug!("Skipping `pi update --self`: pi is installed via Homebrew");
+        } else {
+            ctx.execute(&pi)
+                .current_dir(temp_dir.path())
+                .args(["update", "--self"])
+                .status_checked()?;
+        }
 
         ctx.execute(&pi)
             .current_dir(temp_dir.path())
