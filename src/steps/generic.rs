@@ -2266,6 +2266,20 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
     command.status_checked()
 }
 
+pub fn run_opencode(ctx: &ExecutionContext) -> Result<()> {
+    let opencode = require("opencode")?;
+
+    let script_install_path = HOME_DIR.join(".opencode").join("bin");
+    if !opencode
+        .canonicalize()
+        .is_ok_and(|p| p.is_descendant_of(&script_install_path))
+    {
+        return Err(SkipStep(t!("OpenCode not installed with the official script").to_string()).into());
+    }
+    print_separator("OpenCode");
+    ctx.execute(opencode).arg("upgrade").status_checked()
+}
+
 fn ollama_serve(ctx: &ExecutionContext, ollama: &Path) -> Result<ExecutorChild> {
     ctx.execute(ollama)
         .arg("serve")
