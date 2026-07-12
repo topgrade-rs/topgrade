@@ -1,27 +1,27 @@
 use color_eyre::eyre::Context;
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+use color_eyre::eyre::OptionExt;
 use color_eyre::eyre::Result;
-use color_eyre::eyre::{OptionExt, bail, eyre};
+use color_eyre::eyre::{bail, eyre};
 use etcetera::BaseStrategy;
 use ini::Ini;
 use regex::Regex;
 use rust_i18n::t;
 use semver::Version;
-use std::env::home_dir;
 use std::ffi::OsStr;
-use std::io::Write;
+use std::fs;
 use std::os::unix::fs::MetadataExt;
 use std::path::Component;
 use std::path::PathBuf;
 use std::sync::LazyLock;
 use std::{env::var, path::Path};
-use std::{fs, io};
 use tracing::{debug, warn};
 
 use crate::XDG_DIRS;
 use crate::command::CommandExt;
 use crate::config::NixHandler;
 use crate::sudo::SudoExecuteOpts;
-use crate::utils::require_one;
+use crate::utils::{is_elevated, require_one};
 use crate::{HOME_DIR, output_changed_message};
 
 #[cfg(target_os = "linux")]
@@ -34,39 +34,46 @@ use crate::step::Step;
 use crate::terminal::print_separator;
 use crate::utils::{PathExt, require};
 
-#[cfg(target_os = "linux")]
-fn brew_linux_sudo_uid() -> Option<u32> {
-    let linuxbrew_directory = "/home/linuxbrew/.linuxbrew";
-    if let Ok(metadata) = fs::metadata(linuxbrew_directory) {
+fn get_sudo_uid<P: AsRef<Path>>(path: P) -> Option<u32> {
+    if let Ok(metadata) = fs::metadata(&path) {
         let owner_id = metadata.uid();
         let current_id = nix::unistd::Uid::effective();
         // print debug these two values
-        debug!("linuxbrew_directory owner_id: {owner_id}, current_id: {current_id}");
+        debug!(
+            "path: {path:?}, owner_id: {owner_id}, current_id: {current_id}",
+            path = path.as_ref()
+        );
         return if owner_id == current_id.as_raw() {
-            None // no need for sudo if linuxbrew is owned by the current user
+            None // no need for sudo if path is owned by the current user
         } else {
-            Some(owner_id) // otherwise use sudo to run brew as the owner
+            Some(owner_id) // otherwise use sudo to run as the owner
         };
     }
     None
 }
 
-#[cfg(any(target_os = "linux", target_os = "macos"))]
-fn brew_get_sudo() -> Option<String> {
-    #[cfg(target_os = "linux")]
-    {
-        let sudo_uid = brew_linux_sudo_uid();
-        // if brew is owned by another user, execute "sudo -Hu <uid> brew update"
-        if let Some(user_id) = sudo_uid {
-            let uid = nix::unistd::Uid::from_raw(user_id);
-            let user = nix::unistd::User::from_uid(uid)
-                .expect("failed to call getpwuid()")
-                .expect("this user should exist");
-
-            return Some(user.name);
+fn get_sudo_user<P: AsRef<Path>>(path: P) -> Option<String> {
+    let sudo_uid = get_sudo_uid(path);
+    // if path is owned by another user, execute "sudo -Hu <user> <binary_name>"
+    if let Some(user_id) = sudo_uid {
+        let uid = nix::unistd::Uid::from_raw(user_id);
+        match nix::unistd::User::from_uid(uid) {
+            Ok(Some(user)) => return Some(user.name),
+            Ok(None) => warn!("could not find a user entry with UID {user_id}; running binary as the current user"),
+            Err(err) => warn!("getpwuid() failed for UID {user_id}: {err}; running binary as the current user"),
         }
     }
     None
+}
+
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn brew_get_sudo_user() -> Option<String> {
+    if cfg!(target_os = "linux") {
+        let linuxbrew_directory = "/home/linuxbrew/.linuxbrew";
+        get_sudo_user(linuxbrew_directory)
+    } else {
+        None
+    }
 }
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -89,7 +96,7 @@ impl Brew {
         Ok(Self {
             variant,
             path: require(variant.binary_name())?,
-            sudo: brew_get_sudo(),
+            sudo: brew_get_sudo_user(),
         })
     }
 
@@ -230,7 +237,7 @@ pub fn run_bashit(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Bash-it");
 
     ctx.execute("bash")
-        .args(["-lic", &format!("bash-it update {}", ctx.config().bashit_branch())])
+        .args(["-lic", r#"bash-it update "$1""#, "bash", ctx.config().bashit_branch()])
         .status_checked()
 }
 
@@ -382,6 +389,10 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
     let mut command = brew.execute(ctx)?;
     command.args(["upgrade", "--formula"]);
 
+    if ctx.config().yes(Step::BrewFormula) {
+        command.arg("-y");
+    }
+
     if ctx.config().brew_fetch_head() {
         command.arg("--fetch-HEAD");
     }
@@ -459,6 +470,9 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
         }
     } else {
         brew_args.extend(["upgrade", "--cask"]);
+        if ctx.config().yes(Step::BrewCask) {
+            brew_args.push("-y");
+        }
         if ctx.config().brew_cask_greedy() {
             brew_args.push("--greedy");
         }
@@ -474,6 +488,21 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
 
     if ctx.config().cleanup() {
         brew.execute(ctx)?.arg("cleanup").status_checked()?;
+    }
+
+    Ok(())
+}
+
+pub fn run_zerobrew(ctx: &ExecutionContext) -> Result<()> {
+    let zb = require("zb")?;
+
+    print_separator("Zerobrew");
+
+    ctx.execute(&zb).arg("update").status_checked()?;
+    ctx.execute(&zb).arg("upgrade").status_checked()?;
+
+    if ctx.config().cleanup() {
+        ctx.execute(&zb).arg("gc").status_checked()?;
     }
 
     Ok(())
@@ -558,18 +587,86 @@ impl NixVersion {
     }
 }
 
-pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
-    let nix = require("nix")?;
-    // TODO: Is None possible here? Should we use HOME_DIR instead?
-    let profile_path = match home_dir() {
-        Some(home) => XDG_DIRS
+fn nix_state_dir() -> PathBuf {
+    PathBuf::from(std::env::var_os("NIX_STATE_DIR").unwrap_or("/nix/var/nix".into()))
+}
+
+/// Get the path to the user profile link.
+/// User profile link is a symbolic link to the user's current profile:
+/// - `~/.nix-profile`
+/// - `$XDG_STATE_HOME/nix/profile` if `use-xdg-base-directories` is set to `true`.
+///
+/// Ref: https://nix.dev/manual/nix/2.34/command-ref/new-cli/nix3-profile#user-profile-link
+fn nix_get_user_profile_link(ctx: &ExecutionContext, nix: &Path) -> Result<PathBuf> {
+    let config_output = ctx
+        .execute(nix)
+        .always()
+        .args(nix_args())
+        .arg("config")
+        .arg("show")
+        .arg("use-xdg-base-directories")
+        .output_checked_utf8()?;
+
+    debug!(
+        output=%config_output,
+        "`nix config show use-xdg-base-directories` output"
+    );
+
+    let config_value_string = config_output.stdout.lines().next();
+
+    let use_xdg_base_directories = match config_value_string {
+        Some("true") => true,
+        Some("false") => false,
+        None => {
+            return Err(eyre!(output_changed_message!(
+                "nix config show use-xdg-base-directories",
+                "empty output"
+            )));
+        }
+        _ => {
+            return Err(eyre!(output_changed_message!(
+                "nix config show use-xdg-base-directories",
+                "invalid bool value"
+            )));
+        }
+    };
+
+    if use_xdg_base_directories {
+        XDG_DIRS
             .state_dir()
             .map(|d| d.join("nix/profile"))
-            .filter(|p| p.exists())
-            .unwrap_or(Path::new(&home).join(".nix-profile")),
-        None => Path::new("/nix/var/nix/profiles/per-user/default").into(),
-    };
-    debug!("nix profile: {:?}", profile_path);
+            .ok_or_else(|| eyre!("Unable to get the user's state directory"))
+    } else {
+        Ok(HOME_DIR.join(".nix-profile"))
+    }
+}
+
+/// Get the path to the user's current profile.
+/// This will try to resolve the user profile link or use the default values,
+/// if it couldn't be resolved,
+///
+/// Note that the return value of this is expected to be another symlink
+/// as that's what a profile is - a symlink to a specific generation of a user environment.
+///
+/// Ref: https://nix.dev/manual/nix/2.34/package-management/profiles
+fn nix_get_current_profile_path(ctx: &ExecutionContext, nix: &Path) -> Result<PathBuf> {
+    let user_profile_link = nix_get_user_profile_link(ctx, nix)?;
+    debug!("nix user profile link: {:?}", user_profile_link);
+
+    match user_profile_link.read_link() {
+        Ok(profile_link) => Ok(profile_link),
+        Err(_) if is_elevated() => Ok(nix_state_dir().join("profiles/per-user/root/profile")),
+        Err(_) => XDG_DIRS
+            .state_dir()
+            .map(|d| d.join("nix/profiles/profile"))
+            .ok_or_else(|| eyre!("Unable to get the user's state directory")),
+    }
+}
+
+pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
+    let nix = require("nix")?;
+    let profile_path = nix_get_current_profile_path(ctx, &nix)?;
+    debug!("nix current profile: {:?}", profile_path);
     let manifest_json_path = profile_path.join("manifest.json");
 
     #[cfg(target_os = "macos")]
@@ -605,7 +702,14 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
             warn!("`nix-channel --update` failed: {e}");
         }
         print_separator("Nix Profiles");
-        ctx.execute(nix)
+        let mut command = match &get_sudo_user(profile_path) {
+            None => ctx.execute(nix),
+            Some(user) => {
+                let sudo = ctx.require_sudo()?;
+                sudo.execute_opts(ctx, &nix, SudoExecuteOpts::new().set_home().user(user).login_shell())?
+            }
+        };
+        command
             .args(nix_args())
             .arg("profile")
             .arg("upgrade")
@@ -618,7 +722,17 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
         let nix_env = require("nix-env")?;
         print_separator("Nix");
 
-        let mut command = ctx.execute(nix_env);
+        let mut command = match &get_sudo_user(profile_path) {
+            None => ctx.execute(nix_env),
+            Some(user) => {
+                let sudo = ctx.require_sudo()?;
+                sudo.execute_opts(
+                    ctx,
+                    &nix_env,
+                    SudoExecuteOpts::new().set_home().user(user).login_shell(),
+                )?
+            }
+        };
         command.arg("--upgrade");
         if let Some(args) = ctx.config().nix_env_arguments() {
             command.args(args.split_whitespace());
@@ -631,32 +745,24 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let nix = require("nix")?;
 
     // Should we attempt to upgrade Nix with `nix upgrade-nix`?
-    #[allow(unused_mut)]
-    let mut should_self_upgrade = cfg!(target_os = "macos");
-
     #[cfg(target_os = "linux")]
-    {
+    let should_self_upgrade = match ctx.distribution() {
         // We can't use `nix upgrade-nix` on NixOS.
-        if let Ok(Distribution::NixOS) = Distribution::detect() {
-            should_self_upgrade = false;
-        }
-    }
+        Ok(Distribution::NixOS) => false,
+        _ => true,
+    };
+    #[cfg(not(target_os = "linux"))]
+    let should_self_upgrade = cfg!(target_os = "macos");
 
     if !should_self_upgrade {
         return Err(SkipStep(t!("`nix upgrade-nix` can only be used on macOS or non-NixOS Linux").to_string()).into());
     }
 
-    if nix_profile_dir(&nix)?.is_none() {
-        return Err(
-            SkipStep(t!("`nix upgrade-nix` cannot be run when Nix is installed in a profile").to_string()).into(),
-        );
-    }
-
-    print_separator(t!("Nix (self-upgrade)"));
-
     let nix_version = NixVersion::new(ctx, &nix)?;
 
     if nix_version.is_determinate_nix() {
+        print_separator(t!("Nix (self-upgrade)"));
+
         let nixd = require("determinate-nixd");
         let nixd = match nixd {
             Err(_) => {
@@ -672,6 +778,14 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
             .arg("upgrade")
             .status_checked();
     }
+
+    if nix_profile_dir(&nix)?.is_none() {
+        return Err(
+            SkipStep(t!("`nix upgrade-nix` cannot be run when Nix is installed in a profile").to_string()).into(),
+        );
+    }
+
+    print_separator(t!("Nix (self-upgrade)"));
 
     let multi_user = fs::metadata(&nix)?.uid() == 0;
     debug!("Multi user nix: {}", multi_user);
@@ -864,68 +978,6 @@ pub fn run_asdf(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(&asdf).args(["plugin", "update", "--all"]).status_checked()
 }
 
-pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
-    let mise = require("mise")?;
-
-    print_separator("mise");
-
-    ctx.execute(&mise).args(["plugins", "update"]).status_checked()?;
-
-    let output = ctx
-        .execute(&mise)
-        .args(["self-update"])
-        .output_checked_with(|_| Ok(()))?;
-    let status_code = output
-        .status
-        .code()
-        .ok_or_eyre("Couldn't get status code (terminated by signal)")?;
-    let stderr = std::str::from_utf8(&output.stderr).wrap_err("Expected output to be valid UTF-8")?;
-    if stderr.contains("cannot update") && status_code == 1 {
-        debug!("Mise self-update not available")
-    } else {
-        // Write the output
-        io::stdout().write_all(&output.stdout)?;
-        io::stderr().write_all(&output.stderr)?;
-        if status_code != 0 {
-            return Err(StepFailed.into());
-        }
-    }
-
-    let mut cmd = ctx.execute(&mise);
-
-    cmd.arg("upgrade");
-
-    if ctx.config().mise_interactive() {
-        cmd.arg("--interactive");
-    }
-
-    if ctx.config().mise_bump() {
-        cmd.arg("--bump");
-    }
-
-    if ctx.config().mise_silent() {
-        cmd.arg("--silent");
-    }
-
-    if ctx.config().mise_quiet() {
-        cmd.arg("--quiet");
-    }
-
-    if ctx.config().mise_verbose() {
-        cmd.arg("--verbose");
-    }
-
-    if ctx.config().yes(Step::Mise) {
-        cmd.arg("--yes");
-    }
-
-    if ctx.config().mise_jobs() != 4 {
-        cmd.args(["--jobs", &ctx.config().mise_jobs().to_string()]);
-    }
-
-    cmd.status_checked()
-}
-
 pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
     require_one(["home-manager", "nh"])?;
     let home_manager = require("home-manager");
@@ -1008,7 +1060,7 @@ pub fn run_sdkman(ctx: &ExecutionContext) -> Result<()> {
         .join("bin")
         .join("sdkman-init.sh")
         .require()
-        .map(|p| format!("{}", &p.display()))?;
+        .map(|p| format!("{}", p.display()))?;
 
     print_separator("SDKMAN!");
 
@@ -1025,25 +1077,25 @@ pub fn run_sdkman(ctx: &ExecutionContext) -> Result<()> {
         .unwrap_or("false");
 
     if selfupdate_enabled == "true" {
-        let cmd_selfupdate = format!("source {} && sdk selfupdate", &sdkman_init_path);
+        let cmd_selfupdate = format!("source {} && sdk selfupdate", sdkman_init_path);
         ctx.execute(&bash)
             .args(["-c", cmd_selfupdate.as_str()])
             .status_checked()?;
     }
 
-    let cmd_update = format!("source {} && sdk update", &sdkman_init_path);
+    let cmd_update = format!("source {} && sdk update", sdkman_init_path);
     ctx.execute(&bash).args(["-c", cmd_update.as_str()]).status_checked()?;
 
-    let cmd_upgrade = format!("source {} && sdk upgrade", &sdkman_init_path);
+    let cmd_upgrade = format!("source {} && sdk upgrade", sdkman_init_path);
     ctx.execute(&bash).args(["-c", cmd_upgrade.as_str()]).status_checked()?;
 
     if ctx.config().cleanup() {
-        let cmd_flush_archives = format!("source {} && sdk flush archives", &sdkman_init_path);
+        let cmd_flush_archives = format!("source {} && sdk flush archives", sdkman_init_path);
         ctx.execute(&bash)
             .args(["-c", cmd_flush_archives.as_str()])
             .status_checked()?;
 
-        let cmd_flush_temp = format!("source {} && sdk flush temp", &sdkman_init_path);
+        let cmd_flush_temp = format!("source {} && sdk flush temp", sdkman_init_path);
         ctx.execute(&bash)
             .args(["-c", cmd_flush_temp.as_str()])
             .status_checked()?;
@@ -1099,6 +1151,15 @@ pub fn run_atuin(ctx: &ExecutionContext) -> Result<()> {
     print_separator("atuin");
 
     ctx.execute(atuin).status_checked()
+}
+
+#[cfg(not(any(target_os = "android", target_os = "macos")))]
+pub fn run_sera(ctx: &ExecutionContext) -> Result<()> {
+    let sera = require("sera")?;
+
+    print_separator("sera");
+
+    ctx.execute(sera).arg("upgrade").status_checked()
 }
 
 pub fn reboot(ctx: &ExecutionContext) -> Result<()> {

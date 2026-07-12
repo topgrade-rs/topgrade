@@ -250,6 +250,9 @@
 # Extra Home Manager arguments
 # home_manager_arguments = ["--flake", "file"]
 
+# Resolve tools from the Windows PATH (drive mounts like `/mnt/c`) while inside WSL.
+# Off by default so only the distro's own tools update (default: false).
+# wsl_use_windows_path = false
 
 [mandb]
 # Enable the mandb step (to update manual entries).
@@ -284,6 +287,11 @@
 # Whether to perform a `git fetch` instead of `git pull`
 # fetch_only = false
 
+# When a repo is not on its default branch, fetch the default branch (advancing
+# its local ref) instead of failing. The remote and default branch are detected
+# per repo. Has no effect on repos already on their default branch.
+# fallback_to_fetch_default = false
+
 [windows]
 # Manually select Windows updates
 # accept_all_updates = false
@@ -298,9 +306,9 @@
 
 # wsl_update_use_web_download = true
 
-# The default for winget_install_silently is true,
+# The default for winget_silent_install is true,
 # this example turns off silent install.
-# winget_install_silently = false
+# winget_silent_install = false
 
 # Causes Topgrade to rename itself during the run to allow package managers
 # to upgrade it. Use this only if you installed Topgrade by using a package
@@ -328,9 +336,8 @@
 # (default: false)
 # bump = false
 
-# Number of jobs to run in parallel
-# (default: 4)
-# jobs = 4
+# Number of jobs to run in parallel (mise's default)
+# jobs = 8
 
 # Run interactively
 # (default: false)

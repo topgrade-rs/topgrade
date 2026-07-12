@@ -529,6 +529,7 @@ enum AptKind {
     AptFast,
     Mist,
     Nala,
+    Apt,
     AptGet,
 }
 
@@ -541,6 +542,8 @@ fn detect_apt() -> Result<(AptKind, PathBuf)> {
         Ok((Mist, mist))
     } else if Path::new("/usr/bin/nala").exists() {
         Ok((Nala, Path::new("/usr/bin/nala").to_path_buf()))
+    } else if let Some(apt) = which("apt") {
+        Ok((Apt, apt))
     } else {
         Ok((AptGet, require("apt-get")?))
     }
@@ -883,6 +886,23 @@ fn upgrade_kde_linux(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+// `dnf4` runs `needrestart` itself via the EPEL plugin during a system upgrade, but `dnf5`
+// doesn't. The plugin config exists in both cases, so `dnf` version check is needed here.
+fn dnf_runs_needrestart(ctx: &ExecutionContext) -> bool {
+    if !Path::new("/etc/dnf/plugins/needrestart.conf").exists() {
+        return false;
+    }
+    let Some(dnf) = which("dnf") else {
+        return false;
+    };
+    ctx.execute(&dnf)
+        .always()
+        .arg("--version")
+        .output_checked_utf8()
+        .map(|output| !output.stdout.contains("dnf5"))
+        .unwrap_or(false)
+}
+
 pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
     let needrestart = require("needrestart")?;
 
@@ -893,7 +913,9 @@ pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
         "/etc/apt/apt.conf.d/99needrestart",
     ];
 
-    if HOOKS.iter().any(|hook| Path::new(hook).exists()) && ctx.config().should_run(Step::System) {
+    if (HOOKS.iter().any(|hook| Path::new(hook).exists()) || dnf_runs_needrestart(ctx))
+        && ctx.config().should_run(Step::System)
+    {
         return Err(SkipStep(String::from(t!("needrestart will be ran by the package manager"))).into());
     }
 
@@ -1238,6 +1260,12 @@ pub fn run_cinnamon_spices_updater(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Cinnamon spices");
 
     ctx.execute(cinnamon_spice_updater).arg("--update-all").status_checked()
+}
+
+pub fn run_pkgit(ctx: &ExecutionContext) -> Result<()> {
+    let pkgit = require("pkgit")?;
+    print_separator("Pkgit");
+    ctx.execute(pkgit).arg("-u").status_checked()
 }
 
 pub fn run_protonplus_update(ctx: &ExecutionContext) -> Result<()> {

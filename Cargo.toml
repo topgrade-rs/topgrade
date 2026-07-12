@@ -6,7 +6,7 @@ keywords = ["upgrade", "update"]
 license = "GPL-3.0-or-later"
 repository = "https://github.com/topgrade-rs/topgrade"
 rust-version = "1.88.0"
-version = "17.6.1"
+version = "17.7.0"
 exclude = ["doc/screenshot.gif", "BREAKINGCHANGES_dev.md"]
 edition = "2024"
 
@@ -45,7 +45,7 @@ sys-locale = "0.3.1"
 jetbrains-toolbox-updater = "6.0.0"
 indexmap = { version = "2.9.0", features = ["serde"] }
 serde_json = "1.0.145"
-itertools = "0.14.0"
+itertools = "0.15.0"
 clap-cargo = "0.18.0"
 edit = "0.1.5"
 unicode-width = "0.2.2"

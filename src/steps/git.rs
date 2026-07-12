@@ -58,7 +58,7 @@ pub fn run_git_pull_or_fetch(ctx: &ExecutionContext) -> Result<()> {
                 repos.insert_if_repo(ctx, HOME_DIR.join(".dotfiles"));
             }
 
-            if let Some(powershell) = ctx.powershell()
+            if let Ok(powershell) = ctx.powershell()
                 && let Some(profile) = powershell.profile()
             {
                 repos.insert_if_repo(ctx, profile);
@@ -140,12 +140,12 @@ fn output_checked_utf8(output: Output) -> Result<()> {
     }
 }
 
-fn get_head_revision<P: AsRef<Path>>(ctx: &ExecutionContext, git: &Path, repo: P) -> Option<String> {
+fn get_revision<P: AsRef<Path>>(ctx: &ExecutionContext, git: &Path, repo: P, revision: &str) -> Option<String> {
     ctx.execute(git)
         .always()
         .stdin(Stdio::null())
         .current_dir(repo.as_ref())
-        .args(["rev-parse", "HEAD"])
+        .args(["rev-parse", revision])
         .output_checked_utf8()
         .map(|output| output.stdout.trim().to_string())
         .map_err(|e| {
@@ -154,6 +154,27 @@ fn get_head_revision<P: AsRef<Path>>(ctx: &ExecutionContext, git: &Path, repo: P
             e
         })
         .ok()
+}
+
+/// Get the current branch of `repo`, or `None` when it is in a detached HEAD state.
+fn get_current_branch<P: AsRef<Path>>(ctx: &ExecutionContext, git: &Path, repo: P) -> Option<String> {
+    ctx.execute(git)
+        .always()
+        .stdin(Stdio::null())
+        .current_dir(repo.as_ref())
+        // `--quiet` exits non-zero (instead of erroring) on a detached HEAD.
+        .args(["symbolic-ref", "--quiet", "--short", "HEAD"])
+        .output_checked_utf8()
+        .ok()
+        .map(|output| output.stdout.trim().to_string())
+        .filter(|branch| !branch.is_empty())
+}
+
+/// Decide whether the fallback should fetch the default branch instead of the
+/// normal pull/fetch: true when the repo is not currently on its default branch
+/// (a different branch, or a detached HEAD where `current_branch` is `None`).
+fn should_fetch_default(current_branch: Option<&str>, default_branch: &str) -> bool {
+    current_branch != Some(default_branch)
 }
 
 impl RepoStep {
@@ -267,6 +288,74 @@ impl RepoStep {
         .ok()
     }
 
+    /// Resolve the remote to track and its default branch for `repo`.
+    ///
+    /// The remote is taken from the repo's configured remotes, preferring
+    /// `origin`. The default branch is read from `refs/remotes/<remote>/HEAD`
+    /// when known locally, otherwise queried from the remote with `ls-remote`.
+    /// Returns `None` when neither can be determined.
+    fn resolve_default_branch<P: AsRef<Path>>(&self, ctx: &ExecutionContext, repo: P) -> Option<(String, String)> {
+        let remotes = ctx
+            .execute(&self.git)
+            .always()
+            .stdin(Stdio::null())
+            .current_dir(repo.as_ref())
+            .args(["remote"])
+            .output_checked_utf8()
+            .ok()?;
+        let remotes: Vec<&str> = remotes
+            .stdout
+            .lines()
+            .map(str::trim)
+            .filter(|r| !r.is_empty())
+            .collect();
+        let remote = remotes
+            .iter()
+            .find(|r| **r == "origin")
+            .or_else(|| remotes.first())?
+            .to_string();
+
+        // Prefer the locally-known default branch (no network access).
+        let local_head = ctx
+            .execute(&self.git)
+            .always()
+            .stdin(Stdio::null())
+            .current_dir(repo.as_ref())
+            .args(["symbolic-ref", "--short", &format!("refs/remotes/{remote}/HEAD")])
+            .output_checked_utf8()
+            .ok()
+            .and_then(|output| {
+                output
+                    .stdout
+                    .trim()
+                    .strip_prefix(&format!("{remote}/"))
+                    .map(str::to_string)
+            });
+        if let Some(default_branch) = local_head {
+            return Some((remote, default_branch));
+        }
+
+        // Fall back to asking the remote when its HEAD is not set locally.
+        let symref = ctx
+            .execute(&self.git)
+            .always()
+            .stdin(Stdio::null())
+            .current_dir(repo.as_ref())
+            .args(["ls-remote", "--symref", &remote, "HEAD"])
+            .output_checked_utf8()
+            .ok()?;
+        let default_branch = symref.stdout.lines().find_map(|line| {
+            // line: "ref: refs/heads/<branch>\tHEAD"
+            line.strip_prefix("ref: ")?
+                .split_whitespace()
+                .next()?
+                .strip_prefix("refs/heads/")
+                .map(str::to_string)
+        })?;
+
+        Some((remote, default_branch))
+    }
+
     /// Similar to `insert_if_repo`, with glob support.
     pub fn glob_insert(&mut self, ctx: &ExecutionContext, pattern: &str) {
         if let Ok(glob) = glob_with(pattern, self.glob_match_options) {
@@ -318,18 +407,44 @@ impl RepoStep {
 
     /// Try to pull a repo, or fetch it if `fetch_only` is enabled.
     async fn pull_or_fetch_repo<P: AsRef<Path>>(&self, ctx: &ExecutionContext<'_>, repo: P) -> Result<()> {
-        let before_revision = get_head_revision(ctx, &self.git, &repo);
         let is_fetch_only = ctx.config().git_fetch_only();
 
+        // When enabled and the repo is not on its default branch, fetch the
+        // default branch into its local ref instead of running a pull/fetch that
+        // would fail. `None` keeps the normal behavior.
+        let fallback = if ctx.config().git_fallback_to_fetch_default() {
+            self.resolve_default_branch(ctx, &repo).filter(|(_, default_branch)| {
+                let current_branch = get_current_branch(ctx, &self.git, &repo);
+                should_fetch_default(current_branch.as_deref(), default_branch)
+            })
+        } else {
+            None
+        };
+
+        // The fallback advances the default branch ref while HEAD stays put, so
+        // track that ref to report its incoming commits; otherwise track HEAD.
+        let tracked_revision = match &fallback {
+            Some((_, default_branch)) => default_branch.as_str(),
+            None => "HEAD",
+        };
+        let before_revision = get_revision(ctx, &self.git, &repo, tracked_revision);
+
+        let fetching = is_fetch_only || fallback.is_some();
+
         if ctx.config().verbose() {
-            let action = if is_fetch_only { t!("Fetching") } else { t!("Pulling") };
+            let action = if fetching { t!("Fetching") } else { t!("Pulling") };
             println!("{} {}", style(action, |s| s.cyan().bold()), repo.as_ref().display());
         }
 
         let mut command = AsyncCommand::new(&self.git);
         command.stdin(Stdio::null()).current_dir(&repo);
 
-        if is_fetch_only {
+        if let Some((remote, default_branch)) = &fallback {
+            // `<branch>:<branch>` updates the local branch fast-forward-only, so a
+            // diverged local default fails instead of being force-overwritten.
+            let refspec = format!("{default_branch}:{default_branch}");
+            command.args(["fetch", "--recurse-submodules", remote, &refspec]);
+        } else if is_fetch_only {
             command.args(["fetch", "--recurse-submodules"]);
         } else {
             command.args(["pull", "--ff-only", "--recurse-submodules"]);
@@ -341,12 +456,12 @@ impl RepoStep {
 
         let output = command.output().await?;
         let result = output_checked_utf8(output).wrap_err_with(|| {
-            let action = if is_fetch_only { "fetch" } else { "pull" };
+            let action = if fetching { "fetch" } else { "pull" };
             format!("Failed to {} {}", action, repo.as_ref().display())
         });
 
         if result.is_err() {
-            let action = if is_fetch_only { t!("fetching") } else { t!("pulling") };
+            let action = if fetching { t!("fetching") } else { t!("pulling") };
             println!(
                 "{} {} {}",
                 style(t!("Failed"), |s| s.red().bold()),
@@ -354,7 +469,7 @@ impl RepoStep {
                 repo.as_ref().display()
             );
         } else {
-            let after_revision = get_head_revision(ctx, &self.git, repo.as_ref());
+            let after_revision = get_revision(ctx, &self.git, repo.as_ref(), tracked_revision);
 
             match (&before_revision, &after_revision) {
                 (Some(before), Some(after)) if before != after => {
@@ -402,8 +517,18 @@ impl RepoStep {
         let is_fetch_only = ctx.config().git_fetch_only();
 
         if ctx.run_type().dry() {
+            let fallback_enabled = ctx.config().git_fallback_to_fetch_default();
             self.repos.iter().for_each(|repo| {
-                let message = if is_fetch_only {
+                // A repo off its default branch would be fetched, not pulled.
+                let would_fetch = is_fetch_only
+                    || (fallback_enabled
+                        && self
+                            .resolve_default_branch(ctx, repo)
+                            .is_some_and(|(_, default_branch)| {
+                                let current_branch = get_current_branch(ctx, &self.git, repo);
+                                should_fetch_default(current_branch.as_deref(), &default_branch)
+                            }));
+                let message = if would_fetch {
                     t!("Would fetch {repo}", repo = repo.display())
                 } else {
                     t!("Would pull {repo}", repo = repo.display())
@@ -450,5 +575,25 @@ impl RepoStep {
 
         let error = results.into_iter().find(std::result::Result::is_err);
         error.unwrap_or(Ok(()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::should_fetch_default;
+
+    #[test]
+    fn fetches_when_on_a_different_branch() {
+        assert!(should_fetch_default(Some("feature"), "main"));
+    }
+
+    #[test]
+    fn fetches_when_head_is_detached() {
+        assert!(should_fetch_default(None, "main"));
+    }
+
+    #[test]
+    fn skips_when_already_on_the_default_branch() {
+        assert!(!should_fetch_default(Some("main"), "main"));
     }
 }

@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.7.0](https://github.com/topgrade-rs/topgrade/compare/v17.6.2...v17.7.0) - 2026-07-10
+
+### Added
+
+- *(debian)* prefer apt over apt-get ([#2153](https://github.com/topgrade-rs/topgrade/pull/2153))
+- *(step)* add Cursor agent ([#2142](https://github.com/topgrade-rs/topgrade/pull/2142))
+- *(shelly)* Update CLI syntax, show news and skip flatpak ([#2130](https://github.com/topgrade-rs/topgrade/pull/2130))
+- *(step)* add zerobrew ([#2133](https://github.com/topgrade-rs/topgrade/pull/2133))
+- *(step)* add pkgit ([#2120](https://github.com/topgrade-rs/topgrade/pull/2120))
+- *(mise)* support Windows
+- *(git)* add config option to fetch default branch instead of failing when on another branch ([#2109](https://github.com/topgrade-rs/topgrade/pull/2109))
+- *(jetbrains-toolbox)* remove download cache if cleanup = true
+- *(needrestart)* support detecting and skipping it on fedora ([#2097](https://github.com/topgrade-rs/topgrade/pull/2097))
+
+### Fixed
+
+- *(mise)* avoid project cwd for upgrades ([#2155](https://github.com/topgrade-rs/topgrade/pull/2155))
+- *(jetbrains_goland)* fix capitalization ([#2150](https://github.com/topgrade-rs/topgrade/pull/2150))
+- *(wsl)* forward --yes to the WSL topgrade invocation
+- *(steps)* stop splicing user-controlled values into shell commands
+- *(antidote)* update from interactive zsh when available ([#2136](https://github.com/topgrade-rs/topgrade/pull/2136))
+- *(wsl)* skip Windows-path binaries in tool detection ([#2135](https://github.com/topgrade-rs/topgrade/pull/2135))
+- *(config)* stop creating `topgrade.d/` ([#2132](https://github.com/topgrade-rs/topgrade/pull/2132))
+- *(mise)* refresh process env after upgrade ([#2113](https://github.com/topgrade-rs/topgrade/pull/2113))
+- *(nix)* use sudo when current profile is not owned by us
+- *(nix)* improve correctness of current profile calculation
+- *(skills)* find lock file via XDG_STATE_HOME ([#2114](https://github.com/topgrade-rs/topgrade/pull/2114))
+- *(mise)* only forward --jobs when set
+- *(nix)* skip profile check for Determinate Nix upgrade ([#2074](https://github.com/topgrade-rs/topgrade/pull/2074))
+- *(pi)* add extension updates ([#2102](https://github.com/topgrade-rs/topgrade/pull/2102))
+- improve default step order ([#2098](https://github.com/topgrade-rs/topgrade/pull/2098))
+
+## [17.6.2](https://github.com/topgrade-rs/topgrade/compare/v17.6.1...v17.6.2) - 2026-06-20
+
+### Fixed
+
+- *(brew)* add assume_yes support ([#2090](https://github.com/topgrade-rs/topgrade/pull/2090))
+- *(powershell)* skip step if there is a wrapper script ([#2087](https://github.com/topgrade-rs/topgrade/pull/2087))
+- *(brew)* don't panic when linuxbrew owner uid has no passwd entry ([#2063](https://github.com/topgrade-rs/topgrade/pull/2063))
+- *(pip3)* skip self-update on Termux ([#2065](https://github.com/topgrade-rs/topgrade/pull/2065))
+- *(nix)* don't skip self-upgrade on non-NixOS Linux ([#2072](https://github.com/topgrade-rs/topgrade/pull/2072))
+
 ## [17.6.1](https://github.com/topgrade-rs/topgrade/compare/v17.5.1...v17.6.1) - 2026-06-10
 
 ### Added

@@ -92,7 +92,8 @@ If the file with higher priority is present, no matter if it is valid or not, th
 ignored.
 
 On the first run (provided that no configuration file exists), `topgrade` will create a configuration file at
-`CONFIG_DIR/topgrade.toml` for you.
+`CONFIG_DIR/topgrade.toml` for you. Any files in `CONFIG_DIR/topgrade.d/` are also loaded and merged before the main
+configuration file.
 
 ### Custom Commands
 

@@ -28,7 +28,7 @@ jobs:
     name: Format (cargo fmt)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -41,7 +41,7 @@ jobs:
     name: Custom checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -65,10 +65,15 @@ jobs:
       - name: Check if `default_steps` contains every step
         run: |
           # Extract all variants from enum Step
-          all_variants=$(sed -n '/^pub enum Step {/,/^}/p' src/step.rs | grep -Po '^\s*\K[A-Z][A-Za-z0-9_]*' | sort)
+          all_variants=$(sed -n '/^pub enum Step {/,/^}/p' src/step.rs | \
+            grep -Po '^\s*\K[A-Z][A-Za-z0-9_]*' | \
+            # Ignore SelfUpdate as it's ran manually in main.rs
+            grep -v '^SelfUpdate$' | \
+          sort)
 
           # Extract variants used inside default_steps
           used_variants=$(sed -n '/^pub(crate) fn default_steps()/,/^}/p' src/step.rs | \
+            grep -Pv '^\s*//' | \
             grep -Po '\b[A-Z][A-Za-z0-9_]*\b' | \
             grep -Fx -f <(echo "$all_variants") | \
           sort)
@@ -119,7 +124,7 @@ jobs:
 
           # Ignores the cross-compiled targets for simplicity; they contain a minimal amount of code anyway.
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -180,7 +185,7 @@ jobs:
       cargo_cmd: ${{ matrix.use_cross == true && 'cross' || 'cargo' }}
       matrix_target: ${{ matrix.target }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 

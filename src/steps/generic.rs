@@ -1,12 +1,17 @@
 use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use color_eyre::eyre::{OptionExt, bail, eyre};
+#[cfg(unix)]
+use etcetera::BaseStrategy;
 use jetbrains_toolbox_updater::{FindError, find_jetbrains_toolbox, update_jetbrains_toolbox};
 use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
 use serde::Deserialize;
+use std::collections::BTreeMap;
 use std::ffi::OsString;
+#[cfg(unix)]
+use std::fs::remove_dir_all;
 use std::iter::once;
 use std::path::PathBuf;
 use std::sync::LazyLock;
@@ -17,6 +22,8 @@ use tracing::{debug, error, warn};
 use walkdir::WalkDir;
 
 use crate::HOME_DIR;
+#[cfg(unix)]
+use crate::XDG_DIRS;
 use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::{ExecutorChild, ExecutorOutput};
@@ -56,7 +63,7 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     let toml_file = cargo_dir.join(".crates.toml").require()?;
 
     if fs::metadata(&toml_file)?.len() == 0 {
-        return Err(SkipStep(format!("{} exists but empty", &toml_file.display())).into());
+        return Err(SkipStep(format!("{} exists but empty", toml_file.display())).into());
     }
 
     print_separator("Cargo");
@@ -665,10 +672,47 @@ pub fn run_pi(ctx: &ExecutionContext) -> Result<()> {
 
     // `pi` reads project-local settings from `./.pi/settings.json`, so run
     // from a fresh directory to restrict this step to global packages.
-    ctx.execute(pi)
+    // Newer Pi versions expose explicit update targets. Feature-detect those flags
+    // so Topgrade updates Pi itself and global extensions, while older Pi versions
+    // keep the previous combined `pi update` behavior.
+    let pi_update_help = ctx
+        .execute(&pi)
+        .always()
         .current_dir(temp_dir.path())
-        .arg("update")
-        .status_checked()
+        .args(["update", "--help"])
+        .output_checked_utf8()?;
+
+    let supports_explicit_update_targets =
+        pi_update_help.stdout.contains("--self") && pi_update_help.stdout.contains("--extensions");
+
+    // `pi update --self` errors when PI_SKIP_VERSION_CHECK is set. Homebrew sets it when it runs.
+    let pi_skip_version_check_env = std::env::var("PI_SKIP_VERSION_CHECK").is_ok();
+    let pi_installed_through_homebrew = pi
+        .canonicalize()
+        .is_ok_and(|p| p.to_string_lossy().contains("/Cellar/"));
+
+    if supports_explicit_update_targets {
+        if pi_skip_version_check_env {
+            debug!("Skipping `pi update --self`: PI_SKIP_VERSION_CHECK is set");
+        } else if pi_installed_through_homebrew {
+            debug!("Skipping `pi update --self`: pi is installed via Homebrew");
+        } else {
+            ctx.execute(&pi)
+                .current_dir(temp_dir.path())
+                .args(["update", "--self"])
+                .status_checked()?;
+        }
+
+        ctx.execute(&pi)
+            .current_dir(temp_dir.path())
+            .args(["update", "--extensions"])
+            .status_checked()
+    } else {
+        ctx.execute(&pi)
+            .current_dir(temp_dir.path())
+            .arg("update")
+            .status_checked()
+    }
 }
 
 pub fn run_pipx_update(ctx: &ExecutionContext) -> Result<()> {
@@ -831,6 +875,10 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
         .args(["-m", "pip"])
         .output_checked_utf8()
         .map_err(|_| SkipStep("pip does not exist".to_string()))?;
+
+    if cfg!(target_os = "android") {
+        return Err(SkipStep("pip is managed by termux".to_string()).into());
+    }
 
     let check_extern_managed_script = "import sysconfig; from os import path; print('Y') if path.isfile(path.join(sysconfig.get_path('stdlib'), 'EXTERNALLY-MANAGED')) else print('N')";
     let output = ctx
@@ -1874,20 +1922,20 @@ pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_jetbrains_toolbox(ctx: &ExecutionContext) -> Result<()> {
     let installation = find_jetbrains_toolbox();
-    match installation {
+    let installation = match installation {
         Err(FindError::NotFound) => {
             // Skip
-            Err(SkipStep(format!("{}", t!("No JetBrains Toolbox installation found"))).into())
+            return Err(SkipStep(format!("{}", t!("No JetBrains Toolbox installation found"))).into());
         }
         Err(FindError::NoDesktopFile(_)) => {
             // Skip: the JetBrains/Toolbox directory exists but no Toolbox binary or desktop
             // file is present. This can happen when Toolbox running on another machine remotely
             // installed an IDE here, leaving the directory behind without a local Toolbox.
-            Err(SkipStep(format!("{}", t!("No JetBrains Toolbox installation found"))).into())
+            return Err(SkipStep(format!("{}", t!("No JetBrains Toolbox installation found"))).into());
         }
         Err(FindError::UnsupportedOS(os)) => {
             // Skip
-            Err(SkipStep(format!("{}", t!("Unsupported operating system {os}", os = os))).into())
+            return Err(SkipStep(format!("{}", t!("Unsupported operating system {os}", os = os))).into());
         }
         Err(e) => {
             // Unexpected error
@@ -1896,30 +1944,38 @@ pub fn run_jetbrains_toolbox(ctx: &ExecutionContext) -> Result<()> {
                 t!("jetbrains-toolbox-updater encountered an unexpected error during finding:")
             );
             println!("{e:?}");
-            Err(StepFailed.into())
+            return Err(StepFailed.into());
         }
-        Ok(installation) => {
-            print_separator("JetBrains Toolbox");
+        Ok(installation) => installation,
+    };
 
-            if ctx.run_type().dry() {
-                println!("Dry running jetbrains-toolbox-updater");
-                return Ok(());
-            }
+    print_separator("JetBrains Toolbox");
 
-            match update_jetbrains_toolbox(installation) {
-                Err(e) => {
-                    // Unexpected error
-                    println!(
-                        "{}",
-                        t!("jetbrains-toolbox-updater encountered an unexpected error during updating:")
-                    );
-                    println!("{e:?}");
-                    Err(StepFailed.into())
-                }
-                Ok(()) => Ok(()),
-            }
+    if ctx.run_type().dry() {
+        println!("Dry running jetbrains-toolbox-updater");
+        return Ok(());
+    }
+
+    if let Err(e) = update_jetbrains_toolbox(installation) {
+        // Unexpected error
+        println!(
+            "{}",
+            t!("jetbrains-toolbox-updater encountered an unexpected error during updating:")
+        );
+        println!("{e:?}");
+        return Err(StepFailed.into());
+    }
+
+    #[cfg(unix)]
+    if ctx.config().cleanup() {
+        let path = XDG_DIRS.cache_dir().join("JetBrains/Toolbox/download");
+        if path.exists() {
+            println!("Removing download cache at {}", path.display());
+            remove_dir_all(&path)?;
         }
     }
+
+    Ok(())
 }
 
 fn run_jetbrains_ide_generic<const IS_JETBRAINS: bool>(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result<()> {
@@ -2007,7 +2063,7 @@ pub fn run_jetbrains_gateway(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_jetbrains_goland(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require_one(["goland", "goland-eap"])?, "Goland")
+    run_jetbrains_ide(ctx, require_one(["goland", "goland-eap"])?, "GoLand")
 }
 
 pub fn run_jetbrains_idea(ctx: &ExecutionContext) -> Result<()> {
@@ -2171,12 +2227,30 @@ pub fn run_colima(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(colima).arg("update").status_checked()
 }
 
+pub fn run_cursor_agent(ctx: &ExecutionContext) -> Result<()> {
+    let cursor_agent = require("cursor-agent")?;
+
+    print_separator("Cursor Agent");
+
+    ctx.execute(cursor_agent).arg("update").status_checked()
+}
+
 pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
     let npx = require("npx")?;
 
-    let skill_lock = HOME_DIR.join(".agents").join(".skill-lock.json");
+    // Can't use XDG_DIRS since its `state_dir()` falls back to `~/.local/state` instead
+    // of `~/.agents` and it'd also break on non-unix systems
+    let skill_lock = match env::var_os("XDG_STATE_HOME")
+        .as_deref()
+        .filter(|state| !state.is_empty())
+    {
+        Some(state) => Path::new(state).join("skills"),
+        None => HOME_DIR.join(".agents"),
+    }
+    .join(".skill-lock.json");
+
     if !skill_lock.exists() {
-        return Err(SkipStep("No ~/.agents/.skill-lock.json found".to_string()).into());
+        return Err(SkipStep(format!("No skill lock file found at {}", skill_lock.display())).into());
     }
 
     print_separator("Skills");
@@ -2190,6 +2264,20 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
     command.args(["skills", "update", "--global"]);
 
     command.status_checked()
+}
+
+pub fn run_opencode(ctx: &ExecutionContext) -> Result<()> {
+    let opencode = require("opencode")?;
+
+    let script_install_path = HOME_DIR.join(".opencode").join("bin");
+    if !opencode
+        .canonicalize()
+        .is_ok_and(|p| p.is_descendant_of(&script_install_path))
+    {
+        return Err(SkipStep(t!("OpenCode not installed with the official script").to_string()).into());
+    }
+    print_separator("OpenCode");
+    ctx.execute(opencode).arg("upgrade").status_checked()
 }
 
 fn ollama_serve(ctx: &ExecutionContext, ollama: &Path) -> Result<ExecutorChild> {
@@ -2311,4 +2399,104 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
     }
 
     pull_result
+}
+
+pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
+    let mise = require("mise")?;
+    // Run from a fresh directory so caller project-local mise.toml files do not
+    // affect the mise step.
+    let temp_dir = tempdir()?;
+
+    print_separator("mise");
+
+    ctx.execute(&mise)
+        .current_dir(temp_dir.path())
+        .args(["plugins", "update"])
+        .status_checked()?;
+
+    let output = ctx
+        .execute(&mise)
+        .current_dir(temp_dir.path())
+        .args(["self-update"])
+        .output_checked_with(|_| Ok(()))?;
+    let status_code = output
+        .status
+        .code()
+        .ok_or_eyre("Couldn't get status code (terminated by signal)")?;
+    let stderr = std::str::from_utf8(&output.stderr).wrap_err("Expected output to be valid UTF-8")?;
+    if stderr.contains("cannot update") && status_code == 1 {
+        debug!("Mise self-update not available")
+    } else {
+        std::io::stdout().lock().write_all(&output.stdout)?;
+        std::io::stderr().lock().write_all(&output.stderr)?;
+        if status_code != 0 {
+            return Err(StepFailed.into());
+        }
+    }
+
+    let mut cmd = ctx.execute(&mise);
+
+    cmd.arg("upgrade");
+    cmd.current_dir(temp_dir.path());
+
+    if ctx.config().mise_interactive() {
+        cmd.arg("--interactive");
+    }
+
+    if ctx.config().mise_bump() {
+        cmd.arg("--bump");
+    }
+
+    if ctx.config().mise_silent() {
+        cmd.arg("--silent");
+    }
+
+    if ctx.config().mise_quiet() {
+        cmd.arg("--quiet");
+    }
+
+    if ctx.config().mise_verbose() {
+        cmd.arg("--verbose");
+    }
+
+    if ctx.config().yes(Step::Mise) {
+        cmd.arg("--yes");
+    }
+
+    if let Some(jobs) = ctx.config().mise_jobs() {
+        cmd.args(["--jobs", &jobs.to_string()]);
+    }
+
+    cmd.status_checked()?;
+
+    refresh_mise_env(ctx, &mise, temp_dir.path())
+}
+
+/// Refresh the process environment after `mise upgrade` so later steps and binary
+/// lookups resolve the upgraded mise-managed tools. `mise env --json` reports the
+/// activated environment, which we apply to the `PATH`/vars that child commands inherit.
+/// See <https://github.com/topgrade-rs/topgrade/issues/2041>.
+fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path, neutral_cwd: &Path) -> Result<()> {
+    if ctx.run_type().dry() {
+        return Ok(());
+    }
+
+    let output = ctx
+        .execute(mise)
+        .current_dir(neutral_cwd)
+        .args(["env", "--json"])
+        .output_checked()
+        .wrap_err("failed to run `mise env --json`")?;
+    let raw = std::str::from_utf8(&output.stdout).wrap_err("`mise env --json` output was not UTF-8")?;
+    let vars: BTreeMap<String, String> = serde_json::from_str(raw).wrap_err("failed to parse mise environment JSON")?;
+
+    for (key, value) in vars {
+        // SAFETY: `set_var` is not thread-safe; this mirrors the existing `env::set_var`
+        // calls in `main.rs` and `steps/zsh.rs`. Steps run sequentially, so the only
+        // concurrent reader is the sudo keep-alive loop, the same pre-existing condition
+        // those call sites already accept.
+        unsafe { std::env::set_var(key, value) };
+    }
+    debug!("Refreshed process environment from mise");
+    Ok(())
 }
