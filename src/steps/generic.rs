@@ -1252,7 +1252,7 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_powershell(ctx: &ExecutionContext) -> Result<()> {
     let powershell = ctx.require_powershell()?;
 
-    print_separator(t!("Powershell Modules Update"));
+    print_separator(t!("PowerShell Modules Update"));
 
     // For PowerShell Core, run without sudo (defaults to CurrentUser scope).
     // For Windows PowerShell, use sudo (defaults to AllUsers scope).
