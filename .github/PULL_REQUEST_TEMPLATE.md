@@ -7,7 +7,7 @@ Make sure to use a keyword like 'closes' if this PR solves the issue.
 ## Standards checklist
 
 - [ ] I have read `CONTRIBUTING.md`
-- [ ] *Optional:* The PR title is a descriptive commit message (leave unchecked if you want a maintainer to verify or improve it)
+- [ ] *Optional:* The PR title is a descriptive commit message (this will appear in release notes, leave unchecked if you want a maintainer to improve it)
 - [ ] *Optional:* I have tested the code myself, with the relevant tools installed. If yes, add Topgrade's output of the relevant steps.
 - [ ] If this PR introduces new user-facing messages they are translated
 
