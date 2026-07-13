@@ -117,7 +117,7 @@ _version: 2
   lt: "Topgrade atnaujintas nuo %{from_version} iki %{to_version}:\n"
   es: "Topgrade actualizado de %{from_version} a %{to_version}:\n"
   fr: "Topgrade mis à jour de %{from_version} vers %{to_version}:\n"
-  zh_CN: "已将 Topgrade 从 %{from_version} 更新至 %{to_version}: \n"
+  zh_CN: "已将 Topgrade 从 %{from_version} 更新至 %{to_version}：\n"
   zh_TW: "已將 Topgrade 從 %{from_version} 更新至 %{to_version}：\n"
   de: "Topgrade von Version %{from_version} auf %{to_version} aktualisiert:\n"
 "Topgrade is up-to-date":
