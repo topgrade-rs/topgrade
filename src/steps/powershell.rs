@@ -40,7 +40,7 @@ impl Powershell {
     }
 
     fn detect_path() -> Result<(PathBuf, bool), SkipStep> {
-        let mut skip_reason = SkipStep(t!("Powershell is not installed").to_string());
+        let mut skip_reason = SkipStep(t!("PowerShell is not installed").to_string());
 
         for (binary, is_pwsh) in [("pwsh", true), ("powershell", false)] {
             let Some(path) = which(binary) else {
