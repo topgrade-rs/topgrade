@@ -2023,7 +2023,8 @@ impl Config {
             .unwrap_or(false)
     }
 
-    /// If `true`, periodically run `sudo -v` to keep credentials alive during the run
+    /// If `true`, credentials are cached at the start of the run (as with `pre_sudo`)
+    /// and refreshed (`sudo -v`) to keep them alive during the run
     pub fn sudo_loop(&self) -> bool {
         self.opt.sudo_loop
             || self

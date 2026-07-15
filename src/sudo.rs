@@ -341,6 +341,22 @@ impl Sudo {
         cmd.status_checked().wrap_err("Failed to elevate permissions")
     }
 
+    /// Refresh arguments for the sudo kinds that can cache credentials.
+    fn refresh_args(&self) -> Option<&'static [&'static str]> {
+        match self.kind {
+            // `-v`: on a still-valid timestamp, extends it without touching PAM.
+            SudoKind::Sudo => Some(&["-v"]),
+            // `-w`: refreshes a still-valid token without prompting; only prompts once cold.
+            SudoKind::Please => Some(&["-w"]),
+            _ => None,
+        }
+    }
+
+    /// Whether this sudo kind supports credential cache refresh
+    pub fn can_refresh(&self) -> bool {
+        self.refresh_args().is_some()
+    }
+
     /// Silently refresh cached superuser credentials.
     ///
     /// Only for sudo kinds that support credential caching (`sudo -v`, `please -w`).
@@ -349,18 +365,15 @@ impl Sudo {
         let Some(path) = self.path.as_deref() else {
             return Ok(());
         };
+        let Some(args) = self.refresh_args() else {
+            return Ok(());
+        };
 
-        let mut cmd = run_type.execute(path);
-        match self.kind {
-            SudoKind::Sudo => {
-                cmd.arg("-v");
-            }
-            SudoKind::Please => {
-                cmd.arg("-w");
-            }
-            _ => return Ok(()),
-        }
-        cmd.status_checked().wrap_err("Failed to refresh sudo credentials")
+        run_type
+            .execute(path)
+            .args(args)
+            .status_checked()
+            .wrap_err("Failed to refresh sudo credentials")
     }
 
     /// Execute a command with `sudo`.
