@@ -183,8 +183,8 @@ fn run() -> Result<()> {
         None
     };
 
-    if config.pre_sudo()
-        && let Some(sudo) = ctx.sudo()
+    if let Some(sudo) = ctx.sudo()
+        && (config.pre_sudo() || (config.sudo_loop() && sudo.can_refresh()))
     {
         sudo.elevate(&ctx)?;
     }
