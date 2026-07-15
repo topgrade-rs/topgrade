@@ -52,7 +52,10 @@ pub fn run_antidote(ctx: &ExecutionContext) -> Result<()> {
 
     match update {
         // Commands handed to an *interactive* zsh must end on a builtin (#2158).
-        AntidoteUpdate::Shell => ctx.execute(zsh).args(["-i", "-c", "antidote update; exit $?"]).status_checked(),
+        AntidoteUpdate::Shell => ctx
+            .execute(zsh)
+            .args(["-i", "-c", "antidote update; exit $?"])
+            .status_checked(),
         AntidoteUpdate::Source(antidote) => ctx
             .execute(zsh)
             .args(["-c", r#"source "$1" && antidote update"#, "zsh"])
