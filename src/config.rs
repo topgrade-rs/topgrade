@@ -2024,7 +2024,7 @@ impl Config {
     }
 
     /// If `true`, credentials are cached at the start of the run (as with `pre_sudo`)
-    /// and refreshed (`sudo -v`) to keep them alive during the run
+    /// and refreshed non-interactively (`sudo -n -v`) to keep them alive during the run
     pub fn sudo_loop(&self) -> bool {
         self.opt.sudo_loop
             || self
@@ -2035,7 +2035,7 @@ impl Config {
                 .unwrap_or(false)
     }
 
-    /// Interval in seconds between `sudo -v` invocations when sudo_loop is active
+    /// Interval in seconds between `sudo -n -v` invocations when sudo_loop is active
     pub fn sudo_loop_interval(&self) -> u16 {
         self.opt
             .sudo_loop_interval
