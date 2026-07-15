@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.8.0](https://github.com/topgrade-rs/topgrade/compare/v17.7.0...v17.8.0) - 2026-07-15
+
+### Added
+
+- *(step)* add sera (KDE Plasma addon updater) ([#2134](https://github.com/topgrade-rs/topgrade/pull/2134))
+- *(step)* add OpenCode upgrade ([#2144](https://github.com/topgrade-rs/topgrade/pull/2144))
+
+### Fixed
+
+- *(antidote)* stop the zsh probe suspending topgrade ([#2185](https://github.com/topgrade-rs/topgrade/pull/2185))
+- fix formatting of a `zh_CN` message to be the same as `zh_TW` ([#2174](https://github.com/topgrade-rs/topgrade/pull/2174))
+- *(powershell)* capitalize “Powershell” as “PowerShell” in strings ([#2173](https://github.com/topgrade-rs/topgrade/pull/2173))
+- *(pi)* skip self update if disabled or installed with homebrew ([#2156](https://github.com/topgrade-rs/topgrade/pull/2156))
+
 ## [17.7.0](https://github.com/topgrade-rs/topgrade/compare/v17.6.2...v17.7.0) - 2026-07-10
 
 ### Added
