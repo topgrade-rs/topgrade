@@ -344,9 +344,11 @@ impl Sudo {
     /// Refresh arguments for the sudo kinds that can cache credentials.
     fn refresh_args(&self) -> Option<&'static [&'static str]> {
         match self.kind {
-            // `-v`: on a still-valid timestamp, extends it without touching PAM.
-            SudoKind::Sudo => Some(&["-v"]),
-            // `-w`: refreshes a still-valid token without prompting; only prompts once cold.
+            // `-n`: refresh runs on a background thread, so a cold credential must fail fast rather than prompt.
+            // `-v`: on a still-valid timestamp extends it without touching PAM.
+            SudoKind::Sudo => Some(&["-n", "-v"]),
+            // `-w`: refreshes a still-valid token without prompting; it only prompts once the token has gone cold.
+            // `-n`: warm path skips the token update entirely, silently stopping the keep-alive.
             SudoKind::Please => Some(&["-w"]),
             _ => None,
         }
@@ -359,7 +361,7 @@ impl Sudo {
 
     /// Silently refresh cached superuser credentials.
     ///
-    /// Only for sudo kinds that support credential caching (`sudo -v`, `please -w`).
+    /// Only for sudo kinds that support credential caching (`sudo -n -v`, `please -w`).
     /// For others it's a no-op.
     pub fn refresh(&self, run_type: RunType) -> Result<()> {
         let Some(path) = self.path.as_deref() else {
