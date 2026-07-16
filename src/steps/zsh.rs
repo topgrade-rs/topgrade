@@ -21,7 +21,9 @@ pub fn run_zr(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zr");
 
-    ctx.execute(zsh).args(["-i", "-c", "zr --update"]).status_checked()
+    ctx.execute(zsh)
+        .args(["-i", "-c", "zr --update; exit $?"])
+        .status_checked()
 }
 
 fn zdotdir() -> PathBuf {
@@ -86,7 +88,7 @@ pub fn run_antigen(ctx: &ExecutionContext) -> Result<()> {
     print_separator("antigen");
 
     ctx.execute(zsh)
-        .args(["-i", "-c", "antigen selfupdate ; antigen update"])
+        .args(["-i", "-c", "antigen selfupdate ; antigen update; exit $?"])
         .status_checked()
 }
 
@@ -100,7 +102,7 @@ pub fn run_zgenom(ctx: &ExecutionContext) -> Result<()> {
     print_separator("zgenom");
 
     ctx.execute(zsh)
-        .args(["-i", "-c", "zgenom selfupdate && zgenom update"])
+        .args(["-i", "-c", "zgenom selfupdate && zgenom update; exit $?"])
         .status_checked()
 }
 
@@ -128,7 +130,7 @@ pub fn run_zinit(ctx: &ExecutionContext) -> Result<()> {
     print_separator("zinit");
 
     ctx.execute(zsh)
-        .args(["-i", "-c", "zinit self-update && zinit update --all"])
+        .args(["-i", "-c", "zinit self-update && zinit update --all; exit $?"])
         .status_checked()
 }
 
@@ -141,7 +143,7 @@ pub fn run_zi(ctx: &ExecutionContext) -> Result<()> {
     print_separator("zi");
 
     ctx.execute(zsh)
-        .args(["-i", "-c", "zi self-update && zi update --all"])
+        .args(["-i", "-c", "zi self-update && zi update --all; exit $?"])
         .status_checked()
 }
 
