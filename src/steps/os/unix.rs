@@ -63,6 +63,7 @@ fn get_sudo_user_from_metadata<P: AsRef<Path>>(path: P, metadata: fs::Metadata) 
     None
 }
 
+#[cfg(any(target_os = "linux", target_os = "macos"))]
 fn get_sudo_user<P: AsRef<Path>>(path: P) -> Option<String> {
     match fs::metadata(&path) {
         Ok(metadata) => get_sudo_user_from_metadata(path, metadata),
