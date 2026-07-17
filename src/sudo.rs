@@ -285,10 +285,9 @@ impl Sudo {
         match self.kind {
             SudoKind::Doas => {
                 // `doas` doesn't have anything like `sudo -v` to cache credentials,
-                // so we just execute a dummy `echo` command so we have something
-                // unobtrusive to run.
+                // so we just execute a no-op dummy command, `true`.
                 // See: https://man.openbsd.org/doas
-                cmd.arg("echo");
+                cmd.arg("true");
             }
             SudoKind::Sudo => {
                 // From `man sudo` on macOS:
@@ -322,14 +321,14 @@ impl Sudo {
                 // See the note for `doas` above.
                 //
                 // See: https://linux.die.net/man/1/pkexec
-                cmd.arg("echo");
+                cmd.arg("true");
             }
             SudoKind::Run0 => {
                 // `run0` uses polkit for authentication
                 // and thus has the same issues as `pkexec`.
                 //
                 // See: https://www.freedesktop.org/software/systemd/man/devel/run0.html
-                cmd.arg("echo");
+                cmd.arg("true");
             }
             SudoKind::Please => {
                 // From `man please`

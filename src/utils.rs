@@ -218,7 +218,7 @@ pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
             ))
             .into()),
             _ => {
-                panic!("Detecting {:?} failed: {}", &binary_name, e);
+                panic!("Detecting {:?} failed: {}", binary_name, e);
             }
         },
     }

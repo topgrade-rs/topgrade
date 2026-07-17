@@ -51,7 +51,11 @@ pub fn run_antidote(ctx: &ExecutionContext) -> Result<()> {
     print_separator("antidote");
 
     match update {
-        AntidoteUpdate::Shell => ctx.execute(zsh).args(["-i", "-c", "antidote update"]).status_checked(),
+        // Commands handed to an *interactive* zsh must end on a builtin (#2158).
+        AntidoteUpdate::Shell => ctx
+            .execute(zsh)
+            .args(["-i", "-c", "antidote update; exit $?"])
+            .status_checked(),
         AntidoteUpdate::Source(antidote) => ctx
             .execute(zsh)
             .args(["-c", r#"source "$1" && antidote update"#, "zsh"])
@@ -61,9 +65,10 @@ pub fn run_antidote(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn antidote_available_in_shell(ctx: &ExecutionContext, zsh: &Path) -> bool {
+    // Commands handed to an *interactive* zsh must end on a builtin (#2158).
     ctx.execute(zsh)
         .always()
-        .args(["-i", "-c", "antidote home"])
+        .args(["-i", "-c", "command -v antidote"])
         .output_checked()
         .is_ok()
 }

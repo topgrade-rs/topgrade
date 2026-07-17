@@ -63,7 +63,7 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     let toml_file = cargo_dir.join(".crates.toml").require()?;
 
     if fs::metadata(&toml_file)?.len() == 0 {
-        return Err(SkipStep(format!("{} exists but empty", &toml_file.display())).into());
+        return Err(SkipStep(format!("{} exists but empty", toml_file.display())).into());
     }
 
     print_separator("Cargo");
@@ -685,11 +685,23 @@ pub fn run_pi(ctx: &ExecutionContext) -> Result<()> {
     let supports_explicit_update_targets =
         pi_update_help.stdout.contains("--self") && pi_update_help.stdout.contains("--extensions");
 
+    // `pi update --self` errors when PI_SKIP_VERSION_CHECK is set. Homebrew sets it when it runs.
+    let pi_skip_version_check_env = std::env::var("PI_SKIP_VERSION_CHECK").is_ok();
+    let pi_installed_through_homebrew = pi
+        .canonicalize()
+        .is_ok_and(|p| p.to_string_lossy().contains("/Cellar/"));
+
     if supports_explicit_update_targets {
-        ctx.execute(&pi)
-            .current_dir(temp_dir.path())
-            .args(["update", "--self"])
-            .status_checked()?;
+        if pi_skip_version_check_env {
+            debug!("Skipping `pi update --self`: PI_SKIP_VERSION_CHECK is set");
+        } else if pi_installed_through_homebrew {
+            debug!("Skipping `pi update --self`: pi is installed via Homebrew");
+        } else {
+            ctx.execute(&pi)
+                .current_dir(temp_dir.path())
+                .args(["update", "--self"])
+                .status_checked()?;
+        }
 
         ctx.execute(&pi)
             .current_dir(temp_dir.path())
@@ -1240,7 +1252,7 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_powershell(ctx: &ExecutionContext) -> Result<()> {
     let powershell = ctx.require_powershell()?;
 
-    print_separator(t!("Powershell Modules Update"));
+    print_separator(t!("PowerShell Modules Update"));
 
     // For PowerShell Core, run without sudo (defaults to CurrentUser scope).
     // For Windows PowerShell, use sudo (defaults to AllUsers scope).
@@ -2051,7 +2063,7 @@ pub fn run_jetbrains_gateway(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_jetbrains_goland(ctx: &ExecutionContext) -> Result<()> {
-    run_jetbrains_ide(ctx, require_one(["goland", "goland-eap"])?, "Goland")
+    run_jetbrains_ide(ctx, require_one(["goland", "goland-eap"])?, "GoLand")
 }
 
 pub fn run_jetbrains_idea(ctx: &ExecutionContext) -> Result<()> {
@@ -2254,6 +2266,20 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
     command.status_checked()
 }
 
+pub fn run_opencode(ctx: &ExecutionContext) -> Result<()> {
+    let opencode = require("opencode")?;
+
+    let script_install_path = HOME_DIR.join(".opencode").join("bin");
+    if !opencode
+        .canonicalize()
+        .is_ok_and(|p| p.is_descendant_of(&script_install_path))
+    {
+        return Err(SkipStep(t!("OpenCode not installed with the official script").to_string()).into());
+    }
+    print_separator("OpenCode");
+    ctx.execute(opencode).arg("upgrade").status_checked()
+}
+
 fn ollama_serve(ctx: &ExecutionContext, ollama: &Path) -> Result<ExecutorChild> {
     ctx.execute(ollama)
         .arg("serve")
@@ -2377,13 +2403,20 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
     let mise = require("mise")?;
+    // Run from a fresh directory so caller project-local mise.toml files do not
+    // affect the mise step.
+    let temp_dir = tempdir()?;
 
     print_separator("mise");
 
-    ctx.execute(&mise).args(["plugins", "update"]).status_checked()?;
+    ctx.execute(&mise)
+        .current_dir(temp_dir.path())
+        .args(["plugins", "update"])
+        .status_checked()?;
 
     let output = ctx
         .execute(&mise)
+        .current_dir(temp_dir.path())
         .args(["self-update"])
         .output_checked_with(|_| Ok(()))?;
     let status_code = output
@@ -2404,6 +2437,7 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
     let mut cmd = ctx.execute(&mise);
 
     cmd.arg("upgrade");
+    cmd.current_dir(temp_dir.path());
 
     if ctx.config().mise_interactive() {
         cmd.arg("--interactive");
@@ -2435,20 +2469,21 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
 
     cmd.status_checked()?;
 
-    refresh_mise_env(ctx, &mise)
+    refresh_mise_env(ctx, &mise, temp_dir.path())
 }
 
 /// Refresh the process environment after `mise upgrade` so later steps and binary
 /// lookups resolve the upgraded mise-managed tools. `mise env --json` reports the
 /// activated environment, which we apply to the `PATH`/vars that child commands inherit.
 /// See <https://github.com/topgrade-rs/topgrade/issues/2041>.
-fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path) -> Result<()> {
+fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path, neutral_cwd: &Path) -> Result<()> {
     if ctx.run_type().dry() {
         return Ok(());
     }
 
     let output = ctx
         .execute(mise)
+        .current_dir(neutral_cwd)
         .args(["env", "--json"])
         .output_checked()
         .wrap_err("failed to run `mise env --json`")?;

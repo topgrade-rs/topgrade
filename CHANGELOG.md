@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.8.0](https://github.com/topgrade-rs/topgrade/compare/v17.7.0...v17.8.0) - 2026-07-15
+
+### Added
+
+- *(step)* add sera (KDE Plasma addon updater) ([#2134](https://github.com/topgrade-rs/topgrade/pull/2134))
+- *(step)* add OpenCode upgrade ([#2144](https://github.com/topgrade-rs/topgrade/pull/2144))
+
+### Fixed
+
+- *(antidote)* stop the zsh probe suspending topgrade ([#2185](https://github.com/topgrade-rs/topgrade/pull/2185))
+- fix formatting of a `zh_CN` message to be the same as `zh_TW` ([#2174](https://github.com/topgrade-rs/topgrade/pull/2174))
+- *(powershell)* capitalize “Powershell” as “PowerShell” in strings ([#2173](https://github.com/topgrade-rs/topgrade/pull/2173))
+- *(pi)* skip self update if disabled or installed with homebrew ([#2156](https://github.com/topgrade-rs/topgrade/pull/2156))
+
+## [17.7.0](https://github.com/topgrade-rs/topgrade/compare/v17.6.2...v17.7.0) - 2026-07-10
+
+### Added
+
+- *(debian)* prefer apt over apt-get ([#2153](https://github.com/topgrade-rs/topgrade/pull/2153))
+- *(step)* add Cursor agent ([#2142](https://github.com/topgrade-rs/topgrade/pull/2142))
+- *(shelly)* Update CLI syntax, show news and skip flatpak ([#2130](https://github.com/topgrade-rs/topgrade/pull/2130))
+- *(step)* add zerobrew ([#2133](https://github.com/topgrade-rs/topgrade/pull/2133))
+- *(step)* add pkgit ([#2120](https://github.com/topgrade-rs/topgrade/pull/2120))
+- *(mise)* support Windows
+- *(git)* add config option to fetch default branch instead of failing when on another branch ([#2109](https://github.com/topgrade-rs/topgrade/pull/2109))
+- *(jetbrains-toolbox)* remove download cache if cleanup = true
+- *(needrestart)* support detecting and skipping it on fedora ([#2097](https://github.com/topgrade-rs/topgrade/pull/2097))
+
+### Fixed
+
+- *(mise)* avoid project cwd for upgrades ([#2155](https://github.com/topgrade-rs/topgrade/pull/2155))
+- *(jetbrains_goland)* fix capitalization ([#2150](https://github.com/topgrade-rs/topgrade/pull/2150))
+- *(wsl)* forward --yes to the WSL topgrade invocation
+- *(steps)* stop splicing user-controlled values into shell commands
+- *(antidote)* update from interactive zsh when available ([#2136](https://github.com/topgrade-rs/topgrade/pull/2136))
+- *(wsl)* skip Windows-path binaries in tool detection ([#2135](https://github.com/topgrade-rs/topgrade/pull/2135))
+- *(config)* stop creating `topgrade.d/` ([#2132](https://github.com/topgrade-rs/topgrade/pull/2132))
+- *(mise)* refresh process env after upgrade ([#2113](https://github.com/topgrade-rs/topgrade/pull/2113))
+- *(nix)* use sudo when current profile is not owned by us
+- *(nix)* improve correctness of current profile calculation
+- *(skills)* find lock file via XDG_STATE_HOME ([#2114](https://github.com/topgrade-rs/topgrade/pull/2114))
+- *(mise)* only forward --jobs when set
+- *(nix)* skip profile check for Determinate Nix upgrade ([#2074](https://github.com/topgrade-rs/topgrade/pull/2074))
+- *(pi)* add extension updates ([#2102](https://github.com/topgrade-rs/topgrade/pull/2102))
+- improve default step order ([#2098](https://github.com/topgrade-rs/topgrade/pull/2098))
+
 ## [17.6.2](https://github.com/topgrade-rs/topgrade/compare/v17.6.1...v17.6.2) - 2026-06-20
 
 ### Fixed

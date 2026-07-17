@@ -126,6 +126,7 @@ pub enum Step {
     Node,
     Ollama,
     Opam,
+    Opencode,
     Pacdef,
     Pacstall,
     Pearl,
@@ -159,6 +160,7 @@ pub enum Step {
     Scoop,
     Sdkman,
     SelfUpdate,
+    Sera,
     Sheldon,
     Shell,
     Skills,
@@ -494,6 +496,7 @@ impl Step {
             Node => runner.execute(*self, "npm", || node::run_npm_upgrade(ctx))?,
             Ollama => runner.execute(*self, "Ollama", || generic::run_ollama_pull(ctx))?,
             Opam => runner.execute(*self, "opam", || generic::run_opam_update(ctx))?,
+            Opencode => runner.execute(*self, "OpenCode", || generic::run_opencode(ctx))?,
             Pacdef =>
             {
                 #[cfg(target_os = "linux")]
@@ -547,7 +550,7 @@ impl Step {
             PlatformioCore => runner.execute(*self, "PlatformIO Core", || generic::run_platform_io(ctx))?,
             Pnpm => runner.execute(*self, "pnpm", || node::run_pnpm_upgrade(ctx))?,
             Poetry => runner.execute(*self, "Poetry", || generic::run_poetry(ctx))?,
-            Powershell => runner.execute(*self, "Powershell Modules Update", || generic::run_powershell(ctx))?,
+            Powershell => runner.execute(*self, "PowerShell Modules Update", || generic::run_powershell(ctx))?,
             Protonplus =>
             {
                 #[cfg(target_os = "linux")]
@@ -610,6 +613,11 @@ impl Step {
                         runner.execute(*self, "Self Update", || self_update::self_update(ctx))?;
                     }
                 }
+            }
+            Sera =>
+            {
+                #[cfg(all(unix, not(any(target_os = "macos", target_os = "android"))))]
+                runner.execute(*self, "sera", || unix::run_sera(ctx))?
             }
             Sheldon => runner.execute(*self, "sheldon", || generic::run_sheldon(ctx))?,
             Shell => {
@@ -819,6 +827,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Waydroid,
         AutoCpufreq,
         CinnamonSpices,
+        Sera,
         Mandb,
         Pkgfile,
         Yadm,
@@ -915,6 +924,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         GitRepos,
         ClamAvDb,
         ClaudeCode,
+        Opencode,
         Colima,
         Skills,
         PlatformioCore,

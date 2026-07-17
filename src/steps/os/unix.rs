@@ -1060,7 +1060,7 @@ pub fn run_sdkman(ctx: &ExecutionContext) -> Result<()> {
         .join("bin")
         .join("sdkman-init.sh")
         .require()
-        .map(|p| format!("{}", &p.display()))?;
+        .map(|p| format!("{}", p.display()))?;
 
     print_separator("SDKMAN!");
 
@@ -1077,25 +1077,25 @@ pub fn run_sdkman(ctx: &ExecutionContext) -> Result<()> {
         .unwrap_or("false");
 
     if selfupdate_enabled == "true" {
-        let cmd_selfupdate = format!("source {} && sdk selfupdate", &sdkman_init_path);
+        let cmd_selfupdate = format!("source {} && sdk selfupdate", sdkman_init_path);
         ctx.execute(&bash)
             .args(["-c", cmd_selfupdate.as_str()])
             .status_checked()?;
     }
 
-    let cmd_update = format!("source {} && sdk update", &sdkman_init_path);
+    let cmd_update = format!("source {} && sdk update", sdkman_init_path);
     ctx.execute(&bash).args(["-c", cmd_update.as_str()]).status_checked()?;
 
-    let cmd_upgrade = format!("source {} && sdk upgrade", &sdkman_init_path);
+    let cmd_upgrade = format!("source {} && sdk upgrade", sdkman_init_path);
     ctx.execute(&bash).args(["-c", cmd_upgrade.as_str()]).status_checked()?;
 
     if ctx.config().cleanup() {
-        let cmd_flush_archives = format!("source {} && sdk flush archives", &sdkman_init_path);
+        let cmd_flush_archives = format!("source {} && sdk flush archives", sdkman_init_path);
         ctx.execute(&bash)
             .args(["-c", cmd_flush_archives.as_str()])
             .status_checked()?;
 
-        let cmd_flush_temp = format!("source {} && sdk flush temp", &sdkman_init_path);
+        let cmd_flush_temp = format!("source {} && sdk flush temp", sdkman_init_path);
         ctx.execute(&bash)
             .args(["-c", cmd_flush_temp.as_str()])
             .status_checked()?;
@@ -1151,6 +1151,15 @@ pub fn run_atuin(ctx: &ExecutionContext) -> Result<()> {
     print_separator("atuin");
 
     ctx.execute(atuin).status_checked()
+}
+
+#[cfg(not(any(target_os = "android", target_os = "macos")))]
+pub fn run_sera(ctx: &ExecutionContext) -> Result<()> {
+    let sera = require("sera")?;
+
+    print_separator("sera");
+
+    ctx.execute(sera).arg("upgrade").status_checked()
 }
 
 pub fn reboot(ctx: &ExecutionContext) -> Result<()> {
