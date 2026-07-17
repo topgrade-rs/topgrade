@@ -136,6 +136,26 @@ impl Brew {
         Ok(cmd)
     }
 
+    /// Run a brew subcommand, isolating it from our terminal's sudo timestamp when it runs as us.
+    ///
+    /// `brew.sh` runs `sudo --reset-timestamp` at startup (#2138), dropping the credentials
+    /// `pre_sudo`/`sudo_loop` cached and re-prompting at the next sudo step. Running brew on its own
+    /// pty (`crate::pty`) confines that reset to the pty's record; the pty is a real terminal, so a
+    /// cask's own `sudo` prompt stays answerable.
+    ///
+    /// Only helps under sudo's default `timestamp_type=tty`; `global`/`kernel` reset regardless of
+    /// terminal. The `sudo -Hu <user>` path resets a *different* user's timestamp, not ours, so it
+    /// stays in our session and reuses primed root credentials for the outer `sudo`.
+    fn run(&self, ctx: &ExecutionContext, args: &[&str]) -> Result<()> {
+        let mut cmd = self.execute(ctx)?;
+        cmd.args(args);
+        if self.sudo.is_some() {
+            cmd.status_checked()
+        } else {
+            cmd.status_checked_on_pty()
+        }
+    }
+
     fn step_title(&self) -> String {
         let both_exists = BrewVariant::both_both_exist();
         let step_title = match self.variant {
@@ -381,30 +401,29 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
 
     print_separator(brew.step_title());
 
-    brew.execute(ctx)?.arg("update").status_checked()?;
+    brew.run(ctx, &["update"])?;
     // TODO: this had:
     //  `.current_dir("/tmp") // brew needs a writable current directory`
     //  but that only applied when sudo -Hu was used. Is it really needed?
 
-    let mut command = brew.execute(ctx)?;
-    command.args(["upgrade", "--formula"]);
+    let mut upgrade_args = vec!["upgrade", "--formula"];
 
     if ctx.config().yes(Step::BrewFormula) {
-        command.arg("-y");
+        upgrade_args.push("-y");
     }
 
     if ctx.config().brew_fetch_head() {
-        command.arg("--fetch-HEAD");
+        upgrade_args.push("--fetch-HEAD");
     }
 
-    command.status_checked()?;
+    brew.run(ctx, &upgrade_args)?;
 
     if ctx.config().cleanup() {
-        brew.execute(ctx)?.arg("cleanup").status_checked()?;
+        brew.run(ctx, &["cleanup"])?;
     }
 
     if ctx.config().brew_autoremove() {
-        brew.execute(ctx)?.arg("autoremove").status_checked()?;
+        brew.run(ctx, &["autoremove"])?;
     }
 
     Ok(())
@@ -454,12 +473,15 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
 
     print_separator(format!("{} - Cask", brew.step_title()));
 
-    let cask_upgrade_exists = brew
-        .execute(ctx)?
-        .always()
-        .args(["--repository", "buo/cask-upgrade"])
-        .output_checked_utf8()
-        .map(|p| Path::new(p.stdout.trim()).exists())?;
+    // `brew --repository <tap>` reaches brew.sh's `sudo --reset-timestamp` (#2138); bare
+    // `--repository` is a shell fast-path that exits before it, so join the tap dir ourselves.
+    // The `Library/Taps/<user>/homebrew-<repo>` layout is a Homebrew convention, not a documented
+    // contract: if it ever changes this reads as "cask-upgrade absent" and silently falls back to
+    // plain `brew upgrade --cask` instead of erroring.
+    let repository = brew.execute(ctx)?.always().arg("--repository").output_checked_utf8()?;
+    let cask_upgrade_exists = Path::new(repository.stdout.trim())
+        .join("Library/Taps/buo/homebrew-cask-upgrade")
+        .exists();
 
     let mut brew_args = vec![];
 
@@ -484,10 +506,10 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
         }
     }
 
-    brew.execute(ctx)?.args(&brew_args).status_checked()?;
+    brew.run(ctx, &brew_args)?;
 
     if ctx.config().cleanup() {
-        brew.execute(ctx)?.arg("cleanup").status_checked()?;
+        brew.run(ctx, &["cleanup"])?;
     }
 
     Ok(())

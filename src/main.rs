@@ -37,6 +37,8 @@ mod ctrlc;
 mod error;
 mod execution_context;
 mod executor;
+#[cfg(unix)]
+mod pty;
 mod runner;
 #[cfg(windows)]
 mod self_renamer;

@@ -82,7 +82,7 @@ assets = [
 system_shutdown = "4.1.0"
 
 [target.'cfg(unix)'.dependencies]
-nix = { version = "0.31", features = ["hostname", "signal", "user"] }
+nix = { version = "0.31", features = ["hostname", "poll", "signal", "term", "user"] }
 rust-ini = "0.21"
 self_update_crate = { version = "0.44", default-features = false, optional = true, package = "self_update", features = ["archive-tar", "compression-flate2", "rustls", "reqwest"] }
 
