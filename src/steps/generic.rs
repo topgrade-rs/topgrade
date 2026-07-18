@@ -2469,6 +2469,21 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
 
     cmd.status_checked()?;
 
+    if ctx.config().cleanup() {
+        cmd = ctx.execute(&mise);
+        cmd.arg("prune");
+
+        if ctx.config().yes(Step::Mise) {
+            cmd.arg("--yes");
+        }
+
+        if ctx.run_type().dry() {
+            cmd.arg("--dry-run");
+        }
+
+        cmd.status_checked()?;
+    }
+
     refresh_mise_env(ctx, &mise, temp_dir.path())
 }
 
