@@ -2477,10 +2477,6 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
             cmd.arg("--yes");
         }
 
-        if ctx.run_type().dry() {
-            cmd.arg("--dry-run");
-        }
-
         cmd.status_checked()?;
     }
 
