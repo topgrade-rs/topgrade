@@ -113,7 +113,14 @@ pub fn run_flutter_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let flutter = require("flutter")?;
 
     print_separator("Flutter");
-    ctx.execute(flutter).arg("upgrade").status_checked()
+    let mut command = ctx.execute(flutter);
+    command.arg("upgrade");
+
+    if ctx.config().flutter_force() {
+        command.arg("--force");
+    }
+
+    command.status_checked()
 }
 
 pub fn run_gem(ctx: &ExecutionContext) -> Result<()> {
