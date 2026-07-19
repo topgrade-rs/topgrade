@@ -91,7 +91,6 @@ pub fn run_antibody(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_antigen(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
-    zshrc().require()?;
     env::var("ADOTDIR")
         .map_or_else(|_| HOME_DIR.join("antigen.zsh"), PathBuf::from)
         .require()?;
@@ -103,7 +102,6 @@ pub fn run_antigen(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_zgenom(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
-    zshrc().require()?;
     env::var("ZGEN_SOURCE")
         .map_or_else(|_| HOME_DIR.join(".zgenom"), PathBuf::from)
         .require()?;
@@ -115,7 +113,6 @@ pub fn run_zgenom(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_zplug(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
-    zshrc().require()?;
 
     env::var("ZPLUG_HOME")
         .map_or_else(|_| HOME_DIR.join(".zplug"), PathBuf::from)
@@ -128,7 +125,6 @@ pub fn run_zplug(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_zinit(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
-    zshrc().require()?;
 
     env::var("ZINIT_HOME")
         .map_or_else(|_| XDG_DIRS.data_dir().join("zinit"), PathBuf::from)
@@ -141,7 +137,6 @@ pub fn run_zinit(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_zi(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
-    zshrc().require()?;
 
     HOME_DIR.join(".zi").require()?;
 
