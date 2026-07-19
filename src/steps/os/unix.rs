@@ -34,26 +34,23 @@ use crate::step::Step;
 use crate::terminal::print_separator;
 use crate::utils::{PathExt, require};
 
-fn get_sudo_uid<P: AsRef<Path>>(path: P) -> Option<u32> {
-    if let Ok(metadata) = fs::metadata(&path) {
-        let owner_id = metadata.uid();
-        let current_id = nix::unistd::Uid::effective();
-        // print debug these two values
-        debug!(
-            "path: {path:?}, owner_id: {owner_id}, current_id: {current_id}",
-            path = path.as_ref()
-        );
-        return if owner_id == current_id.as_raw() {
-            None // no need for sudo if path is owned by the current user
-        } else {
-            Some(owner_id) // otherwise use sudo to run as the owner
-        };
+fn get_sudo_uid_from_metadata<P: AsRef<Path>>(path: P, metadata: fs::Metadata) -> Option<u32> {
+    let owner_id = metadata.uid();
+    let current_id = nix::unistd::Uid::effective();
+    // print debug these two values
+    debug!(
+        "path: {path:?}, owner_id: {owner_id}, current_id: {current_id}",
+        path = path.as_ref()
+    );
+    if owner_id == current_id.as_raw() {
+        None // no need for sudo if path is owned by the current user
+    } else {
+        Some(owner_id) // otherwise use sudo to run as the owner
     }
-    None
 }
 
-fn get_sudo_user<P: AsRef<Path>>(path: P) -> Option<String> {
-    let sudo_uid = get_sudo_uid(path);
+fn get_sudo_user_from_metadata<P: AsRef<Path>>(path: P, metadata: fs::Metadata) -> Option<String> {
+    let sudo_uid = get_sudo_uid_from_metadata(path, metadata);
     // if path is owned by another user, execute "sudo -Hu <user> <binary_name>"
     if let Some(user_id) = sudo_uid {
         let uid = nix::unistd::Uid::from_raw(user_id);
@@ -64,6 +61,21 @@ fn get_sudo_user<P: AsRef<Path>>(path: P) -> Option<String> {
         }
     }
     None
+}
+
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn get_sudo_user<P: AsRef<Path>>(path: P) -> Option<String> {
+    match fs::metadata(&path) {
+        Ok(metadata) => get_sudo_user_from_metadata(path, metadata),
+        Err(_) => None,
+    }
+}
+
+fn get_symlink_sudo_user<P: AsRef<Path>>(path: P) -> Option<String> {
+    match fs::symlink_metadata(&path) {
+        Ok(metadata) => get_sudo_user_from_metadata(path, metadata),
+        Err(_) => None,
+    }
 }
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -702,7 +714,7 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
             warn!("`nix-channel --update` failed: {e}");
         }
         print_separator("Nix Profiles");
-        let mut command = match &get_sudo_user(profile_path) {
+        let mut command = match &get_symlink_sudo_user(profile_path) {
             None => ctx.execute(nix),
             Some(user) => {
                 let sudo = ctx.require_sudo()?;
@@ -722,7 +734,7 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
         let nix_env = require("nix-env")?;
         print_separator("Nix");
 
-        let mut command = match &get_sudo_user(profile_path) {
+        let mut command = match &get_symlink_sudo_user(profile_path) {
             None => ctx.execute(nix_env),
             Some(user) => {
                 let sudo = ctx.require_sudo()?;
