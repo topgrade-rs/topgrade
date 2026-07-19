@@ -576,6 +576,13 @@ pub struct DoomConfig {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct Flutter {
+    #[merge(strategy = merge::option::overwrite_none)]
+    force: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 pub struct Cargo {
     #[merge(strategy = merge::option::overwrite_none)]
     git: Option<bool>,
@@ -668,6 +675,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     firmware: Option<Firmware>,
+
+    #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
+    flutter: Option<Flutter>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     vagrant: Option<Vagrant>,
@@ -1930,6 +1940,14 @@ impl Config {
             .cargo
             .as_ref()
             .and_then(|cargo| cargo.locked)
+            .unwrap_or(false)
+    }
+
+    pub fn flutter_force(&self) -> bool {
+        self.config_file
+            .flutter
+            .as_ref()
+            .and_then(|flutter| flutter.force)
             .unwrap_or(false)
     }
 
