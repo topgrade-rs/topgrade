@@ -9,10 +9,23 @@ use crate::HOME_DIR;
 use crate::XDG_DIRS;
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
+use crate::executor::Executor;
 use crate::git::RepoStep;
 use crate::terminal::print_separator;
 use crate::utils::{PathExt, require};
 use etcetera::base_strategy::BaseStrategy;
+
+/// Build an interactive `zsh -i -c` invocation with a trailing `exit $?`.
+///
+/// `zsh -i -c` execs (rather than forks) its last command, so an external final command leaves
+/// the tty foreground process group pointing at a dead pgrp. Forcing the builtin `exit` to be the
+/// last command sidesteps that. Drop this helper and restore plain `execute` once zsh fixes it.
+fn execute_interactive_zsh(ctx: &ExecutionContext, zsh: &Path, command: &str) -> Executor {
+    let script = format!("{command}; exit $?");
+    let mut exec = ctx.execute(zsh);
+    exec.args(["-i", "-c", &script]);
+    exec
+}
 
 pub fn run_zr(ctx: &ExecutionContext) -> Result<()> {
     let zsh = require("zsh")?;
@@ -21,9 +34,7 @@ pub fn run_zr(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zr");
 
-    ctx.execute(zsh)
-        .args(["-i", "-c", "zr --update; exit $?"])
-        .status_checked()
+    execute_interactive_zsh(ctx, &zsh, "zr --update").status_checked()
 }
 
 fn zdotdir() -> PathBuf {
@@ -87,9 +98,7 @@ pub fn run_antigen(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("antigen");
 
-    ctx.execute(zsh)
-        .args(["-i", "-c", "antigen selfupdate ; antigen update; exit $?"])
-        .status_checked()
+    execute_interactive_zsh(ctx, &zsh, "antigen selfupdate ; antigen update").status_checked()
 }
 
 pub fn run_zgenom(ctx: &ExecutionContext) -> Result<()> {
@@ -101,9 +110,7 @@ pub fn run_zgenom(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zgenom");
 
-    ctx.execute(zsh)
-        .args(["-i", "-c", "zgenom selfupdate && zgenom update; exit $?"])
-        .status_checked()
+    execute_interactive_zsh(ctx, &zsh, "zgenom selfupdate && zgenom update").status_checked()
 }
 
 pub fn run_zplug(ctx: &ExecutionContext) -> Result<()> {
@@ -129,9 +136,7 @@ pub fn run_zinit(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zinit");
 
-    ctx.execute(zsh)
-        .args(["-i", "-c", "zinit self-update && zinit update --all; exit $?"])
-        .status_checked()
+    execute_interactive_zsh(ctx, &zsh, "zinit self-update && zinit update --all").status_checked()
 }
 
 pub fn run_zi(ctx: &ExecutionContext) -> Result<()> {
@@ -142,9 +147,7 @@ pub fn run_zi(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zi");
 
-    ctx.execute(zsh)
-        .args(["-i", "-c", "zi self-update && zi update --all; exit $?"])
-        .status_checked()
+    execute_interactive_zsh(ctx, &zsh, "zi self-update && zi update --all").status_checked()
 }
 
 pub fn run_zim(ctx: &ExecutionContext) -> Result<()> {
