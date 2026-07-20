@@ -145,29 +145,29 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
 
     let mut command = ctx.execute(wsl);
 
-    // Pass the distro name, discovered topgrade path, and forwarded flags as
-    // positional parameters so the inner `bash -lc` receives them as single argv
-    // elements instead of parsing their contents. `"${@:3}"` forwards the flags
-    // to `topgrade` (not `bash`) and expands to nothing when there are none.
-    command
-        .args([
-            "-d",
-            dist,
-            "bash",
-            "-lc",
-            r#"TOPGRADE_PREFIX="$1" exec "$2" "${@:3}""#,
-            "bash",
-        ])
-        .arg(dist)
-        .arg(&topgrade);
-    if ctx.config().verbose() {
-        command.arg("-v");
-    }
-    if ctx.config().yes(Step::Wsl) {
-        command.arg("-y");
-    }
+    // WSL joins the arguments following the Linux command into a command line,
+    // so arguments appended after the `bash -lc` script are not reliably passed
+    // through as Bash positional parameters. Keep the complete script in one
+    // argument and shell-quote the values that originated outside this function.
+    let script = wsl_topgrade_script(dist, &topgrade, ctx.config().verbose(), ctx.config().yes(Step::Wsl));
+    command.args(["-d", dist, "bash", "-lc", &script]);
 
     command.status_checked()
+}
+
+fn wsl_topgrade_script(dist: &str, topgrade: &str, verbose: bool, yes: bool) -> String {
+    let mut script = format!(
+        "TOPGRADE_PREFIX={} exec {}",
+        shell_words::quote(dist),
+        shell_words::quote(topgrade)
+    );
+    if verbose {
+        script.push_str(" -v");
+    }
+    if yes {
+        script.push_str(" -y");
+    }
+    script
 }
 
 pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
@@ -280,4 +280,17 @@ pub fn insert_startup_scripts(ctx: &ExecutionContext, git_repos: &mut RepoStep) 
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::wsl_topgrade_script;
+
+    #[test]
+    fn wsl_topgrade_script_quotes_dynamic_values_and_forwards_flags() {
+        assert_eq!(
+            wsl_topgrade_script("Distro's name", "/home/user/top grade", true, true),
+            "TOPGRADE_PREFIX='Distro'\\''s name' exec '/home/user/top grade' -v -y"
+        );
+    }
 }
