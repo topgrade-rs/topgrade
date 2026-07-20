@@ -178,21 +178,28 @@ pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     let wsl = require("wsl")?;
     let wsl_distributions = get_wsl_distributions(ctx, &wsl)?;
     let mut ran = false;
+    let mut first_error = None;
 
     debug!("WSL distributions: {:?}", wsl_distributions);
 
     for distribution in wsl_distributions {
         let result = upgrade_wsl_distribution(&wsl, &distribution, ctx);
         debug!("Upgrading {:?}: {:?}", distribution, result);
-        if let Err(e) = result
-            && e.is::<SkipStep>()
-        {
-            continue;
+        match result {
+            Ok(()) => ran = true,
+            Err(e) if e.is::<SkipStep>() => continue,
+            Err(e) => {
+                ran = true;
+                if first_error.is_none() {
+                    first_error = Some(e);
+                }
+            }
         }
-        ran = true
     }
 
-    if ran {
+    if let Some(error) = first_error {
+        Err(error)
+    } else if ran {
         Ok(())
     } else {
         Err(SkipStep(t!("Could not find Topgrade in any WSL distribution").to_string()).into())
