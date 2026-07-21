@@ -23,10 +23,10 @@ use tracing::debug;
 use self::config::{CommandLineArgs, Config};
 use self::error::StepFailed;
 use self::runner::StepResult;
-#[allow(clippy::wildcard_imports)]
+#[expect(clippy::wildcard_imports)]
 use self::steps::{remote::*, *};
 use self::sudo::{Sudo, SudoCreateError, SudoKind};
-#[allow(clippy::wildcard_imports)]
+#[expect(clippy::wildcard_imports)]
 use self::terminal::*;
 use self::utils::{install_color_eyre, install_tracing, is_elevated, set_wsl_use_windows_path, update_tracing};
 

@@ -42,7 +42,7 @@ impl RunType {
     }
 
     /// Create an `Executor` for the given program using this run type.
-    #[allow(clippy::disallowed_methods)]
+    #[expect(clippy::disallowed_methods)]
     pub fn execute<S: AsRef<OsStr>>(self, program: S) -> Executor {
         match self {
             RunType::Dry => Executor::Dry(DryCommand::new(program)),
