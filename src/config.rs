@@ -2237,7 +2237,7 @@ mod test {
             system_prune: None,
             use_sudo: Some(true),
         };
-        left.merge(right);
+        left.merge(&mut right);
 
         // Left Some is preserved even when right is also Some
         assert!(matches!(left.runtime, Some(ContainerRuntime::Podman)));
