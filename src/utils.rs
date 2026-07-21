@@ -18,6 +18,7 @@ use crate::config::DEFAULT_LOG_LEVEL;
 use crate::error::SkipStep;
 use crate::execution_context::ExecutionContext;
 use crate::executor::Executor;
+use crate::steps::generic::IS_WSL;
 
 pub trait PathExt
 where
@@ -90,7 +91,7 @@ pub fn set_wsl_use_windows_path(use_windows_path: bool) -> Result<()> {
 /// fails to run in the guest (topgrade-rs/topgrade#1243). When on, detection skips those.
 /// Off via `wsl_use_windows_path = true`.
 fn wsl_windows_path_filter_enabled() -> bool {
-    crate::steps::generic::is_wsl().unwrap_or(false) && !WSL_USE_WINDOWS_PATH.get().copied().unwrap_or(false)
+    *IS_WSL && !WSL_USE_WINDOWS_PATH.get().copied().unwrap_or(false)
 }
 
 /// Mount points backed by Windows drives (drvfs on WSL1, 9p/virtiofs on WSL2).

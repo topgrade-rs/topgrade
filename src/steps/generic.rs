@@ -38,16 +38,14 @@ use crate::{
 };
 
 #[cfg(target_os = "linux")]
-pub fn is_wsl() -> Result<bool> {
+pub static IS_WSL: LazyLock<bool> = LazyLock::new(|| {
     let output = std::fs::read_to_string("/proc/version").unwrap_or_default();
     debug!("Proc version output: {}", output);
-    Ok(output.to_lowercase().contains("microsoft"))
-}
+    output.to_lowercase().contains("microsoft")
+});
 
 #[cfg(not(target_os = "linux"))]
-pub fn is_wsl() -> Result<bool> {
-    Ok(false)
-}
+pub static IS_WSL: LazyLock<bool> = LazyLock::new(|| false);
 
 pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     let cargo_dir = env::var_os("CARGO_HOME")
@@ -561,7 +559,7 @@ impl VSCodeVariant {
 /// VSCodium Insiders, Cursor, Antigravity), as the process is the same for all.
 fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Result<()> {
     // Calling VSCode/VSCodium in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
-    if is_wsl()? {
+    if *IS_WSL {
         return Err(SkipStep(String::from("Should not run in WSL")).into());
     }
 
