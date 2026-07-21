@@ -1651,7 +1651,6 @@ impl Config {
     }
 
     /// Extra Pikaur arguments
-    #[allow(dead_code)]
     pub fn pikaur_arguments(&self) -> &str {
         self.config_file
             .linux

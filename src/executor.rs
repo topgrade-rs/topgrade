@@ -266,7 +266,6 @@ impl DryCommand {
 /// The Result of spawn. Contains an actual `std::process::Child` if executed by a wet command.
 pub enum ExecutorChild {
     // Both RunType::Wet and RunType::Damp use this variant
-    #[allow(unused)] // this type has not been used
     Wet(Child),
     Dry,
 }

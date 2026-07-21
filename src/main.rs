@@ -60,7 +60,6 @@ pub(crate) static WINDOWS_DIRS: LazyLock<Windows> = LazyLock::new(|| Windows::ne
 // Init and load the i18n files
 i18n!("locales", fallback = "en");
 
-#[allow(clippy::too_many_lines)]
 fn run() -> Result<()> {
     install_color_eyre()?;
     ctrlc::set_handler();
