@@ -164,7 +164,6 @@ pub struct Conda {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
-#[allow(clippy::upper_case_acronyms)]
 pub struct Distrobox {
     #[merge(strategy = merge::option::overwrite_none)]
     use_root: Option<bool>,
@@ -175,7 +174,6 @@ pub struct Distrobox {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
-#[allow(clippy::upper_case_acronyms)]
 pub struct Yarn {
     #[merge(strategy = merge::option::overwrite_none)]
     use_sudo: Option<bool>,
@@ -183,7 +181,6 @@ pub struct Yarn {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
-#[allow(clippy::upper_case_acronyms)]
 pub struct VitePlus {
     #[merge(strategy = merge::option::overwrite_none)]
     use_sudo: Option<bool>,
@@ -191,15 +188,13 @@ pub struct VitePlus {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
-#[allow(clippy::upper_case_acronyms)]
-pub struct NPM {
+pub struct Npm {
     #[merge(strategy = merge::option::overwrite_none)]
     use_sudo: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
-#[allow(clippy::upper_case_acronyms)]
 pub struct Deno {
     #[merge(strategy = merge::option::overwrite_none)]
     version: Option<String>,
@@ -207,7 +202,6 @@ pub struct Deno {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
-#[allow(clippy::upper_case_acronyms)]
 pub struct Chezmoi {
     #[merge(strategy = merge::option::overwrite_none)]
     exclude_encrypted: Option<bool>,
@@ -215,7 +209,6 @@ pub struct Chezmoi {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
-#[allow(clippy::upper_case_acronyms)]
 pub struct Mise {
     #[merge(strategy = merge::option::overwrite_none)]
     bump: Option<bool>,
@@ -233,7 +226,6 @@ pub struct Mise {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
-#[allow(clippy::upper_case_acronyms)]
 pub struct Firmware {
     #[merge(strategy = merge::option::overwrite_none)]
     upgrade: Option<bool>,
@@ -241,7 +233,6 @@ pub struct Firmware {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
-#[allow(clippy::upper_case_acronyms)]
 pub struct Flatpak {
     #[merge(strategy = merge::option::overwrite_none)]
     use_sudo: Option<bool>,
@@ -249,7 +240,6 @@ pub struct Flatpak {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
-#[allow(clippy::upper_case_acronyms)]
 pub struct Pixi {
     #[merge(strategy = merge::option::overwrite_none)]
     include_release_notes: Option<bool>,
@@ -656,7 +646,7 @@ pub struct ConfigFile {
     windows: Option<Windows>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
-    npm: Option<NPM>,
+    npm: Option<Npm>,
 
     #[merge(strategy = crate::utils::merge_strategies::inner_merge_opt)]
     chezmoi: Option<Chezmoi>,
