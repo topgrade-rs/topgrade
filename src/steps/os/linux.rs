@@ -12,7 +12,7 @@ use crate::config::NixHandler;
 use crate::error::{SkipStep, TopgradeError};
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
-use crate::steps::generic::is_wsl;
+use crate::steps::generic::IS_WSL;
 use crate::steps::os::archlinux;
 use crate::steps::unix::{NhSwitchArgs, can_nh_switch, nh_switch};
 use crate::sudo::SudoExecuteOpts;
@@ -930,7 +930,7 @@ pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_fwupdmgr(ctx: &ExecutionContext) -> Result<()> {
     let fwupdmgr = require("fwupdmgr")?;
 
-    if is_wsl()? {
+    if *IS_WSL {
         return Err(SkipStep(t!("Should not run in WSL").to_string()).into());
     }
 
