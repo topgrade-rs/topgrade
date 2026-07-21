@@ -29,7 +29,7 @@ impl Tmux {
         }
     }
 
-    #[allow(clippy::disallowed_methods)]
+    #[expect(clippy::disallowed_methods)]
     fn build(&self) -> Command {
         let mut command = Command::new(&self.tmux);
         if let Some(args) = self.args.as_ref() {

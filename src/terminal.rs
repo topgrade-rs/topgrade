@@ -32,7 +32,7 @@ pub fn shell() -> &'static str {
     which("pwsh").map(|_| "pwsh").unwrap_or("powershell")
 }
 
-#[allow(clippy::disallowed_methods)]
+#[expect(clippy::disallowed_methods)]
 pub fn run_shell() -> eyre::Result<()> {
     Command::new(shell()).env("IN_TOPGRADE", "1").status_checked()
 }

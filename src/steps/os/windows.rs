@@ -106,7 +106,7 @@ pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
 fn is_wsl_installed() -> Result<bool> {
     if let Some(wsl) = which("wsl") {
         // Don't use `output_checked` as an execution failure log is not wanted
-        #[allow(clippy::disallowed_methods)]
+        #[expect(clippy::disallowed_methods)]
         let output = Command::new(wsl).arg("-l").output()?;
         let status = output.status;
 

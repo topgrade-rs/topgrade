@@ -10,7 +10,7 @@ use strum::{EnumCount, EnumIter, EnumString, VariantNames};
 #[cfg(feature = "self-update")]
 use crate::self_update;
 use crate::steps::remote::vagrant;
-#[allow(clippy::wildcard_imports)]
+#[expect(clippy::wildcard_imports)]
 use crate::steps::*;
 use crate::utils::hostname;
 
@@ -199,7 +199,7 @@ pub enum Step {
 }
 
 impl Step {
-    #[allow(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines)]
     pub fn run(&self, runner: &mut Runner, ctx: &ExecutionContext) -> Result<()> {
         use Step::*;
 
@@ -777,7 +777,7 @@ impl Step {
     }
 }
 
-#[allow(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 pub(crate) fn default_steps() -> Vec<Step> {
     use Step::*;
     // For now, SelfUpdate isn't included as it's ran before the other non-steps (pre-commands, sudo, etc)
