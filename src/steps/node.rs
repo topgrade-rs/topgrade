@@ -40,13 +40,12 @@ impl Display for NPMVariant {
     }
 }
 
-#[allow(clippy::upper_case_acronyms)]
-struct NPM {
+struct Npm {
     command: PathBuf,
     variant: NPMVariant,
 }
 
-impl NPM {
+impl Npm {
     fn new(command: PathBuf, variant: NPMVariant) -> Self {
         Self { command, variant }
     }
@@ -313,7 +312,7 @@ impl VitePlus {
 }
 
 #[cfg(target_os = "linux")]
-fn should_use_sudo(npm: &NPM, ctx: &ExecutionContext) -> Result<bool> {
+fn should_use_sudo(npm: &Npm, ctx: &ExecutionContext) -> Result<bool> {
     if npm.should_use_sudo(ctx)? {
         if ctx.config().npm_use_sudo() {
             Ok(true)
@@ -355,7 +354,7 @@ fn should_use_sudo_yarn(yarn: &Yarn, ctx: &ExecutionContext) -> Result<bool> {
 }
 
 pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let npm = require("npm").map(|b| NPM::new(b, NPMVariant::Npm))?;
+    let npm = require("npm").map(|b| Npm::new(b, NPMVariant::Npm))?;
 
     print_separator(t!("Node Package Manager"));
 
@@ -371,7 +370,7 @@ pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_pnpm_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let pnpm = require("pnpm").map(|b| NPM::new(b, NPMVariant::Pnpm))?;
+    let pnpm = require("pnpm").map(|b| Npm::new(b, NPMVariant::Pnpm))?;
 
     print_separator(t!("Performant Node Package Manager"));
 
