@@ -2231,7 +2231,7 @@ mod test {
             system_prune: Some(false),
             use_sudo: None,
         };
-        let right = Containers {
+        let mut right = Containers {
             ignored_containers: None,
             runtime: Some(ContainerRuntime::Docker),
             system_prune: None,
