@@ -1721,7 +1721,12 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         let official_install = match stdout {
             "N" => false,
             "Y" => true,
-            _ => unreachable!("unexpected output from `check_official_install_script`"),
+            _ => {
+                return Err(eyre!(output_changed_message!(
+                    format!(r#"<poetry interpreter> -c "{check_official_install_script}""#),
+                    "expected 'Y' or 'N'"
+                )));
+            }
         };
 
         debug!("poetry is official install: {}", official_install);
