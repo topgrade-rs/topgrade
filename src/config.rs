@@ -1211,16 +1211,14 @@ impl Config {
         let mut enabled_steps = (!opt.only.is_empty())
             .then(|| opt.only.clone())
             .or_else(|| {
-                config_file.misc.as_ref()
+                config_file
+                    .misc
+                    .as_ref()
                     .and_then(|m| m.only.as_ref())
                     .filter(|v| !v.is_empty())
                     .cloned()
             })
-            .unwrap_or_else(|| {
-                Step::iter()
-                    .filter(|x| !step_is_deprecated(*x))
-                    .collect()
-        });
+            .unwrap_or_else(|| Step::iter().filter(|x| !step_is_deprecated(*x)).collect());
 
         let mut disabled_steps: Vec<Step> = Vec::new();
         disabled_steps.extend(&opt.disable);
