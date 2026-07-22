@@ -28,7 +28,6 @@ pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
         cmd.arg("-N");
     }
     cmd.status_checked()?;
-    
 
     if ctx.config().cleanup() {
         let mut cmd = sudo.execute(ctx, &port)?;
