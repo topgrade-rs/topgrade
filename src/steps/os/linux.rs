@@ -1047,7 +1047,7 @@ pub fn run_soar(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(&soar).arg("sync").status_checked()?;
     ctx.execute(&soar).arg("update").status_checked()?;
-    ctx.execute(&soar).arg("self update").status_checked()
+    ctx.execute(&soar).args(["self", "update"]).status_checked()
 }
 
 pub fn run_pihole_update(ctx: &ExecutionContext) -> Result<()> {
