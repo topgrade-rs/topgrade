@@ -323,8 +323,8 @@ fn log_command<
             t!(
                 "with env: {env}",
                 env = env_iter
-                    .filter(|(_, val)| val.is_some())
-                    .map(|(key, val)| format!("{:?}={:?}", key, val.unwrap()))
+                    .filter_map(|(key, val)| val.map(|val| (key, val))) // Remove None values
+                    .map(|(key, val)| format!("{:?}={:?}", key, val))
                     .collect::<Vec<_>>()
                     .join(" ")
             )
