@@ -22,16 +22,21 @@ pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
     
     let yes = ctx.config().yes(Step::Macports);
 
-    sudo.execute(ctx, &port)?
-        .args(["-u", "upgrade", "outdated"])
-        .map(|cmd| if yes { cmd.arg("-N") } else { cmd })
-        .status_checked()?;
+    let mut cmd = sudo.execute(ctx, &port)?;
+    cmd.args(["-u", "upgrade", "outdated"]);
+    if yes {
+        cmd.arg("-N");
+    }
+    cmd.status_checked()?;
+    
 
     if ctx.config().cleanup() {
-        sudo.execute(ctx, &port)?
-            .arg("reclaim")
-            .map(|cmd| if yes { cmd.arg("-N") } else { cmd })
-            .status_checked()?;
+        let mut cmd = sudo.execute(ctx, &port)?;
+        cmd.arg("reclaim");
+        if yes {
+            cmd.arg("-N");
+        }
+        cmd.status_checked()?;
     }
 
     Ok(())
