@@ -19,7 +19,7 @@ pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
     let sudo = ctx.require_sudo()?;
 
     sudo.execute(ctx, &port)?.arg("selfupdate").status_checked()?;
-    
+
     let yes = ctx.config().yes(Step::Macports);
 
     let mut cmd = sudo.execute(ctx, &port)?;
