@@ -2170,6 +2170,14 @@ pub fn run_typst(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_claude_code(ctx: &ExecutionContext) -> Result<()> {
+    let claude = require("claude")?;
+
+    print_separator("Claude Code");
+
+    ctx.execute(&claude).arg("update").status_checked()
+}
+
+pub fn run_claude_code_plugins(ctx: &ExecutionContext) -> Result<()> {
     #[derive(Deserialize)]
     #[serde(rename_all = "camelCase")]
     struct ClaudePlugin {
@@ -2181,9 +2189,7 @@ pub fn run_claude_code(ctx: &ExecutionContext) -> Result<()> {
 
     let claude = require("claude")?;
 
-    print_separator("Claude Code");
-
-    ctx.execute(&claude).arg("update").status_checked()?;
+    print_separator("Claude Code Plugins");
 
     ctx.execute(&claude)
         .args(["plugin", "marketplace", "update"])
