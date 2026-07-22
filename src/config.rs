@@ -1203,28 +1203,24 @@ impl Config {
     }
 
     fn allowed_steps(opt: &CommandLineArgs, config_file: &ConfigFile) -> Vec<Step> {
-        // The enabled steps are
-        let mut enabled_steps: Vec<Step> = Vec::new();
-        // Any steps that are passed with `--only`
-        enabled_steps.extend(&opt.only);
-
-        // Plus any steps in the config file's `misc.only`
-        if let Some(misc) = config_file.misc.as_ref()
-            && let Some(only) = misc.only.as_ref()
-        {
-            enabled_steps.extend(only);
-        }
-
         let step_is_deprecated = |x| DEPRECATED_STEPS.contains(&x);
 
-        // If neither of those contain anything
-        if enabled_steps.is_empty() {
-            // All steps are enabled
-            enabled_steps.extend(Step::iter());
-            // Handle deprecated steps. Disable automatically when not explicitly mentioned in the
-            // config, so that the warning doesn't print.
-            enabled_steps.retain(|x| !step_is_deprecated(*x));
-        }
+        // the --only flag has priority over the config file
+        // if there aren't any only steps specified all steps must be ran
+        // deprecated steps are disabled when not explicitly mentioned in only
+        let mut enabled_steps = (!opt.only.is_empty())
+            .then(|| opt.only.clone())
+            .or_else(|| {
+                config_file.misc.as_ref()
+                    .and_then(|m| m.only.as_ref())
+                    .filter(|v| !v.is_empty())
+                    .cloned()
+            })
+            .unwrap_or_else(|| {
+                Step::iter()
+                    .filter(|x| !step_is_deprecated(*x))
+                    .collect()
+        });
 
         let mut disabled_steps: Vec<Step> = Vec::new();
         disabled_steps.extend(&opt.disable);
