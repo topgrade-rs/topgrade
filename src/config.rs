@@ -18,7 +18,7 @@ use regex_split::RegexSplit;
 use rust_i18n::t;
 use serde::Deserialize;
 use strum::IntoEnumIterator;
-use tracing::{debug, error};
+use tracing::debug;
 
 use crate::execution_context::RunType;
 use crate::step::{DEPRECATED_STEPS, Step};
@@ -795,6 +795,14 @@ impl ConfigFile {
         Ok(res)
     }
 
+    fn merge_config_file(&mut self, path: &Path) -> Result<()> {
+        let contents = fs::read_to_string(path).wrap_err_with(|| format!("Unable to read {}", path.display()))?;
+        let parsed: Self =
+            toml::from_str(&contents).wrap_err_with(|| format!("Failed to deserialize {}", path.display()))?;
+        self.merge(parsed);
+        Ok(())
+    }
+
     /// Read the configuration file.
     ///
     /// If the configuration file does not exist, the function returns the default ConfigFile.
@@ -811,14 +819,7 @@ impl ConfigFile {
             to read the include directory before returning the main config path
             */
             for include in dir_include {
-                let include_contents = fs::read_to_string(&include).inspect_err(|_| {
-                    error!("Unable to read {}", include.display());
-                })?;
-                let include_contents_parsed = toml::from_str(include_contents.as_str()).inspect_err(|_| {
-                    error!("Failed to deserialize {}", include.display());
-                })?;
-
-                result.merge(include_contents_parsed);
+                result.merge_config_file(&include)?;
             }
 
             path
@@ -830,9 +831,8 @@ impl ConfigFile {
             return Ok(result);
         }
 
-        let mut contents_non_split = fs::read_to_string(&config_path).inspect_err(|_| {
-            error!("Unable to read {}", config_path.display());
-        })?;
+        let mut contents_non_split =
+            fs::read_to_string(&config_path).wrap_err_with(|| format!("Unable to read {}", config_path.display()))?;
 
         Self::ensure_misc_is_present(&mut contents_non_split, &config_path);
 
@@ -842,9 +842,8 @@ impl ConfigFile {
         let contents_split = regex_match_include.split_inclusive_left(contents_non_split.as_str());
 
         for contents in contents_split {
-            let config_file_include_only: ConfigFileIncludeOnly = toml::from_str(contents).inspect_err(|_| {
-                error!("Failed to deserialize an include section of {}", config_path.display());
-            })?;
+            let config_file_include_only: ConfigFileIncludeOnly = toml::from_str(contents)
+                .wrap_err_with(|| format!("Failed to deserialize an include section of {}", config_path.display()))?;
 
             if let Some(includes) = &config_file_include_only.include {
                 // Parses the [include] section present in the slice
@@ -852,28 +851,14 @@ impl ConfigFile {
                     for include in paths.iter().rev() {
                         let include_path = shellexpand::tilde::<&str>(&include.as_ref()).into_owned();
                         let include_path = PathBuf::from(include_path);
-                        let include_contents = match fs::read_to_string(&include_path) {
-                            Ok(c) => c,
-                            Err(e) => {
-                                error!("Unable to read {}: {e}", include_path.display(),);
-                                continue;
-                            }
-                        };
-                        match toml::from_str::<Self>(&include_contents) {
-                            Ok(include_parsed) => result.merge(include_parsed),
-                            Err(e) => {
-                                error!("Failed to deserialize {}: {e}", include_path.display(),);
-                                continue;
-                            }
-                        };
+                        result.merge_config_file(&include_path)?;
                     }
                 }
             }
 
-            match toml::from_str::<Self>(contents) {
-                Ok(contents) => result.merge(contents),
-                Err(e) => error!("Failed to deserialize {}: {e}", config_path.display(),),
-            }
+            let parsed: Self = toml::from_str(contents)
+                .wrap_err_with(|| format!("Failed to deserialize {}", config_path.display()))?;
+            result.merge(parsed);
         }
 
         debug!("Loaded configuration: {:?}", result);
@@ -1098,12 +1083,8 @@ impl Config {
     pub fn load(opt: CommandLineArgs) -> Result<Self> {
         let config_directory = config_directory();
         let config_file = if config_directory.is_dir() {
-            ConfigFile::read(opt.config.clone()).unwrap_or_else(|e| {
-                // Inform the user about errors when loading the configuration,
-                // but fallback to the default config to at least attempt to do something
-                error!("failed to load configuration: {e}");
-                ConfigFile::default()
-            })
+            // Reject any bad config file
+            ConfigFile::read(opt.config.clone()).wrap_err("failed to load configuration")?
         } else {
             debug!("Configuration directory {} does not exist", config_directory.display());
             ConfigFile::default()
