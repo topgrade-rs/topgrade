@@ -143,19 +143,22 @@ pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
     HOME_DIR.join(".gem").require()?;
     let gem = require("gem")?;
 
-    print_separator("RubyGems");
     let gem_path_str = gem.as_os_str();
     if gem_path_str.to_str().unwrap().contains("asdf")
         || gem_path_str.to_str().unwrap().contains("mise")
         || gem_path_str.to_str().unwrap().contains(".rbenv")
         || gem_path_str.to_str().unwrap().contains(".rvm")
     {
+        print_separator("RubyGems");
         ctx.execute(gem).args(["update", "--system"]).status_checked()?;
     } else if !Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
         let sudo = ctx.require_sudo()?;
+        print_separator("RubyGems");
         sudo.execute_opts(ctx, &gem, SudoExecuteOpts::new().preserve_env().set_home())?
             .args(["update", "--system"])
             .status_checked()?;
+    } else {
+        return Err(SkipStep("Rubygems is managed by the operating system".to_string()).into());
     }
 
     Ok(())
