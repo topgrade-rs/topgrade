@@ -1252,7 +1252,12 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
     print_separator(".NET");
 
     for package in packages {
-        let package_name = package.split_whitespace().next().unwrap();
+        let package_name = package.split_whitespace().next().ok_or_else(|| {
+            eyre!(output_changed_message!(
+                "dotnet tool list --global",
+                "expected whitespace in package entry"
+            ))
+        })?;
         ctx.execute(&dotnet)
             .args(["tool", "update", package_name, "--global"])
             .status_checked()
