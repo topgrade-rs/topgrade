@@ -314,16 +314,15 @@ pub fn is_elevated() -> bool {
 }
 
 pub mod merge_strategies {
+    use std::hash::Hash;
     use std::mem;
-
-    use crate::config::Commands;
+    use indexmap::IndexMap;
 
     /// Prepends right to left (both Option<Vec<T>>)
-    pub fn vec_prepend_opt<T: Clone>(left: &mut Option<Vec<T>>, right: &mut Option<Vec<T>>) {
+    pub fn vec_prepend_opt<T>(left: &mut Option<Vec<T>>, right: &mut Option<Vec<T>>) {
         if let Some(left_vec) = left {
             if let Some(right_vec) = right {
-                right_vec.append(left_vec);
-                let _ = left.replace(right_vec.clone());
+                merge2::vec::prepend(left_vec, right_vec);
             }
         } else {
             mem::swap(left, right);
@@ -342,10 +341,10 @@ pub mod merge_strategies {
         }
     }
 
-    pub fn commands_merge_opt(left: &mut Option<Commands>, right: &mut Option<Commands>) {
+    pub fn indexmap_merge_opt<T: Hash + Eq, U>(left: &mut Option<IndexMap<T, U>>, right: &mut Option<IndexMap<T, U>>) {
         if let Some(left_inner) = left {
             if let Some(right_inner) = right {
-                left_inner.extend(right_inner.clone());
+                left_inner.extend(mem::take(right_inner));
             }
         } else {
             mem::swap(left, right);

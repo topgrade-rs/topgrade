@@ -514,13 +514,13 @@ pub struct ConfigFile {
     #[merge(strategy = merge2::option::recursive)]
     misc: Option<Misc>,
 
-    #[merge(strategy = crate::utils::merge_strategies::commands_merge_opt)]
+    #[merge(strategy = crate::utils::merge_strategies::indexmap_merge_opt)]
     pre_commands: Option<Commands>,
 
-    #[merge(strategy = crate::utils::merge_strategies::commands_merge_opt)]
+    #[merge(strategy = crate::utils::merge_strategies::indexmap_merge_opt)]
     post_commands: Option<Commands>,
 
-    #[merge(strategy = crate::utils::merge_strategies::commands_merge_opt)]
+    #[merge(strategy = crate::utils::merge_strategies::indexmap_merge_opt)]
     commands: Option<Commands>,
 
     #[merge(strategy = merge2::option::recursive)]
