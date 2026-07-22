@@ -5,10 +5,13 @@ use crate::terminal::print_separator;
 use crate::utils::require;
 use crate::utils::which;
 use color_eyre::Result;
+use color_eyre::eyre::OptionExt;
 
 pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     //let pkg = require("pkg")?;
-    let pkg = which("nala").or_else(|| which("pkg")).unwrap();
+    let pkg = which("nala")
+        .or_else(|| which("pkg"))
+        .ok_or_eyre("Expected `nala` or `pkg` to be available")?;
 
     print_separator("Termux Packages");
 
