@@ -647,7 +647,7 @@ impl Step {
             Soar =>
             {
                 #[cfg(target_os = "linux")]
-                runner.excecute(*self, "soar", || linux::run_soar(ctx))?
+                runner.execute(*self, "soar", || linux::run_soar(ctx))?
             }
             Sparkle =>
             {
