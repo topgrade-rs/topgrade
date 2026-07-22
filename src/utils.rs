@@ -314,9 +314,9 @@ pub fn is_elevated() -> bool {
 }
 
 pub mod merge_strategies {
+    use indexmap::IndexMap;
     use std::hash::Hash;
     use std::mem;
-    use indexmap::IndexMap;
 
     /// Prepends right to left (both Option<Vec<T>>)
     pub fn vec_prepend_opt<T>(left: &mut Option<Vec<T>>, right: &mut Option<Vec<T>>) {
