@@ -895,7 +895,12 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
     let extern_managed = match stdout {
         "N" => false,
         "Y" => true,
-        _ => unreachable!("unexpected output from `check_extern_managed_script`"),
+        _ => {
+            return Err(eyre!(output_changed_message!(
+                format!(r#"python3 -c "{check_extern_managed_script}""#),
+                "expected 'Y' or 'N'"
+            )));
+        }
     };
 
     let allow_break_sys_pkg = match ctx
