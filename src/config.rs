@@ -1205,9 +1205,9 @@ impl Config {
     fn allowed_steps(opt: &CommandLineArgs, config_file: &ConfigFile) -> Vec<Step> {
         let step_is_deprecated = |x| DEPRECATED_STEPS.contains(&x);
 
-        // the --only flag has priority over the config file
-        // if there aren't any only steps specified all steps must be ran
-        // deprecated steps are disabled when not explicitly mentioned in only
+        // The --only flag has priority over the config file.
+        // If there aren't any only steps specified all steps must be ran.
+        // Deprecated steps are disabled when not explicitly mentioned in only.
         let mut enabled_steps = (!opt.only.is_empty())
             .then(|| opt.only.clone())
             .or_else(|| {
