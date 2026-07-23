@@ -8,8 +8,8 @@ use std::{env, fmt, fs};
 
 use clap::{Parser, ValueEnum};
 use clap_complete::Shell;
-use color_eyre::eyre::Result;
 use color_eyre::eyre::{Context, OptionExt};
+use color_eyre::eyre::{Result, eyre};
 use etcetera::base_strategy::BaseStrategy;
 use indexmap::IndexMap;
 use merge2::Merge;
@@ -965,6 +965,10 @@ pub struct CommandLineArgs {
     /// Don't update Topgrade
     #[arg(long = "no-self-update")]
     pub no_self_update: bool,
+
+    /// Run inside zellij
+    #[arg(short = 'z', long = "zellij")]
+    run_in_zellij: bool,
 }
 
 fn env_args_parser(arg: &str) -> Result<(String, String)> {
@@ -1190,20 +1194,21 @@ impl Config {
     }
 
     /// Tell whether we should run in a multiplexer.
-    pub fn run_in_multiplexer(&self) -> Multiplexer {
-        // TODO: better resolution of multiplexers
-        match !self.opt.no_tmux
+    pub fn run_in_multiplexer(&self) -> Result<Multiplexer> {
+        let tmux_requested = !self.opt.no_tmux
             && (self.opt.run_in_tmux
                 || self
                     .config_file
                     .misc
                     .as_ref()
                     .and_then(|misc| misc.run_in_tmux)
-                    .unwrap_or(false))
-        {
-            true => Multiplexer::Tmux,
-            // TODO: use zellij only on --zellij flag
-            false => Multiplexer::Zellij,
+                    .unwrap_or(false));
+        let zellij_requested = self.opt.run_in_zellij;
+        match (tmux_requested, zellij_requested) {
+            (false, false) => Ok(Multiplexer::No),
+            (true, false) => Ok(Multiplexer::Tmux),
+            (false, true) => Ok(Multiplexer::Zellij),
+            _ => Err(eyre!("Multiple multiplexers specified")),
         }
     }
 

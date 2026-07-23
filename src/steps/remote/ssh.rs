@@ -29,8 +29,8 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
     // run remotes in the multiplexer if one is specified
     #[cfg(unix)]
     if !ctx.run_type().dry() {
-        match ctx.config().run_in_multiplexer() {
-            Multiplexer::No => { }
+        match ctx.config().run_in_multiplexer()? {
+            Multiplexer::No => {}
             Multiplexer::Tmux => {
                 prepare_async_ssh_command(&mut args);
                 crate::tmux::run_command(ctx, hostname, &shell_words::join(args))?;
