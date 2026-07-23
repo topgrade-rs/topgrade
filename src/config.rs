@@ -382,6 +382,9 @@ pub struct Misc {
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     tmux_arguments: Option<String>,
 
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
+    zellij_arguments: Option<String>,
+
     set_title: Option<bool>,
 
     display_time: Option<bool>,
@@ -1387,8 +1390,14 @@ impl Config {
     }
     /// Extra zellij arguments
     fn zellij_arguments(&self) -> Result<Vec<String>> {
-        // TODO: zellij args
-        Ok(Vec::new())
+        let args = &self
+            .config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.zellij_arguments.as_ref())
+            .map(String::to_owned)
+            .unwrap_or_default();
+        shell_words::split(args).with_context(|| format!("Failed to parse `zellij_arguments`: `{args}`"))
     }
 
     /// Prompt for a key before exiting
