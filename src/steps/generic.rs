@@ -233,12 +233,55 @@ pub fn run_micro(ctx: &ExecutionContext) -> Result<()> {
     target_os = "netbsd",
     target_os = "dragonfly"
 )))]
+fn is_atom_apm_help(stdout: &str, stderr: &str) -> bool {
+    stdout
+        .split(|character: char| !character.is_alphanumeric())
+        .chain(stderr.split(|character: char| !character.is_alphanumeric()))
+        .any(|word| word.eq_ignore_ascii_case("atom"))
+}
+
+#[cfg(not(any(
+    target_os = "freebsd",
+    target_os = "openbsd",
+    target_os = "netbsd",
+    target_os = "dragonfly"
+)))]
 pub fn run_apm(ctx: &ExecutionContext) -> Result<()> {
     let apm = require("apm")?;
+
+    let help = ctx.execute(&apm).always().arg("--help").output_checked_utf8()?;
+    if !is_atom_apm_help(&help.stdout, &help.stderr) {
+        return Err(SkipStep("Command `apm` does not appear to be Atom Package Manager".to_string()).into());
+    }
 
     print_separator("Atom Package Manager");
 
     ctx.execute(apm).args(["upgrade", "--confirm=false"]).status_checked()
+}
+
+#[cfg(all(
+    test,
+    not(any(
+        target_os = "freebsd",
+        target_os = "openbsd",
+        target_os = "netbsd",
+        target_os = "dragonfly"
+    ))
+))]
+mod apm_tests {
+    use super::is_atom_apm_help;
+
+    #[test]
+    fn detects_atom_package_manager_help() {
+        assert!(is_atom_apm_help("apm - Atom Package Manager", ""));
+        assert!(is_atom_apm_help("", "Usage: atom package manager"));
+    }
+
+    #[test]
+    fn rejects_other_apm_commands() {
+        assert!(!is_atom_apm_help("Agent Package Manager", ""));
+        assert!(!is_atom_apm_help("Manage application packages", ""));
+    }
 }
 
 enum Aqua {
