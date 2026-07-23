@@ -33,6 +33,7 @@ impl Tmux {
     fn build(&self) -> Command {
         let mut command = Command::new(&self.tmux);
         if let Some(args) = self.args.as_ref() {
+            // NB: tmux suggests that $TMUX must be unset when running tmux from inside tmux.
             command.args(args).env_remove("TMUX");
         }
         command
