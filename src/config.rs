@@ -401,6 +401,8 @@ pub struct Misc {
 
     tmux_session_mode: Option<TmuxSessionMode>,
 
+    run_in_zellij: Option<bool>,
+
     cleanup: Option<bool>,
 
     notify_each_step: Option<bool>,
@@ -969,6 +971,10 @@ pub struct CommandLineArgs {
     /// Run inside zellij
     #[arg(short = 'z', long = "zellij")]
     run_in_zellij: bool,
+
+    /// Don't run inside zellij
+    #[arg(long = "no-zellij")]
+    no_zellij: bool,
 }
 
 fn env_args_parser(arg: &str) -> Result<(String, String)> {
@@ -1203,7 +1209,14 @@ impl Config {
                     .as_ref()
                     .and_then(|misc| misc.run_in_tmux)
                     .unwrap_or(false));
-        let zellij_requested = self.opt.run_in_zellij;
+        let zellij_requested = !self.opt.no_zellij
+            && (self.opt.run_in_zellij
+                || self
+                    .config_file
+                    .misc
+                    .as_ref()
+                    .and_then(|misc| misc.run_in_zellij)
+                    .unwrap_or(false));
         match (tmux_requested, zellij_requested) {
             (false, false) => Ok(Multiplexer::No),
             (true, false) => Ok(Multiplexer::Tmux),
