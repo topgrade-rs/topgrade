@@ -2222,6 +2222,12 @@ pub fn run_claude_code_plugins(ctx: &ExecutionContext) -> Result<()> {
     if success { Ok(()) } else { Err(eyre!(StepFailed)) }
 }
 
+pub fn run_codex(ctx: &ExecutionContext) -> Result<()> {
+    let codex = require("codex")?;
+    print_separator("Codex");
+    ctx.execute(codex).arg("update").status_checked()
+}
+
 pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
     let falconf = require("falconf")?;
 
