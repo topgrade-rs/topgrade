@@ -251,7 +251,7 @@ pub fn run_apm(ctx: &ExecutionContext) -> Result<()> {
 
     let help = ctx.execute(&apm).always().arg("--help").output_checked_utf8()?;
     if !is_atom_apm_help(&help.stdout, &help.stderr) {
-        return Err(SkipStep("Command `apm` does not appear to be Atom Package Manager".to_string()).into());
+        return Err(SkipStep(t!("Command `apm` does not appear to be Atom Package Manager").to_string()).into());
     }
 
     print_separator("Atom Package Manager");
