@@ -48,6 +48,7 @@ pub enum Step {
     ClamAvDb,
     ClaudeCode,
     ClaudeCodePlugins,
+    Codex,
     Colima,
     Composer,
     Conda,
@@ -303,6 +304,7 @@ impl Step {
             ClaudeCodePlugins => {
                 runner.execute(*self, "Claude Code Plugins", || generic::run_claude_code_plugins(ctx))?
             }
+            Codex => runner.execute(*self, "Codex", || generic::run_codex(ctx))?,
             Colima => runner.execute(*self, "Colima", || generic::run_colima(ctx))?,
             Composer => runner.execute(*self, "composer", || generic::run_composer_update(ctx))?,
             Conda => runner.execute(*self, "conda", || generic::run_conda_update(ctx))?,
@@ -932,6 +934,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         ClamAvDb,
         ClaudeCode,
         ClaudeCodePlugins,
+        Codex,
         Opencode,
         Colima,
         Skills,
