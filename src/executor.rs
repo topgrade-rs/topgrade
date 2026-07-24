@@ -81,11 +81,7 @@ impl Executor {
     /// See `std::process::Command::arg`
     #[allow(dead_code)]
     pub fn arg_if<S: AsRef<OsStr>>(&mut self, cond: bool, arg: S) -> &mut Executor {
-        if cond {
-            self.arg(arg)
-        } else {
-            self
-        }
+        if cond { self.arg(arg) } else { self }
     }
 
     /// See `std::process::Command::args`
@@ -95,13 +91,8 @@ impl Executor {
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
     {
-        if cond {
-            self.args(args)
-        } else {
-            self
-        }
+        if cond { self.args(args) } else { self }
     }
-
 
     #[allow(dead_code)]
     /// See `std::process::Command::arg`
@@ -203,11 +194,7 @@ impl Executor {
         K: AsRef<OsStr>,
         V: AsRef<OsStr>,
     {
-        if cond {
-            self.env(key,val)
-        } else {
-            self
-        }
+        if cond { self.env(key, val) } else { self }
     }
 
     /// See `std::process::Command::spawn`
