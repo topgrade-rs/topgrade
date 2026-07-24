@@ -97,7 +97,6 @@ impl Executor {
         self
     }
 
-    #[allow(dead_code)]
     /// See `std::process::Command::args`
     #[allow(dead_code)]
     pub fn args_if<I, S>(&mut self, cond: bool, args: I) -> &mut Executor
