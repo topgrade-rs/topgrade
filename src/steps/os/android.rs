@@ -14,24 +14,20 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
 
     let is_nala = pkg.ends_with("nala");
 
-    let mut command = ctx.execute(&pkg);
-    command.arg("upgrade");
-
-    if ctx.config().yes(Step::System) {
-        command.arg("-y");
-    }
-    command.status_checked()?;
+    ctx.execute(&pkg)
+        .arg("upgrade")
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .status_checked()?;
 
     if !is_nala && ctx.config().cleanup() {
         ctx.execute(&pkg).arg("clean").status_checked()?;
 
         let apt = require("apt")?;
-        let mut command = ctx.execute(apt);
-        command.arg("autoremove");
-        if ctx.config().yes(Step::System) {
-            command.arg("-y");
-        }
-        command.status_checked()?;
+
+        ctx.execute(apt)
+            .arg("autoremove")
+            .arg_if(ctx.config().yes(Step::System), "-y")
+            .status_checked()?;
     }
 
     Ok(())

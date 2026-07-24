@@ -105,14 +105,10 @@ pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
         }
     }
 
-    let mut command = ctx.execute("softwareupdate");
-    command.args(["--install", "--all"]);
-
-    if should_ask {
-        command.arg("--no-scan");
-    }
-
-    command.status_checked()
+    ctx.execute("softwareupdate")
+        .args(["--install", "--all"])
+        .arg_if(should_ask, "--no-scan")
+        .status_checked()
 }
 
 fn system_update_available(ctx: &ExecutionContext) -> Result<bool> {
@@ -140,10 +136,10 @@ pub fn run_sparkle(ctx: &ExecutionContext) -> Result<()> {
             .args(["--probe", "--user-agent-name", "topgrade"])
             .output_checked_utf8();
         if probe.is_ok() {
-            let mut command = ctx.execute(&sparkle);
-            command.arg(application.path());
-            command.args(["--check-immediately", "--user-agent-name", "topgrade"]);
-            command.status_checked()?;
+            ctx.execute(&sparkle)
+                .arg(application.path())
+                .args(["--check-immediately", "--user-agent-name", "topgrade"])
+                .status_checked()?;
         }
     }
     Ok(())

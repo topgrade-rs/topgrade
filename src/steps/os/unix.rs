@@ -295,19 +295,15 @@ pub fn run_pkgin(ctx: &ExecutionContext) -> Result<()> {
 
     let sudo = ctx.require_sudo()?;
 
-    let mut command = sudo.execute(ctx, &pkgin)?;
-    command.arg("update");
-    if ctx.config().yes(Step::Pkgin) {
-        command.arg("-y");
-    }
-    command.status_checked()?;
+    sudo.execute(ctx, &pkgin)?
+        .arg("update")
+        .arg_if(ctx.config().yes(Step::Pkgin), "-y")
+        .status_checked()?;
 
-    let mut command = sudo.execute(ctx, &pkgin)?;
-    command.arg("upgrade");
-    if ctx.config().yes(Step::Pkgin) {
-        command.arg("-y");
-    }
-    command.status_checked()
+    sudo.execute(ctx, &pkgin)?
+        .arg("upgrade")
+        .arg_if(ctx.config().yes(Step::Pkgin), "-y")
+        .status_checked()
 }
 
 pub fn run_fish_plug(ctx: &ExecutionContext) -> Result<()> {
@@ -398,18 +394,11 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
     //  `.current_dir("/tmp") // brew needs a writable current directory`
     //  but that only applied when sudo -Hu was used. Is it really needed?
 
-    let mut command = brew.execute(ctx)?;
-    command.args(["upgrade", "--formula"]);
-
-    if ctx.config().yes(Step::BrewFormula) {
-        command.arg("-y");
-    }
-
-    if ctx.config().brew_fetch_head() {
-        command.arg("--fetch-HEAD");
-    }
-
-    command.status_checked()?;
+    brew.execute(ctx)?
+        .args(["upgrade", "--formula"])
+        .arg_if(ctx.config().yes(Step::BrewFormula), "-y")
+        .arg_if(ctx.config().brew_fetch_head(), "--fetch-HEAD")
+        .status_checked()?;
 
     if ctx.config().cleanup() {
         brew.execute(ctx)?.arg("cleanup").status_checked()?;
@@ -734,7 +723,7 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
         let nix_env = require("nix-env")?;
         print_separator("Nix");
 
-        let mut command = match &get_symlink_sudo_user(profile_path) {
+        match &get_symlink_sudo_user(profile_path) {
             None => ctx.execute(nix_env),
             Some(user) => {
                 let sudo = ctx.require_sudo()?;
@@ -744,12 +733,10 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
                     SudoExecuteOpts::new().set_home().user(user).login_shell(),
                 )?
             }
-        };
-        command.arg("--upgrade");
-        if let Some(args) = ctx.config().nix_env_arguments() {
-            command.args(args.split_whitespace());
-        };
-        command.status_checked()
+        }
+        .arg("--upgrade")
+        .args_if_some(ctx.config().nix_env_arguments(), |args| args.split_whitespace())
+        .status_checked()
     }
 }
 
@@ -926,15 +913,13 @@ pub(super) fn nh_switch(ctx: &ExecutionContext, nh: &PathBuf, args: &NhSwitchArg
         print_separator(format!("nh {}", args.installable_type));
     }
 
-    let mut cmd = ctx.execute(nh);
-    cmd.arg(args.installable_type);
-    cmd.arg("switch");
-    cmd.arg("-u");
+    ctx.execute(nh)
+        .arg(args.installable_type)
+        .arg("switch")
+        .arg("-u")
+        .arg_if(!ctx.config().yes(Step::System), "--ask")
+        .status_checked()?;
 
-    if !ctx.config().yes(Step::System) {
-        cmd.arg("--ask");
-    }
-    cmd.status_checked()?;
     Ok(())
 }
 
@@ -1023,14 +1008,10 @@ pub fn run_home_manager(ctx: &ExecutionContext) -> Result<()> {
         | (Ok(home_manager), NixHandler::Vanilla, _) => {
             print_separator("home-manager");
 
-            let mut cmd = ctx.execute(home_manager);
-            cmd.arg("switch");
-
-            if let Some(extra_args) = ctx.config().home_manager() {
-                cmd.args(extra_args);
-            }
-
-            cmd.status_checked()
+            ctx.execute(home_manager)
+                .arg("switch")
+                .args_if_some(ctx.config().home_manager(), |args| { args })
+                .status_checked()
         }
         (Err(_), _, Err(_)) => unreachable!("require_one([\"home-manager\", \"nh\"])?; was called, so either tool must be available"),
     }
@@ -1202,18 +1183,15 @@ pub fn run_install_release(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Install Release");
 
-    let mut command = ctx.execute(&ir);
-    command.args(["upgrade", "--pkg"]);
-    if ctx.config().yes(Step::InstallRelease) {
-        command.arg("-y");
-    }
-    command.status_checked()?;
+    ctx.execute(&ir)
+        .args(["upgrade", "--pkg"])
+        .arg_if(ctx.config().yes(Step::InstallRelease), "-y")
+        .status_checked()?;
 
-    let mut command = ctx.execute(&ir);
-    command.arg("upgrade");
-    if ctx.config().yes(Step::InstallRelease) {
-        command.arg("-y");
-    }
-    command.status_checked()?;
+    ctx.execute(&ir)
+        .arg("upgrade")
+        .arg_if(ctx.config().yes(Step::InstallRelease), "-y")
+        .status_checked()?;
+
     Ok(())
 }

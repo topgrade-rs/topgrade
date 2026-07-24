@@ -78,6 +78,114 @@ impl Executor {
         self
     }
 
+    /// See `std::process::Command::arg`
+    #[allow(dead_code)]
+    pub fn arg_if<S: AsRef<OsStr>>(&mut self, cond: bool, arg: S) -> &mut Executor {
+        if !cond {
+            return self;
+        }
+
+        match self {
+            Executor::Wet(c) | Executor::Damp(c) => {
+                c.arg(arg);
+            }
+            Executor::Dry(c) => {
+                c.args.push(arg.as_ref().into());
+            }
+        }
+
+        self
+    }
+
+    #[allow(dead_code)]
+    /// See `std::process::Command::args`
+    #[allow(dead_code)]
+    pub fn args_if<I, S>(&mut self, cond: bool, args: I) -> &mut Executor
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        if !cond {
+            return self;
+        }
+
+        match self {
+            Executor::Wet(c) | Executor::Damp(c) => {
+                c.args(args);
+            }
+            Executor::Dry(c) => {
+                c.args.extend(args.into_iter().map(|arg| arg.as_ref().into()));
+            }
+        }
+
+        self
+    }
+
+    #[allow(dead_code)]
+    /// See `std::process::Command::arg`
+    pub fn arg_if_else<S: AsRef<OsStr>>(&mut self, cond: bool, true_arg: S, false_arg: S) -> &mut Executor {
+        let arg = if cond { true_arg } else { false_arg };
+
+        match self {
+            Executor::Wet(c) | Executor::Damp(c) => {
+                c.arg(arg);
+            }
+            Executor::Dry(c) => {
+                c.args.push(arg.as_ref().into());
+            }
+        }
+
+        self
+    }
+
+    #[allow(dead_code)]
+    /// See `std::process::Command::args`
+    pub fn args_if_else<I, S>(&mut self, cond: bool, true_args: I, false_args: I) -> &mut Executor
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        let args = if cond { true_args } else { false_args };
+
+        match self {
+            Executor::Wet(c) | Executor::Damp(c) => {
+                c.args(args);
+            }
+            Executor::Dry(c) => {
+                c.args.extend(args.into_iter().map(|arg| arg.as_ref().into()));
+            }
+        }
+
+        self
+    }
+
+    #[allow(dead_code)]
+    /// See `std::process::Command::arg`
+    pub fn arg_if_some<T, F, S>(&mut self, opt: Option<T>, f: F) -> &mut Executor
+    where
+        F: FnOnce(T) -> S,
+        S: AsRef<OsStr>,
+    {
+        if let Some(val) = opt {
+            self.arg(f(val));
+        }
+        self
+    }
+
+    #[allow(dead_code)]
+    /// See `std::process::Command::args`
+    pub fn args_if_some<T, F, I, S>(&mut self, opt: Option<T>, f: F) -> &mut Executor
+    where
+        F: FnOnce(T) -> I,
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        if let Some(val) = opt {
+            self.args(f(val));
+        }
+        self
+    }
+
     #[allow(dead_code)]
     /// See `std::process::Command::current_dir`
     pub fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut Executor {
@@ -132,6 +240,29 @@ impl Executor {
         K: AsRef<OsStr>,
         V: AsRef<OsStr>,
     {
+        match self {
+            Executor::Wet(c) | Executor::Damp(c) => {
+                c.env(key, val);
+            }
+            Executor::Dry(c) => {
+                c.envs.push((key.as_ref().to_os_string(), val.as_ref().to_os_string()));
+            }
+        }
+
+        self
+    }
+
+    #[allow(dead_code)]
+    /// See `std::process::Command::env`
+    pub fn env_if<K, V>(&mut self, cond: bool, key: K, val: V) -> &mut Executor
+    where
+        K: AsRef<OsStr>,
+        V: AsRef<OsStr>,
+    {
+        if !cond {
+            return self;
+        }
+
         match self {
             Executor::Wet(c) | Executor::Damp(c) => {
                 c.env(key, val);
