@@ -117,9 +117,7 @@ impl Powershell {
     {
         let mut command = ctx.execute(&self.path).always();
 
-        command.args(["-NoProfile", "-Command"]);
-        command.arg(cmd);
-        command.args(args);
+        command.args(["-NoProfile", "-Command", cmd]).args(args);
 
         // If topgrade was run from pwsh, but we are trying to run powershell, then
         // the inherited PSModulePath breaks module imports

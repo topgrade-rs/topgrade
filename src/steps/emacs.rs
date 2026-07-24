@@ -60,18 +60,11 @@ impl Emacs {
     fn update_doom(doom: &Path, ctx: &ExecutionContext) -> Result<()> {
         print_separator("Doom Emacs");
 
-        let mut command = ctx.execute(doom);
-        if ctx.config().yes(Step::Emacs) {
-            command.arg("--force");
-        }
-
-        command.arg("upgrade");
-
-        if ctx.config().doom_aot() {
-            command.arg("--aot");
-        }
-
-        command.status_checked()
+        ctx.execute(doom)
+            .arg_if(ctx.config().yes(Step::Emacs), "--force")
+            .arg("upgrade")
+            .arg_if(ctx.config().doom_aot(), "--aot")
+            .status_checked()
     }
 
     pub fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
@@ -88,24 +81,19 @@ impl Emacs {
 
         print_separator("Emacs");
 
-        let mut command = ctx.execute(emacs);
+        #[cfg(unix)]
+        let emacs_upgrade_arg = EMACS_UPGRADE
+            .chars()
+            .map(|c| if c.is_whitespace() { '\u{00a0}' } else { c })
+            .collect::<String>();
+        #[cfg(not(unix))]
+        let emacs_upgrade_arg = EMACS_UPGRADE;
 
-        command
+        ctx.execute(emacs)
             .args(["--batch", "--debug-init", "-l"])
             .arg(init_file)
-            .arg("--eval");
-
-        #[cfg(unix)]
-        command.arg(
-            EMACS_UPGRADE
-                .chars()
-                .map(|c| if c.is_whitespace() { '\u{00a0}' } else { c })
-                .collect::<String>(),
-        );
-
-        #[cfg(not(unix))]
-        command.arg(EMACS_UPGRADE);
-
-        command.status_checked()
+            .arg("--eval")
+            .arg(emacs_upgrade_arg)
+            .status_checked()
     }
 }
