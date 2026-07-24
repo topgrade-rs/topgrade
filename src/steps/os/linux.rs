@@ -207,14 +207,10 @@ fn upgrade_aosc(ctx: &ExecutionContext) -> Result<()> {
     let oma = require("oma")?;
     let sudo = ctx.require_sudo()?;
 
-    let mut cmd = sudo.execute(ctx, &oma)?;
-    cmd.arg("upgrade");
-
-    if ctx.config().yes(Step::System) {
-        cmd.arg("-y");
-    }
-
-    cmd.status_checked()
+    sudo.execute(ctx, &oma)?
+        .arg("upgrade")
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .status_checked()
 }
 
 fn upgrade_alpine_linux(ctx: &ExecutionContext) -> Result<()> {
@@ -252,30 +248,18 @@ fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
     if let Some(ostree) = which("rpm-ostree")
         && ctx.config().rpm_ostree()
     {
-        let mut command = ctx.execute(ostree);
-        command.arg("upgrade");
-        return command.status_checked();
+        return ctx.execute(ostree).arg("upgrade").status_checked();
     };
 
     let dnf = require_one(["dnf", "yum"])?;
     let sudo = ctx.require_sudo()?;
 
-    let mut command = sudo.execute(ctx, &dnf)?;
-    command.arg(if ctx.config().redhat_distro_sync() {
-        "distro-sync"
-    } else {
-        "upgrade"
-    });
+    sudo.execute(ctx, &dnf)?
+        .arg_if_else(ctx.config().redhat_distro_sync(), "distro-sync", "upgrade")
+        .args_if_some(ctx.config().dnf_arguments(), |args| args.split_whitespace())
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .status_checked()?;
 
-    if let Some(args) = ctx.config().dnf_arguments() {
-        command.args(args.split_whitespace());
-    }
-
-    if ctx.config().yes(Step::System) {
-        command.arg("-y");
-    }
-
-    command.status_checked()?;
     Ok(())
 }
 
@@ -283,31 +267,24 @@ fn upgrade_nobara(ctx: &ExecutionContext) -> Result<()> {
     let dnf = require("dnf")?;
     let sudo = ctx.require_sudo()?;
 
-    let mut update_command = sudo.execute(ctx, &dnf)?;
+    sudo.execute(ctx, &dnf)?
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .arg("update")
+        // See https://nobaraproject.org/docs/upgrade-troubleshooting/how-do-i-update-the-system/
+        .args([
+            "rpmfusion-nonfree-release",
+            "rpmfusion-free-release",
+            "fedora-repos",
+            "nobara-repos",
+        ])
+        .arg("--refresh")
+        .status_checked()?;
 
-    if ctx.config().yes(Step::System) {
-        update_command.arg("-y");
-    }
+    sudo.execute(ctx, &dnf)?
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .arg("distro-sync")
+        .status_checked()?;
 
-    update_command.arg("update");
-    // See https://nobaraproject.org/docs/upgrade-troubleshooting/how-do-i-update-the-system/
-    update_command.args([
-        "rpmfusion-nonfree-release",
-        "rpmfusion-free-release",
-        "fedora-repos",
-        "nobara-repos",
-    ]);
-    update_command.arg("--refresh").status_checked()?;
-
-    let mut upgrade_command = sudo.execute(ctx, &dnf)?;
-
-    if ctx.config().yes(Step::System) {
-        upgrade_command.arg("-y");
-    }
-
-    upgrade_command.arg("distro-sync");
-
-    upgrade_command.status_checked()?;
     Ok(())
 }
 
@@ -328,9 +305,8 @@ fn upgrade_fedora_immutable(ctx: &ExecutionContext) -> Result<()> {
     }
 
     let ostree = require("rpm-ostree")?;
-    let mut command = ctx.execute(ostree);
-    command.arg("upgrade");
-    command.status_checked()?;
+    ctx.execute(ostree).arg("upgrade").status_checked()?;
+
     Ok(())
 }
 
@@ -349,17 +325,10 @@ fn upgrade_suse(ctx: &ExecutionContext) -> Result<()> {
 
     sudo.execute(ctx, &zypper)?.arg("refresh").status_checked()?;
 
-    let mut cmd = sudo.execute(ctx, &zypper)?;
-    cmd.arg(if ctx.config().suse_dup() {
-        "dist-upgrade"
-    } else {
-        "update"
-    });
-    if ctx.config().yes(Step::System) {
-        cmd.arg("-y");
-    }
-
-    cmd.status_checked()?;
+    sudo.execute(ctx, &zypper)?
+        .arg_if_else(ctx.config().suse_dup(), "dist-upgrade", "update")
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .status_checked()?;
 
     Ok(())
 }
@@ -370,13 +339,10 @@ fn upgrade_opensuse_tumbleweed(ctx: &ExecutionContext) -> Result<()> {
 
     sudo.execute(ctx, &zypper)?.arg("refresh").status_checked()?;
 
-    let mut cmd = sudo.execute(ctx, &zypper)?;
-    cmd.arg("dist-upgrade");
-    if ctx.config().yes(Step::System) {
-        cmd.arg("-y");
-    }
-
-    cmd.status_checked()?;
+    sudo.execute(ctx, &zypper)?
+        .arg("dist-upgrade")
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .status_checked()?;
 
     Ok(())
 }
@@ -385,12 +351,10 @@ fn upgrade_suse_micro(ctx: &ExecutionContext) -> Result<()> {
     let upd = require("transactional-update")?;
     let sudo = ctx.require_sudo()?;
 
-    let mut cmd = sudo.execute(ctx, &upd)?;
-    if ctx.config().yes(Step::System) {
-        cmd.arg("-n");
-    }
-
-    cmd.arg("dup").status_checked()?;
+    sudo.execute(ctx, &upd)?
+        .arg_if(ctx.config().yes(Step::System), "-n")
+        .arg("dup")
+        .status_checked()?;
 
     Ok(())
 }
@@ -399,19 +363,11 @@ fn upgrade_openmandriva(ctx: &ExecutionContext) -> Result<()> {
     let dnf = require("dnf")?;
     let sudo = ctx.require_sudo()?;
 
-    let mut command = sudo.execute(ctx, &dnf)?;
-
-    command.arg("upgrade");
-
-    if let Some(args) = ctx.config().dnf_arguments() {
-        command.args(args.split_whitespace());
-    }
-
-    if ctx.config().yes(Step::System) {
-        command.arg("-y");
-    }
-
-    command.status_checked()?;
+    sudo.execute(ctx, &dnf)?
+        .arg("upgrade")
+        .args_if_some(ctx.config().dnf_arguments(), |args| args.split_whitespace())
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .status_checked()?;
 
     Ok(())
 }
@@ -420,26 +376,16 @@ fn upgrade_pclinuxos(ctx: &ExecutionContext) -> Result<()> {
     let apt_get = require("apt-get")?;
     let sudo = ctx.require_sudo()?;
 
-    let mut command_update = sudo.execute(ctx, &apt_get)?;
+    sudo.execute(ctx, &apt_get)?
+        .arg("update")
+        .args_if_some(ctx.config().dnf_arguments(), |args| args.split_whitespace())
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .status_checked()?;
 
-    command_update.arg("update");
-
-    if let Some(args) = ctx.config().dnf_arguments() {
-        command_update.args(args.split_whitespace());
-    }
-
-    if ctx.config().yes(Step::System) {
-        command_update.arg("-y");
-    }
-
-    command_update.status_checked()?;
-
-    let mut cmd = sudo.execute(ctx, &apt_get)?;
-    cmd.arg("dist-upgrade");
-    if ctx.config().yes(Step::System) {
-        cmd.arg("-y");
-    }
-    cmd.status_checked()?;
+    sudo.execute(ctx, &apt_get)?
+        .arg("dist-upgrade")
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .status_checked()?;
 
     Ok(())
 }
@@ -447,19 +393,15 @@ fn upgrade_pclinuxos(ctx: &ExecutionContext) -> Result<()> {
 fn upgrade_vanilla(ctx: &ExecutionContext) -> Result<()> {
     let apx = require("apx")?;
 
-    let mut update = ctx.execute(&apx);
-    update.args(["update", "--all"]);
-    if ctx.config().yes(Step::System) {
-        update.arg("-y");
-    }
-    update.status_checked()?;
+    ctx.execute(&apx)
+        .args(["update", "--all"])
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .status_checked()?;
 
-    let mut upgrade = ctx.execute(&apx);
-    update.args(["upgrade", "--all"]);
-    if ctx.config().yes(Step::System) {
-        upgrade.arg("-y");
-    }
-    upgrade.status_checked()?;
+    ctx.execute(&apx)
+        .args(["upgrade", "--all"])
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .status_checked()?;
 
     Ok(())
 }
@@ -468,19 +410,15 @@ fn upgrade_void(ctx: &ExecutionContext) -> Result<()> {
     let xbps = require("xbps-install")?;
     let sudo = ctx.require_sudo()?;
 
-    let mut command = sudo.execute(ctx, &xbps)?;
-    command.args(["-Su", "xbps"]);
-    if ctx.config().yes(Step::System) {
-        command.arg("-y");
-    }
-    command.status_checked()?;
+    sudo.execute(ctx, &xbps)?
+        .args(["-Su", "xbps"])
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .status_checked()?;
 
-    let mut command = sudo.execute(ctx, &xbps)?;
-    command.arg("-u");
-    if ctx.config().yes(Step::System) {
-        command.arg("-y");
-    }
-    command.status_checked()?;
+    sudo.execute(ctx, &xbps)?
+        .arg("-u")
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .status_checked()?;
 
     Ok(())
 }
@@ -525,6 +463,7 @@ fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+#[derive(PartialEq)]
 enum AptKind {
     AptFast,
     Mist,
@@ -571,29 +510,19 @@ fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
             .status_checked_with_codes(&[0, 100])?;
     }
 
-    let mut command = sudo.execute(ctx, &apt)?;
-    if let Nala = kind {
-        command.arg("upgrade");
-    } else {
-        command.arg("dist-upgrade");
-    };
-    if ctx.config().yes(Step::System) {
-        command.arg("-y");
-    }
-    if let Some(args) = ctx.config().apt_arguments() {
-        command.args(args.split_whitespace());
-    }
-    command.status_checked()?;
+    sudo.execute(ctx, &apt)?
+        .arg_if_else(kind == Nala, "upgrade", "dist-upgrade")
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .args_if_some(ctx.config().apt_arguments(), |args| args.split_whitespace())
+        .status_checked()?;
 
     if ctx.config().cleanup() {
         sudo.execute(ctx, &apt)?.arg("clean").status_checked()?;
 
-        let mut command = sudo.execute(ctx, &apt)?;
-        command.arg("autoremove");
-        if ctx.config().yes(Step::System) {
-            command.arg("-y");
-        }
-        command.status_checked()?;
+        sudo.execute(ctx, &apt)?
+            .arg("autoremove")
+            .arg_if(ctx.config().yes(Step::System), "-y")
+            .status_checked()?;
     }
 
     Ok(())
@@ -636,11 +565,10 @@ fn upgrade_solus(ctx: &ExecutionContext) -> Result<()> {
     let eopkg = require("eopkg")?;
     let sudo = ctx.require_sudo()?;
 
-    let mut cmd = sudo.execute(ctx, &eopkg)?;
-    if ctx.config().yes(Step::System) {
-        cmd.arg("-y");
-    }
-    cmd.arg("upgrade").status_checked()?;
+    sudo.execute(ctx, &eopkg)?
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .arg("upgrade")
+        .status_checked()?;
 
     Ok(())
 }
@@ -650,15 +578,9 @@ pub fn run_am(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("AM");
 
-    let mut am = ctx.execute(am);
-
-    if ctx.config().yes(Step::AM) {
-        am.arg("-U");
-    } else {
-        am.arg("-u");
-    }
-
-    am.status_checked()
+    ctx.execute(am)
+        .arg_if_else(ctx.config().yes(Step::AM), "-U", "-u")
+        .status_checked()
 }
 
 pub fn run_appman(ctx: &ExecutionContext) -> Result<()> {
@@ -679,23 +601,18 @@ pub fn run_pacdef(ctx: &ExecutionContext) -> Result<()> {
     let new_version = string.contains("version: 1");
 
     if new_version {
-        let mut cmd = ctx.execute(&pacdef);
-        cmd.args(["package", "sync"]);
-        if ctx.config().yes(Step::System) {
-            cmd.arg("--noconfirm");
-        }
-        cmd.status_checked()?;
+        ctx.execute(&pacdef)
+            .args(["package", "sync"])
+            .arg_if(ctx.config().yes(Step::System), "--noconfirm")
+            .status_checked()?;
 
         println!();
         ctx.execute(&pacdef).args(["package", "review"]).status_checked()?;
     } else {
-        let mut cmd = ctx.execute(&pacdef);
-        cmd.arg("sync");
-        if ctx.config().yes(Step::System) {
-            cmd.arg("--noconfirm");
-        }
-
-        cmd.status_checked()?;
+        ctx.execute(&pacdef)
+            .arg("sync")
+            .arg_if(ctx.config().yes(Step::System), "--noconfirm")
+            .status_checked()?;
 
         println!();
         ctx.execute(&pacdef).arg("review").status_checked()?;
@@ -708,16 +625,15 @@ pub fn run_pacstall(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Pacstall");
 
-    let mut update_cmd = ctx.execute(&pacstall);
-    let mut upgrade_cmd = ctx.execute(pacstall);
+    ctx.execute(&pacstall)
+        .arg_if(ctx.config().yes(Step::Pacstall), "-P")
+        .arg("-U")
+        .status_checked()?;
 
-    if ctx.config().yes(Step::Pacstall) {
-        update_cmd.arg("-P");
-        upgrade_cmd.arg("-P");
-    }
-
-    update_cmd.arg("-U").status_checked()?;
-    upgrade_cmd.arg("-Up").status_checked()
+    ctx.execute(pacstall)
+        .arg_if(ctx.config().yes(Step::Pacstall), "-P")
+        .arg("-Up")
+        .status_checked()
 }
 
 pub fn run_pkgfile(ctx: &ExecutionContext) -> Result<()> {
@@ -772,12 +688,10 @@ fn upgrade_clearlinux(ctx: &ExecutionContext) -> Result<()> {
     let swupd = require("swupd")?;
     let sudo = ctx.require_sudo()?;
 
-    let mut cmd = sudo.execute(ctx, &swupd)?;
-    cmd.arg("update");
-    if ctx.config().yes(Step::System) {
-        cmd.arg("--assume=yes");
-    }
-    cmd.status_checked()?;
+    sudo.execute(ctx, &swupd)?
+        .arg("update")
+        .arg_if(ctx.config().yes(Step::System), "--assume=yes")
+        .status_checked()?;
 
     Ok(())
 }
@@ -830,13 +744,11 @@ fn upgrade_nixos(ctx: &ExecutionContext) -> Result<()> {
         (NixHandler::Autodetect, Err(_))
         // We need vanilla
         | (NixHandler::Vanilla, _) => {
-            let mut command = sudo.execute(ctx, "/run/current-system/sw/bin/nixos-rebuild")?;
-            command.args(["switch", "--upgrade"]);
-
-            if let Some(args) = ctx.config().nix_arguments() {
-                command.args(args.split_whitespace());
-            }
-            command.status_checked()?;
+            sudo.execute(ctx, "/run/current-system/sw/bin/nixos-rebuild")?
+                .args(["switch", "--upgrade"])
+                .args_if_some(ctx.config().nix_arguments(), |args| {
+                    args.split_whitespace() })
+                .status_checked()?;
         }
     }
 
@@ -864,24 +776,18 @@ fn upgrade_neon(ctx: &ExecutionContext) -> Result<()> {
     sudo.execute(ctx, &pkcon)?.arg("refresh").status_checked()?;
 
     let mut exe = sudo.execute(ctx, &pkcon)?;
-    let cmd = exe.arg("update");
-    if ctx.config().yes(Step::System) {
-        cmd.arg("-y");
-    }
-    if ctx.config().cleanup() {
-        cmd.arg("--autoremove");
-    }
-    // from pkcon man, exit code 5 is 'Nothing useful was done.'
-    cmd.status_checked_with_codes(&[5])?;
+    exe.arg("update")
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .arg_if(ctx.config().cleanup(), "--autoremove")
+        // from pkcon man, exit code 5 is 'Nothing useful was done.'
+        .status_checked_with_codes(&[5])?;
 
     Ok(())
 }
 
 fn upgrade_kde_linux(ctx: &ExecutionContext) -> Result<()> {
     let updatectl = require("updatectl")?;
-    let mut command = ctx.execute(updatectl);
-    command.arg("update");
-    command.status_checked()?;
+    ctx.execute(updatectl).arg("update").status_checked()?;
 
     Ok(())
 }
@@ -1065,11 +971,9 @@ pub fn run_protonup_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("protonup");
 
-    let mut cmd = ctx.execute(protonup);
-    if ctx.config().yes(Step::Protonup) {
-        cmd.arg("--yes");
-    }
-    cmd.status_checked()?;
+    ctx.execute(protonup)
+        .arg_if(ctx.config().yes(Step::Protonup), "--yes")
+        .status_checked()?;
 
     Ok(())
 }
@@ -1145,15 +1049,10 @@ pub fn run_lure_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("LURE");
 
-    let mut exe = ctx.execute(lure);
-
-    if ctx.config().yes(Step::Lure) {
-        exe.args(["-i=false", "up"]);
-    } else {
-        exe.arg("up");
-    }
-
-    exe.status_checked()
+    ctx.execute(lure)
+        .arg_if(ctx.config().yes(Step::Lure), "-i=false")
+        .arg("up")
+        .status_checked()
 }
 
 pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
@@ -1255,13 +1154,9 @@ pub fn run_gearlever(ctx: &ExecutionContext) -> Result<()> {
         cmd.args(["run", "it.mijorus.gearlever"]);
         cmd
     };
-    cmd.args(["--update", "--all"]);
-
-    if ctx.config().yes(Step::Gearlever) {
-        cmd.arg("--yes");
-    }
-
-    cmd.status_checked()
+    cmd.args(["--update", "--all"])
+        .arg_if(ctx.config().yes(Step::Gearlever), "--yes")
+        .status_checked()
 }
 
 pub fn run_cinnamon_spices_updater(ctx: &ExecutionContext) -> Result<()> {

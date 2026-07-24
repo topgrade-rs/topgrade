@@ -22,14 +22,10 @@ pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
 
     let sudo = ctx.require_sudo()?;
 
-    let mut command = sudo.execute(ctx, &choco)?;
-    command.args(["upgrade", "all"]);
-
-    if yes {
-        command.arg("--yes");
-    }
-
-    command.status_checked()
+    sudo.execute(ctx, &choco)?
+        .args(["upgrade", "all"])
+        .arg_if(yes, "--yes")
+        .status_checked()
 }
 
 pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
@@ -143,13 +139,11 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
         .trim_end()
         .to_owned();
 
-    let mut command = ctx.execute(wsl);
-
-    // Pass the distro name, discovered topgrade path, and forwarded flags as
-    // positional parameters so the inner `bash -lc` receives them as single argv
-    // elements instead of parsing their contents. `"${@:3}"` forwards the flags
-    // to `topgrade` (not `bash`) and expands to nothing when there are none.
-    command
+    ctx.execute(wsl)
+        // Pass the distro name, discovered topgrade path, and forwarded flags as
+        // positional parameters so the inner `bash -lc` receives them as single argv
+        // elements instead of parsing their contents. `"${@:3}"` forwards the flags
+        // to `topgrade` (not `bash`) and expands to nothing when there are none.
         .args([
             "-d",
             dist,
@@ -159,15 +153,10 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
             "bash",
         ])
         .arg(dist)
-        .arg(&topgrade);
-    if ctx.config().verbose() {
-        command.arg("-v");
-    }
-    if ctx.config().yes(Step::Wsl) {
-        command.arg("-y");
-    }
-
-    command.status_checked()
+        .arg(&topgrade)
+        .arg_if(ctx.config().verbose(), "-v")
+        .arg_if(ctx.config().yes(Step::Wsl), "-y")
+        .status_checked()
 }
 
 pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
