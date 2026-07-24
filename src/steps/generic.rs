@@ -77,18 +77,12 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep(message).into());
     };
 
-    let mut command = ctx.execute(cargo_update);
-    command.args(["install-update", "--all"]);
-    if ctx.config().cargo_update_git() {
-        command.arg("--git");
-    }
-    if ctx.config().cargo_update_quiet() {
-        command.arg("--quiet");
-    }
-    if ctx.config().cargo_update_locked() {
-        command.arg("--locked");
-    }
-    command.status_checked()?;
+    ctx.execute(cargo_update)
+        .args(["install-update", "--all"])
+        .arg_if(ctx.config().cargo_update_git(), "--git")
+        .arg_if(ctx.config().cargo_update_quiet(), "--quiet")
+        .arg_if(ctx.config().cargo_update_locked(), "--locked")
+        .status_checked()?;
 
     if ctx.config().cleanup() {
         let cargo_cache = require("cargo-cache")
@@ -111,14 +105,11 @@ pub fn run_flutter_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let flutter = require("flutter")?;
 
     print_separator("Flutter");
-    let mut command = ctx.execute(flutter);
-    command.arg("upgrade");
 
-    if ctx.config().flutter_force() {
-        command.arg("--force");
-    }
-
-    command.status_checked()
+    ctx.execute(flutter)
+        .arg("upgrade")
+        .arg_if(ctx.config().flutter_force(), "--force")
+        .status_checked()
 }
 
 pub fn run_gem(ctx: &ExecutionContext) -> Result<()> {
@@ -127,16 +118,14 @@ pub fn run_gem(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Gems");
 
-    let mut command = ctx.execute(gem);
-    command.arg("update");
-
-    if env::var_os("RBENV_SHELL").is_none() {
-        command.arg("--user-install");
-    } else {
+    if !env::var_os("RBENV_SHELL").is_none() {
         debug!("Detected rbenv. Avoiding --user-install");
     }
 
-    command.status_checked()
+    ctx.execute(gem)
+        .arg("update")
+        .arg_if(env::var_os("RBENV_SHELL").is_none(), "--user-install")
+        .status_checked()
 }
 
 pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
@@ -513,12 +502,10 @@ pub fn run_opam_update(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(&opam).arg("update").status_checked()?;
 
-    let mut command = ctx.execute(&opam);
-    command.arg("upgrade");
-    if ctx.config().yes(Step::Opam) {
-        command.arg("--yes");
-    }
-    command.status_checked()?;
+    ctx.execute(&opam)
+        .arg("upgrade")
+        .arg_if(ctx.config().yes(Step::Opam), "--yes")
+        .status_checked()?;
 
     if ctx.config().cleanup() {
         ctx.execute(&opam).arg("clean").status_checked()?;
@@ -673,17 +660,19 @@ fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Resu
 
     print_separator(variant.display_name());
 
-    let mut cmd = ctx.execute(bin);
-    // If the variant supports profiles
-    if variant.supports_profiles() {
-        // And we have configured use of a profile
-        if let Some(profile) = ctx.config().vscode_profile() {
+    ctx.execute(bin)
+        .args_if_some(
+            // If the variant supports profiles and we have configured use of a profile
+            if variant.supports_profiles() {
+                ctx.config().vscode_profile()
+            } else {
+                None
+            },
             // Add the profile argument
-            cmd.arg("--profile").arg(profile);
-        }
-    }
-
-    cmd.arg("--update-extensions").status_checked()
+            |profile| ["--profile", profile],
+        )
+        .arg("--update-extensions")
+        .status_checked()
 }
 
 /// Make VSCodium a separate step because:
@@ -821,34 +810,28 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
     let env_names = once(&base_env_name).chain(addl_env_names);
 
     for env_name in env_names {
-        let mut command = ctx.execute(&conda);
-        command.args(["update", "--all", "-n", env_name]);
-        if ctx.config().yes(Step::Conda) {
-            command.arg("--yes");
-        }
-        command.status_checked()?;
+        ctx.execute(&conda)
+            .args(["update", "--all", "-n", env_name])
+            .arg_if(ctx.config().yes(Step::Conda), "--yes")
+            .status_checked()?;
     }
 
     // Update any environments given by path
     if let Some(env_paths) = ctx.config().conda_env_paths() {
         for env_path in env_paths.iter() {
-            let mut command = ctx.execute(&conda);
-            command.args(["update", "--all", "-p", env_path]);
-            if ctx.config().yes(Step::Conda) {
-                command.arg("--yes");
-            }
-            command.status_checked()?;
+            ctx.execute(&conda)
+                .args(["update", "--all", "-p", env_path])
+                .arg_if(ctx.config().yes(Step::Conda), "--yes")
+                .status_checked()?;
         }
     }
 
     // Cleanup (conda clean) is global (not tied to a particular environment)
     if ctx.config().cleanup() {
-        let mut command = ctx.execute(conda);
-        command.args(["clean", "--all"]);
-        if ctx.config().yes(Step::Conda) {
-            command.arg("--yes");
-        }
-        command.status_checked()?;
+        ctx.execute(conda)
+            .args(["clean", "--all"])
+            .arg_if(ctx.config().yes(Step::Conda), "--yes")
+            .status_checked()?;
     }
 
     Ok(())
@@ -868,13 +851,14 @@ pub fn run_pixi_update(ctx: &ExecutionContext) -> Result<()> {
             .always()
             .args(["self-update", "--help"])
             .output_checked_utf8()?;
-        let mut cmd = ctx.execute(&pixi);
-        cmd.arg("self-update");
-        // check if help mentions --no-release-note to check if it is supported
-        if self_update_help_output.stdout.contains("--no-release-note") && !ctx.config().show_pixi_release_notes() {
-            cmd.arg("--no-release-note");
-        }
-        cmd.status_checked()?;
+        ctx.execute(&pixi)
+            .arg("self-update")
+            // check if help mentions --no-release-note to check if it is supported
+            .arg_if(
+                self_update_help_output.stdout.contains("--no-release-note") && !ctx.config().show_pixi_release_notes(),
+                "--no-release-note",
+            )
+            .status_checked()?;
     }
 
     ctx.execute(&pixi).args(["global", "update"]).status_checked()
@@ -885,20 +869,16 @@ pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Mamba");
 
-    let mut command = ctx.execute(&mamba);
-    command.args(["update", "--all", "-n", "base"]);
-    if ctx.config().yes(Step::Mamba) {
-        command.arg("--yes");
-    }
-    command.status_checked()?;
+    ctx.execute(&mamba)
+        .args(["update", "--all", "-n", "base"])
+        .arg_if(ctx.config().yes(Step::Mamba), "--yes")
+        .status_checked()?;
 
     if ctx.config().cleanup() {
-        let mut command = ctx.execute(&mamba);
-        command.args(["clean", "--all"]);
-        if ctx.config().yes(Step::Mamba) {
-            command.arg("--yes");
-        }
-        command.status_checked()?;
+        ctx.execute(&mamba)
+            .args(["clean", "--all"])
+            .arg_if(ctx.config().yes(Step::Mamba), "--yes")
+            .status_checked()?;
     }
 
     Ok(())
@@ -1139,17 +1119,12 @@ pub fn run_chezmoi_update(ctx: &ExecutionContext) -> Result<()> {
     )
     .require()?;
 
-    let mut cmd = ctx.execute(&chezmoi);
-
     print_separator("chezmoi");
 
-    cmd.arg("update");
-
-    if ctx.config().chezmoi_exclude_encrypted() {
-        cmd.arg("--exclude=encrypted");
-    }
-
-    cmd.status_checked()
+    ctx.execute(&chezmoi)
+        .arg("update")
+        .arg_if(ctx.config().chezmoi_exclude_encrypted(), "--exclude=encrypted")
+        .status_checked()
 }
 
 pub fn run_myrepos_update(ctx: &ExecutionContext) -> Result<()> {
@@ -1172,21 +1147,23 @@ pub fn run_myrepos_update(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_custom_command(name: &str, command: &str, ctx: &ExecutionContext) -> Result<()> {
     print_separator(name);
-    let mut exec = ctx.execute(shell());
+
     #[cfg(unix)]
-    let command = if let Some(command) = command.strip_prefix("-i ") {
-        exec.arg("-i");
-        command
+    let (command, put_i) = if let Some(new_command) = command.strip_prefix("-i ") {
+        (new_command, true)
     } else {
-        command
+        (command, false)
     };
-    if ctx.config().yes(Step::CustomCommands) {
-        exec.env("TOPGRADE_YES", "1");
-    }
-    if ctx.config().cleanup() {
-        exec.env("TOPGRADE_CLEANUP", "1");
-    }
-    exec.arg("-c").arg(command).status_checked()
+    #[cfg(not(unix))]
+    let put_i = false;
+
+    ctx.execute(shell())
+        .arg_if(put_i, "-i")
+        .env_if(ctx.config().yes(Step::CustomCommands), "TOPGRADE_YES", "1")
+        .env_if(ctx.config().cleanup(), "TOPGRADE_CLEANUP", "1")
+        .arg("-c")
+        .arg(command)
+        .status_checked()
 }
 
 pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
@@ -1521,15 +1498,14 @@ pub fn update_julia_packages(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Julia Packages"));
 
-    let mut executor = ctx.execute(julia);
-
-    executor.arg(if ctx.config().julia_use_startup_file() {
-        "--startup-file=yes"
-    } else {
-        "--startup-file=no"
-    });
-
-    executor.args(["-e", "using Pkg; Pkg.update()"]).status_checked()
+    ctx.execute(julia)
+        .arg(if ctx.config().julia_use_startup_file() {
+            "--startup-file=yes"
+        } else {
+            "--startup-file=no"
+        })
+        .args(["-e", "using Pkg; Pkg.update()"])
+        .status_checked()
 }
 
 pub fn run_helm_repo_update(ctx: &ExecutionContext) -> Result<()> {
@@ -1753,13 +1729,14 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         debug!("poetry interpreter: {:?}, args: {:?}", interp, interp_args);
 
         let check_official_install_script = "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
-        let mut command = ctx.execute(&interp).always();
-        if let Some(args) = interp_args {
-            command.arg(args);
-        }
-        let output = command
+
+        let output = ctx
+            .execute(&interp)
+            .always()
+            .arg_if_some(interp_args, |args| args)
             .args(["-c", check_official_install_script])
             .output_checked_utf8()?;
+
         let stdout = output.stdout.trim();
         let official_install = match stdout {
             "N" => false,
@@ -2263,6 +2240,7 @@ pub fn run_claude_code_plugins(ctx: &ExecutionContext) -> Result<()> {
     for plugin in &plugins {
         let mut cmd = ctx.execute(&claude);
         cmd.args(["plugin", "update", &plugin.id, "--scope", &plugin.scope]);
+
         if let Some(path) = &plugin.project_path {
             cmd.current_dir(path);
         }
@@ -2336,15 +2314,10 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Skills");
 
-    let mut command = ctx.execute(npx);
-
-    if ctx.config().yes(Step::Skills) {
-        command.arg("--yes");
-    }
-
-    command.args(["skills", "update", "--global"]);
-
-    command.status_checked()
+    ctx.execute(npx)
+        .arg_if(ctx.config().yes(Step::Skills), "--yes")
+        .args(["skills", "update", "--global"])
+        .status_checked()
 }
 
 pub fn run_opencode(ctx: &ExecutionContext) -> Result<()> {
@@ -2515,50 +2488,25 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
         }
     }
 
-    let mut cmd = ctx.execute(&mise);
-
-    cmd.arg("upgrade");
-    cmd.current_dir(temp_dir.path());
-
-    if ctx.config().mise_interactive() {
-        cmd.arg("--interactive");
-    }
-
-    if ctx.config().mise_bump() {
-        cmd.arg("--bump");
-    }
-
-    if ctx.config().mise_silent() {
-        cmd.arg("--silent");
-    }
-
-    if ctx.config().mise_quiet() {
-        cmd.arg("--quiet");
-    }
-
-    if ctx.config().mise_verbose() {
-        cmd.arg("--verbose");
-    }
-
-    if ctx.config().yes(Step::Mise) {
-        cmd.arg("--yes");
-    }
-
-    if let Some(jobs) = ctx.config().mise_jobs() {
-        cmd.args(["--jobs", &jobs.to_string()]);
-    }
-
-    cmd.status_checked()?;
+    ctx.execute(&mise)
+        .arg("upgrade")
+        .current_dir(temp_dir.path())
+        .arg_if(ctx.config().mise_interactive(), "--interactive")
+        .arg_if(ctx.config().mise_bump(), "--bump")
+        .arg_if(ctx.config().mise_silent(), "--silent")
+        .arg_if(ctx.config().mise_quiet(), "--quiet")
+        .arg_if(ctx.config().mise_verbose(), "--verbose")
+        .arg_if(ctx.config().yes(Step::Mise), "--yes")
+        .args_if_some(ctx.config().mise_jobs(), |jobs| {
+            ["--jobs".to_string(), jobs.to_string()]
+        })
+        .status_checked()?;
 
     if ctx.config().cleanup() {
-        cmd = ctx.execute(&mise);
-        cmd.arg("prune");
-
-        if ctx.config().yes(Step::Mise) {
-            cmd.arg("--yes");
-        }
-
-        cmd.status_checked()?;
+        ctx.execute(&mise)
+            .arg("prune")
+            .arg_if(ctx.config().yes(Step::Mise), "--yes")
+            .status_checked()?;
     }
 
     refresh_mise_env(ctx, &mise, temp_dir.path())

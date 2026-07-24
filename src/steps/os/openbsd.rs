@@ -40,10 +40,8 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
         sudo.execute(ctx, "/usr/sbin/pkg_delete")?.arg("-ac").status_checked()?;
     }
 
-    let mut command = sudo.execute(ctx, "/usr/sbin/pkg_add")?;
-    command.arg("-u");
-    if is_current {
-        command.arg("-Dsnap");
-    }
-    command.status_checked()
+    sudo.execute(ctx, "/usr/sbin/pkg_add")?
+        .arg("-u")
+        .arg_if(is_current, "-Dsnap")
+        .status_checked()
 }
