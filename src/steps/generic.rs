@@ -29,7 +29,7 @@ use crate::execution_context::ExecutionContext;
 use crate::executor::{ExecutorChild, ExecutorOutput};
 use crate::output_changed_message;
 use crate::step::Step;
-use crate::sudo::SudoExecuteOpts;
+use crate::sudo::{Sudo, SudoExecuteOpts};
 use crate::terminal::{print_separator, shell};
 use crate::utils::{PathExt, check_is_python_2_or_shim, require, require_one, require_option, which};
 use crate::{
@@ -2347,42 +2347,18 @@ fn ollama_serve(ctx: &ExecutionContext, ollama: &Path) -> Result<ExecutorChild> 
 fn ollama_manifests_path() -> PathBuf {
     env::var_os("OLLAMA_MODELS")
         .map(PathBuf::from)
-        .unwrap_or_else(|| HOME_DIR.join(".ollama/models"))
-        .join("manifests/registry.ollama.ai")
+        .or_else(|| {
+            let path = HOME_DIR.join(".ollama/models");
+            path.exists().then_some(path)
+        })
+        .unwrap_or_else(|| PathBuf::from("/usr/share/ollama/.ollama/models"))
+        .join("manifests")
 }
 
 struct OllamaModel {
     name: String,
-    manifest_path: PathBuf,
-}
-
-fn ollama_list_models() -> impl Iterator<Item = OllamaModel> {
-    let manifests = ollama_manifests_path();
-
-    WalkDir::new(&manifests)
-        .min_depth(3)
-        .max_depth(3)
-        .into_iter()
-        .filter_map(move |entry| {
-            let entry = entry.ok()?;
-            if !entry.file_type().is_file() {
-                return None;
-            }
-
-            let path = entry.path();
-            let tag = path.file_name()?.to_string_lossy();
-            let name = path.parent()?.file_name()?.to_string_lossy();
-            let namespace = path.parent()?.parent()?.file_name()?.to_string_lossy();
-
-            Some(OllamaModel {
-                name: if namespace == "library" {
-                    format!("{name}:{tag}")
-                } else {
-                    format!("{namespace}/{name}:{tag}")
-                },
-                manifest_path: path.to_path_buf(),
-            })
-        })
+    /// Locally created/imported models can't be pulled; see `manifest_is_local`.
+    is_local: bool,
 }
 
 #[derive(Deserialize)]
@@ -2398,27 +2374,119 @@ struct OllamaLayer {
     from: Option<String>,
 }
 
-// Locally created model manifests have a `from` field on their model layers
-fn is_local_ollama_model(manifest_path: &Path) -> bool {
-    let Ok(content) = fs::read_to_string(manifest_path) else {
-        return false;
-    };
-    let Ok(manifest) = serde_json::from_str::<OllamaManifest>(&content) else {
-        return false;
-    };
-    manifest
-        .layers
-        .iter()
-        .any(|l| l.media_type == "application/vnd.ollama.image.model" && l.from.is_some())
+// Locally created model manifests have a `from` field on their model layer.
+fn manifest_is_local(content: &str) -> bool {
+    serde_json::from_str::<OllamaManifest>(content)
+        .map(|manifest| {
+            manifest
+                .layers
+                .iter()
+                .any(|l| l.media_type == "application/vnd.ollama.image.model" && l.from.is_some())
+        })
+        .unwrap_or(false)
+}
+
+// Reconstruct the `ollama pull` name from a manifest path.
+// Layout: <manifests>/<registry>/<namespace>/<model>/<tag>. The default registry and
+// the `library` namespace are implicit in a model's name; any other registry (e.g.
+// hf.co) or namespace is spelled out so the pull targets the right source.
+fn ollama_model_name(manifest_path: &Path) -> Option<String> {
+    let tag = manifest_path.file_name()?.to_string_lossy();
+    let name = manifest_path.parent()?.file_name()?.to_string_lossy();
+    let namespace = manifest_path.parent()?.parent()?.file_name()?.to_string_lossy();
+    let registry = manifest_path
+        .parent()?
+        .parent()?
+        .parent()?
+        .file_name()?
+        .to_string_lossy();
+    Some(match (registry.as_ref(), namespace.as_ref()) {
+        ("registry.ollama.ai", "library") => format!("{name}:{tag}"),
+        ("registry.ollama.ai", _) => format!("{namespace}/{name}:{tag}"),
+        _ => format!("{registry}/{namespace}/{name}:{tag}"),
+    })
+}
+
+fn ollama_list_models(ctx: &ExecutionContext) -> Vec<OllamaModel> {
+    let manifests = ollama_manifests_path();
+
+    let mut models = Vec::new();
+    let mut permission_denied = false;
+    for entry in WalkDir::new(&manifests).min_depth(4).max_depth(4) {
+        let entry = match entry {
+            Ok(entry) => entry,
+            // A read error (e.g. permission denied on a root-owned store) would
+            // otherwise be dropped and reported as "no models".
+            Err(e) => {
+                if e.io_error()
+                    .is_some_and(|io| io.kind() == std::io::ErrorKind::PermissionDenied)
+                {
+                    permission_denied = true;
+                }
+                debug!("Skipping unreadable Ollama manifest entry: {e}");
+                continue;
+            }
+        };
+        if !entry.file_type().is_file() {
+            continue;
+        }
+        let Some(name) = ollama_model_name(entry.path()) else {
+            continue;
+        };
+        let is_local = fs::read_to_string(entry.path()).is_ok_and(|c| manifest_is_local(&c));
+        models.push(OllamaModel { name, is_local });
+    }
+
+    // A system-wide store (e.g. /usr/share/ollama, typically 0700 ollama:ollama) isn't
+    // readable by the running user. If that left us with nothing, retry through sudo,
+    // reusing already-cached credentials (pre_sudo / --sudoloop keep them warm). A
+    // partially-readable store is left as-is.
+    if permission_denied
+        && models.is_empty()
+        && let Some(sudo) = ctx.sudo()
+    {
+        match ollama_models_via_sudo(ctx, sudo, &manifests) {
+            Ok(elevated) => models = elevated,
+            Err(e) => debug!("Failed to read Ollama manifests with sudo: {e}"),
+        }
+    }
+
+    models
+}
+
+// Enumerate manifests under a store the user can't read directly, in a single elevated
+// pass that prints `\0<path>\0<json>` per manifest. NUL keeps model names and JSON intact;
+// `.always()` keeps it working under --dry-run since the pass only reads.
+fn ollama_models_via_sudo(ctx: &ExecutionContext, sudo: &Sudo, manifests: &Path) -> Result<Vec<OllamaModel>> {
+    let output: Utf8Output = sudo
+        .execute(ctx, "find")?
+        .always()
+        .arg(manifests)
+        .args(["-mindepth", "4", "-maxdepth", "4", "-type", "f", "-exec", "sh", "-c"])
+        .arg(r#"printf '\0%s\0' "$1"; cat "$1""#)
+        .args(["_", "{}", ";"])
+        .output_checked_utf8()?;
+
+    let mut parts = output.stdout.split('\0');
+    parts.next(); // empty chunk before the first delimiter
+    let mut models = Vec::new();
+    while let Some(path) = parts.next() {
+        let content = parts.next().unwrap_or_default();
+        if let Some(name) = ollama_model_name(Path::new(path)) {
+            models.push(OllamaModel {
+                name,
+                is_local: manifest_is_local(content),
+            });
+        }
+    }
+    Ok(models)
 }
 
 pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
     let ollama = require("ollama")?;
 
-    let mut remote_models = ollama_list_models()
-        .filter(|m| !is_local_ollama_model(&m.manifest_path))
-        .peekable();
-    if remote_models.peek().is_none() {
+    let remote_models: Vec<OllamaModel> = ollama_list_models(ctx).into_iter().filter(|m| !m.is_local).collect();
+    if remote_models.is_empty() {
         return Err(SkipStep("No Ollama models to pull".to_string()).into());
     }
 
