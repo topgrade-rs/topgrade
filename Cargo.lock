@@ -3443,7 +3443,7 @@ checksum = "7d56353a2a665ad0f41a421187180aab746c8c325620617ad883a99a1cbe66d2"
 
 [[package]]
 name = "topgrade"
-version = "17.8.0"
+version = "17.9.0"
 dependencies = [
  "chrono",
  "clap",

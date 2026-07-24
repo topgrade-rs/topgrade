@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.9.0](https://github.com/topgrade-rs/topgrade/compare/v17.8.0...v17.9.0) - 2026-07-24
+
+### Added
+
+- *(claude)* split plugin updates into a separate claude_code_plugins step ([#2215](https://github.com/topgrade-rs/topgrade/pull/2215))
+- *(step)* add Soar package manager ([#2212](https://github.com/topgrade-rs/topgrade/pull/2212))
+- *(flutter)* add config for force option ([#2203](https://github.com/topgrade-rs/topgrade/pull/2203))
+- *(mise)* run `mise prune` if `cleanup = true` ([#2196](https://github.com/topgrade-rs/topgrade/pull/2196))
+
+### Fixed
+
+- *(macports)* fix passing of -N for assume_yes ([#2216](https://github.com/topgrade-rs/topgrade/pull/2216))
+- *(atom)* fix conflict with Agent Package Manager ([#2221](https://github.com/topgrade-rs/topgrade/pull/2221))
+- *(zsh)* drop redundant .zshrc source ([#2182](https://github.com/topgrade-rs/topgrade/pull/2182))
+- *(sudo)* make the sudo loop refresh non-interactive
+- *(sudo)* cache credentials at start when sudo_loop is enabled
+- *(nix)* avoid symlink resolution when determining sudo user ([#2194](https://github.com/topgrade-rs/topgrade/pull/2194))
+
 ## [17.8.0](https://github.com/topgrade-rs/topgrade/compare/v17.7.0...v17.8.0) - 2026-07-15
 
 ### Added
