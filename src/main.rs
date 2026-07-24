@@ -20,7 +20,7 @@ use rust_i18n::{i18n, t};
 use std::sync::LazyLock;
 use tracing::debug;
 
-use self::config::{CommandLineArgs, Config};
+use self::config::{CommandLineArgs, Config, Multiplexer};
 use self::error::StepFailed;
 use self::runner::StepResult;
 #[expect(clippy::wildcard_imports)]
@@ -49,6 +49,8 @@ mod terminal;
 #[cfg(unix)]
 mod tmux;
 mod utils;
+#[cfg(unix)]
+mod zellij;
 
 pub(crate) static HOME_DIR: LazyLock<PathBuf> = LazyLock::new(|| home_dir().expect("No home directory"));
 #[cfg(unix)]
@@ -124,11 +126,25 @@ fn run() -> Result<()> {
     debug!("self-update Feature Enabled: {:?}", cfg!(feature = "self-update"));
     debug!("Configuration: {:?}", config);
 
-    if config.run_in_tmux() && env::var("TOPGRADE_INSIDE_TMUX").is_err() {
-        #[cfg(unix)]
-        {
-            tmux::run_in_tmux(config.tmux_config()?)?;
-            return Ok(());
+    match config.run_in_multiplexer()? {
+        Multiplexer::No => {}
+        Multiplexer::Tmux => {
+            if env::var("TOPGRADE_INSIDE_TMUX").is_err() {
+                #[cfg(unix)]
+                {
+                    tmux::run_in_tmux(config.tmux_config()?)?;
+                    return Ok(());
+                }
+            }
+        }
+        Multiplexer::Zellij => {
+            if env::var("TOPGRADE_INSIDE_ZELLIJ").is_err() {
+                #[cfg(unix)]
+                {
+                    zellij::run_in_zellij(config.zellij_config()?)?;
+                    return Ok(());
+                }
+            }
         }
     }
 
