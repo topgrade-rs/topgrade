@@ -97,6 +97,54 @@ jobs:
             echo "$duplicates"
             exit 1
           fi
+      - name: Check for banned short flags in command args
+        run: |
+          ALLOWED='-y|-N'
+          MARKER='_allow-short-flag'
+          FOUND=0
+
+          while IFS= read -r -d '' file; do
+              iline=0
+
+              while IFS= read -r line; do
+                  iline=$(($iline + 1))
+                  # echo $iline: $line
+
+                  # arg check
+                  if [[ "$line" == *".arg("* && "$line" != *"$MARKER"* ]]; then
+                      flags=$(
+                          grep -oE '"-\w"' <<< "$line" |
+                          grep -vE "\"($ALLOWED)\"" || true
+                      )
+                      if [[ -n "$flags" ]]; then
+                          echo "$file: $iline: found banned short flag in .arg(): $flags"
+                          FOUND=1
+                      fi
+                  fi
+
+                  # args check (assuming the flags will always stay on one line)
+                  if [[ "$line" == *".args("* && "$line" != *"$MARKER"* ]]; then
+                      flags=$(
+                          grep -oE '"-\w"' <<< "$line" |
+                          grep -vE "\"($ALLOWED)\"" |
+                          tr '\n' ' ' || true
+                      )
+                      if [[ -n "$flags" ]]; then
+                          echo "$file: $iline: found banned short flag in .args(): $flags"
+                          FOUND=1
+                      fi
+                  fi
+              done < "$file"
+          done < <(find src/steps -name '*.rs' -print0)
+
+          if [[ "$FOUND" -eq 1 ]]; then
+              echo ""
+              echo "Found banned short flags in .arg() or .args()"
+              echo "Use the long flag alternitive instead"
+              echo "If there does not exist a long flag, disble the check with the comment \"// $MARKER: (desc)\" and a description of the flags functionality on the same line as the flag"
+              exit 1
+          fi
+
 
   msrv:
     needs: [ format, custom-checks ]
