@@ -726,6 +726,14 @@ _version: 2
   zh_CN: "桌面环境不是 GNOME"
   zh_TW: "桌面環境不是 GNOME"
   de: "Desktop scheint nicht GNOME zu sein"
+"Command `apm` does not appear to be Atom Package Manager":
+  en: "Command `apm` does not appear to be Atom Package Manager"
+  lt: "Panašu, kad komanda `apm` nėra „Atom Package Manager“"
+  es: "El comando `apm` no parece ser Atom Package Manager"
+  fr: "La commande `apm` ne semble pas être Atom Package Manager"
+  zh_CN: "`apm` 命令似乎不是 Atom Package Manager"
+  zh_TW: "`apm` 命令似乎不是 Atom Package Manager"
+  de: "Der Befehl `apm` scheint nicht der Atom Package Manager zu sein"
 "GNOME shell extensions are unregistered in DBus":
   en: "GNOME shell extensions are unregistered in DBus"
   lt: "GNOME Shell priedai nėra užregistruoti DBus'e"

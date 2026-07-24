@@ -233,8 +233,53 @@ pub fn run_micro(ctx: &ExecutionContext) -> Result<()> {
     target_os = "netbsd",
     target_os = "dragonfly"
 )))]
+enum Apm {
+    AtomPackageManager(PathBuf),
+    Other,
+}
+
+#[cfg(not(any(
+    target_os = "freebsd",
+    target_os = "openbsd",
+    target_os = "netbsd",
+    target_os = "dragonfly"
+)))]
+impl Apm {
+    fn atom_package_manager(self) -> Result<PathBuf> {
+        match self {
+            Self::AtomPackageManager(apm) => Ok(apm),
+            Self::Other => {
+                Err(SkipStep(t!("Command `apm` does not appear to be Atom Package Manager").to_string()).into())
+            }
+        }
+    }
+
+    fn get(ctx: &ExecutionContext) -> Result<Self> {
+        let apm = require("apm")?;
+        let output = ctx.execute(&apm).always().arg("--help").output_checked_utf8()?;
+
+        if output
+            .stdout
+            .split(|character: char| !character.is_alphanumeric())
+            .any(|word| word.eq_ignore_ascii_case("atom"))
+        {
+            debug!("Detected `apm` as Atom Package Manager");
+            Ok(Self::AtomPackageManager(apm))
+        } else {
+            debug!("Detected `apm` as another package manager");
+            Ok(Self::Other)
+        }
+    }
+}
+
+#[cfg(not(any(
+    target_os = "freebsd",
+    target_os = "openbsd",
+    target_os = "netbsd",
+    target_os = "dragonfly"
+)))]
 pub fn run_apm(ctx: &ExecutionContext) -> Result<()> {
-    let apm = require("apm")?;
+    let apm = Apm::get(ctx)?.atom_package_manager()?;
 
     print_separator("Atom Package Manager");
 
