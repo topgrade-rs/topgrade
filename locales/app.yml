@@ -1522,3 +1522,11 @@ _version: 2
   zh_CN: "OpenCode 未通过官方脚本安装"
   zh_TW: "OpenCode 未透過官方腳本安裝"
   de: "OpenCode ist nicht mit dem offiziellen Skript installiert"
+"dprint global config update not available":
+  en: "dprint global config update not available"
+  lt: "dprint visuotinės konfigūracijos atnaujinimas nepasiekiamas"
+  es: "actualización de configuración global de dprint no disponible"
+  fr: "mise à jour de la configuration globale de dprint non disponible"
+  zh_CN: "dprint 全局配置更新不可用"
+  zh_TW: "dprint 全域設定更新不可用"
+  de: "dprint globale Konfigurationsaktualisierung nicht verfügbar"
