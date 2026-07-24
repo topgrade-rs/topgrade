@@ -76,17 +76,12 @@ pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Update WSL"));
 
-    let mut wsl_command = ctx.execute(wsl);
-    wsl_command.args(["--update"]);
+    ctx.execute(wsl)
+        .args(["--update"])
+        .arg_if(ctx.config().wsl_update_pre_release(), "--pre-release")
+        .arg_if(ctx.config().wsl_update_use_web_download(), "--web-download")
+        .status_checked()?;
 
-    if ctx.config().wsl_update_pre_release() {
-        wsl_command.args(["--pre-release"]);
-    }
-
-    if ctx.config().wsl_update_use_web_download() {
-        wsl_command.args(["--web-download"]);
-    }
-    wsl_command.status_checked()?;
     Ok(())
 }
 

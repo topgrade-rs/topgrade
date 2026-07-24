@@ -281,64 +281,65 @@ impl Sudo {
         print_separator("Sudo");
 
         // self.path is only None for null sudo, which we've handled above
-        let mut cmd = ctx.execute(self.path.as_deref().unwrap());
-        match self.kind {
-            SudoKind::Doas => {
-                // `doas` doesn't have anything like `sudo -v` to cache credentials,
-                // so we just execute a no-op dummy command, `true`.
-                // See: https://man.openbsd.org/doas
-                cmd.arg("true");
-            }
-            SudoKind::Sudo => {
-                // From `man sudo` on macOS:
-                //   -v, --validate
-                //   Update the user's cached credentials, authenticating the user
-                //   if necessary.  For the sudoers plugin, this extends the sudo
-                //   timeout for another 5 minutes by default, but does not run a
-                //   command.  Not all security policies support cached credentials.
-                cmd.arg("-v");
-            }
-            SudoKind::WinSudo => {
-                // Windows `sudo` doesn't cache credentials, so we just execute a
-                // dummy command - the easiest on Windows is `rem` in cmd.
-                // See: https://learn.microsoft.com/en-us/windows/advanced-settings/sudo/
-                cmd.args(["cmd.exe", "/c", "rem"]);
-            }
-            SudoKind::Gsudo => {
-                // `gsudo` doesn't have anything like `sudo -v` to cache credentials,
-                // so we just execute a dummy command - the easiest on Windows is
-                // `rem` in cmd. `-d` tells it to run the command directly, without
-                // going through a shell (which could be powershell) first.
-                // See: https://gerardog.github.io/gsudo/docs/usage
-                cmd.args(["-d", "cmd.exe", "/c", "rem"]);
-                // TODO: `gsudo cache on` starts a session with cached credentials and could replace the dummy `rem` invocation here when sudo_loop is enabled...
-            }
-            SudoKind::Pkexec => {
-                // I don't think this does anything; `pkexec` usually asks for
-                // authentication every time, although it can be configured
-                // differently.
-                //
-                // See the note for `doas` above.
-                //
-                // See: https://linux.die.net/man/1/pkexec
-                cmd.arg("true");
-            }
-            SudoKind::Run0 => {
-                // `run0` uses polkit for authentication
-                // and thus has the same issues as `pkexec`.
-                //
-                // See: https://www.freedesktop.org/software/systemd/man/devel/run0.html
-                cmd.arg("true");
-            }
-            SudoKind::Please => {
-                // From `man please`
-                //   -w, --warm
-                //   Warm the access token and exit.
-                cmd.arg("-w");
-            }
-            SudoKind::Null => unreachable!(),
-        }
-        cmd.status_checked().wrap_err("Failed to elevate permissions")
+        ctx.execute(self.path.as_deref().unwrap())
+            .args(match self.kind {
+                SudoKind::Doas => {
+                    // `doas` doesn't have anything like `sudo -v` to cache credentials,
+                    // so we just execute a no-op dummy command, `true`.
+                    // See: https://man.openbsd.org/doas
+                    vec!["true"]
+                }
+                SudoKind::Sudo => {
+                    // From `man sudo` on macOS:
+                    //   -v, --validate
+                    //   Update the user's cached credentials, authenticating the user
+                    //   if necessary.  For the sudoers plugin, this extends the sudo
+                    //   timeout for another 5 minutes by default, but does not run a
+                    //   command.  Not all security policies support cached credentials.
+                    vec!["-v"]
+                }
+                SudoKind::WinSudo => {
+                    // Windows `sudo` doesn't cache credentials, so we just execute a
+                    // dummy command - the easiest on Windows is `rem` in cmd.
+                    // See: https://learn.microsoft.com/en-us/windows/advanced-settings/sudo/
+                    vec!["cmd.exe", "/c", "rem"]
+                }
+                SudoKind::Gsudo => {
+                    // `gsudo` doesn't have anything like `sudo -v` to cache credentials,
+                    // so we just execute a dummy command - the easiest on Windows is
+                    // `rem` in cmd. `-d` tells it to run the command directly, without
+                    // going through a shell (which could be powershell) first.
+                    // See: https://gerardog.github.io/gsudo/docs/usage
+                    vec!["-d", "cmd.exe", "/c", "rem"]
+                    // TODO: `gsudo cache on` starts a session with cached credentials and could replace the dummy `rem` invocation here when sudo_loop is enabled...
+                }
+                SudoKind::Pkexec => {
+                    // I don't think this does anything; `pkexec` usually asks for
+                    // authentication every time, although it can be configured
+                    // differently.
+                    //
+                    // See the note for `doas` above.
+                    //
+                    // See: https://linux.die.net/man/1/pkexec
+                    vec!["true"]
+                }
+                SudoKind::Run0 => {
+                    // `run0` uses polkit for authentication
+                    // and thus has the same issues as `pkexec`.
+                    //
+                    // See: https://www.freedesktop.org/software/systemd/man/devel/run0.html
+                    vec!["true"]
+                }
+                SudoKind::Please => {
+                    // From `man please`
+                    //   -w, --warm
+                    //   Warm the access token and exit.
+                    vec!["-w"]
+                }
+                SudoKind::Null => unreachable!(),
+            })
+            .status_checked()
+            .wrap_err("Failed to elevate permissions")
     }
 
     /// Refresh arguments for the sudo kinds that can cache credentials.
@@ -417,12 +418,12 @@ impl Sudo {
         }
 
         // self.path is only None for null sudo, which we've handled above
-        let mut cmd = ctx.execute(self.path.as_ref().unwrap());
+        let mut exec = ctx.execute(self.path.as_ref().unwrap());
 
         if opts.login_shell {
             match self.kind {
                 SudoKind::Sudo => {
-                    cmd.arg("-i");
+                    exec.arg("-i");
                 }
                 SudoKind::Gsudo => {
                     // By default, gsudo runs all commands inside a shell. If login_shell
@@ -443,7 +444,7 @@ impl Sudo {
             // Additionally, if the current shell is pwsh >= 7.3.0, then not including this
             // gives errors if the command to run has spaces in it: see
             // https://github.com/gerardog/gsudo/issues/297
-            cmd.arg("-d");
+            exec.arg("-d");
         }
 
         let mut preserve_env = opts.preserve_env;
@@ -463,10 +464,10 @@ impl Sudo {
         match preserve_env {
             SudoPreserveEnv::All => match self.kind {
                 SudoKind::Sudo => {
-                    cmd.arg("-E");
+                    exec.arg("-E");
                 }
                 SudoKind::Gsudo => {
-                    cmd.arg("--copyEV");
+                    exec.arg("--copyEV");
                 }
                 SudoKind::Doas | SudoKind::WinSudo | SudoKind::Pkexec | SudoKind::Run0 | SudoKind::Please => {
                     return Err(UnsupportedSudo {
@@ -479,16 +480,16 @@ impl Sudo {
             },
             SudoPreserveEnv::Some(vars) => match self.kind {
                 SudoKind::Sudo => {
-                    cmd.arg(format!("--preserve-env={}", vars.iter().join(",")));
+                    exec.arg(format!("--preserve-env={}", vars.iter().join(",")));
                 }
                 SudoKind::Run0 => {
                     for env in vars {
-                        cmd.arg(format!("--setenv={}", env));
+                        exec.arg(format!("--setenv={}", env));
                     }
                 }
                 SudoKind::Please => {
-                    cmd.arg("-a");
-                    cmd.arg(vars.iter().join(","));
+                    exec.arg("-a");
+                    exec.arg(vars.iter().join(","));
                 }
                 SudoKind::Doas | SudoKind::WinSudo | SudoKind::Gsudo | SudoKind::Pkexec => {
                     return Err(UnsupportedSudo {
@@ -505,7 +506,7 @@ impl Sudo {
         if opts.set_home {
             match self.kind {
                 SudoKind::Sudo => {
-                    cmd.arg("-H");
+                    exec.arg("-H");
                 }
                 // This is already the default behavior for run0
                 SudoKind::Run0 => {}
@@ -523,13 +524,13 @@ impl Sudo {
         if let Some(user) = opts.user {
             match self.kind {
                 SudoKind::Sudo => {
-                    cmd.args(["-u", user]);
+                    exec.args(["-u", user]);
                 }
                 SudoKind::Doas | SudoKind::Gsudo | SudoKind::Run0 | SudoKind::Please => {
-                    cmd.args(["-u", user]);
+                    exec.args(["-u", user]);
                 }
                 SudoKind::Pkexec => {
-                    cmd.args(["--user", user]);
+                    exec.args(["--user", user]);
                 }
                 SudoKind::WinSudo => {
                     // Windows sudo is the only one that doesn't have a `-u` flag
@@ -543,9 +544,9 @@ impl Sudo {
             }
         }
 
-        cmd.arg(command);
+        exec.arg(command);
 
-        Ok(cmd)
+        Ok(exec)
     }
 }
 

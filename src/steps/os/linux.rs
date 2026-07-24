@@ -255,7 +255,11 @@ fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
     let sudo = ctx.require_sudo()?;
 
     sudo.execute(ctx, &dnf)?
-        .arg_if_else(ctx.config().redhat_distro_sync(), "distro-sync", "upgrade")
+        .arg(if ctx.config().redhat_distro_sync() {
+            "distro-sync"
+        } else {
+            "upgrade"
+        })
         .args_if_some(ctx.config().dnf_arguments(), |args| args.split_whitespace())
         .arg_if(ctx.config().yes(Step::System), "-y")
         .status_checked()?;
@@ -326,7 +330,11 @@ fn upgrade_suse(ctx: &ExecutionContext) -> Result<()> {
     sudo.execute(ctx, &zypper)?.arg("refresh").status_checked()?;
 
     sudo.execute(ctx, &zypper)?
-        .arg_if_else(ctx.config().suse_dup(), "dist-upgrade", "update")
+        .arg(if ctx.config().suse_dup() {
+            "dist-upgrade"
+        } else {
+            "update"
+        })
         .arg_if(ctx.config().yes(Step::System), "-y")
         .status_checked()?;
 
@@ -511,7 +519,7 @@ fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
     }
 
     sudo.execute(ctx, &apt)?
-        .arg_if_else(kind == Nala, "upgrade", "dist-upgrade")
+        .arg(if kind == Nala { "upgrade" } else { "dist-upgrade" })
         .arg_if(ctx.config().yes(Step::System), "-y")
         .args_if_some(ctx.config().apt_arguments(), |args| args.split_whitespace())
         .status_checked()?;
@@ -541,9 +549,7 @@ pub fn run_deb_get(ctx: &ExecutionContext) -> Result<()> {
 
     let base_cmd = || {
         let mut cmd = ctx.execute(&deb_get);
-        if disable_apt {
-            cmd.env("DISABLE_APT", "y");
-        }
+        cmd.env_if(disable_apt, "DISABLE_APT", "y");
         cmd
     };
 
@@ -579,7 +585,7 @@ pub fn run_am(ctx: &ExecutionContext) -> Result<()> {
     print_separator("AM");
 
     ctx.execute(am)
-        .arg_if_else(ctx.config().yes(Step::AM), "-U", "-u")
+        .arg(if ctx.config().yes(Step::AM) { "-U" } else { "-u" })
         .status_checked()
 }
 
@@ -844,31 +850,29 @@ pub fn run_fwupdmgr(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(&fwupdmgr).arg("refresh").status_checked_with_codes(&[2])?;
 
-    let mut updmgr = ctx.execute(&fwupdmgr);
-
     if ctx.config().firmware_upgrade() {
-        updmgr.arg("update");
-        if ctx.config().yes(Step::System) {
-            updmgr.arg("-y");
-        }
-        updmgr.status_checked_with_codes(&[2])
+        ctx.execute(&fwupdmgr)
+            .arg("update")
+            .arg_if(ctx.config().yes(Step::System), "-y")
+            .status_checked_with_codes(&[2])
     } else {
-        updmgr.arg("get-updates");
-
         // Exit 0 from `fwupdmgr get-updates` means firmware updates are available.
         // Exit 2 means no updates. When updates exist but `firmware_upgrade` is
         // disabled, hint to the user that they can apply them manually.
         let has_updates = std::cell::Cell::new(false);
-        updmgr.status_checked_with(|status| {
-            if status.success() {
-                has_updates.set(true);
-                Ok(())
-            } else if status.code() == Some(2) {
-                Ok(())
-            } else {
-                Err(())
-            }
-        })?;
+
+        ctx.execute(&fwupdmgr)
+            .arg("get-updates")
+            .status_checked_with(|status| {
+                if status.success() {
+                    has_updates.set(true);
+                    Ok(())
+                } else if status.code() == Some(2) {
+                    Ok(())
+                } else {
+                    Err(())
+                }
+            })?;
 
         if has_updates.get() {
             print_warning(t!(
@@ -1183,9 +1187,7 @@ pub fn run_protonplus_update(ctx: &ExecutionContext) -> Result<()> {
     };
     let cmd = || {
         let mut cmd = ctx.execute(&program);
-        if flatpak {
-            cmd.args(["run", "com.vysp3r.ProtonPlus"]);
-        }
+        cmd.args_if(flatpak, ["run", "com.vysp3r.ProtonPlus"]);
         cmd
     };
 

@@ -118,16 +118,14 @@ pub fn run_gem(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Gems");
 
-    let mut command = ctx.execute(gem);
-    command.arg("update");
-
-    if env::var_os("RBENV_SHELL").is_none() {
-        command.arg("--user-install");
-    } else {
+    if !env::var_os("RBENV_SHELL").is_none() {
         debug!("Detected rbenv. Avoiding --user-install");
     }
 
-    command.status_checked()
+    ctx.execute(gem)
+        .arg("update")
+        .arg_if(env::var_os("RBENV_SHELL").is_none(), "--user-install")
+        .status_checked()
 }
 
 pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
@@ -500,12 +498,10 @@ pub fn run_opam_update(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(&opam).arg("update").status_checked()?;
 
-    let mut command = ctx.execute(&opam);
-    command.arg("upgrade");
-    if ctx.config().yes(Step::Opam) {
-        command.arg("--yes");
-    }
-    command.status_checked()?;
+    ctx.execute(&opam)
+        .arg("upgrade")
+        .arg_if(ctx.config().yes(Step::Opam), "--yes")
+        .status_checked()?;
 
     if ctx.config().cleanup() {
         ctx.execute(&opam).arg("clean").status_checked()?;
@@ -660,17 +656,18 @@ fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Resu
 
     print_separator(variant.display_name());
 
-    let mut cmd = ctx.execute(bin);
-    // If the variant supports profiles
-    if variant.supports_profiles() {
-        // And we have configured use of a profile
-        if let Some(profile) = ctx.config().vscode_profile() {
-            // Add the profile argument
-            cmd.arg("--profile").arg(profile);
-        }
-    }
-
-    cmd.arg("--update-extensions").status_checked()
+    ctx.execute(bin)
+        .args_if_some(
+            // If the variant supports profiles and we have configured use of a profile
+            if variant.supports_profiles() {
+                ctx.config().vscode_profile()
+            } else {
+                None
+            },
+            |profile| ["--profile", profile],
+        )
+        .arg("--update-extensions")
+        .status_checked()
 }
 
 /// Make VSCodium a separate step because:
@@ -1141,21 +1138,23 @@ pub fn run_myrepos_update(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_custom_command(name: &str, command: &str, ctx: &ExecutionContext) -> Result<()> {
     print_separator(name);
-    let mut exec = ctx.execute(shell());
+
     #[cfg(unix)]
-    let command = if let Some(command) = command.strip_prefix("-i ") {
-        exec.arg("-i");
-        command
-    } else {
-        command
-    };
-    if ctx.config().yes(Step::CustomCommands) {
-        exec.env("TOPGRADE_YES", "1");
-    }
-    if ctx.config().cleanup() {
-        exec.env("TOPGRADE_CLEANUP", "1");
-    }
-    exec.arg("-c").arg(command).status_checked()
+    let put_i = command.strip_prefix("-i ").is_some();
+    #[cfg(not(unix))]
+    let put_i = false;
+
+    ctx.execute(shell())
+        .arg_if(put_i, "-i")
+        .env_if(ctx.config().yes(Step::CustomCommands), "TOPGRADE_YES", "1")
+        .env_if(ctx.config().cleanup(), "TOPGRADE_CLEANUP", "1")
+        .arg("-c")
+        .arg(if put_i {
+            command.strip_prefix("-i ").unwrap()
+        } else {
+            command
+        })
+        .status_checked()
 }
 
 pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
@@ -1497,11 +1496,11 @@ pub fn update_julia_packages(ctx: &ExecutionContext) -> Result<()> {
     print_separator(t!("Julia Packages"));
 
     ctx.execute(julia)
-        .arg_if_else(
-            ctx.config().julia_use_startup_file(),
-            "--startup-file=yes",
-            "--startup-file=no",
-        )
+        .arg(if ctx.config().julia_use_startup_file() {
+            "--startup-file=yes"
+        } else {
+            "--startup-file=no"
+        })
         .args(["-e", "using Pkg; Pkg.update()"])
         .status_checked()
 }
@@ -1727,13 +1726,14 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         debug!("poetry interpreter: {:?}, args: {:?}", interp, interp_args);
 
         let check_official_install_script = "import sys; from os import path; print('Y') if path.isfile(path.join(sys.prefix, 'poetry_env')) else print('N')";
-        let mut command = ctx.execute(&interp).always();
-        if let Some(args) = interp_args {
-            command.arg(args);
-        }
-        let output = command
+
+        let output = ctx
+            .execute(&interp)
+            .always()
+            .arg_if_some(interp_args, |args| args)
             .args(["-c", check_official_install_script])
             .output_checked_utf8()?;
+
         let stdout = output.stdout.trim();
         let official_install = match stdout {
             "N" => false,
@@ -2230,12 +2230,13 @@ pub fn run_claude_code_plugins(ctx: &ExecutionContext) -> Result<()> {
 
     let mut success = true;
     for plugin in &plugins {
-        let mut cmd = ctx.execute(&claude);
-        cmd.args(["plugin", "update", &plugin.id, "--scope", &plugin.scope]);
+        let mut exec = ctx.execute(&claude);
+        exec.args(["plugin", "update", &plugin.id, "--scope", &plugin.scope]);
+
         if let Some(path) = &plugin.project_path {
-            cmd.current_dir(path);
+            exec.current_dir(path);
         }
-        if let Err(e) = cmd.status_checked() {
+        if let Err(e) = exec.status_checked() {
             error!("Updating plugin {} failed: {e}", plugin.id);
             success = false;
         }

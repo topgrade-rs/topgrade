@@ -115,19 +115,17 @@ impl Powershell {
     where
         S: AsRef<OsStr>,
     {
-        let mut command = ctx.execute(&self.path).always();
+        let mut exec = ctx.execute(&self.path).always();
 
-        command.args(["-NoProfile", "-Command"]);
-        command.arg(cmd);
-        command.args(args);
+        exec.args(["-NoProfile", "-Command", cmd]).args(args);
 
         // If topgrade was run from pwsh, but we are trying to run powershell, then
         // the inherited PSModulePath breaks module imports
         if !self.is_pwsh {
-            command.env_remove("PSModulePath");
+            exec.env_remove("PSModulePath");
         }
 
-        command
+        exec
     }
 
     /// Builds a "primary" powershell command (uses dry-run if required):

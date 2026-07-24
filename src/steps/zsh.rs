@@ -22,9 +22,9 @@ use etcetera::base_strategy::BaseStrategy;
 /// last command sidesteps that. Drop this helper and restore plain `execute` once zsh fixes it.
 fn execute_interactive_zsh(ctx: &ExecutionContext, zsh: &Path, command: &str) -> Executor {
     let script = format!("{command}; exit $?");
-    let mut exec = ctx.execute(zsh);
-    exec.args(["-i", "-c", &script]);
-    exec
+    let mut cmd = ctx.execute(zsh);
+    cmd.args(["-i", "-c", &script]);
+    cmd
 }
 
 pub fn run_zr(ctx: &ExecutionContext) -> Result<()> {

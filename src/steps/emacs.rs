@@ -81,24 +81,19 @@ impl Emacs {
 
         print_separator("Emacs");
 
-        let mut command = ctx.execute(emacs);
+        #[cfg(unix)]
+        let emacs_upgrade_arg = EMACS_UPGRADE
+            .chars()
+            .map(|c| if c.is_whitespace() { '\u{00a0}' } else { c })
+            .collect::<String>();
+        #[cfg(not(unix))]
+        let emacs_upgrade_arg = EMACS_UPGRADE;
 
-        command
+        ctx.execute(emacs)
             .args(["--batch", "--debug-init", "-l"])
             .arg(init_file)
-            .arg("--eval");
-
-        #[cfg(unix)]
-        command.arg(
-            EMACS_UPGRADE
-                .chars()
-                .map(|c| if c.is_whitespace() { '\u{00a0}' } else { c })
-                .collect::<String>(),
-        );
-
-        #[cfg(not(unix))]
-        command.arg(EMACS_UPGRADE);
-
-        command.status_checked()
+            .arg("--eval")
+            .arg(emacs_upgrade_arg)
+            .status_checked()
     }
 }
