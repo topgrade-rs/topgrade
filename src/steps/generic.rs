@@ -143,19 +143,22 @@ pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
     HOME_DIR.join(".gem").require()?;
     let gem = require("gem")?;
 
-    print_separator("RubyGems");
-    let gem_path_str = gem.as_os_str();
-    if gem_path_str.to_str().unwrap().contains("asdf")
-        || gem_path_str.to_str().unwrap().contains("mise")
-        || gem_path_str.to_str().unwrap().contains(".rbenv")
-        || gem_path_str.to_str().unwrap().contains(".rvm")
+    let gem_path_str = gem.display().to_string();
+    if gem_path_str.contains("asdf")
+        || gem_path_str.contains("mise")
+        || gem_path_str.contains(".rbenv")
+        || gem_path_str.contains(".rvm")
     {
+        print_separator("RubyGems");
         ctx.execute(gem).args(["update", "--system"]).status_checked()?;
     } else if !Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
         let sudo = ctx.require_sudo()?;
+        print_separator("RubyGems");
         sudo.execute_opts(ctx, &gem, SudoExecuteOpts::new().preserve_env().set_home())?
             .args(["update", "--system"])
             .status_checked()?;
+    } else {
+        return Err(SkipStep("Rubygems is managed by the operating system".to_string()).into());
     }
 
     Ok(())
@@ -940,7 +943,12 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
     let extern_managed = match stdout {
         "N" => false,
         "Y" => true,
-        _ => unreachable!("unexpected output from `check_extern_managed_script`"),
+        _ => {
+            return Err(eyre!(output_changed_message!(
+                format!(r#"python3 -c "{check_extern_managed_script}""#),
+                "expected 'Y' or 'N'"
+            )));
+        }
     };
 
     let allow_break_sys_pkg = match ctx
@@ -1289,7 +1297,12 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
     print_separator(".NET");
 
     for package in packages {
-        let package_name = package.split_whitespace().next().unwrap();
+        let package_name = package.split_whitespace().next().ok_or_else(|| {
+            eyre!(output_changed_message!(
+                "dotnet tool list --global",
+                "expected whitespace in package entry"
+            ))
+        })?;
         ctx.execute(&dotnet)
             .args(["tool", "update", package_name, "--global"])
             .status_checked()
@@ -1761,7 +1774,12 @@ pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
         let official_install = match stdout {
             "N" => false,
             "Y" => true,
-            _ => unreachable!("unexpected output from `check_official_install_script`"),
+            _ => {
+                return Err(eyre!(output_changed_message!(
+                    format!(r#"<poetry interpreter> -c "{check_official_install_script}""#),
+                    "expected 'Y' or 'N'"
+                )));
+            }
         };
 
         debug!("poetry is official install: {}", official_install);

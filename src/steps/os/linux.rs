@@ -1,12 +1,11 @@
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{Result, eyre};
 use ini::Ini;
 use rust_i18n::t;
 use tracing::{debug, warn};
 
-use crate::HOME_DIR;
 use crate::command::CommandExt;
 use crate::config::NixHandler;
 use crate::error::{SkipStep, TopgradeError};
@@ -18,6 +17,7 @@ use crate::steps::unix::{NhSwitchArgs, can_nh_switch, nh_switch};
 use crate::sudo::SudoExecuteOpts;
 use crate::terminal::{print_separator, print_warning, prompt_yesno};
 use crate::utils::{PathExt, require, require_flatpak, require_one, which};
+use crate::{HOME_DIR, output_changed_message};
 
 static OS_RELEASE_PATH: &str = "/etc/os-release";
 
@@ -1181,7 +1181,7 @@ pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
         .stdout
         .lines()
         .find(|line| line.contains("Session:"))
-        .unwrap_or_else(|| panic!("the output of `waydroid status` should contain `Session:`"));
+        .ok_or_else(|| eyre!(output_changed_message!("waydroid status", "should contain `Session:`")))?;
     let is_container_running = session.contains("RUNNING");
     let assume_yes = ctx.config().yes(Step::Waydroid);
 
