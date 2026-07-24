@@ -10,7 +10,6 @@ use strum::{EnumCount, EnumIter, EnumString, VariantNames};
 #[cfg(feature = "self-update")]
 use crate::self_update;
 use crate::steps::remote::vagrant;
-#[expect(clippy::wildcard_imports)]
 use crate::steps::*;
 use crate::utils::hostname;
 
