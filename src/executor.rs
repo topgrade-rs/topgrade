@@ -79,6 +79,49 @@ impl Executor {
     }
 
     #[allow(dead_code)]
+    /// See `std::process::Command::arg`
+    pub fn arg_if<S: AsRef<OsStr>>(&mut self, cond: bool, arg: S) -> &mut Executor {
+        if cond { self.arg(arg) } else { self }
+    }
+
+    #[allow(dead_code)]
+    /// See `std::process::Command::args`
+    pub fn args_if<I, S>(&mut self, cond: bool, args: I) -> &mut Executor
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        if cond { self.args(args) } else { self }
+    }
+
+    #[allow(dead_code)]
+    /// See `std::process::Command::arg`
+    pub fn arg_if_some<T, F, S>(&mut self, opt: Option<T>, f: F) -> &mut Executor
+    where
+        F: FnOnce(T) -> S,
+        S: AsRef<OsStr>,
+    {
+        if let Some(val) = opt {
+            self.arg(f(val));
+        }
+        self
+    }
+
+    #[allow(dead_code)]
+    /// See `std::process::Command::args`
+    pub fn args_if_some<T, F, I, S>(&mut self, opt: Option<T>, f: F) -> &mut Executor
+    where
+        F: FnOnce(T) -> I,
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        if let Some(val) = opt {
+            self.args(f(val));
+        }
+        self
+    }
+
+    #[allow(dead_code)]
     /// See `std::process::Command::current_dir`
     pub fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut Executor {
         match self {
@@ -142,6 +185,16 @@ impl Executor {
         }
 
         self
+    }
+
+    #[allow(dead_code)]
+    /// See `std::process::Command::env`
+    pub fn env_if<K, V>(&mut self, cond: bool, key: K, val: V) -> &mut Executor
+    where
+        K: AsRef<OsStr>,
+        V: AsRef<OsStr>,
+    {
+        if cond { self.env(key, val) } else { self }
     }
 
     /// See `std::process::Command::spawn`
