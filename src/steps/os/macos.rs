@@ -19,11 +19,23 @@ pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
     let sudo = ctx.require_sudo()?;
 
     sudo.execute(ctx, &port)?.arg("selfupdate").status_checked()?;
-    sudo.execute(ctx, &port)?
-        .args(["-u", "upgrade", "outdated"])
-        .status_checked()?;
+
+    let yes = ctx.config().yes(Step::Macports);
+
+    let mut cmd = sudo.execute(ctx, &port)?;
+    cmd.args(["-u", "upgrade", "outdated"]);
+    if yes {
+        cmd.arg("-N");
+    }
+    cmd.status_checked()?;
+
     if ctx.config().cleanup() {
-        sudo.execute(ctx, &port)?.args(["-N", "reclaim"]).status_checked()?;
+        let mut cmd = sudo.execute(ctx, &port)?;
+        cmd.arg("reclaim");
+        if yes {
+            cmd.arg("-N");
+        }
+        cmd.status_checked()?;
     }
 
     Ok(())
