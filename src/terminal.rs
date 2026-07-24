@@ -1,6 +1,7 @@
 use std::cmp::{max, min};
 use std::env;
-use std::io::{self, Write};
+use std::fmt::Display;
+use std::io::{self, IsTerminal, Write};
 use std::process::Command;
 use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
@@ -8,12 +9,13 @@ use std::time::Duration;
 use chrono::{Local, Timelike};
 use color_eyre::eyre;
 use color_eyre::eyre::Context;
-use console::{Term, measure_text_width, style};
 use crossterm::event::{DisableBracketedPaste, EnableBracketedPaste, Event, KeyCode, KeyEventKind, read};
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
+use crossterm::style::{StyledContent, Stylize};
+use crossterm::terminal::{SetTitle, disable_raw_mode, enable_raw_mode, size};
 use notify_rust::{Notification, Timeout};
 use rust_i18n::t;
 use tracing::{debug, error};
+use unicode_width::UnicodeWidthStr;
 #[cfg(windows)]
 use which_crate::which;
 
@@ -21,6 +23,30 @@ use crate::command::CommandExt;
 use crate::runner::StepResult;
 
 static TERMINAL: LazyLock<Mutex<Terminal>> = LazyLock::new(|| Mutex::new(Terminal::new()));
+
+/// Whether styled output should emit ANSI sequences.
+///
+/// Restores the suppression `console` did automatically: honor `CLICOLOR_FORCE`, disable on
+/// `NO_COLOR`, otherwise colorize only when stdout is a terminal. crossterm never strips
+/// sequences on its own, so the decision is made here and applied via [`style`].
+static COLORED: LazyLock<bool> = LazyLock::new(|| {
+    if env::var("CLICOLOR_FORCE").is_ok_and(|v| !v.is_empty() && v != "0") {
+        return true;
+    }
+    if env::var_os("NO_COLOR").is_some_and(|v| !v.is_empty()) {
+        return false;
+    }
+    io::stdout().is_terminal()
+});
+
+/// Renders `content` with `style_fn` applied, or plain when color output is disabled.
+pub fn style<D: Display>(content: D, style_fn: impl FnOnce(StyledContent<D>) -> StyledContent<D>) -> String {
+    if *COLORED {
+        style_fn(crossterm::style::style(content)).to_string()
+    } else {
+        content.to_string()
+    }
+}
 
 #[cfg(unix)]
 pub fn shell() -> String {
@@ -40,7 +66,7 @@ pub fn run_shell() -> eyre::Result<()> {
 struct Terminal {
     width: Option<u16>,
     prefix: String,
-    term: Term,
+    term: io::Stdout,
     set_title: bool,
     display_time: bool,
     desktop_notification: bool,
@@ -66,10 +92,9 @@ impl Drop for RawTerminalMode {
 
 impl Terminal {
     fn new() -> Self {
-        let term = Term::stdout();
         Self {
-            width: term.size_checked().map(|(_, w)| w),
-            term,
+            width: size().map(|(w, _)| w).ok(),
+            term: io::stdout(),
             prefix: env::var("TOPGRADE_PREFIX").map_or_else(|_| String::new(), |prefix| format!("({prefix}) ")),
             set_title: true,
             display_time: true,
@@ -105,8 +130,11 @@ impl Terminal {
 
     fn print_separator<P: AsRef<str>>(&mut self, message: P) {
         if self.set_title {
-            self.term
-                .set_title(format!("{}Topgrade - {}", self.prefix, message.as_ref()));
+            crossterm::execute!(
+                self.term,
+                SetTitle(format!("{}Topgrade - {}", self.prefix, message.as_ref()))
+            )
+            .ok();
         }
 
         if self.desktop_notification {
@@ -129,24 +157,22 @@ impl Terminal {
 
         match self.width {
             Some(width) => {
-                self.term
-                    .write_fmt(format_args!(
-                        "{}\n",
-                        style(format_args!(
-                            "\n── {} {:─^border$}",
-                            message,
-                            "",
-                            border = max(
-                                2,
-                                min(80, width as usize)
-                                    .checked_sub(4)
-                                    .and_then(|e| e.checked_sub(measure_text_width(&message)))
-                                    .unwrap_or(0)
-                            )
-                        ))
-                        .bold()
-                    ))
-                    .ok();
+                let separator = style(
+                    format_args!(
+                        "\n── {} {:─^border$}",
+                        message,
+                        "",
+                        border = max(
+                            2,
+                            min(80, width as usize)
+                                .checked_sub(4)
+                                .and_then(|e| e.checked_sub(message.width()))
+                                .unwrap_or(0)
+                        )
+                    ),
+                    |s| s.bold(),
+                );
+                self.term.write_fmt(format_args!("{separator}\n")).ok();
             }
             None => {
                 self.term.write_fmt(format_args!("―― {message} ――\n")).ok();
@@ -161,7 +187,7 @@ impl Terminal {
         self.term
             .write_fmt(format_args!(
                 "{} {}",
-                style(format!("{}", t!("{key} failed:", key = key))).red().bold(),
+                style(t!("{key} failed:", key = key), |s| s.red().bold()),
                 message
             ))
             .ok();
@@ -171,7 +197,7 @@ impl Terminal {
     fn print_warning<P: AsRef<str>>(&mut self, message: P) {
         let message = message.as_ref();
         self.term
-            .write_fmt(format_args!("{}\n", style(message).yellow().bold()))
+            .write_fmt(format_args!("{}\n", style(message, |s| s.yellow().bold())))
             .ok();
     }
 
@@ -179,7 +205,7 @@ impl Terminal {
     fn print_info<P: AsRef<str>>(&mut self, message: P) {
         let message = message.as_ref();
         self.term
-            .write_fmt(format_args!("{}\n", style(message).blue().bold()))
+            .write_fmt(format_args!("{}\n", style(message, |s| s.blue().bold())))
             .ok();
     }
 
@@ -191,15 +217,15 @@ impl Terminal {
                 "{}: {}\n",
                 key,
                 match result {
-                    StepResult::Success => format!("{}", style(t!("OK")).bold().green()),
-                    StepResult::Failure => format!("{}", style(t!("FAILED")).bold().red()),
-                    StepResult::Ignored => format!("{}", style(t!("IGNORED")).bold().yellow()),
+                    StepResult::Success => style(t!("OK"), |s| s.bold().green()),
+                    StepResult::Failure => style(t!("FAILED"), |s| s.bold().red()),
+                    StepResult::Ignored => style(t!("IGNORED"), |s| s.bold().yellow()),
                     StepResult::SkippedMissingSudo => format!(
                         "{}: {}",
-                        style(t!("SKIPPED")).bold().yellow(),
+                        style(t!("SKIPPED"), |s| s.bold().yellow()),
                         t!("Could not find sudo")
                     ),
-                    StepResult::Skipped(reason) => format!("{}: {}", style(t!("SKIPPED")).bold().blue(), reason),
+                    StepResult::Skipped(reason) => format!("{}: {}", style(t!("SKIPPED"), |s| s.bold().blue()), reason),
                 }
             ))
             .ok();
@@ -210,7 +236,7 @@ impl Terminal {
         self.term
             .write_fmt(format_args!(
                 "{}",
-                style(format!("{question} {}", t!("(Y)es/(N)o"))).yellow().bold()
+                style(format!("{question} {}", t!("(Y)es/(N)o")), |s| s.yellow().bold())
             ))
             .ok();
 
@@ -229,26 +255,29 @@ impl Terminal {
         }
 
         if self.set_title {
-            self.term.set_title(format!("Topgrade - {}", t!("Awaiting user")));
+            crossterm::execute!(self.term, SetTitle(format!("Topgrade - {}", t!("Awaiting user")))).ok();
         }
 
         if self.desktop_notification {
             self.notify_desktop(format!("{}", t!("{step_name} failed", step_name = step_name)), None);
         }
 
-        let prompt_inner = style(format!("{}{}", self.prefix, t!("Retry? (y)es/(N)o/(s)hell/(q)uit")))
-            .yellow()
-            .bold();
+        let prompt_inner = style(
+            format!("{}{}", self.prefix, t!("Retry? (y)es/(N)o/(s)hell/(q)uit")),
+            |s| s.yellow().bold(),
+        );
 
         let answer = loop {
             self.term.write_fmt(format_args!("\n{prompt_inner}")).ok();
             match self.get_char() {
                 Ok(KeyCode::Char('y' | 'Y')) => break Ok(ShouldRetry::Yes),
                 Ok(KeyCode::Char('s' | 'S')) => {
-                    println!(
-                        "\n\n{}\n",
-                        t!("Dropping you to shell. Fix what you need and then exit the shell.")
-                    );
+                    self.term
+                        .write_fmt(format_args!(
+                            "\n\n{}\n",
+                            t!("Dropping you to shell. Fix what you need and then exit the shell.")
+                        ))
+                        .ok();
                     if let Err(err) = run_shell().context("Failed to run shell") {
                         self.term.write_fmt(format_args!("{err:?}\n{prompt_inner}")).ok();
                     } else {
@@ -258,7 +287,7 @@ impl Terminal {
                 Ok(KeyCode::Char('n' | 'N') | KeyCode::Enter) => break Ok(ShouldRetry::No),
                 Err(e) => {
                     if let io::ErrorKind::Interrupted = e.kind() {
-                        println!();
+                        self.term.write_all(b"\n").ok();
                         error!("Interrupted while reading from terminal: {}", e);
                         continue;
                     }
@@ -272,7 +301,7 @@ impl Terminal {
             }
         };
 
-        self.term.write_str("\n").ok();
+        self.term.write_all(b"\n").ok();
 
         answer
     }
