@@ -3479,6 +3479,7 @@ dependencies = [
  "shellexpand",
  "strum",
  "sys-locale",
+ "sysinfo",
  "system_shutdown",
  "tempfile",
  "thiserror 2.0.19",

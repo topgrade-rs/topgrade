@@ -9,14 +9,15 @@ use rust_i18n::t;
 use semver::Version;
 use serde::Deserialize;
 use std::collections::BTreeMap;
-use std::ffi::OsString;
+use std::env;
+use std::ffi::{OsStr, OsString};
 #[cfg(unix)]
 use std::fs::remove_dir_all;
 use std::iter::once;
-use std::path::PathBuf;
+use std::path::{Component, Path, PathBuf};
 use std::sync::LazyLock;
-use std::{env, path::Path};
 use std::{fs, io::Write};
+use sysinfo::{ProcessRefreshKind, RefreshKind, System, UpdateKind};
 use tempfile::{tempdir, tempfile_in};
 use tracing::{debug, error, warn};
 use walkdir::WalkDir;
@@ -31,7 +32,7 @@ use crate::executor::{ExecutorChild, ExecutorOutput};
 use crate::output_changed_message;
 use crate::step::Step;
 use crate::sudo::SudoExecuteOpts;
-use crate::terminal::{print_separator, shell};
+use crate::terminal::{print_info, print_separator, shell};
 use crate::utils::{PathExt, check_is_python_2_or_shim, require, require_one, require_option, which};
 use crate::{
     error::{DryRun, SkipStep, StepFailed, TopgradeError},
@@ -590,6 +591,148 @@ impl VSCodeVariant {
             VSCodeVariant::Codium | VSCodeVariant::CodiumInsiders | VSCodeVariant::Windsurf => false,
         }
     }
+
+    fn extensions_root(&self, home_dir: &Path, configured_root: Option<&OsStr>) -> PathBuf {
+        if let Some(configured_root) = configured_root.filter(|root| !root.is_empty()) {
+            return PathBuf::from(configured_root);
+        }
+
+        let directory = match self {
+            VSCodeVariant::Antigravity => ".antigravity",
+            VSCodeVariant::Code => ".vscode",
+            VSCodeVariant::CodeInsiders => ".vscode-insiders",
+            VSCodeVariant::Codium => ".vscode-oss",
+            VSCodeVariant::CodiumInsiders => ".vscodium-insiders",
+            VSCodeVariant::Cursor => ".cursor",
+            VSCodeVariant::Windsurf => ".windsurf",
+        };
+
+        home_dir.join(directory).join("extensions")
+    }
+
+    fn process_names(&self) -> &'static [&'static str] {
+        match self {
+            VSCodeVariant::Antigravity => &["antigravity", "Antigravity"],
+            VSCodeVariant::Code => &["code", "Code"],
+            VSCodeVariant::CodeInsiders => &["code-insiders", "Code - Insiders"],
+            VSCodeVariant::Codium => &["codium", "VSCodium"],
+            VSCodeVariant::CodiumInsiders => &["codium-insiders", "VSCodium - Insiders", "VSCodiumInsiders"],
+            VSCodeVariant::Cursor => &["cursor", "Cursor"],
+            VSCodeVariant::Windsurf => &["windsurf", "Windsurf"],
+        }
+    }
+
+    fn app_bundle_name(&self) -> &'static str {
+        match self {
+            VSCodeVariant::Antigravity => "Antigravity.app",
+            VSCodeVariant::Code => "Visual Studio Code.app",
+            VSCodeVariant::CodeInsiders => "Visual Studio Code - Insiders.app",
+            VSCodeVariant::Codium => "VSCodium.app",
+            VSCodeVariant::CodiumInsiders => "VSCodium - Insiders.app",
+            VSCodeVariant::Cursor => "Cursor.app",
+            VSCodeVariant::Windsurf => "Windsurf.app",
+        }
+    }
+
+    fn matches_process(&self, process_name: &OsStr, executable: Option<&Path>) -> bool {
+        let matches_name = |name: &OsStr| {
+            let name = name.to_string_lossy();
+            let name = name.strip_suffix(".exe").unwrap_or(&name);
+            self.process_names()
+                .iter()
+                .any(|expected| name.eq_ignore_ascii_case(expected))
+        };
+
+        matches_name(process_name)
+            || executable.is_some_and(|path| {
+                path.file_stem().is_some_and(matches_name)
+                    || path.components().any(|component| {
+                        component
+                            .as_os_str()
+                            .to_string_lossy()
+                            .eq_ignore_ascii_case(self.app_bundle_name())
+                    })
+            })
+    }
+
+    fn is_running(&self) -> bool {
+        let system = System::new_with_specifics(
+            RefreshKind::nothing().with_processes(ProcessRefreshKind::nothing().with_exe(UpdateKind::Always)),
+        );
+
+        system
+            .processes()
+            .values()
+            .any(|process| self.matches_process(process.name(), process.exe()))
+    }
+}
+
+fn is_safe_obsolete_extension_name(name: &str) -> bool {
+    let components = Path::new(name).components().collect::<Vec<_>>();
+    matches!(components.as_slice(), [Component::Normal(_)])
+}
+
+fn cleanup_obsolete_extensions(extension_root: &Path, dry_run: bool) -> Result<()> {
+    let obsolete_path = extension_root.join(".obsolete");
+    let obsolete = match fs::read_to_string(&obsolete_path) {
+        Ok(obsolete) => obsolete,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => {
+            return Err(error).wrap_err(format!("Failed to read {}", obsolete_path.display()));
+        }
+    };
+    let obsolete: BTreeMap<String, bool> =
+        serde_json::from_str(&obsolete).wrap_err_with(|| format!("Failed to parse {}", obsolete_path.display()))?;
+
+    for (extension, should_remove) in &obsolete {
+        if !should_remove {
+            continue;
+        }
+
+        if !is_safe_obsolete_extension_name(extension) {
+            warn!(
+                extension,
+                "Ignoring unsafe extension name in {}",
+                obsolete_path.display()
+            );
+            continue;
+        }
+
+        let extension_path = extension_root.join(extension);
+        let metadata = match fs::symlink_metadata(&extension_path) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(error) => {
+                return Err(error).wrap_err(format!("Failed to inspect {}", extension_path.display()));
+            }
+        };
+
+        if metadata.file_type().is_symlink() {
+            warn!(
+                path = %extension_path.display(),
+                "Ignoring obsolete extension path because it is a symbolic link"
+            );
+            continue;
+        }
+        if !metadata.is_dir() {
+            warn!(
+                path = %extension_path.display(),
+                "Ignoring obsolete extension path because it is not a directory"
+            );
+            continue;
+        }
+
+        let path = extension_path.display().to_string();
+        if dry_run {
+            print_info(t!("Would remove obsolete extension directory: {path}", path = path));
+        } else {
+            fs::remove_dir_all(&extension_path)
+                .wrap_err_with(|| format!("Failed to remove {}", extension_path.display()))?;
+            print_info(t!("Removed obsolete extension directory: {path}", path = path));
+        }
+    }
+
+    Ok(())
 }
 
 /// Runs extension updates for VSCode-compatible editors (VSCode, VSCode Insiders, VSCodium,
@@ -673,7 +816,31 @@ fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Resu
             |profile| ["--profile", profile],
         )
         .arg("--update-extensions")
-        .status_checked()
+        .status_checked()?;
+
+    if !ctx.config().vscode_cleanup_obsolete_extensions() {
+        return Ok(());
+    }
+
+    if variant.is_running() {
+        let message = t!(
+            "{editor} is running; skipping obsolete extension cleanup",
+            editor = name
+        );
+        warn!("{message}");
+        print_warning(message);
+        return Ok(());
+    }
+
+    let dry_run = ctx.run_type().dry();
+    let configured_root = env::var_os("VSCODE_EXTENSIONS");
+    cleanup_obsolete_extensions(
+        &variant.extensions_root(HOME_DIR.as_path(), configured_root.as_deref()),
+        dry_run,
+    )
+    .wrap_err(format!("Failed to clean obsolete {name} extensions"))?;
+
+    Ok(())
 }
 
 /// Make VSCodium a separate step because:
@@ -706,6 +873,149 @@ pub fn run_windsurf_extensions_update(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_antigravity_extensions_update(ctx: &ExecutionContext) -> Result<()> {
     run_vscode_compatible(VSCodeVariant::Antigravity, ctx)
+}
+
+#[cfg(test)]
+mod vscode_tests {
+    use super::{VSCodeVariant, cleanup_obsolete_extensions, is_safe_obsolete_extension_name};
+    use std::ffi::OsStr;
+    use std::fs;
+    use std::path::Path;
+    use tempfile::tempdir;
+
+    #[test]
+    fn vscode_extension_root_respects_environment_override() {
+        let custom_root = OsStr::new("custom/extensions");
+
+        assert_eq!(
+            VSCodeVariant::Code.extensions_root(Path::new("home"), Some(custom_root)),
+            Path::new("custom/extensions")
+        );
+    }
+
+    #[test]
+    fn obsolete_extension_names_must_be_direct_children() {
+        assert!(is_safe_obsolete_extension_name("publisher.extension-1.2.3"));
+        assert!(!is_safe_obsolete_extension_name(""));
+        assert!(!is_safe_obsolete_extension_name("."));
+        assert!(!is_safe_obsolete_extension_name(".."));
+        assert!(!is_safe_obsolete_extension_name("../outside"));
+        assert!(!is_safe_obsolete_extension_name("nested/extension"));
+        assert!(!is_safe_obsolete_extension_name("/absolute"));
+    }
+
+    #[test]
+    fn cleanup_removes_only_listed_extension_directories() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("extensions");
+        let obsolete = root.join("publisher.old-1.0.0");
+        let current = root.join("publisher.current-2.0.0");
+        let retained = root.join("publisher.retained-1.0.0");
+        fs::create_dir_all(obsolete.join("nested")).unwrap();
+        fs::create_dir_all(&current).unwrap();
+        fs::create_dir_all(&retained).unwrap();
+        fs::write(obsolete.join("nested/file"), "old").unwrap();
+        fs::write(
+            root.join(".obsolete"),
+            r#"{"publisher.old-1.0.0":true,"publisher.missing-0.1.0":true,"publisher.retained-1.0.0":false}"#,
+        )
+        .unwrap();
+
+        cleanup_obsolete_extensions(&root, false).unwrap();
+
+        assert!(!obsolete.exists());
+        assert!(current.is_dir());
+        assert!(retained.is_dir());
+        assert!(root.join(".obsolete").is_file());
+    }
+
+    #[test]
+    fn cleanup_rejects_path_traversal_entries() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("extensions");
+        let outside = temp.path().join("outside");
+        let nested = root.join("nested/extension");
+        fs::create_dir_all(&outside).unwrap();
+        fs::create_dir_all(&nested).unwrap();
+        fs::write(root.join(".obsolete"), r#"{"../outside":true,"nested/extension":true}"#).unwrap();
+
+        cleanup_obsolete_extensions(&root, false).unwrap();
+
+        assert!(outside.is_dir());
+        assert!(nested.is_dir());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn cleanup_skips_symlinked_directories() {
+        use std::os::unix::fs::symlink;
+
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("extensions");
+        let outside = temp.path().join("outside");
+        fs::create_dir_all(&root).unwrap();
+        fs::create_dir_all(&outside).unwrap();
+        symlink(&outside, root.join("linked-extension")).unwrap();
+        fs::write(root.join(".obsolete"), r#"{"linked-extension":true}"#).unwrap();
+
+        cleanup_obsolete_extensions(&root, false).unwrap();
+
+        assert!(outside.is_dir());
+        assert!(fs::symlink_metadata(root.join("linked-extension")).is_ok());
+    }
+
+    #[test]
+    fn cleanup_dry_run_does_not_remove_directories() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("extensions");
+        let obsolete = root.join("publisher.old-1.0.0");
+        fs::create_dir_all(&obsolete).unwrap();
+        fs::write(root.join(".obsolete"), r#"{"publisher.old-1.0.0":true}"#).unwrap();
+
+        cleanup_obsolete_extensions(&root, true).unwrap();
+
+        assert!(obsolete.is_dir());
+        assert!(root.join(".obsolete").is_file());
+    }
+
+    #[test]
+    fn malformed_obsolete_file_does_not_delete_anything() {
+        let temp = tempdir().unwrap();
+        let root = temp.path().join("extensions");
+        let obsolete = root.join("publisher.old-1.0.0");
+        fs::create_dir_all(&obsolete).unwrap();
+        fs::write(root.join(".obsolete"), "not json").unwrap();
+
+        let error = cleanup_obsolete_extensions(&root, false).unwrap_err();
+
+        assert!(error.to_string().contains("Failed to parse"));
+        assert!(obsolete.is_dir());
+        assert!(root.join(".obsolete").is_file());
+    }
+
+    #[test]
+    fn running_editor_matching_handles_platform_process_names() {
+        assert!(VSCodeVariant::Cursor.matches_process(OsStr::new("Cursor.exe"), None));
+        assert!(!VSCodeVariant::Code.matches_process(OsStr::new("Code Helper"), None));
+        assert!(VSCodeVariant::Code.matches_process(
+            OsStr::new("Electron"),
+            Some(Path::new(
+                "/Applications/Visual Studio Code.app/Contents/MacOS/Electron"
+            ))
+        ));
+        assert!(!VSCodeVariant::Code.matches_process(
+            OsStr::new("Electron"),
+            Some(Path::new(
+                "/Applications/Visual Studio Code - Insiders.app/Contents/MacOS/Electron"
+            ))
+        ));
+        assert!(VSCodeVariant::CodeInsiders.matches_process(
+            OsStr::new("Electron"),
+            Some(Path::new(
+                "/Applications/Visual Studio Code - Insiders.app/Contents/MacOS/Electron"
+            ))
+        ));
+    }
 }
 
 pub fn run_pi(ctx: &ExecutionContext) -> Result<()> {

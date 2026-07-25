@@ -486,6 +486,7 @@ pub struct Zigup {
 #[serde(deny_unknown_fields)]
 pub struct VscodeConfig {
     profile: Option<String>,
+    cleanup_obsolete_extensions: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -2223,6 +2224,14 @@ impl Config {
         } else {
             Some(profile.as_str())
         }
+    }
+
+    pub fn vscode_cleanup_obsolete_extensions(&self) -> bool {
+        self.config_file
+            .vscode
+            .as_ref()
+            .and_then(|vscode| vscode.cleanup_obsolete_extensions)
+            .unwrap_or(false)
     }
 
     pub fn doom_aot(&self) -> bool {
