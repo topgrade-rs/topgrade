@@ -21,7 +21,7 @@ use strum::IntoEnumIterator;
 use tracing::{debug, error};
 
 use crate::execution_context::RunType;
-use crate::step::{DEPRECATED_STEPS, Step};
+use crate::step::{Binaries, DEPRECATED_STEPS, Step};
 use crate::sudo::SudoKind;
 use crate::terminal::print_warning;
 use crate::utils::string_prepend_str;
@@ -61,6 +61,12 @@ pub struct Containers {
     runtime: Option<ContainerRuntime>,
     system_prune: Option<bool>,
     use_sudo: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+pub struct AltPath {
+    name: Option<String>,
+    path: Option<String>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -351,6 +357,9 @@ pub struct Misc {
     sudo_loop_interval: Option<u16>,
 
     sudo_command: Option<SudoKind>,
+
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    alt_paths: Option<Vec<AltPath>>,
 
     #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
     disable: Option<Vec<Step>>,
@@ -1795,6 +1804,24 @@ impl Config {
                     .filter(move |s| !specified.contains(s)),
             )
             .chain(last.iter().copied()))
+    }
+
+    pub fn path_name(&self, bin: Binaries) -> &str {
+        let bin_name = bin.to_string();
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.alt_paths.as_ref())
+            .and_then(|p| p
+                .iter()
+                .find_map(|x| x
+                    .name
+                    .as_deref()
+                    .filter(|&n| n==bin_name)
+                    .and_then(|_| x.path.as_deref() )
+                )
+            )
+            .unwrap_or(bin.default_name())
     }
 
     /// Determine if we should ignore failures for this step

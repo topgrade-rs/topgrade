@@ -28,6 +28,7 @@ use crate::command::{CommandExt, Utf8Output};
 use crate::execution_context::ExecutionContext;
 use crate::executor::{ExecutorChild, ExecutorOutput};
 use crate::output_changed_message;
+use crate::step::Binaries;
 use crate::step::Step;
 use crate::sudo::SudoExecuteOpts;
 use crate::terminal::{print_separator, shell};
@@ -331,7 +332,7 @@ pub fn run_aqua(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_rustup(ctx: &ExecutionContext) -> Result<()> {
-    let rustup = require("rustup")?;
+    let rustup = require(ctx.config().path_name(Binaries::Rustup))?;
 
     print_separator("rustup");
 

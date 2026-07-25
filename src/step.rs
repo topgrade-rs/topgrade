@@ -1,3 +1,5 @@
+use core::fmt;
+
 use crate::execution_context::ExecutionContext;
 use crate::runner::Runner;
 use clap::ValueEnum;
@@ -783,6 +785,25 @@ impl Step {
         }
 
         Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub enum Binaries {
+    Rustup,
+}
+
+impl Binaries {
+    pub fn default_name(&self) -> &'static str {
+        match self {
+            Binaries::Rustup => "rustup",
+        }
+    }
+}
+
+impl fmt::Display for Binaries {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
 
