@@ -2267,6 +2267,23 @@ pub fn run_claude_code_plugins(ctx: &ExecutionContext) -> Result<()> {
     if success { Ok(()) } else { Err(eyre!(StepFailed)) }
 }
 
+pub fn run_codex(ctx: &ExecutionContext) -> Result<()> {
+    let codex = require("codex")?;
+
+    // `codex` will only update if the standalone binary is installed under `~/.local/bin`.
+    let local_bin = HOME_DIR.join(".local/bin");
+    if !codex.canonicalize().is_ok_and(|path| path.starts_with(&local_bin)) {
+        return Err(SkipStep(format!(
+            "codex is not installed under {}; update it via its package manager",
+            local_bin.display()
+        ))
+        .into());
+    }
+
+    print_separator("Codex");
+    ctx.execute(codex).arg("update").status_checked()
+}
+
 pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
     let falconf = require("falconf")?;
 
