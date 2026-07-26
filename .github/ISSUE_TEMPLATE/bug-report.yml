@@ -103,14 +103,30 @@ body:
   - type: textarea
     attributes:
       label: Configuration file
-      description: Paste the file or the relevant sections if you think this issue is related to configuration.
-      render: toml
+      description: Paste the file or the relevant sections **inside the codeblock (triple backticks)** if you think this issue is related to configuration.
+      value: |
+        <details>
+        <summary>Configuration file</summary>
+
+        ```toml
+
+        ```
+
+        </details>
 
   - type: textarea
     attributes:
       label: Verbose output
-      description: Output of `topgrade -v`.
-      render: shell
+      description: Output of `topgrade -v`. Paste it **inside the codeblock (triple backticks)**.
+      value: |
+        <details>
+        <summary>Verbose output</summary>
+
+        ```shell
+
+        ```
+
+        </details>
 
   - type: upload
     attributes:
