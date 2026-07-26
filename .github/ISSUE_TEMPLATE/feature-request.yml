@@ -1,0 +1,31 @@
+name: Feature request
+description: Suggest a general feature, or a feature within an already existing step
+labels: needs triage
+type: Feature
+
+body:
+  - type: markdown
+    attributes:
+      value: For a new tool or package manager to update, use [step request](https://github.com/topgrade-rs/topgrade/issues/new?template=step-request.yml) template instead.
+
+  - type: checkboxes
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched the issue tracker for [existing feature requests](https://github.com/topgrade-rs/topgrade/issues?q=type%3AFeature).
+          required: true
+
+  - type: textarea
+    attributes:
+      label: I want to suggest a feature
+      description: What would you like Topgrade to do and why? Link related issues or other tools that already do this.
+      placeholder: Topgrade should...
+    validations:
+      required: true
+
+  - type: checkboxes
+    attributes:
+      label: Contribution
+      options:
+        - label: I am able and willing to implement this feature myself.
+        - label: I am willing to test if someone else implements it. [Guide](https://github.com/topgrade-rs/topgrade?tab=contributing-ov-file#testing-a-pull-request)
