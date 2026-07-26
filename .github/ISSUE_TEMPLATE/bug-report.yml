@@ -1,7 +1,7 @@
 name: Bug report
 description: Topgrade is misbehaving
 labels: needs triage
-type: Bug
+#type: Bug
 
 body:
   - type: markdown

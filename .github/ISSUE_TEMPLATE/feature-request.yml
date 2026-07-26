@@ -1,7 +1,7 @@
 name: Feature request
 description: Suggest a general feature, or a feature within an already existing step
 labels: needs triage
-type: Feature
+#type: Feature
 
 body:
   - type: markdown

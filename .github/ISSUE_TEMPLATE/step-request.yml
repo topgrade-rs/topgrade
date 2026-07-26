@@ -1,7 +1,7 @@
 name: New step request
 description: Suggest a new program or package manager for Topgrade to update
 labels: needs triage
-type: Step request
+#type: Step request
 
 body:
   - type: markdown
