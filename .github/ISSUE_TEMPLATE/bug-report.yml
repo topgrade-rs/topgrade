@@ -109,7 +109,7 @@ body:
         <summary>Configuration file</summary>
 
         ```toml
-
+        # REPLACE THIS COMMENT WITH YOUR CONFIG 
         ```
 
         </details>
@@ -122,8 +122,8 @@ body:
         <details>
         <summary>Verbose output</summary>
 
-        ```shell
-
+        ```
+        REPLACE THIS COMMENT WITH COMMAND OUTPUT
         ```
 
         </details>
