@@ -2,7 +2,7 @@ use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::terminal::{print_separator, prompt_yesno};
-use crate::utils::require;
+use crate::utils::{require, require_one_path};
 use color_eyre::eyre::Result;
 use rust_i18n::t;
 use std::collections::HashSet;
