@@ -2,13 +2,12 @@ use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::terminal::{print_separator, prompt_yesno};
-use crate::utils::require;
+use crate::utils::{require, require_one_path};
 use color_eyre::eyre::Result;
 use rust_i18n::t;
 use std::collections::HashSet;
 use std::fs;
 use std::io::{self, Write};
-use std::path::PathBuf;
 use tracing::debug;
 
 pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
@@ -49,7 +48,11 @@ pub fn run_mas(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_microsoft_office(ctx: &ExecutionContext) -> Result<()> {
-    let msupdate = find_msupdate()?;
+    // Known paths where Microsoft AutoUpdate places msupdate
+    let msupdate = require_one_path([
+        "/Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app/Contents/MacOS/msupdate",
+        "/Library/Application Support/Microsoft/MAU 2.0/Microsoft AutoUpdate.app/Contents/MacOS/msupdate",
+    ])?;
     print_separator("Microsoft Office");
 
     // Check for available updates first
@@ -67,24 +70,6 @@ pub fn run_microsoft_office(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(&msupdate)
         .args(["--install", "--wait", "600"])
         .status_checked()
-}
-
-fn find_msupdate() -> Result<PathBuf> {
-    // Known paths where Microsoft AutoUpdate places msupdate
-    let candidates = [
-        "/Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app/Contents/MacOS/msupdate",
-        "/Library/Application Support/Microsoft/MAU 2.0/Microsoft AutoUpdate.app/Contents/MacOS/msupdate",
-    ];
-
-    for path in &candidates {
-        let p = PathBuf::from(path);
-        if p.exists() {
-            debug!("Found msupdate at {:?}", p);
-            return Ok(p);
-        }
-    }
-
-    Err(crate::error::SkipStep("Microsoft AutoUpdate (msupdate) not found".to_string()).into())
 }
 
 pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {

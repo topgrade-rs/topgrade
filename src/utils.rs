@@ -266,6 +266,33 @@ pub fn require_one<T: AsRef<OsStr> + Debug>(binary_names: impl IntoIterator<Item
 }
 
 #[allow(dead_code)]
+pub fn require_one_path<T: AsRef<Path> + Debug>(paths: impl IntoIterator<Item = T>) -> Result<PathBuf> {
+    let mut failed_paths = Vec::new();
+    for path_s in paths {
+        let path = path_s.as_ref();
+        if path.exists() {
+            debug!("Found required path at {:?}", path);
+            return Ok(path.to_path_buf());
+        } else {
+            failed_paths.push(path_s);
+        }
+    }
+
+    Err(SkipStep(format!(
+        "{}",
+        t!(
+            "None of {paths} exist",
+            paths = failed_paths
+                .iter()
+                .map(|path| format!("{:?}", path))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    ))
+    .into())
+}
+
+#[allow(dead_code)]
 pub fn require_option<T>(option: Option<T>, cause: String) -> Result<T> {
     if let Some(value) = option {
         Ok(value)
