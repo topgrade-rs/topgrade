@@ -8,7 +8,6 @@ use rust_i18n::t;
 use std::collections::HashSet;
 use std::fs;
 use std::io::{self, Write};
-use std::path::PathBuf;
 use tracing::debug;
 
 pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
