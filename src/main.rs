@@ -187,7 +187,7 @@ fn run() -> Result<()> {
     }
 
     // Held until `run()` returns — dropping would stop the background thread.
-    let _sudo_loop_guard = spawn_sudo_loop(&ctx, &config);
+    let _sudo_loop_guard = spawn_sudo_loop(&ctx, &config)?;
 
     if let Some(commands) = config.pre_commands() {
         for (name, command) in commands {
@@ -322,11 +322,17 @@ fn run() -> Result<()> {
     if failed { Err(StepFailed.into()) } else { Ok(()) }
 }
 
-fn spawn_sudo_loop(ctx: &execution_context::ExecutionContext, config: &Config) -> Option<std::sync::mpsc::Sender<()>> {
+fn spawn_sudo_loop(
+    ctx: &execution_context::ExecutionContext,
+    config: &Config,
+) -> Result<Option<std::sync::mpsc::Sender<()>>> {
     if !config.sudo_loop() {
-        return None;
+        return Ok(None);
     }
-    let sudo = ctx.sudo().as_ref()?.clone();
+    let sudo = match ctx.sudo().as_ref() {
+        None => return Ok(None),
+        Some(sudo) => sudo.clone(),
+    };
     let run_type = ctx.run_type();
     let interval = Duration::from_secs(config.sudo_loop_interval().into());
     let (tx, rx) = std::sync::mpsc::channel::<()>();
@@ -344,8 +350,8 @@ fn spawn_sudo_loop(ctx: &execution_context::ExecutionContext, config: &Config) -
                 }
             }
         })
-        .expect("failed to spawn sudo-loop thread");
-    Some(tx)
+        .wrap_err("failed to spawn sudo-loop thread")?;
+    Ok(Some(tx))
 }
 
 fn main() {
