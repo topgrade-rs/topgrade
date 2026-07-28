@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 use std::{fmt::Display, rc::Rc, str::FromStr};
 
 use color_eyre::eyre::{OptionExt, Result, WrapErr, eyre};
@@ -232,17 +233,18 @@ pub fn upgrade_vagrant_boxes(ctx: &ExecutionContext) -> Result<()> {
         .args(["box", "outdated", "--global"])
         .output_checked_utf8()?;
 
-    let re = Regex::new(r"\* '(.*?)' for '(.*?)' is outdated").unwrap();
+    static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\* '(.*?)' for '(.*?)' is outdated").unwrap());
 
     let mut found = false;
-    for ele in re.captures_iter(&outdated.stdout) {
+    for ele in RE.captures_iter(&outdated.stdout) {
         found = true;
+        let [box_, provider] = ele.extract().1;
         let _ = ctx
             .execute(&vagrant)
             .args(["box", "update", "--box"])
-            .arg(ele.get(1).unwrap().as_str())
+            .arg(box_)
             .arg("--provider")
-            .arg(ele.get(2).unwrap().as_str())
+            .arg(provider)
             .status_checked();
     }
 

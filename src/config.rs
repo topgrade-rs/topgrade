@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use std::fs::{File, write};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 use std::{env, fmt, fs};
 
 use clap::{Parser, ValueEnum};
@@ -746,8 +747,8 @@ impl ConfigFile {
 
         // To parse [include] sections in the order as they are written,
         // we split the file and parse each part as a separate file
-        let regex_match_include = Regex::new(r"^\s*\[include]").expect("Failed to compile regex");
-        let contents_split = regex_match_include.split_inclusive_left(contents_non_split.as_str());
+        static REGEX_MATCH_INCLUDE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\s*\[include]").unwrap());
+        let contents_split = REGEX_MATCH_INCLUDE.split_inclusive_left(contents_non_split.as_str());
 
         for contents in contents_split {
             let config_file_include_only: ConfigFileIncludeOnly = toml::from_str(contents).inspect_err(|_| {
