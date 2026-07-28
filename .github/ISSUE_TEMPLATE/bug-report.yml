@@ -1,0 +1,135 @@
+name: Bug report
+description: Topgrade is misbehaving
+labels: needs triage
+type: Bug
+
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to fill out this bug report!
+
+  - type: checkboxes
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched [the issue tracker](https://github.com/topgrade-rs/topgrade/issues) for relevant or duplicate issues.
+          required: true
+
+  - type: dropdown
+    attributes:
+      label: Area
+      description: What is this about?
+      options:
+        - Failing step
+        - Topgrade in general
+        - Remote Execution
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Erroneous behavior
+      description: What actually happened?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      description: A minimal example to reproduce the issue.
+      placeholder: |
+        1.
+        2.
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      label: Problem persists when running command outside of Topgrade
+      description: Execute the erroneous command directly in your terminal. If the command is correct but fails the same way, this is likely an upstream bug; consider reporting it on their tracker instead.
+      options:
+        - "Yes"
+        - "No"
+
+  - type: textarea
+    attributes:
+      label: Possible cause
+      description: If you know a possible cause of the issue (for example, if Topgrade invokes a wrong command and you know the correct one), please tell us.
+
+  - type: dropdown
+    attributes:
+      label: Ran through Remote Execution?
+      description: If yes, does the issue still occur when you run Topgrade directly in your remote host?
+      options:
+        - "No"
+        - "Yes; it happens only with Remote Execution"
+        - "Yes; it also happens when running directly"
+      default: 0
+
+  - type: input
+    id: version
+    attributes:
+      label: Topgrade version
+      description: Output of `topgrade -V`.
+      placeholder: topgrade 17.8.0
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Last working version
+      description: If this is a regression, note the last Topgrade version or commit hash that worked.
+      placeholder: topgrade 17.7.0
+
+  - type: textarea
+    attributes:
+      label: Environment
+      description: Operating system, installation method and any other relevant details.
+      placeholder: |
+        OS: Arch Linux
+        Topgrade installed with: cargo install --git
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Configuration file
+      description: Paste the file or the relevant sections **inside the codeblock (triple backticks)** if you think this issue is related to configuration.
+      value: |
+        <details>
+        <summary>Configuration file</summary>
+
+        ```toml
+        REPLACE THIS LINE WITH YOUR CONFIG
+        ```
+
+        </details>
+
+  - type: textarea
+    attributes:
+      label: Verbose output
+      description: Output of `topgrade -v`. Paste it **inside the codeblock (triple backticks)**.
+      value: |
+        <details>
+        <summary>Verbose output</summary>
+
+        ```
+        REPLACE THIS LINE WITH COMMAND OUTPUT
+        ```
+
+        </details>
+
+  - type: checkboxes
+    attributes:
+      label: Contribution
+      options:
+        - label: I am able and willing to implement a fix myself.
+        - label: I am willing to test if someone else implements it. [Guide](https://github.com/topgrade-rs/topgrade?tab=contributing-ov-file#testing-a-pull-request)

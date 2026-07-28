@@ -1,0 +1,70 @@
+name: New step request
+description: Suggest a new program or package manager for Topgrade to update
+labels: needs triage
+type: Step request
+
+body:
+  - type: markdown
+    attributes:
+      value: Try your best to fill in as much as you can. Feel free to leave empty if you don't know or can't find information.
+
+  - type: checkboxes
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched the issue tracker for [existing step requests](https://github.com/topgrade-rs/topgrade/issues?q=type%3A%22Step%20request%22).
+          required: true
+
+  - type: input
+    attributes:
+      label: Tool
+      description: What tool is this about and where is its repo or docs?
+      placeholder: e.g. uv (https://github.com/astral-sh/uv)
+    validations:
+      required: true
+
+  - type: checkboxes
+    attributes:
+      label: Supported platforms
+      description: Include other platforms in `Additional context` below.
+      options:
+        - label: Linux
+        - label: macOS
+        - label: Windows
+        - label: BSD
+
+  - type: textarea
+    attributes:
+      label: Exact commands Topgrade should run
+      render: shell
+    validations:
+      required: true
+
+  - type: checkboxes
+    attributes:
+      label: Properties
+      description: Select everything that applies to the tool.
+      options:
+        - label: Needs sudo
+        - label: Prompts for user confirmation
+        - label: Has a `--yes` / non-interactive option
+        - label: Has a self update command
+        - label: Has a cleanup / prune command
+
+  - type: input
+    attributes:
+      label: Installation
+      description: If it's self-updatable, what's the install path Topgrade should look for? What is the condition for self update to run (e.g. only if a specific installation method was used).
+      placeholder: "`~/.local/bin/uv`: when installed with a the install script"
+
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: "`--help` output, should it be off by default, does it need config options in Topgrade's config file...?"
+
+  - type: checkboxes
+    attributes:
+      label: Contribution
+      options:
+        - label: I am able and willing to implement this step myself.
+        - label: I am willing to test if someone else implements it. [Guide](https://github.com/topgrade-rs/topgrade?tab=contributing-ov-file#testing-a-pull-request)
