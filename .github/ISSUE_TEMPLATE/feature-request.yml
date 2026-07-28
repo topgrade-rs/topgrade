@@ -6,7 +6,7 @@ type: Feature
 body:
   - type: markdown
     attributes:
-      value: For a new tool or package manager to update, use [step request](https://github.com/topgrade-rs/topgrade/issues/new?template=step-request.yml) template instead.
+      value: For a new tool or package manager to update, use the [step request](https://github.com/topgrade-rs/topgrade/issues/new?template=step-request.yml) template instead.
 
   - type: checkboxes
     attributes:
