@@ -1317,20 +1317,17 @@ pub fn run_powershell(ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep(message).into());
     }
 
-    let cmd = powershell_update_modules_command(ctx.config().verbose(), ctx.config().yes(Step::Powershell));
+    let cmd = powershell_update_modules_command(ctx.config().yes(Step::Powershell));
 
     println!("{}", t!("Updating modules..."));
 
     powershell.build_command(ctx, &cmd, use_sudo)?.status_checked()
 }
 
-fn powershell_update_modules_command(verbose: bool, assume_yes: bool) -> String {
+fn powershell_update_modules_command(assume_yes: bool) -> String {
     let mut cmd = "$params = @{};".to_string();
     cmd.push_str(" $updateModule = Get-Command Update-Module -ErrorAction Stop;");
 
-    if verbose {
-        cmd.push_str(" $params['Verbose'] = $true;");
-    }
     if assume_yes {
         // Avoid -Force here: PowerShellGet uses it to reinstall already-current modules,
         // which can lock PackageManagement in the running Windows PowerShell session.
@@ -1350,7 +1347,7 @@ mod powershell_tests {
 
     #[test]
     fn assume_yes_suppresses_confirmation_without_force() {
-        let cmd = powershell_update_modules_command(false, true);
+        let cmd = powershell_update_modules_command(true);
 
         assert!(cmd.contains("$params['Confirm'] = $false"));
         assert!(cmd.contains("$updateModule.Parameters.ContainsKey('AcceptLicense')"));
@@ -1360,14 +1357,6 @@ mod powershell_tests {
         assert!(!cmd.contains("-Force"));
         assert!(!cmd.contains("exit 0"));
         assert!(!cmd.contains("topgradeUpdateModule"));
-    }
-
-    #[test]
-    fn verbose_sets_verbose_parameter() {
-        let cmd = powershell_update_modules_command(true, false);
-
-        assert!(cmd.contains("$params['Verbose'] = $true"));
-        assert!(!cmd.contains("AcceptLicense"));
     }
 }
 

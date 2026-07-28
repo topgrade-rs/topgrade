@@ -74,7 +74,7 @@ fn upgrade(command: &mut Executor, ctx: &ExecutionContext) -> Result<()> {
     if let ExecutorOutput::Wet(output) = output {
         let status = output.status;
 
-        if !status.success() || ctx.config().verbose() {
+        if !status.success() {
             io::stdout().write_all(&output.stdout).ok();
             io::stderr().write_all(&output.stderr).ok();
         }
