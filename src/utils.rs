@@ -462,9 +462,10 @@ pub fn install_color_eyre() -> Result<()> {
 macro_rules! output_changed_message {
     ($command:expr, $message:expr) => {
         format!(
-            "The output of `{}` changed: {}. This is not your fault, this is an issue in Topgrade. Please open an issue at: https://github.com/topgrade-rs/topgrade/issues/new?template=bug_report.md",
+            "The output of `{}` changed: {}. This is not your fault, this is an issue in Topgrade. Please open an issue at: https://github.com/topgrade-rs/topgrade/issues/new?template=bug-report.yml&version=topgrade%20{}",
             $command,
             $message,
+            env!("CARGO_PKG_VERSION"),
         )
     };
 }
