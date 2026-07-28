@@ -1,9 +1,10 @@
+use crate::output_changed_message;
 use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
-use color_eyre::eyre::{Result, eyre};
+use color_eyre::eyre::{Context, Result, eyre};
 use rust_i18n::t;
 
 use tracing::{debug, error, warn};
@@ -400,9 +401,14 @@ pub fn check_is_python_2_or_shim(ctx: &ExecutionContext, python: PathBuf) -> Res
         let major_version = version
             .split('.')
             .next()
-            .expect("Should have a major version number")
+            .ok_or_else(|| {
+                eyre!(output_changed_message!(
+                    "python -V",
+                    "Should have a major version number"
+                ))
+            })?
             .parse::<u32>()
-            .expect("Major version should be a valid number");
+            .wrap_err_with(|| output_changed_message!("python -V", "Major version should be a valid number"))?;
         if major_version == 2 {
             return Err(SkipStep(t!("{python} is a Python 2, skip.", python = python.display()).to_string()).into());
         }
