@@ -22,11 +22,11 @@ struct Tmux {
 }
 
 impl Tmux {
-    fn new(args: Vec<String>) -> Self {
-        Self {
-            tmux: which("tmux").expect("Could not find tmux"),
+    fn new(args: Vec<String>) -> Result<Self> {
+        Ok(Self {
+            tmux: which("tmux").ok_or_else(|| eyre!(t!("Cannot find {binary_name} in PATH", binary_name = "tmux")))?,
             args: if args.is_empty() { None } else { Some(args) },
-        }
+        })
     }
 
     #[expect(clippy::disallowed_methods)]
@@ -129,7 +129,7 @@ pub fn run_in_tmux(config: TmuxConfig) -> Result<()> {
         shell_words::join(command)
     };
 
-    let tmux = Tmux::new(config.args);
+    let tmux = Tmux::new(config.args)?;
 
     // Find an unused session and run `topgrade` in it with the current command's arguments.
     let session_name = "topgrade";
@@ -161,7 +161,7 @@ pub fn run_in_tmux(config: TmuxConfig) -> Result<()> {
 }
 
 pub fn run_command(ctx: &ExecutionContext, window_name: &str, command: &str) -> Result<()> {
-    let tmux = Tmux::new(ctx.config().tmux_config()?.args);
+    let tmux = Tmux::new(ctx.config().tmux_config()?.args)?;
 
     if let Some(session_name) = ctx.get_tmux_session() {
         let indices = tmux.window_indices(&session_name)?;
