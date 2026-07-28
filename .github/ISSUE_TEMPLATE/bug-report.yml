@@ -92,7 +92,7 @@ body:
   - type: textarea
     attributes:
       label: Environment
-      description: Operating system, shell, installation method and any other relevant details.
+      description: Operating system, installation method and any other relevant details.
       placeholder: |
         OS: Arch Linux
         Topgrade installed with: cargo install --git
