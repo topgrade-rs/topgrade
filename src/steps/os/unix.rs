@@ -1,5 +1,4 @@
 use color_eyre::eyre::Context;
-#[cfg(any(target_os = "linux", target_os = "macos"))]
 use color_eyre::eyre::OptionExt;
 use color_eyre::eyre::Result;
 use color_eyre::eyre::{bail, eyre};
@@ -261,7 +260,7 @@ pub fn run_oh_my_bash(ctx: &ExecutionContext) -> Result<()> {
             HOME_DIR
                 .join(".oh-my-bash")
                 .to_str()
-                .expect("should be UTF-8 encoded")
+                .ok_or_eyre("home dir contains non-UTF-8 characters")?
                 .to_string(),
         )
         .require()?;
