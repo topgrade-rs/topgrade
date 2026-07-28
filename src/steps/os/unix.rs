@@ -558,8 +558,7 @@ impl NixVersion {
     }
 
     fn version(&self) -> Result<Version> {
-        static NIX_VERSION_REGEX: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"^nix \([^)]*\) ([0-9.]+)").expect("Nix version regex always compiles"));
+        static NIX_VERSION_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^nix \([^)]*\) ([0-9.]+)").unwrap());
 
         let captures = NIX_VERSION_REGEX
             .captures(&self.version_string)
