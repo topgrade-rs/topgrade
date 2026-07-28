@@ -210,19 +210,15 @@ pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
             debug!("Detected {:?} as {:?}", &path, &binary_name);
             Ok(path)
         }
-        Err(e) => match e {
-            which_crate::Error::CannotFindBinaryPath => Err(SkipStep(format!(
-                "{}",
-                t!(
-                    "Cannot find {binary_name} in PATH",
-                    binary_name = format!("{:?}", &binary_name)
-                )
-            ))
-            .into()),
-            _ => {
-                panic!("Detecting {:?} failed: {}", binary_name, e);
-            }
-        },
+        Err(which_crate::Error::CannotFindBinaryPath) => Err(SkipStep(format!(
+            "{}",
+            t!(
+                "Cannot find {binary_name} in PATH",
+                binary_name = format!("{:?}", &binary_name)
+            )
+        ))
+        .into()),
+        Err(e) => Err(color_eyre::eyre::Report::new(e).wrap_err(format!("Detecting {:?} failed", binary_name))),
     }
 }
 
