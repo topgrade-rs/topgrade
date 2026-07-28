@@ -1865,8 +1865,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
             .execute(&uv_exec)
             .args(["self", "update"])
             // `output()` captures the output so that users won't see it for now.
-            .output()
-            .expect("this should be ok regardless of this child process's exit code");
+            .output()?;
         let output = match output {
             ExecutorOutput::Wet(wet) => wet,
             ExecutorOutput::Dry => return Err(DryRun().into()),
