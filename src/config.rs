@@ -742,7 +742,7 @@ impl ConfigFile {
             error!("Unable to read {}", config_path.display());
         })?;
 
-        Self::ensure_misc_is_present(&mut contents_non_split, &config_path);
+        Self::ensure_misc_is_present(&mut contents_non_split, &config_path)?;
 
         // To parse [include] sections in the order as they are written,
         // we split the file and parse each part as a separate file
@@ -796,15 +796,16 @@ impl ConfigFile {
     }
 
     /// [Misc] was added later, here we check if it is present in the config file and add it if not
-    fn ensure_misc_is_present(contents: &mut String, path: &PathBuf) {
+    fn ensure_misc_is_present(contents: &mut String, path: &PathBuf) -> Result<()> {
         if !contents.contains("[misc]") {
             debug!("Adding [misc] section to {}", path.display());
             string_prepend_str(contents, "[misc]\n");
 
             File::create(path)
                 .and_then(|mut f| f.write_all(contents.as_bytes()))
-                .expect("Tried to auto-migrate the config file, unable to write to config file.\nPlease add \"[misc]\" section manually to the first line of the file.\nError");
+                .wrap_err("Tried to auto-migrate the config file, unable to write to config file.\nPlease add \"[misc]\" section manually to the first line of the file.\nError")?;
         }
+        Ok(())
     }
 }
 
