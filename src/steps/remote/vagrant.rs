@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::{fmt::Display, rc::Rc, str::FromStr};
 
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{OptionExt, Result, WrapErr, eyre};
 use regex::Regex;
 use rust_i18n::t;
 use strum::EnumString;
@@ -11,7 +11,7 @@ use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::terminal::print_separator;
-use crate::{error::SkipStep, utils};
+use crate::{error::SkipStep, output_changed_message, utils};
 
 #[derive(Debug, Copy, Clone, EnumString)]
 #[strum(serialize_all = "lowercase")]
@@ -36,12 +36,16 @@ pub struct VagrantBox {
 }
 
 impl VagrantBox {
-    pub fn smart_name(&self) -> &str {
-        if self.name == "default" {
-            self.path.file_name().unwrap().to_str().unwrap()
+    pub fn smart_name(&self) -> Result<&str> {
+        Ok(if self.name == "default" {
+            self.path
+                .file_name()
+                .ok_or_eyre("Invalid vagrant path")?
+                .to_str()
+                .ok_or_eyre("Non-UTF-8 vagrant path")?
         } else {
             &self.name
-        }
+        })
     }
 }
 
@@ -76,8 +80,16 @@ impl Vagrant {
                 debug!("Vagrant line: {:?}", line);
                 let mut elements = line.split_whitespace();
 
-                let name = elements.next().unwrap().to_string();
-                let initial_status = BoxStatus::from_str(elements.next().unwrap()).unwrap();
+                let name = elements
+                    .next()
+                    .ok_or_else(|| eyre!(output_changed_message!("vagrant status", "no name")))?
+                    .to_string();
+                let initial_status = BoxStatus::from_str(
+                    elements
+                        .next()
+                        .ok_or_else(|| eyre!(output_changed_message!("vagrant status", "no status")))?,
+                )
+                .wrap_err_with(|| output_changed_message!("vagrant status", "invalid status"))?;
 
                 let vagrant_box = VagrantBox {
                     name,
@@ -85,9 +97,9 @@ impl Vagrant {
                     initial_status,
                 };
                 debug!("{:?}", vagrant_box);
-                vagrant_box
+                Ok(vagrant_box)
             })
-            .collect();
+            .collect::<Result<Vec<VagrantBox>>>()?;
 
         Ok(boxes)
     }
@@ -180,7 +192,7 @@ pub fn topgrade_vagrant_box(ctx: &ExecutionContext, vagrant_box: &VagrantBox) ->
         path: utils::require("vagrant")?,
     };
 
-    let separator = format!("Vagrant ({})", vagrant_box.smart_name());
+    let separator = format!("Vagrant ({})", vagrant_box.smart_name()?);
     let mut _poweron = None;
     if !vagrant_box.initial_status.powered_on() {
         if !(ctx.config().vagrant_power_on().unwrap_or(true)) {
@@ -198,7 +210,7 @@ pub fn topgrade_vagrant_box(ctx: &ExecutionContext, vagrant_box: &VagrantBox) ->
     }
     let mut command = format!(
         "env TOPGRADE_PREFIX={} topgrade",
-        shell_words::quote(vagrant_box.smart_name())
+        shell_words::quote(vagrant_box.smart_name()?)
     );
     if ctx.config().yes(Step::Vagrant) {
         command.push_str(" -y");
