@@ -95,7 +95,6 @@ body:
       description: Operating system, shell, installation method and any other relevant details.
       placeholder: |
         OS: Arch Linux
-        Shell: bash 5.3.15
         Topgrade: cargo install --git
     validations:
       required: true
