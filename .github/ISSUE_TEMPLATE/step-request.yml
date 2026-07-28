@@ -1,7 +1,7 @@
 name: New step request
 description: Suggest a new program or package manager for Topgrade to update
 labels: needs triage
-#type: Step request
+type: Step request
 
 body:
   - type: markdown
@@ -20,17 +20,6 @@ body:
       label: Tool
       description: What tool is this about and where is its repo or docs?
       placeholder: e.g. uv (https://github.com/astral-sh/uv)
-    validations:
-      required: true
-
-  - type: textarea
-    attributes:
-      label: Installation
-      description: List all installation methods that it supports, the default one and the binary path we should look for when checking if it's installed.
-      placeholder: |
-        Custom install script (default, `~/.local/bin/uv`)
-        Cargo
-        Brew
     validations:
       required: true
 
@@ -53,29 +42,25 @@ body:
 
   - type: checkboxes
     attributes:
-      label: Characteristics
+      label: Properties
       description: Select everything that applies to the tool.
       options:
         - label: Needs sudo
-        - label: Accepts extra arguments
         - label: Prompts for user confirmation
-        - label: Has a quiet flag
-        - label: Has a verbose flag
         - label: Has a `--yes` / non-interactive option
         - label: Has a self update command
         - label: Has a cleanup / prune command
+
+  - type: input
+    attributes:
+      label: Installation
+      description: If it's self-updatable, what's the install path Topgrade should look for? What is the condition for self update to run (e.g. only if a specific installation method was used).
+      placeholder: "`~/.local/bin/uv`: when installed with a the install script"
 
   - type: textarea
     attributes:
       label: Additional context
       description: "`--help` output, should it be off by default, does it need config options in Topgrade's config file...?"
-
-  - type: upload
-    attributes:
-      label: Attachments
-      description: Anything else worth including that doesn't fit above.
-    validations:
-      accept: ".log,.txt,.json,.png,.jpg,.jpeg,.gif,.webp"
 
   - type: checkboxes
     attributes:

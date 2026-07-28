@@ -1,7 +1,7 @@
 name: Bug report
 description: Topgrade is misbehaving
 labels: needs triage
-#type: Bug
+type: Bug
 
 body:
   - type: markdown
@@ -126,13 +126,6 @@ body:
         ```
 
         </details>
-
-  - type: upload
-    attributes:
-      label: Attachments
-      description: Logs, screenshots, screen recordings...
-    validations:
-      accept: ".log,.txt,.json,.png,.jpg,.jpeg,.gif,.mp4"
 
   - type: checkboxes
     attributes:
