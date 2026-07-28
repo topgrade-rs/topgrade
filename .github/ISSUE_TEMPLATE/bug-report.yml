@@ -43,11 +43,6 @@ body:
 
   - type: textarea
     attributes:
-      label: Possible cause
-      description: If you know a possible cause of the issue, please tell us.
-
-  - type: textarea
-    attributes:
       label: Steps to reproduce
       description: A minimal example to reproduce the issue.
       placeholder: |
@@ -61,15 +56,13 @@ body:
       label: Problem persists when running command outside of Topgrade
       description: Execute the erroneous command directly in your terminal. If it fails the same way, this is likely an upstream bug; consider reporting it on their tracker instead.
       options:
-        - "Yes, Topgrade runs the right command"
-        - "Yes, Topgrade runs the wrong command"
+        - "Yes"
         - "No"
 
-  - type: input
+  - type: textarea
     attributes:
-      label: Working command
-      description: If Topgrade invokes a wrong command and you know the correct one, paste it here.
-      placeholder: pacman -Syu
+      label: Possible cause
+      description: If you know a possible cause of the issue (for example, if Topgrade invokes a wrong command and you know the correct one), please tell us.
 
   - type: dropdown
     attributes:
