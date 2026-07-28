@@ -54,7 +54,7 @@ body:
   - type: dropdown
     attributes:
       label: Problem persists when running command outside of Topgrade
-      description: Execute the erroneous command directly in your terminal. If it fails the same way, this is likely an upstream bug; consider reporting it on their tracker instead.
+      description: Execute the erroneous command directly in your terminal. If the command is correct but fails the same way, this is likely an upstream bug; consider reporting it on their tracker instead.
       options:
         - "Yes"
         - "No"
