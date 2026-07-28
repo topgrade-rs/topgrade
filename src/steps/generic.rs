@@ -1317,20 +1317,17 @@ pub fn run_powershell(ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep(message).into());
     }
 
-    let cmd = powershell_update_modules_command(ctx.config().verbose(), ctx.config().yes(Step::Powershell));
+    let cmd = powershell_update_modules_command(ctx.config().yes(Step::Powershell));
 
     println!("{}", t!("Updating modules..."));
 
     powershell.build_command(ctx, &cmd, use_sudo)?.status_checked()
 }
 
-fn powershell_update_modules_command(verbose: bool, assume_yes: bool) -> String {
+fn powershell_update_modules_command(assume_yes: bool) -> String {
     let mut cmd = "$params = @{};".to_string();
     cmd.push_str(" $updateModule = Get-Command Update-Module -ErrorAction Stop;");
 
-    if verbose {
-        cmd.push_str(" $params['Verbose'] = $true;");
-    }
     if assume_yes {
         // Avoid -Force here: PowerShellGet uses it to reinstall already-current modules,
         // which can lock PackageManagement in the running Windows PowerShell session.
