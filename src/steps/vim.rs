@@ -75,8 +75,8 @@ fn upgrade(command: &mut Executor, ctx: &ExecutionContext) -> Result<()> {
         let status = output.status;
 
         if !status.success() {
-            io::stdout().write_all(&output.stdout).ok();
-            io::stderr().write_all(&output.stderr).ok();
+            io::stdout().write_all(&output.stdout)?;
+            io::stderr().write_all(&output.stderr)?;
         }
 
         if !status.success() {
