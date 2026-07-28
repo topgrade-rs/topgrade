@@ -2514,10 +2514,7 @@ pub fn run_dprint_self_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_dprint_plugins(ctx: &ExecutionContext) -> Result<()> {
     let dprint = require("dprint")?;
 
-    let mut cmd = ctx.execute(&dprint);
-    cmd.arg("config");
-    cmd.arg("update");
-    cmd.arg("--global");
+    let mut cmd = ctx.execute(&dprint).args(["config", "update", "--global"]);
 
     if ctx.config().yes(Step::DprintPlugins) {
         cmd.arg("--yes");
