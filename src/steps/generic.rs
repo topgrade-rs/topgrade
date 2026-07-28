@@ -1347,7 +1347,7 @@ mod powershell_tests {
 
     #[test]
     fn assume_yes_suppresses_confirmation_without_force() {
-        let cmd = powershell_update_modules_command(false, true);
+        let cmd = powershell_update_modules_command(true);
 
         assert!(cmd.contains("$params['Confirm'] = $false"));
         assert!(cmd.contains("$updateModule.Parameters.ContainsKey('AcceptLicense')"));
@@ -1357,14 +1357,6 @@ mod powershell_tests {
         assert!(!cmd.contains("-Force"));
         assert!(!cmd.contains("exit 0"));
         assert!(!cmd.contains("topgradeUpdateModule"));
-    }
-
-    #[test]
-    fn verbose_sets_verbose_parameter() {
-        let cmd = powershell_update_modules_command(true, false);
-
-        assert!(cmd.contains("$params['Verbose'] = $true"));
-        assert!(!cmd.contains("AcceptLicense"));
     }
 }
 
