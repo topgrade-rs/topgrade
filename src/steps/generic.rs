@@ -1870,7 +1870,8 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
             ExecutorOutput::Wet(wet) => wet,
             ExecutorOutput::Dry => return Err(DryRun().into()),
         };
-        let stderr = std::str::from_utf8(&output.stderr).expect("output should be UTF-8 encoded");
+        let stderr = std::str::from_utf8(&output.stderr)
+            .wrap_err_with(|| output_changed_message!("uv self update", "output should be UTF-8 encoded"))?;
 
         if ERROR_MSGS.iter().any(|&n| stderr.contains(n)) {
             // Feature `self-update` is disabled, nothing to do.
