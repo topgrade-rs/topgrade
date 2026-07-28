@@ -95,7 +95,7 @@ body:
       description: Operating system, shell, installation method and any other relevant details.
       placeholder: |
         OS: Arch Linux
-        Topgrade: cargo install --git
+        Topgrade installed with: cargo install --git
     validations:
       required: true
 
