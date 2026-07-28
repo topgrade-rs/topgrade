@@ -58,11 +58,18 @@ body:
 
   - type: dropdown
     attributes:
-      label: Problem persists standalone
-      description: Execute the erroneous command outside of Topgrade. If the problem persists, it may be an upstream bug; please consider reporting on their tracker instead.
+      label: Problem persists without calling from Topgrade
+      description: Execute the erroneous command directly in your terminal. If it fails the same way, this is likely an upstream bug; consider reporting it on their tracker instead.
       options:
-        - "Yes"
+        - "Yes, Topgrade runs the right command"
+        - "Yes, Topgrade runs the wrong command"
         - "No"
+
+  - type: input
+    attributes:
+      label: Working command
+      description: If Topgrade invokes a wrong command and you know the correct one, paste it here.
+      placeholder: pacman -Syu
 
   - type: dropdown
     attributes:
