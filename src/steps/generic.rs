@@ -387,7 +387,8 @@ pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
                 std::io::stdout().lock().write_all(&command_output.stdout).unwrap();
                 std::io::stderr().lock().write_all(&command_output.stderr).unwrap();
             } else {
-                let stderr_as_str = std::str::from_utf8(&command_output.stderr).unwrap();
+                let stderr_as_str = std::str::from_utf8(&command_output.stderr)
+                    .wrap_err_with(|| output_changed_message!("elan self update", "output is non-UTF-8"))?;
                 if stderr_as_str.contains(disabled_error_msg) {
                     // `elan` is externally managed, we cannot do the update. Users
                     // won't see any error message because Topgrade captures them
