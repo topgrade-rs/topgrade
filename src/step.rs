@@ -712,7 +712,7 @@ impl Step {
                     && let Ok(boxes) = vagrant::collect_boxes(ctx)
                 {
                     for vagrant_box in boxes {
-                        runner.execute(*self, format!("Vagrant ({})", vagrant_box.smart_name()), || {
+                        runner.execute(*self, format!("Vagrant ({})", vagrant_box.smart_name()?), || {
                             vagrant::topgrade_vagrant_box(ctx, &vagrant_box)
                         })?;
                     }
