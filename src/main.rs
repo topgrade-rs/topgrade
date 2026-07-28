@@ -48,10 +48,10 @@ mod terminal;
 mod tmux;
 mod utils;
 
+// Users without home directory are possible, but no-one has complained yet
 pub(crate) static HOME_DIR: LazyLock<PathBuf> = LazyLock::new(|| home_dir().expect("No home directory"));
 #[cfg(unix)]
 pub(crate) static XDG_DIRS: LazyLock<Xdg> = LazyLock::new(|| Xdg::new().expect("No home directory"));
-
 #[cfg(windows)]
 pub(crate) static WINDOWS_DIRS: LazyLock<Windows> = LazyLock::new(|| Windows::new().expect("No home directory"));
 
