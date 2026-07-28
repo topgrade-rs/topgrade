@@ -58,7 +58,7 @@ body:
 
   - type: dropdown
     attributes:
-      label: Problem persists without calling from Topgrade
+      label: Problem persists when running command outside of Topgrade
       description: Execute the erroneous command directly in your terminal. If it fails the same way, this is likely an upstream bug; consider reporting it on their tracker instead.
       options:
         - "Yes, Topgrade runs the right command"
