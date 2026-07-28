@@ -127,6 +127,29 @@ Be sure to apply your changes to
 [`config.example.toml`](https://github.com/topgrade-rs/topgrade/blob/main/config.example.toml),
 and have some basic documentations guiding user how to use these options.
 
+### Testing a pull request
+
+Make sure you have [cargo](https://rust-lang.org/tools/install) installed.
+
+1. Clone the contributor's branch:
+```bash
+git clone -b BRANCH --single-branch https://github.com/OWNER/topgrade
+cd topgrade
+```
+
+2. Run it:
+```bash
+cargo run
+```
+
+OR install directly from the PR branch:
+
+```bash
+cargo install --git https://github.com/OWNER/topgrade --branch BRANCH
+```
+
+This replaces Cargo-installed `topgrade` binary with the contributor's version. You can go back by running `cargo install topgrade`.
+
 ### Breaking changes
 
 If your PR introduces a breaking change, document it in [`BREAKINGCHANGES_dev.md`][bc_dev].
