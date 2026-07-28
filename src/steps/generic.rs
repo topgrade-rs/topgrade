@@ -384,8 +384,8 @@ pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
         ExecutorOutput::Wet(command_output) => {
             if command_output.status.success() {
                 // Flush the captured output
-                std::io::stdout().lock().write_all(&command_output.stdout).unwrap();
-                std::io::stderr().lock().write_all(&command_output.stderr).unwrap();
+                std::io::stdout().lock().write_all(&command_output.stdout)?;
+                std::io::stderr().lock().write_all(&command_output.stderr)?;
             } else {
                 let stderr_as_str = std::str::from_utf8(&command_output.stderr)
                     .wrap_err_with(|| output_changed_message!("elan self update", "output is non-UTF-8"))?;
@@ -397,8 +397,8 @@ pub fn run_elan(ctx: &ExecutionContext) -> Result<()> {
                     // `elan` is NOT externally managed, `elan self update` can
                     // be performed, but the invocation failed, so we report the
                     // error to the user and error out.
-                    std::io::stdout().lock().write_all(&command_output.stdout).unwrap();
-                    std::io::stderr().lock().write_all(&command_output.stderr).unwrap();
+                    std::io::stdout().lock().write_all(&command_output.stdout)?;
+                    std::io::stderr().lock().write_all(&command_output.stderr)?;
 
                     return Err(StepFailed.into());
                 }
@@ -1610,8 +1610,8 @@ pub fn run_freshclam(ctx: &ExecutionContext) -> Result<()> {
     // Check if running without sudo was successful
     if output.status.success() {
         // Success, so write the output and exit
-        std::io::stdout().lock().write_all(&output.stdout).unwrap();
-        std::io::stderr().lock().write_all(&output.stderr).unwrap();
+        std::io::stdout().lock().write_all(&output.stdout)?;
+        std::io::stderr().lock().write_all(&output.stderr)?;
         return Ok(());
     }
 
@@ -2047,8 +2047,8 @@ fn run_jetbrains_ide_generic<const IS_JETBRAINS: bool>(ctx: &ExecutionContext, b
         ExecutorOutput::Wet(output) => output,
     };
     // Write the output which we swallowed in all cases
-    std::io::stdout().lock().write_all(&output.stdout).unwrap();
-    std::io::stderr().lock().write_all(&output.stderr).unwrap();
+    std::io::stdout().lock().write_all(&output.stdout)?;
+    std::io::stderr().lock().write_all(&output.stderr)?;
 
     let stdout = String::from_utf8(output.stdout.clone()).wrap_err("Expected valid UTF-8 output")?;
 
