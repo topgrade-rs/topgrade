@@ -43,7 +43,6 @@ body:
         - label: macOS
         - label: Windows
         - label: BSD
-        - label: Android
 
   - type: textarea
     attributes:
