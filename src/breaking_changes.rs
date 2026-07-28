@@ -15,10 +15,12 @@ use rust_i18n::t;
 use semver::Version;
 use std::path::PathBuf;
 use std::process::exit;
+use std::sync::LazyLock;
 use std::{env, fs};
 
-/// Version string x.y.z
+/// Version string x.y.z as supplied by cargo
 static VERSION_STR: &str = env!("CARGO_PKG_VERSION");
+static VERSION: LazyLock<Version> = LazyLock::new(|| VERSION_STR.parse::<Version>().unwrap());
 
 /// Topgrade's breaking changes
 ///
@@ -26,7 +28,6 @@ static VERSION_STR: &str = env!("CARGO_PKG_VERSION");
 static BREAKINGCHANGES: &str = include_str!(concat!(env!("OUT_DIR"), "/breaking_changes.txt"));
 
 pub(crate) fn run() -> Result<()> {
-    let version = VERSION_STR.parse::<Version>().expect("should be a valid version");
     let keep_file = keep_file_path();
 
     // This is the first run of Topgrade, or the first run of Topgrade v17 (which added the current
@@ -43,7 +44,7 @@ pub(crate) fn run() -> Result<()> {
     // If the major version is higher than the major part of the last ran version
     //  (this does only show v3 release notes if upgrading from v1 to v3 (skipping v2), but
     //  that isn't going to happen a lot anyway, and this is a lot simpler.)
-    if version.major
+    if VERSION.major
         > fs::read_to_string(&keep_file)?
             .parse::<Version>()
             .wrap_err_with(|| format!("Invalid version in Topgrade keep file at {}", keep_file.display()))?
@@ -51,7 +52,7 @@ pub(crate) fn run() -> Result<()> {
     {
         print_separator(t!(
             "Topgrade {version_str} Breaking Changes",
-            version_str = format!("v{}", version.major)
+            version_str = format!("v{}", VERSION.major)
         ));
         let contents = if BREAKINGCHANGES.is_empty() {
             t!("No breaking changes").to_string()
