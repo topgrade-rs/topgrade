@@ -24,7 +24,7 @@ use self::config::{CommandLineArgs, Config};
 use self::error::StepFailed;
 use self::runner::StepResult;
 use self::steps::{remote::*, *};
-use self::sudo::{Sudo, SudoCreateError, SudoKind};
+use self::sudo::{Sudo, SudoCreateError};
 use self::terminal::*;
 use self::utils::{install_color_eyre, install_tracing, is_elevated, set_wsl_use_windows_path, update_tracing};
 
@@ -144,7 +144,7 @@ fn run() -> Result<()> {
 
     let sudo = match config.sudo_command() {
         Some(kind) => Sudo::new(kind),
-        None if elevated => Sudo::new(SudoKind::Null),
+        None if elevated => Ok(Sudo::new_null()),
         None => Sudo::detect(),
     };
     debug!("Sudo: {:?}", sudo);

@@ -72,8 +72,24 @@ impl Display for StepFailed {
 
 #[derive(Error, Debug)]
 pub struct UnsupportedSudo<'a> {
-    pub sudo_kind: SudoKind,
+    pub sudo_kind: String,
     pub option: &'a str,
+}
+
+impl<'a> UnsupportedSudo<'a> {
+    pub fn new(sudo_kind: SudoKind, option: &'a str) -> Self {
+        Self {
+            sudo_kind: sudo_kind.to_string(),
+            option,
+        }
+    }
+
+    pub fn new_null(option: &'a str) -> Self {
+        Self {
+            sudo_kind: "null".to_string(),
+            option,
+        }
+    }
 }
 
 impl Display for UnsupportedSudo<'_> {

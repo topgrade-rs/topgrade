@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 use std::ffi::OsStr;
-use std::path::Path;
 use std::path::PathBuf;
 
 #[cfg(windows)]
@@ -27,9 +26,16 @@ use crate::terminal::print_separator;
 use crate::utils::which;
 
 #[derive(Clone, Debug)]
-pub struct Sudo {
+pub enum Sudo {
+    Real(InternalSudo),
+    /// A "no-op" sudo, used when topgrade itself is running as root
+    Null,
+}
+
+#[derive(Clone, Debug)]
+struct InternalSudo {
     /// The path to the `sudo` binary.
-    path: Option<PathBuf>,
+    path: PathBuf,
     /// The type of program being used as `sudo`.
     kind: SudoKind,
 }
@@ -166,14 +172,9 @@ impl Sudo {
 
     /// Create Sudo from SudoKind, if found in the system
     pub fn new(kind: SudoKind) -> Result<Self, SudoCreateError> {
-        // no actual binary for null sudo
-        if let SudoKind::Null = kind {
-            return Ok(Self { path: None, kind });
-        }
-
         match kind.which() {
             Some(path) => {
-                let sudo = Self { path: Some(path), kind };
+                let sudo = Self::Real(InternalSudo { path, kind });
 
                 #[cfg(windows)]
                 if let SudoKind::WinSudo = kind {
@@ -257,13 +258,8 @@ impl Sudo {
         }
     }
 
-    /// Gets the path to the `sudo` binary. Do not use this to execute `sudo` directly - either use
-    /// [`Sudo::elevate`], or if you need to specify arguments to `sudo`, use [`Sudo::elevate_opts`].
-    /// This way, sudo options can be specified generically and the actual arguments customized
-    /// depending on the sudo kind.
-    #[allow(unused)]
-    pub fn path(&self) -> Option<&Path> {
-        self.path.as_deref()
+    pub fn new_null() -> Self {
+        Self::Null
     }
 
     /// Elevate permissions with `sudo`.
@@ -274,14 +270,85 @@ impl Sudo {
     /// See: https://github.com/topgrade-rs/topgrade/issues/205
     pub fn elevate(&self, ctx: &ExecutionContext) -> Result<()> {
         // skip if using null sudo
-        if let SudoKind::Null = self.kind {
-            return Ok(());
+        match self {
+            Self::Null => Ok(()),
+            Self::Real(sudo) => sudo.elevate(ctx),
         }
+    }
 
+    /// Refresh arguments for the sudo kinds that can cache credentials.
+    fn refresh_args(&self) -> Option<&'static [&'static str]> {
+        match self {
+            Self::Null => None,
+            Self::Real(sudo) => sudo.refresh_args(),
+        }
+    }
+
+    /// Whether this sudo kind supports credential cache refresh
+    pub fn can_refresh(&self) -> bool {
+        self.refresh_args().is_some()
+    }
+
+    /// Silently refresh cached superuser credentials.
+    ///
+    /// Only for sudo kinds that support credential caching (`sudo -n -v`, `please -w`).
+    /// For others it's a no-op.
+    pub fn refresh(&self, run_type: RunType) -> Result<()> {
+        match self {
+            Self::Null => Ok(()),
+            Self::Real(sudo) => sudo.refresh(run_type),
+        }
+    }
+
+    /// Execute a command with `sudo`.
+    pub fn execute<S: AsRef<OsStr>>(&self, ctx: &ExecutionContext, command: S) -> Result<Executor> {
+        self.execute_opts(ctx, command, SudoExecuteOpts::new())
+    }
+
+    /// Execute a command with `sudo`, with custom options.
+    pub fn execute_opts<S: AsRef<OsStr>>(
+        &self,
+        ctx: &ExecutionContext,
+        command: S,
+        opts: SudoExecuteOpts,
+    ) -> Result<Executor> {
+        match self {
+            // null sudo is very different, do separately
+            Self::Null => {
+                if opts.login_shell {
+                    // TODO: emulate running in a login shell with su/runuser
+                    return Err(UnsupportedSudo::new_null("login_shell").into());
+                }
+                if opts.user.is_some() {
+                    // TODO: emulate running as a different user with su/runuser
+                    return Err(UnsupportedSudo::new_null("user").into());
+                }
+
+                // NOTE: we ignore preserve_env and set_home, using
+                // no sudo effectively preserves these by default
+
+                // run command directly
+                Ok(ctx.execute(command))
+            }
+            Self::Real(sudo) => sudo.execute_opts(ctx, command, opts),
+        }
+    }
+}
+
+impl InternalSudo {
+    // /// Gets the path to the `sudo` binary. Do not use this to execute `sudo` directly - either use
+    // /// [`Sudo::elevate`], or if you need to specify arguments to `sudo`, use [`Sudo::elevate_opts`].
+    // /// This way, sudo options can be specified generically and the actual arguments customized
+    // /// depending on the sudo kind.
+    // #[allow(unused)]
+    // pub fn path(&self) -> &Path {
+    //     self.path.as_deref()
+    // }
+
+    fn elevate(&self, ctx: &ExecutionContext) -> Result<()> {
         print_separator("Sudo");
 
-        // self.path is only None for null sudo, which we've handled above
-        let mut cmd = ctx.execute(self.path.as_deref().unwrap());
+        let mut cmd = ctx.execute(&self.path);
         match self.kind {
             SudoKind::Doas => {
                 // `doas` doesn't have anything like `sudo -v` to cache credentials,
@@ -336,12 +403,10 @@ impl Sudo {
                 //   Warm the access token and exit.
                 cmd.arg("-w");
             }
-            SudoKind::Null => unreachable!(),
         }
         cmd.status_checked().wrap_err("Failed to elevate permissions")
     }
 
-    /// Refresh arguments for the sudo kinds that can cache credentials.
     fn refresh_args(&self) -> Option<&'static [&'static str]> {
         match self.kind {
             // `-n`: refresh runs on a background thread, so a cold credential must fail fast rather than prompt.
@@ -354,70 +419,25 @@ impl Sudo {
         }
     }
 
-    /// Whether this sudo kind supports credential cache refresh
-    pub fn can_refresh(&self) -> bool {
-        self.refresh_args().is_some()
-    }
-
-    /// Silently refresh cached superuser credentials.
-    ///
-    /// Only for sudo kinds that support credential caching (`sudo -n -v`, `please -w`).
-    /// For others it's a no-op.
-    pub fn refresh(&self, run_type: RunType) -> Result<()> {
-        let Some(path) = self.path.as_deref() else {
-            return Ok(());
-        };
+    fn refresh(&self, run_type: RunType) -> Result<()> {
         let Some(args) = self.refresh_args() else {
             return Ok(());
         };
 
         run_type
-            .execute(path)
+            .execute(&self.path)
             .args(args)
             .status_checked()
             .wrap_err("Failed to refresh sudo credentials")
     }
 
-    /// Execute a command with `sudo`.
-    pub fn execute<S: AsRef<OsStr>>(&self, ctx: &ExecutionContext, command: S) -> Result<Executor> {
-        self.execute_opts(ctx, command, SudoExecuteOpts::new())
-    }
-
-    /// Execute a command with `sudo`, with custom options.
-    pub fn execute_opts<S: AsRef<OsStr>>(
+    fn execute_opts<S: AsRef<OsStr>>(
         &self,
         ctx: &ExecutionContext,
         command: S,
         opts: SudoExecuteOpts,
     ) -> Result<Executor> {
-        // null sudo is very different, do separately
-        if let SudoKind::Null = self.kind {
-            if opts.login_shell {
-                // TODO: emulate running in a login shell with su/runuser
-                return Err(UnsupportedSudo {
-                    sudo_kind: self.kind,
-                    option: "login_shell",
-                }
-                .into());
-            }
-            if opts.user.is_some() {
-                // TODO: emulate running as a different user with su/runuser
-                return Err(UnsupportedSudo {
-                    sudo_kind: self.kind,
-                    option: "user",
-                }
-                .into());
-            }
-
-            // NOTE: we ignore preserve_env and set_home, using
-            // no sudo effectively preserves these by default
-
-            // run command directly
-            return Ok(ctx.execute(command));
-        }
-
-        // self.path is only None for null sudo, which we've handled above
-        let mut cmd = ctx.execute(self.path.as_ref().unwrap());
+        let mut cmd = ctx.execute(&self.path);
 
         if opts.login_shell {
             match self.kind {
@@ -429,13 +449,8 @@ impl Sudo {
                     // is *not* specified, we add `-d` to run outside of a shell - see below.
                 }
                 SudoKind::Doas | SudoKind::WinSudo | SudoKind::Pkexec | SudoKind::Run0 | SudoKind::Please => {
-                    return Err(UnsupportedSudo {
-                        sudo_kind: self.kind,
-                        option: "login_shell",
-                    }
-                    .into());
+                    return Err(UnsupportedSudo::new_null("login_shell").into());
                 }
-                SudoKind::Null => unreachable!(),
             }
         } else if let SudoKind::Gsudo = self.kind {
             // The `-d` (direct) flag disables shell detection, running the command directly
@@ -469,13 +484,8 @@ impl Sudo {
                     cmd.arg("--copyEV");
                 }
                 SudoKind::Doas | SudoKind::WinSudo | SudoKind::Pkexec | SudoKind::Run0 | SudoKind::Please => {
-                    return Err(UnsupportedSudo {
-                        sudo_kind: self.kind,
-                        option: "preserve_env",
-                    }
-                    .into());
+                    return Err(UnsupportedSudo::new(self.kind, "preserve_env").into());
                 }
-                SudoKind::Null => unreachable!(),
             },
             SudoPreserveEnv::Some(vars) => match self.kind {
                 SudoKind::Sudo => {
@@ -491,13 +501,8 @@ impl Sudo {
                     cmd.arg(vars.iter().join(","));
                 }
                 SudoKind::Doas | SudoKind::WinSudo | SudoKind::Gsudo | SudoKind::Pkexec => {
-                    return Err(UnsupportedSudo {
-                        sudo_kind: self.kind,
-                        option: "preserve_env_list",
-                    }
-                    .into());
+                    return Err(UnsupportedSudo::new(self.kind, "preserve_env_list").into());
                 }
-                SudoKind::Null => unreachable!(),
             },
             SudoPreserveEnv::None => {}
         }
@@ -510,13 +515,8 @@ impl Sudo {
                 // This is already the default behavior for run0
                 SudoKind::Run0 => {}
                 SudoKind::Doas | SudoKind::WinSudo | SudoKind::Gsudo | SudoKind::Pkexec | SudoKind::Please => {
-                    return Err(UnsupportedSudo {
-                        sudo_kind: self.kind,
-                        option: "set_home",
-                    }
-                    .into());
+                    return Err(UnsupportedSudo::new(self.kind, "set_home").into());
                 }
-                SudoKind::Null => unreachable!(),
             }
         }
 
@@ -533,13 +533,8 @@ impl Sudo {
                 }
                 SudoKind::WinSudo => {
                     // Windows sudo is the only one that doesn't have a `-u` flag
-                    return Err(UnsupportedSudo {
-                        sudo_kind: self.kind,
-                        option: "user",
-                    }
-                    .into());
+                    return Err(UnsupportedSudo::new(self.kind, "user").into());
                 }
-                SudoKind::Null => unreachable!(),
             }
         }
 
@@ -581,8 +576,6 @@ pub enum SudoKind {
     Pkexec,
     Run0,
     Please,
-    /// A "no-op" sudo, used when topgrade itself is running as root
-    Null,
 }
 
 impl SudoKind {
@@ -591,26 +584,20 @@ impl SudoKind {
     /// For `SudoKind::WinSudo`, returns the full hardcoded path
     /// instead to ensure we find Windows Sudo rather than gsudo
     /// masquerading as sudo.
-    ///
-    /// Only returns `None` for `SudoKind::Null`.
-    fn binary_name(self) -> Option<&'static str> {
+    fn binary_name(self) -> &'static str {
         match self {
-            SudoKind::Doas => Some("doas"),
-            SudoKind::Sudo => Some("sudo"),
-            SudoKind::WinSudo => Some(r"C:\Windows\System32\sudo.exe"),
-            SudoKind::Gsudo => Some("gsudo"),
-            SudoKind::Pkexec => Some("pkexec"),
-            SudoKind::Run0 => Some("run0"),
-            SudoKind::Please => Some("please"),
-            SudoKind::Null => None,
+            SudoKind::Doas => "doas",
+            SudoKind::Sudo => "sudo",
+            SudoKind::WinSudo => r"C:\Windows\System32\sudo.exe",
+            SudoKind::Gsudo => "gsudo",
+            SudoKind::Pkexec => "pkexec",
+            SudoKind::Run0 => "run0",
+            SudoKind::Please => "please",
         }
     }
 
     /// Find the full path to the "sudo" binary, if it exists on the system.
     fn which(self) -> Option<PathBuf> {
-        match self.binary_name() {
-            Some(name) => which(name),
-            None => None,
-        }
+        which(self.binary_name())
     }
 }
