@@ -5,6 +5,8 @@ use std::iter;
 use std::path::Path;
 use std::process::{Child, Command, ExitStatus, Output, Stdio};
 
+#[cfg(unix)]
+use color_eyre::eyre::Context;
 use color_eyre::eyre::Result;
 use rust_i18n::t;
 use tracing::{Level, debug, enabled};
@@ -76,6 +78,33 @@ impl Executor {
         }
 
         self
+    }
+
+    /// `status_checked`, but with the command on its own pseudo-terminal (see `crate::pty`).
+    ///
+    /// Confines Homebrew's controlling-terminal `sudo` timestamp reset (#2138) to the pty while
+    /// keeping brew's own `sudo` prompt answerable through the proxy.
+    #[cfg(unix)]
+    pub fn status_checked_on_pty(&mut self) -> Result<()> {
+        self.log_command();
+        let c = match self {
+            Executor::Wet(c) | Executor::Damp(c) => c,
+            Executor::Dry(_) => return Ok(()),
+        };
+        let program = c.get_program().to_string_lossy().into_owned();
+        // Mirror `status_checked`'s error context (full command line on failure).
+        let command = shell_words::join(
+            iter::once(c.get_program())
+                .chain(c.get_args())
+                .map(|s| s.to_string_lossy()),
+        );
+        let status = crate::pty::spawn_on_pty(c).with_context(|| format!("Failed to execute `{command}`"))?;
+        if status.success() {
+            Ok(())
+        } else {
+            Err(crate::error::TopgradeError::ProcessFailed(program, status))
+                .with_context(|| format!("Command failed: `{command}`"))
+        }
     }
 
     #[allow(dead_code)]
