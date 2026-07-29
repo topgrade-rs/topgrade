@@ -84,9 +84,9 @@ impl<'a> UnsupportedSudo<'a> {
         }
     }
 
-    pub fn new_null(option: &'a str) -> Self {
+    pub fn new_already_root(option: &'a str) -> Self {
         Self {
-            sudo_kind: "null".to_string(),
+            sudo_kind: "already root".to_string(),
             option,
         }
     }

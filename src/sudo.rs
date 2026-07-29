@@ -29,7 +29,7 @@ use crate::utils::which;
 pub enum Sudo {
     Real(InternalSudo),
     /// A "no-op" sudo, used when topgrade itself is running as root
-    Null,
+    AlreadyRoot,
 }
 
 #[derive(Clone, Debug)]
@@ -258,8 +258,8 @@ impl Sudo {
         }
     }
 
-    pub fn new_null() -> Self {
-        Self::Null
+    pub fn new_already_root() -> Self {
+        Self::AlreadyRoot
     }
 
     /// Elevate permissions with `sudo`.
@@ -269,9 +269,9 @@ impl Sudo {
     ///
     /// See: https://github.com/topgrade-rs/topgrade/issues/205
     pub fn elevate(&self, ctx: &ExecutionContext) -> Result<()> {
-        // skip if using null sudo
+        // skip if using already root sudo
         match self {
-            Self::Null => Ok(()),
+            Self::AlreadyRoot => Ok(()),
             Self::Real(sudo) => sudo.elevate(ctx),
         }
     }
@@ -279,7 +279,7 @@ impl Sudo {
     /// Refresh arguments for the sudo kinds that can cache credentials.
     fn refresh_args(&self) -> Option<&'static [&'static str]> {
         match self {
-            Self::Null => None,
+            Self::AlreadyRoot => None,
             Self::Real(sudo) => sudo.refresh_args(),
         }
     }
@@ -295,7 +295,7 @@ impl Sudo {
     /// For others it's a no-op.
     pub fn refresh(&self, run_type: RunType) -> Result<()> {
         match self {
-            Self::Null => Ok(()),
+            Self::AlreadyRoot => Ok(()),
             Self::Real(sudo) => sudo.refresh(run_type),
         }
     }
@@ -313,15 +313,15 @@ impl Sudo {
         opts: SudoExecuteOpts,
     ) -> Result<Executor> {
         match self {
-            // null sudo is very different, do separately
-            Self::Null => {
+            // already root sudo is very different, do separately
+            Self::AlreadyRoot => {
                 if opts.login_shell {
                     // TODO: emulate running in a login shell with su/runuser
-                    return Err(UnsupportedSudo::new_null("login_shell").into());
+                    return Err(UnsupportedSudo::new_already_root("login_shell").into());
                 }
                 if opts.user.is_some() {
                     // TODO: emulate running as a different user with su/runuser
-                    return Err(UnsupportedSudo::new_null("user").into());
+                    return Err(UnsupportedSudo::new_already_root("user").into());
                 }
 
                 // NOTE: we ignore preserve_env and set_home, using
