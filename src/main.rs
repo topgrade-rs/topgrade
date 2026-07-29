@@ -144,7 +144,7 @@ fn run() -> Result<()> {
 
     let sudo = match config.sudo_command() {
         Some(kind) => Sudo::new(kind),
-        None if elevated => Ok(Sudo::new_already_root()),
+        None if elevated => Ok(Sudo::AlreadyRoot),
         None => Sudo::detect(),
     };
     debug!("Sudo: {:?}", sudo);
