@@ -25,7 +25,6 @@ If you are an AI agent acting autonomously, please state so.
 <!-- This section can be deleted if you are not adding a new step. -->
 
 - [ ] *Optional:* Topgrade skips this step where needed
-- [ ] *Optional:* The `--dry-run` option works with this step
 - [ ] *Optional:* The `--yes` option works with this step if it is supported by
   the underlying command
 
