@@ -2324,8 +2324,9 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
         SkillsPackageManager::Bun => ("bunx", false),
     };
 
+    let runner = require(runner)?;
     print_separator("Skills");
-    ctx.execute(require(runner)?)
+    ctx.execute(runner)
         .arg_if(uses_yes_flag && ctx.config().yes(Step::Skills), "--yes")
         .args(["skills", "update", "--global"])
         .status_checked()
