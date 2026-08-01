@@ -2312,14 +2312,9 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
     }
 
     // Prefer a locally installed `skills` binary over a package runner
-    match require("skills") {
-        Ok(skills) => {
-            print_separator("Skills");
-            return ctx.execute(skills).args(["update", "--global"]).status_checked();
-        }
-        // Not installed; fall back to a package runner
-        Err(e) if e.downcast_ref::<SkipStep>().is_some() => {}
-        Err(e) => return Err(e),
+    if let Some(skills) = which("skills") {
+        print_separator("Skills");
+        return ctx.execute(skills).args(["update", "--global"]).status_checked();
     }
 
     // Fall back to a package runner; only npx needs `--yes` to auto-confirm the download
