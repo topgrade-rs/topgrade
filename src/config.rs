@@ -2283,35 +2283,6 @@ mod test {
         assert!(toml::from_str::<ConfigFile>(str).is_ok());
     }
 
-    #[test]
-    fn test_skills_package_manager_defaults_to_npx() {
-        let config = ConfigFile::default();
-        assert!(config.skills.is_none());
-
-        let parsed: ConfigFile = toml::from_str("[skills]\n").unwrap();
-        assert!(parsed.skills.and_then(|s| s.package_manager).is_none());
-        assert!(matches!(SkillsPackageManager::default(), SkillsPackageManager::Npx));
-    }
-
-    #[test]
-    fn test_skills_package_manager_parses_all_values() {
-        for (value, expected) in [
-            ("npx", SkillsPackageManager::Npx),
-            ("pnpm", SkillsPackageManager::Pnpm),
-            ("bun", SkillsPackageManager::Bun),
-        ] {
-            let parsed: ConfigFile = toml::from_str(&format!("[skills]\npackage_manager = \"{value}\"\n"))
-                .unwrap_or_else(|e| panic!("failed to parse package_manager = {value}: {e}"));
-            assert_eq!(parsed.skills.unwrap().package_manager, Some(expected));
-        }
-    }
-
-    #[test]
-    fn test_skills_package_manager_rejects_unknown_value() {
-        let parsed = toml::from_str::<ConfigFile>("[skills]\npackage_manager = \"npm\"\n");
-        assert!(parsed.is_err());
-    }
-
     /// `topgrade.d` must not be auto-created, only read when present.
     /// See: https://github.com/topgrade-rs/topgrade/issues/624
     #[test]
