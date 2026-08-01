@@ -2324,12 +2324,11 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
         SkillsPackageManager::Bun => ("bunx", false),
     };
 
-    let mut cmd = ctx.execute(require(runner)?);
     print_separator("Skills");
-    if uses_yes_flag {
-        cmd.arg_if(ctx.config().yes(Step::Skills), "--yes");
-    }
-    cmd.args(["skills", "update", "--global"]).status_checked()
+    ctx.execute(require(runner)?)
+        .arg_if(uses_yes_flag && ctx.config().yes(Step::Skills), "--yes")
+        .args(["skills", "update", "--global"])
+        .status_checked()
 }
 
 pub fn run_opencode(ctx: &ExecutionContext) -> Result<()> {
