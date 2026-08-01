@@ -169,6 +169,12 @@ pub struct Npm {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct Skills {
+    package_manager: Option<SkillsPackageManager>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 pub struct Deno {
     version: Option<String>,
 }
@@ -239,6 +245,15 @@ pub enum ArchPackageManager {
     Shelly,
     Trizen,
     Yay,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, Default, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum SkillsPackageManager {
+    #[default]
+    Npx,
+    Pnpm,
+    Bun,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Default)]
@@ -613,6 +628,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = merge2::option::recursive)]
     pkgfile: Option<Pkgfile>,
+
+    #[merge(strategy = merge2::option::recursive)]
+    skills: Option<Skills>,
 
     #[merge(strategy = merge2::option::recursive)]
     viteplus: Option<VitePlus>,
@@ -1993,6 +2011,15 @@ impl Config {
             .unwrap_or(false)
     }
 
+    /// Package runner to use to run the `skills` CLI (npx / pnpx / bunx)
+    pub fn skills_package_manager(&self) -> SkillsPackageManager {
+        self.config_file
+            .skills
+            .as_ref()
+            .and_then(|skills| skills.package_manager)
+            .unwrap_or_default()
+    }
+
     pub fn deno_version(&self) -> Option<&str> {
         self.config_file.deno.as_ref().and_then(|deno| deno.version.as_deref())
     }
@@ -2254,6 +2281,35 @@ mod test {
         let str = include_str!("../config.example.toml");
 
         assert!(toml::from_str::<ConfigFile>(str).is_ok());
+    }
+
+    #[test]
+    fn test_skills_package_manager_defaults_to_npx() {
+        let config = ConfigFile::default();
+        assert!(config.skills.is_none());
+
+        let parsed: ConfigFile = toml::from_str("[skills]\n").unwrap();
+        assert!(parsed.skills.and_then(|s| s.package_manager).is_none());
+        assert!(matches!(SkillsPackageManager::default(), SkillsPackageManager::Npx));
+    }
+
+    #[test]
+    fn test_skills_package_manager_parses_all_values() {
+        for (value, expected) in [
+            ("npx", SkillsPackageManager::Npx),
+            ("pnpm", SkillsPackageManager::Pnpm),
+            ("bun", SkillsPackageManager::Bun),
+        ] {
+            let parsed: ConfigFile = toml::from_str(&format!("[skills]\npackage_manager = \"{value}\"\n"))
+                .unwrap_or_else(|e| panic!("failed to parse package_manager = {value}: {e}"));
+            assert_eq!(parsed.skills.unwrap().package_manager, Some(expected));
+        }
+    }
+
+    #[test]
+    fn test_skills_package_manager_rejects_unknown_value() {
+        let parsed = toml::from_str::<ConfigFile>("[skills]\npackage_manager = \"npm\"\n");
+        assert!(parsed.is_err());
     }
 
     /// `topgrade.d` must not be auto-created, only read when present.
