@@ -25,6 +25,7 @@ use crate::HOME_DIR;
 #[cfg(unix)]
 use crate::XDG_DIRS;
 use crate::command::{CommandExt, Utf8Output};
+use crate::config::SkillsPackageManager;
 use crate::execution_context::ExecutionContext;
 use crate::executor::{ExecutorChild, ExecutorOutput};
 use crate::output_changed_message;
@@ -2295,8 +2296,6 @@ pub fn run_cursor_agent(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
-    let npx = require("npx")?;
-
     // Can't use XDG_DIRS since its `state_dir()` falls back to `~/.local/state` instead
     // of `~/.agents` and it'd also break on non-unix systems
     let skill_lock = match env::var_os("XDG_STATE_HOME")
@@ -2312,10 +2311,23 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
         return Err(SkipStep(format!("No skill lock file found at {}", skill_lock.display())).into());
     }
 
-    print_separator("Skills");
+    // Prefer a locally installed `skills` binary over a package runner
+    if let Some(skills) = which("skills") {
+        print_separator("Skills");
+        return ctx.execute(skills).args(["update", "--global"]).status_checked();
+    }
 
-    ctx.execute(npx)
-        .arg_if(ctx.config().yes(Step::Skills), "--yes")
+    // Fall back to a package runner; only npx needs `--yes` to auto-confirm the download
+    let (runner, uses_yes_flag) = match ctx.config().skills_package_manager() {
+        SkillsPackageManager::Npx => ("npx", true),
+        SkillsPackageManager::Pnpm => ("pnpx", false),
+        SkillsPackageManager::Bun => ("bunx", false),
+    };
+
+    let runner = require(runner)?;
+    print_separator("Skills");
+    ctx.execute(runner)
+        .arg_if(uses_yes_flag && ctx.config().yes(Step::Skills), "--yes")
         .args(["skills", "update", "--global"])
         .status_checked()
 }

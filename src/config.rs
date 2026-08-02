@@ -169,6 +169,12 @@ pub struct Npm {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct Skills {
+    package_manager: Option<SkillsPackageManager>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 pub struct Deno {
     version: Option<String>,
 }
@@ -239,6 +245,15 @@ pub enum ArchPackageManager {
     Shelly,
     Trizen,
     Yay,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, Default, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum SkillsPackageManager {
+    #[default]
+    Npx,
+    Pnpm,
+    Bun,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Default)]
@@ -613,6 +628,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = merge2::option::recursive)]
     pkgfile: Option<Pkgfile>,
+
+    #[merge(strategy = merge2::option::recursive)]
+    skills: Option<Skills>,
 
     #[merge(strategy = merge2::option::recursive)]
     viteplus: Option<VitePlus>,
@@ -1991,6 +2009,15 @@ impl Config {
             .as_ref()
             .and_then(|viteplus| viteplus.use_sudo)
             .unwrap_or(false)
+    }
+
+    /// Package runner to use to run the `skills` CLI (npx / pnpx / bunx)
+    pub fn skills_package_manager(&self) -> SkillsPackageManager {
+        self.config_file
+            .skills
+            .as_ref()
+            .and_then(|skills| skills.package_manager)
+            .unwrap_or_default()
     }
 
     pub fn deno_version(&self) -> Option<&str> {
