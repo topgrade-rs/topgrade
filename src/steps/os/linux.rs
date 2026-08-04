@@ -269,9 +269,8 @@ fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
 
 fn upgrade_nobara(ctx: &ExecutionContext) -> Result<()> {
     let nobara_sync = require("nobara-sync")?;
-    let sudo = ctx.require_sudo()?;
 
-    sudo.execute(ctx, &nobara_sync)?
+    ctx.execute(&nobara_sync)
         .arg_if(ctx.config().yes(Step::System), "-y")
         .arg("--all")
         // See https://wiki.nobaraproject.org/general-usage/troubleshooting/update-system
