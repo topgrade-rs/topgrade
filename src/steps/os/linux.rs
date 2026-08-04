@@ -268,25 +268,13 @@ fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_nobara(ctx: &ExecutionContext) -> Result<()> {
-    let dnf = require("dnf")?;
+    let nobara_sync = require("nobara-sync")?;
     let sudo = ctx.require_sudo()?;
 
-    sudo.execute(ctx, &dnf)?
+    sudo.execute(ctx, &nobara_sync)?
         .arg_if(ctx.config().yes(Step::System), "-y")
-        .arg("update")
-        // See https://nobaraproject.org/docs/upgrade-troubleshooting/how-do-i-update-the-system/
-        .args([
-            "rpmfusion-nonfree-release",
-            "rpmfusion-free-release",
-            "fedora-repos",
-            "nobara-repos",
-        ])
-        .arg("--refresh")
-        .status_checked()?;
-
-    sudo.execute(ctx, &dnf)?
-        .arg_if(ctx.config().yes(Step::System), "-y")
-        .arg("distro-sync")
+        .arg("--all")
+        // See https://wiki.nobaraproject.org/general-usage/troubleshooting/update-system
         .status_checked()?;
 
     Ok(())
