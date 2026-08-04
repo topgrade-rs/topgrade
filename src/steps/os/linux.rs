@@ -272,7 +272,6 @@ fn upgrade_nobara(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(&nobara_sync)
         .arg_if(ctx.config().yes(Step::System), "-y")
-        .arg("--all")
         // See https://wiki.nobaraproject.org/general-usage/troubleshooting/update-system
         .status_checked()?;
 
