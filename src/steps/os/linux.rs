@@ -271,7 +271,6 @@ fn upgrade_nobara(ctx: &ExecutionContext) -> Result<()> {
     let nobara_sync = require("nobara-sync")?;
 
     ctx.execute(&nobara_sync)
-        .arg_if(ctx.config().yes(Step::System), "-y")
         // See https://wiki.nobaraproject.org/general-usage/troubleshooting/update-system
         .status_checked()?;
 
