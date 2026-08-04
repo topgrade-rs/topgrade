@@ -479,6 +479,11 @@
 # (default: this won't be set by default)
 # profile = ""
 
+# Remove extension directories listed in each VS Code-compatible editor's
+# `.obsolete` marker after a successful extension update.
+# (default: false)
+# cleanup_obsolete_extensions = true
+
 [pixi]
 # Show the release notes of the latest pixi release
 # during the pixi step
