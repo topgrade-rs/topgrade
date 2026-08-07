@@ -391,12 +391,12 @@ impl Step {
             Helix => runner.execute(*self, "helix", || generic::run_helix_grammars(ctx))?,
             HelixDb => runner.execute(*self, "HelixDB", || generic::run_helix_db(ctx))?,
             Helm => runner.execute(*self, "helm", || generic::run_helm_repo_update(ctx))?,
+            HermesAgent => runner.execute(*self, "Hermes Agent", || generic::run_hermes_agent(ctx))?,
             HomeManager =>
             {
                 #[cfg(unix)]
                 runner.execute(*self, "home-manager", || unix::run_home_manager(ctx))?
             }
-            HermesAgent => runner.execute(*self, "Hermes Agent", || generic::run_hermes_agent(ctx))?,
             Hyprpm =>
             {
                 #[cfg(unix)]
