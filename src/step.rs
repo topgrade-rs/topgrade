@@ -82,6 +82,7 @@ pub enum Step {
     Helix,
     HelixDb,
     Helm,
+    HermesAgent,
     HomeManager,
     Hyprpm,
     InstallRelease,
@@ -390,6 +391,7 @@ impl Step {
             Helix => runner.execute(*self, "helix", || generic::run_helix_grammars(ctx))?,
             HelixDb => runner.execute(*self, "HelixDB", || generic::run_helix_db(ctx))?,
             Helm => runner.execute(*self, "helm", || generic::run_helm_repo_update(ctx))?,
+            HermesAgent => runner.execute(*self, "Hermes Agent", || generic::run_hermes_agent(ctx))?,
             HomeManager =>
             {
                 #[cfg(unix)]
@@ -975,6 +977,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Typst,
         InstallRelease,
         Vagrant,
+        HermesAgent,
         // Steps that should run last
         // Last out of convention
         CustomCommands,
