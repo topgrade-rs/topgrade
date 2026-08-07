@@ -2227,6 +2227,18 @@ pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
     }
 }
 
+/// Run `pre-commit gc` to clean up unused hook repos / reflogs.
+/// Skips entirely (including the separator) when the global `cleanup` flag is off (issue #2167).
+pub fn run_pre_commit(ctx: &ExecutionContext) -> Result<()> {
+    if !ctx.config().cleanup() {
+        return Err(SkipStep("Cleanup disabled, skipping pre-commit gc".to_string()).into());
+    }
+
+    let pre_commit = require("pre-commit")?;
+    print_separator("pre-commit");
+    ctx.execute(&pre_commit).arg("gc").status_checked()
+}
+
 pub fn run_zigup(ctx: &ExecutionContext) -> Result<()> {
     let zigup = require("zigup")?;
     let config = ctx.config();

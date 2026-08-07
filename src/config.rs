@@ -2407,6 +2407,14 @@ x = "cmd_x"
     }
 
     #[test]
+    fn test_precommit_in_default_steps() {
+        assert!(
+            crate::step::default_steps().contains(&crate::step::Step::PreCommit),
+            "PreCommit must be registered in default_steps()"
+        );
+    }
+
+    #[test]
     fn test_steps_first_and_last_reorder() {
         let config = config_from_toml(
             r#"
