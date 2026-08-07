@@ -2862,3 +2862,11 @@ fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path, neutral_cwd: &Path) -> 
     debug!("Refreshed process environment from mise");
     Ok(())
 }
+
+pub fn run_hermes_agent(ctx: &ExecutionContext) -> Result<()> {
+    let hermes = require("hermes")?;
+
+    print_separator("Hermes Agent");
+
+    ctx.execute(hermes).arg("update").arg("--yes").status_checked()
+}
