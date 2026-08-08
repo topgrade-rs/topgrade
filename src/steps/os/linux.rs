@@ -369,12 +369,12 @@ fn upgrade_pclinuxos(ctx: &ExecutionContext) -> Result<()> {
     sudo.execute(ctx, &apt_get)?
         .arg("update")
         .args_if_some(ctx.config().dnf_arguments(), |args| args.split_whitespace())
-        .arg_if(ctx.config().yes(Step::System), "-y")
+        .arg_if(ctx.config().yes(Step::System), "--yes")
         .status_checked()?;
 
     sudo.execute(ctx, &apt_get)?
         .arg("dist-upgrade")
-        .arg_if(ctx.config().yes(Step::System), "-y")
+        .arg_if(ctx.config().yes(Step::System), "--yes")
         .status_checked()?;
 
     Ok(())

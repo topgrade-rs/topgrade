@@ -25,14 +25,14 @@ impl ArchPackageManager for YayParu {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
         if ctx.config().show_arch_news() {
             ctx.execute(&self.executable)
-                .arg("-Pw")
+                .args(["--show", "--news"])
                 .status_checked_with_codes(&[1, 0])?;
         }
 
         ctx.execute(&self.executable)
             .arg("--pacman")
             .arg(&self.pacman)
-            .arg("-Syu")
+            .args(["--sync", "--refresh", "--sysupgrade"])
             .args(ctx.config().yay_arguments().split_whitespace())
             .arg_if(ctx.config().yes(Step::System), "--noconfirm")
             .status_checked()?;
@@ -41,7 +41,7 @@ impl ArchPackageManager for YayParu {
             ctx.execute(&self.executable)
                 .arg("--pacman")
                 .arg(&self.pacman)
-                .arg("-Scc")
+                .args(["--sync", "--clean", "--clean"])
                 .arg_if(ctx.config().yes(Step::System), "--noconfirm")
                 .status_checked()?;
         }
@@ -91,14 +91,14 @@ pub struct Trizen {
 impl ArchPackageManager for Trizen {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
         ctx.execute(&self.executable)
-            .arg("-Syu")
+            .args(["--sync", "--refresh", "--sysupgrade"])
             .args(ctx.config().trizen_arguments().split_whitespace())
             .arg_if(ctx.config().yes(Step::System), "--noconfirm")
             .status_checked()?;
 
         if ctx.config().cleanup() {
             ctx.execute(&self.executable)
-                .arg("-Sc")
+                .args(["--sync", "--clean"])
                 .arg_if(ctx.config().yes(Step::System), "--noconfirm")
                 .status_checked()?;
         }
@@ -123,13 +123,13 @@ impl ArchPackageManager for Pacman {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
         let sudo = ctx.require_sudo()?;
         sudo.execute(ctx, &self.executable)?
-            .arg("-Syu")
+            .args(["--sync", "--refresh", "--sysupgrade"])
             .arg_if(ctx.config().yes(Step::System), "--noconfirm")
             .status_checked()?;
 
         if ctx.config().cleanup() {
             sudo.execute(ctx, &self.executable)?
-                .arg("-Scc")
+                .args(["--sync", "--clean", "--clean"])
                 .arg_if(ctx.config().yes(Step::System), "--noconfirm")
                 .status_checked()?;
         }
@@ -161,14 +161,14 @@ impl Pikaur {
 impl ArchPackageManager for Pikaur {
     fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
         ctx.execute(&self.executable)
-            .arg("-Syu")
+            .args(["--sync", "--refresh", "--sysupgrade"])
             .args(ctx.config().pikaur_arguments().split_whitespace())
             .arg_if(ctx.config().yes(Step::System), "--noconfirm")
             .status_checked()?;
 
         if ctx.config().cleanup() {
             ctx.execute(&self.executable)
-                .arg("-Sc")
+                .args(["--sync", "--clean"])
                 .arg_if(ctx.config().yes(Step::System), "--noconfirm")
                 .status_checked()?;
         }
@@ -247,7 +247,7 @@ impl ArchPackageManager for Aura {
                 .status_checked()?;
 
             ctx.execute(&self.executable)
-                .arg("-Syu")
+                .args(["--sync", "--refresh", "--sysupgrade"])
                 .args(ctx.config().aura_pacman_arguments().split_whitespace())
                 .arg_if(ctx.config().yes(Step::System), "--noconfirm")
                 .status_checked()?;
@@ -261,7 +261,7 @@ impl ArchPackageManager for Aura {
                 .status_checked()?;
 
             sudo.execute(ctx, &self.executable)?
-                .arg("-Syu")
+                .args(["--sync", "--refresh", "--sysupgrade"])
                 .args(ctx.config().aura_pacman_arguments().split_whitespace())
                 .arg_if(ctx.config().yes(Step::System), "--noconfirm")
                 .status_checked()?;

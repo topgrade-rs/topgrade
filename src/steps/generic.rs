@@ -1815,7 +1815,7 @@ pub fn update_julia_packages(ctx: &ExecutionContext) -> Result<()> {
         } else {
             "--startup-file=no"
         })
-        .args(["-e", "using Pkg; Pkg.update()"])
+        .arg("--eval=using Pkg; Pkg.update()")
         .status_checked()
 }
 
