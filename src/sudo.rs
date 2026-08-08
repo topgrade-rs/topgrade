@@ -284,7 +284,7 @@ impl Sudo {
         ctx.execute(self.path.as_deref().unwrap())
             .args(match self.kind {
                 SudoKind::Doas => {
-                    // `doas` doesn't have anything like `sudo -v` to cache credentials,
+                    // `doas` doesn't have anything like `sudo --validate` to cache credentials,
                     // so we just execute a no-op dummy command, `true`.
                     // See: https://man.openbsd.org/doas
                     vec!["true"]
@@ -296,7 +296,7 @@ impl Sudo {
                     //   if necessary.  For the sudoers plugin, this extends the sudo
                     //   timeout for another 5 minutes by default, but does not run a
                     //   command.  Not all security policies support cached credentials.
-                    vec!["-v"]
+                    vec!["--validate"]
                 }
                 SudoKind::WinSudo => {
                     // Windows `sudo` doesn't cache credentials, so we just execute a
@@ -305,12 +305,12 @@ impl Sudo {
                     vec!["cmd.exe", "/c", "rem"]
                 }
                 SudoKind::Gsudo => {
-                    // `gsudo` doesn't have anything like `sudo -v` to cache credentials,
+                    // `gsudo` doesn't have anything like `sudo --validate` to cache credentials,
                     // so we just execute a dummy command - the easiest on Windows is
-                    // `rem` in cmd. `-d` tells it to run the command directly, without
+                    // `rem` in cmd. `--direct` tells it to run the command directly, without
                     // going through a shell (which could be powershell) first.
                     // See: https://gerardog.github.io/gsudo/docs/usage
-                    vec!["-d", "cmd.exe", "/c", "rem"]
+                    vec!["--direct", "cmd.exe", "/c", "rem"]
                     // TODO: `gsudo cache on` starts a session with cached credentials and could replace the dummy `rem` invocation here when sudo_loop is enabled...
                 }
                 SudoKind::Pkexec => {
@@ -334,7 +334,7 @@ impl Sudo {
                     // From `man please`
                     //   -w, --warm
                     //   Warm the access token and exit.
-                    vec!["-w"]
+                    vec!["--warm"]
                 }
                 SudoKind::Null => unreachable!(),
             })
@@ -345,12 +345,12 @@ impl Sudo {
     /// Refresh arguments for the sudo kinds that can cache credentials.
     fn refresh_args(&self) -> Option<&'static [&'static str]> {
         match self.kind {
-            // `-n`: refresh runs on a background thread, so a cold credential must fail fast rather than prompt.
-            // `-v`: on a still-valid timestamp extends it without touching PAM.
-            SudoKind::Sudo => Some(&["-n", "-v"]),
-            // `-w`: refreshes a still-valid token without prompting; it only prompts once the token has gone cold.
-            // `-n`: warm path skips the token update entirely, silently stopping the keep-alive.
-            SudoKind::Please => Some(&["-w"]),
+            // `--non-interactive`: refresh runs on a background thread, so a cold credential must fail fast rather than prompt.
+            // `--validate`: on a still-valid timestamp extends it without touching PAM.
+            SudoKind::Sudo => Some(&["--non-interactive", "--validate"]),
+            // `--warm`: refreshes a still-valid token without prompting; it only prompts once the token has gone cold.
+            // `--noprompt`: warm path skips the token update entirely, silently stopping the keep-alive.
+            SudoKind::Please => Some(&["--warm"]),
             _ => None,
         }
     }
@@ -426,7 +426,7 @@ impl Sudo {
                 }
                 SudoKind::Gsudo => {
                     // By default, gsudo runs all commands inside a shell. If login_shell
-                    // is *not* specified, we add `-d` to run outside of a shell - see below.
+                    // is *not* specified, we add `--direct` to run outside of a shell - see below.
                 }
                 SudoKind::Doas | SudoKind::WinSudo | SudoKind::Pkexec | SudoKind::Run0 | SudoKind::Please => {
                     return Err(UnsupportedSudo {
@@ -438,12 +438,12 @@ impl Sudo {
                 SudoKind::Null => unreachable!(),
             }
         } else if let SudoKind::Gsudo = self.kind {
-            // The `-d` (direct) flag disables shell detection, running the command directly
+            // The `--direct` flag disables shell detection, running the command directly
             // rather than through the current shell.
             // Additionally, if the current shell is pwsh >= 7.3.0, then not including this
             // gives errors if the command to run has spaces in it: see
             // https://github.com/gerardog/gsudo/issues/297
-            args.push("-d".into());
+            args.push("--direct".into());
         }
 
         let mut preserve_env = opts.preserve_env;
@@ -463,7 +463,7 @@ impl Sudo {
         match preserve_env {
             SudoPreserveEnv::All => match self.kind {
                 SudoKind::Sudo => {
-                    args.push("-E".into());
+                    args.push("--preserve-env".into());
                 }
                 SudoKind::Gsudo => {
                     args.push("--copyEV".into());
@@ -505,7 +505,7 @@ impl Sudo {
         if opts.set_home {
             match self.kind {
                 SudoKind::Sudo => {
-                    args.push("-H".into());
+                    args.push("--set-home".into());
                 }
                 // This is already the default behavior for run0
                 SudoKind::Run0 => {}
@@ -523,7 +523,7 @@ impl Sudo {
         if let Some(user) = opts.user {
             match self.kind {
                 SudoKind::Sudo => {
-                    args.push("-u".into());
+                    args.push("--user".into());
                     args.push(user.into());
                 }
                 SudoKind::Doas | SudoKind::Gsudo | SudoKind::Run0 | SudoKind::Please => {
