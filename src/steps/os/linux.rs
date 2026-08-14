@@ -426,7 +426,7 @@ fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
         sudo.execute(ctx, &layman)?.args(["-s", "ALL"]).status_checked()?;
     }
 
-    println!("{}", t!("Syncing portage"));
+    println!("{}", t!("Syncing Portage"));
     if let Some(ego) = which("ego")? {
         // The Funtoo team doesn't recommend running both ego sync and emerge --sync
         sudo.execute(ctx, &ego)?.arg("sync").status_checked()?;
@@ -1085,7 +1085,7 @@ pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
         ))?;
         if !update_allowed {
             return Err(
-                SkipStep(t!("Skip the Waydroid step because the user don't want to proceed").to_string()).into(),
+                SkipStep(t!("Skip the Waydroid step because the user doesn't want to proceed").to_string()).into(),
             );
         }
     }
