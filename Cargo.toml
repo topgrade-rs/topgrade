@@ -7,7 +7,7 @@ license = "GPL-3.0-or-later"
 repository = "https://github.com/topgrade-rs/topgrade"
 rust-version = "1.88.0"
 version = "17.9.0"
-exclude = ["doc/screenshot.gif", "BREAKINGCHANGES_dev.md"]
+exclude = ["doc/screenshot.gif"]
 edition = "2024"
 
 readme = "README.md"
