@@ -2372,16 +2372,19 @@ fn run_jetbrains_ide(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result
 pub fn run_android_studio(ctx: &ExecutionContext) -> Result<()> {
     // We don't use `run_jetbrains_ide` here because that would print "JetBrains Android Studio",
     //  which is incorrect as Android Studio is made by Google. Just "Android Studio" is fine.
-    run_jetbrains_ide_generic::<false>(
-        ctx,
-        require_one([
-            "studio",
-            "android-studio",
-            "android-studio-beta",
-            "android-studio-canary",
-        ])?,
-        "Android Studio",
-    )
+    let studio = require_one([
+        "studio",
+        "android-studio",
+        "android-studio-beta",
+        "android-studio-canary",
+    ])?;
+
+    let help = ctx.execute(&studio).always().arg("--help").output_checked()?;
+    if String::from_utf8(help.stdout)?.contains("WordPress Studio") {
+        return Err(SkipStep("Binary is WordPress Studio CLI, not Android Studio".to_string()).into());
+    }
+
+    run_jetbrains_ide_generic::<false>(ctx, studio, "Android Studio")
 }
 
 pub fn run_jetbrains_aqua(ctx: &ExecutionContext) -> Result<()> {
