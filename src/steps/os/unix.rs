@@ -265,7 +265,7 @@ pub fn run_oh_my_bash(ctx: &ExecutionContext) -> Result<()> {
         )
         .require()?;
 
-    print_separator("oh-my-bash");
+    print_separator("Oh My Bash");
 
     let mut update_script = oh_my_bash.clone();
     update_script.push_str("/tools/upgrade.sh");
@@ -282,7 +282,7 @@ pub fn run_oh_my_fish(ctx: &ExecutionContext) -> Result<()> {
     let fish = require("fish")?;
     HOME_DIR.join(".local/share/omf/pkg/omf/functions/omf.fish").require()?;
 
-    print_separator("oh-my-fish");
+    print_separator("Oh My Fish");
 
     ctx.execute(fish).args(["-c", "omf update"]).status_checked()
 }
@@ -496,7 +496,7 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
 pub fn run_zerobrew(ctx: &ExecutionContext) -> Result<()> {
     let zb = require("zb")?;
 
-    print_separator("Zerobrew");
+    print_separator("zerobrew");
 
     ctx.execute(&zb).arg("update").status_checked()?;
     ctx.execute(&zb).arg("upgrade").status_checked()?;
@@ -672,7 +672,7 @@ pub fn run_nix(ctx: &ExecutionContext) -> Result<()> {
     {
         if require("darwin-rebuild").is_ok() {
             return Err(
-                SkipStep(t!("Nix-darwin on macOS must be upgraded via darwin-rebuild switch").to_string()).into(),
+                SkipStep(t!("nix-darwin on macOS must be upgraded via darwin-rebuild switch").to_string()).into(),
             );
         }
     }
@@ -1139,7 +1139,7 @@ pub fn run_hyprpm(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_atuin(ctx: &ExecutionContext) -> Result<()> {
     let atuin = require("atuin-update")?;
 
-    print_separator("atuin");
+    print_separator("Atuin");
 
     ctx.execute(atuin).status_checked()
 }

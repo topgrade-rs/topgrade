@@ -1200,7 +1200,7 @@ pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_miktex_packages_update(ctx: &ExecutionContext) -> Result<()> {
     let miktex = require("miktex")?;
-    print_separator("miktex");
+    print_separator("MiKTeX");
 
     ctx.execute(miktex).args(["packages", "update"]).status_checked()
 }
@@ -1367,7 +1367,7 @@ pub fn run_stack_update(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_ghcup_update(ctx: &ExecutionContext) -> Result<()> {
     let ghcup = require("ghcup")?;
-    print_separator("ghcup");
+    print_separator("GHCup");
 
     ctx.execute(ghcup).arg("upgrade").status_checked()
 }
@@ -1375,7 +1375,7 @@ pub fn run_ghcup_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_tldr(ctx: &ExecutionContext) -> Result<()> {
     let tldr = require("tldr")?;
 
-    print_separator("TLDR");
+    print_separator("tldr");
 
     ctx.execute(tldr).arg("--update").status_checked()
 }
