@@ -125,7 +125,7 @@ impl Yarn {
         // Get the version of Yarn. After Yarn 2.x (berry),
         // "yarn global" has been replaced with "yarn dlx".
         //
-        // As "yarn dlx" don't need to "upgrade", we
+        // As "yarn dlx" doesn't need to "upgrade", we
         // ignore the whole task if Yarn is 2.x or above.
         let version = ctx
             .execute(&self.command)
@@ -213,7 +213,7 @@ impl Deno {
             } else if bin_version >= Version::new(1, 0, 0) {
                 match version {
                     "stable" | "rc" | "canary" => {
-                        // Prior to v1.6.0, `deno upgrade` is not able fetch the latest tag version.
+                        // Prior to v1.6.0, `deno upgrade` is not able to fetch the latest tag version.
                         return Err(
                             SkipStep("Deno (1.0.0-1.6.0) cannot be upgraded to a named channel".to_string()).into(),
                         );

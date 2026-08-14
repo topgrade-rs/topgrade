@@ -2101,7 +2101,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         let start_trimmed = uv_version_output_stdout
             .trim_start_matches("uv")
             .trim_start_matches(' ');
-        // Remove the tailing part " (c4d0caaee 2024-12-19)\n", if it's there
+        // Remove the trailing part " (c4d0caaee 2024-12-19)\n", if it's there
         match start_trimmed.find(' ') {
             None => start_trimmed.trim_end_matches('\n'), // Otherwise, just strip the newline
             Some(i) => &start_trimmed[..i],

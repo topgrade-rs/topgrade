@@ -1774,7 +1774,7 @@ impl Config {
             .unwrap_or(false)
     }
 
-    /// Use rpm-ostree in *when rpm-ostree is detected* (default: true)
+    /// Use rpm-ostree in *when rpm-ostree is detected* (default: false)
     pub fn rpm_ostree(&self) -> bool {
         self.config_file
             .linux

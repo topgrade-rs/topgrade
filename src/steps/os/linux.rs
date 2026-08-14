@@ -752,7 +752,7 @@ fn upgrade_nixos(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_neon(ctx: &ExecutionContext) -> Result<()> {
-    // KDE neon is ubuntu based but uses it's own manager, pkcon
+    // KDE neon is Ubuntu based but uses its own manager, pkcon
     // running apt update with KDE neon is an error
     // in theory rpm based distributions use pkcon as well, though that
     // seems rare
