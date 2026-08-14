@@ -294,8 +294,8 @@ _version: 2
   zh_CN: "软件包审计已通过，但系统中仍存在含漏洞的软件包"
   zh_TW: "雖然套件審查成功，但系統仍然殘留危險套件"
   de: "Das Paket-Audit war erfolgreich, aber es befinden sich noch anfällige Pakete im System"
-"Syncing portage":
-  en: "Syncing portage"
+"Syncing Portage":
+  en: "Syncing Portage"
   lt: "Sinchronizuojamas portage"
   es: "Sincronizando portage"
   fr: "Synchronisation du portage"
@@ -574,8 +574,8 @@ _version: 2
   zh_CN: "系统更新"
   zh_TW: "系統更新"
   de: "System-Update"
-"needrestart will be ran by the package manager":
-  en: "needrestart will be ran by the package manager"
+"needrestart will be run by the package manager":
+  en: "needrestart will be run by the package manager"
   lt: "needrestart paleistas paketų tvarkyklės"
   es: "needrestart será ejecutado por el administrador de paquetes"
   fr: "needrestart sera exécuté par le gestionnaire de paquets"
@@ -662,8 +662,8 @@ _version: 2
   zh_CN: "将跳过 `waydroid upgrade`，并且“停止”运行容器。是否继续？"
   zh_TW: "將略過 `waydroid upgrade`，並且「停止」執行容器。是否繼續？"
   de: "`waydroid upgrade` wird ausgeführt, was den laufenden Container STOPPEN würde. Ist das in Ordnung?"
-"Skip the Waydroid step because the user don't want to proceed":
-  en: "Skip the Waydroid step because the user don't want to proceed"
+"Skip the Waydroid step because the user doesn't want to proceed":
+  en: "Skip the Waydroid step because the user doesn't want to proceed"
   lt: "Praleisti Waydroid žingsnį, nes vartotojas nenori tęsti"
   es: "Omitiendo el paso de Waydroid debido a que el usuario no quiere continuar"
   fr: "Passer l'étape Waydroid car l'utilisateur ne souhaite pas l'exécuter"
@@ -734,16 +734,16 @@ _version: 2
   zh_CN: "桌面环境不是 GNOME"
   zh_TW: "桌面環境不是 GNOME"
   de: "Desktop scheint nicht GNOME zu sein"
-"Command `apm` does not appear to be Atom Package Manager":
-  en: "Command `apm` does not appear to be Atom Package Manager"
+"Command `apm` does not appear to be the Atom Package Manager":
+  en: "Command `apm` does not appear to be the Atom Package Manager"
   lt: "Panašu, kad komanda `apm` nėra „Atom Package Manager“"
   es: "El comando `apm` no parece ser Atom Package Manager"
   fr: "La commande `apm` ne semble pas être Atom Package Manager"
   zh_CN: "`apm` 命令似乎不是 Atom Package Manager"
   zh_TW: "`apm` 命令似乎不是 Atom Package Manager"
   de: "Der Befehl `apm` scheint nicht der Atom Package Manager zu sein"
-"GNOME shell extensions are unregistered in DBus":
-  en: "GNOME shell extensions are unregistered in DBus"
+"GNOME Shell extensions are unregistered in DBus":
+  en: "GNOME Shell extensions are unregistered in DBus"
   lt: "GNOME Shell priedai nėra užregistruoti DBus'e"
   es: "Las extensiones de GNOME Shell no están registradas en DBus"
   fr: "Les extensions de GNOME Shell ne sont pas enregistrées dans DBus"
@@ -918,8 +918,8 @@ _version: 2
   zh_CN: "找不到 Emacs 目录"
   zh_TW: "找不到 Emacs 資料夾"
   de: "Emacs-Verzeichnis existiert nicht"
-"Error getting the composer directory: {error}":
-  en: "Error getting the composer directory: %{error}"
+"Error getting the Composer directory: {error}":
+  en: "Error getting the Composer directory: %{error}"
   lt: "Klaida gaunant Composer katalogą: %{error}"
   es: "Error al obtener el directorio de composer: %{error}"
   fr: "Erreur lors de la récupération du répertoire de Composer : %{error}"
@@ -990,8 +990,8 @@ _version: 2
   zh_CN: "Julia 软件包"
   zh_TW: "Julia 套件"
   de: "Julia-Pakete"
-"Update ClamAV Database(FreshClam)":
-  en: "Update ClamAV Database(FreshClam)"
+"Update ClamAV Database (FreshClam)":
+  en: "Update ClamAV Database (FreshClam)"
   lt: "Atnaujinti ClamAV duomenų bazę (FreshClam)"
   es: "Actualizando base de datos ClamAV (FreshClam)"
   fr: "Mise à jour de la base de données ClamAV (FreshClam)"
@@ -1086,8 +1086,8 @@ _version: 2
   zh_CN: "The Ultimate vimrc"
   zh_TW: "終極 vimrc（The Ultimate vimrc）"
   de: "Das ultimative vimrc"
-"vim binary might be actually nvim":
-  en: "vim binary might be actually nvim"
+"vim binary might actually be nvim":
+  en: "vim binary might actually be nvim"
   lt: "vim vykdomasis failas gali būti iš tikrųjų nvim"
   es: "el binario vim puede ser nvim"
   fr: "Le binaire vim pourrait être en réalité nvim"
@@ -1522,8 +1522,8 @@ _version: 2
   zh_CN: "Flatpak %{name} 未安装"
   zh_TW: "Flatpak %{name} 未安装"
   de: "Flatpak %{name} ist nicht installiert"
-"OpenCode not installed with the official script":
-  en: "OpenCode not installed with the official script"
+"OpenCode is not installed with the official script":
+  en: "OpenCode is not installed with the official script"
   lt: "OpenCode neįdiegtas oficialiu skriptu"
   es: "OpenCode no está instalado con el script oficial"
   fr: "OpenCode n'est pas installé avec le script officiel"

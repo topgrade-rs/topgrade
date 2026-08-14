@@ -356,7 +356,7 @@ pub fn upgrade_gnome_extensions(ctx: &ExecutionContext) -> Result<()> {
 
     debug!("Checking for GNOME extensions: {}", output);
     if !output.stdout.contains("org.gnome.Shell.Extensions") {
-        return Err(SkipStep(t!("GNOME shell extensions are unregistered in DBus").to_string()).into());
+        return Err(SkipStep(t!("GNOME Shell extensions are unregistered in DBus").to_string()).into());
     }
 
     print_separator(t!("GNOME Shell extensions"));

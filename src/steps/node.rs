@@ -317,7 +317,7 @@ fn should_use_sudo(npm: &Npm, ctx: &ExecutionContext) -> Result<bool> {
         if ctx.config().npm_use_sudo() {
             Ok(true)
         } else {
-            Err(SkipStep(format!("{} root is owned by another user which is not the current user. Set use_sudo = true under the [npm] section in your configuration to run {} as sudo", npm.variant, npm.variant))
+            Err(SkipStep(format!("{} root is owned by another user who is not the current user. Set use_sudo = true under the [npm] section in your configuration to run {} as sudo", npm.variant, npm.variant))
                 .into())
         }
     } else {
@@ -331,7 +331,7 @@ fn should_use_sudo_viteplus(viteplus: &VitePlus, ctx: &ExecutionContext) -> Resu
         if ctx.config().viteplus_use_sudo() {
             Ok(true)
         } else {
-            Err(SkipStep("Vite+ root is owned by another user which is not the current user. Set use_sudo = true under the [viteplus] section in your configuration to run Vite+ as sudo".to_string())
+            Err(SkipStep("Vite+ root is owned by another user who is not the current user. Set use_sudo = true under the [viteplus] section in your configuration to run Vite+ as sudo".to_string())
                 .into())
         }
     } else {
@@ -345,7 +345,7 @@ fn should_use_sudo_yarn(yarn: &Yarn, ctx: &ExecutionContext) -> Result<bool> {
         if ctx.config().yarn_use_sudo() {
             Ok(true)
         } else {
-            Err(SkipStep("Yarn root is owned by another user which is not the current user. Set use_sudo = true under the [yarn] section in your configuration to run Yarn as sudo".to_string())
+            Err(SkipStep("Yarn root is owned by another user who is not the current user. Set use_sudo = true under the [yarn] section in your configuration to run Yarn as sudo".to_string())
                 .into())
         }
     } else {

@@ -421,7 +421,7 @@ fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
         sudo.execute(ctx, &layman)?.args(["-s", "ALL"]).status_checked()?;
     }
 
-    println!("{}", t!("Syncing portage"));
+    println!("{}", t!("Syncing Portage"));
     if let Some(ego) = which("ego") {
         // The Funtoo team doesn't recommend running both ego sync and emerge --sync
         sudo.execute(ctx, &ego)?.arg("sync").status_checked()?;
@@ -811,7 +811,7 @@ pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
     if (HOOKS.iter().any(|hook| Path::new(hook).exists()) || dnf_runs_needrestart(ctx))
         && ctx.config().should_run(Step::System)
     {
-        return Err(SkipStep(String::from(t!("needrestart will be ran by the package manager"))).into());
+        return Err(SkipStep(String::from(t!("needrestart will be run by the package manager"))).into());
     }
 
     print_separator(t!("Check for needed restarts"));
@@ -1079,7 +1079,7 @@ pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
         ))?;
         if !update_allowed {
             return Err(
-                SkipStep(t!("Skip the Waydroid step because the user don't want to proceed").to_string()).into(),
+                SkipStep(t!("Skip the Waydroid step because the user doesn't want to proceed").to_string()).into(),
             );
         }
     }
