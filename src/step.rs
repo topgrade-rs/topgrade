@@ -306,7 +306,7 @@ impl Step {
             }
             Codex => runner.execute(*self, "Codex", || generic::run_codex(ctx))?,
             Colima => runner.execute(*self, "Colima", || generic::run_colima(ctx))?,
-            Composer => runner.execute(*self, "composer", || generic::run_composer_update(ctx))?,
+            Composer => runner.execute(*self, "Composer", || generic::run_composer_update(ctx))?,
             Conda => runner.execute(*self, "conda", || generic::run_conda_update(ctx))?,
             ConfigUpdate =>
             {
@@ -366,7 +366,7 @@ impl Step {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "Gear Lever", || linux::run_gearlever(ctx))?
             }
-            Gem => runner.execute(*self, "gem", || generic::run_gem(ctx))?,
+            Gem => runner.execute(*self, "Gems", || generic::run_gem(ctx))?,
             Getnf => runner.execute(*self, "getnf", || generic::run_getnf_update(ctx))?,
             Ghcup => runner.execute(*self, "ghcup", || generic::run_ghcup_update(ctx))?,
             GitRepos => runner.execute(*self, "Git Repositories", || git::run_git_pull_or_fetch(ctx))?,
@@ -376,7 +376,7 @@ impl Step {
             GnomeShellExtensions =>
             {
                 #[cfg(all(unix, not(any(target_os = "macos", target_os = "android"))))]
-                runner.execute(*self, "Gnome Shell Extensions", || unix::upgrade_gnome_extensions(ctx))?
+                runner.execute(*self, "GNOME Shell extensions", || unix::upgrade_gnome_extensions(ctx))?
             }
             Go => {
                 runner.execute(*self, "go-global-update", || go::run_go_global_update(ctx))?;
@@ -408,7 +408,7 @@ impl Step {
                 runner.execute(*self, "Install Release", || unix::run_install_release(ctx))?
             }
             JetbrainsAqua => runner.execute(*self, "JetBrains Aqua Plugins", || generic::run_jetbrains_aqua(ctx))?,
-            JetbrainsClion => runner.execute(*self, "JetBrains CL", || generic::run_jetbrains_clion(ctx))?,
+            JetbrainsClion => runner.execute(*self, "JetBrains CLion", || generic::run_jetbrains_clion(ctx))?,
             JetbrainsDatagrip => {
                 runner.execute(*self, "JetBrains DataGrip", || generic::run_jetbrains_datagrip(ctx))?
             }
@@ -528,7 +528,7 @@ impl Step {
             Pixi => runner.execute(*self, "pixi", || generic::run_pixi_update(ctx))?,
             Pkg => {
                 #[cfg(target_os = "dragonfly")]
-                runner.execute(*self, "Dragonfly BSD Packages", || dragonfly::upgrade_packages(ctx))?;
+                runner.execute(*self, "DragonFly BSD Packages", || dragonfly::upgrade_packages(ctx))?;
                 #[cfg(target_os = "freebsd")]
                 runner.execute(*self, "FreeBSD Packages", || freebsd::upgrade_packages(ctx))?;
                 #[cfg(target_os = "openbsd")]
@@ -594,7 +594,7 @@ impl Step {
                 runner.execute(*self, "Restarts", || linux::run_needrestart(ctx))?
             }
             Rtcl => runner.execute(*self, "rtcl", || generic::run_rtcl(ctx))?,
-            RubyGems => runner.execute(*self, "rubygems", || generic::run_rubygems(ctx))?,
+            RubyGems => runner.execute(*self, "RubyGems", || generic::run_rubygems(ctx))?,
             Rustup => runner.execute(*self, "rustup", || generic::run_rustup(ctx))?,
             Rye => runner.execute(*self, "rye", || generic::run_rye(ctx))?,
             Scoop =>
@@ -682,7 +682,7 @@ impl Step {
                     runner.execute(*self, "pihole", || linux::run_pihole_update(ctx))?;
                 }
                 #[cfg(windows)]
-                runner.execute(*self, "Windows update", || windows::windows_update(ctx))?;
+                runner.execute(*self, "Windows Update", || windows::windows_update(ctx))?;
                 #[cfg(target_os = "macos")]
                 runner.execute(*self, "System update", || macos::upgrade_macos(ctx))?;
                 #[cfg(target_os = "freebsd")]
