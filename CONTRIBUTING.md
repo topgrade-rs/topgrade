@@ -58,7 +58,7 @@ To add a new step to `topgrade`:
    a file under [`src/steps`](https://github.com/topgrade-rs/topgrade/tree/main/src/steps),
    the file names are self-explanatory, for example, steps related to `zsh` are
    placed in [`steps/zsh.rs`](https://github.com/topgrade-rs/topgrade/blob/main/src/steps/zsh.rs), and steps that run on
-   Linux only are placed in [`steps/linux.rs`](https://github.com/topgrade-rs/topgrade/blob/main/src/steps/linux.rs).
+   Linux only are placed in [`steps/os/linux.rs`](https://github.com/topgrade-rs/topgrade/blob/main/src/steps/os/linux.rs).
 
    Then you implement the update function, and put it in the file where it belongs.
 
@@ -150,26 +150,11 @@ cargo install --git https://github.com/OWNER/topgrade --branch BRANCH
 
 This replaces Cargo-installed `topgrade` binary with the contributor's version. You can go back by running `cargo install topgrade`.
 
-### Breaking changes
-
-If your PR introduces a breaking change, document it in [`BREAKINGCHANGES_dev.md`][bc_dev].
-It should be written in Markdown and wrapped at 80, for example:
-
-```md
-1. The configuration location has been updated to x.
-
-2. The step x has been removed.
-
-3. ...
-```
-
-[bc_dev]: https://github.com/topgrade-rs/topgrade/blob/main/BREAKINGCHANGES_dev.md
-
 ### I18n
 
 If your PR introduces user-facing messages, we need to ensure they are translated.
 Please add the translations to [`locales/app.yml`][app_yml]. For simple messages
-without arguments (e.g., "hello world"), we can simply translate them according
+without arguments (e.g., "hello world"), we can simply translate them accordingly
 (Tip: LLMs are good at translation). If a message contains
 arguments, e.g., "hello <NAME>", please follow this convention:
 
