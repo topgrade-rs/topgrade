@@ -782,14 +782,6 @@ _version: 2
   zh_CN: "Linux 上的 Homebrew cask 支持需要 Homebrew 4.5.0 或更高版本（找到 %{version}）"
   zh_TW: "Linux 上的 Homebrew cask 支援需要 Homebrew 4.5.0 或更高版本（找到 %{version}）"
   de: "Homebrew-Cask-Unterstützung unter Linux erfordert Homebrew 4.5.0 oder höher (gefunden %{version})"
-"Guix Pull Failed, Skipping":
-  en: "Guix Pull Failed, Skipping"
-  lt: "Guix traukti nepavyko, praleidžiama"
-  es: "Guix Pull Fallido, omitiendo"
-  fr: "Échec de Guix Pull, ignoré"
-  zh_CN: "Guix 拉取失败，跳过"
-  zh_TW: "Guix 拉取失敗，略過"
-  de: "Guix Pull fehlgeschlagen, überspringe"
 "Nix-darwin on macOS must be upgraded via darwin-rebuild switch":
   en: "Nix-darwin on macOS must be upgraded via darwin-rebuild switch"
   lt: "Nix-darwin macOS turi būti atnaujintas per darwin-rebuild perjungiklį"
@@ -1338,22 +1330,6 @@ _version: 2
   zh_CN: "sudo 作为用户 '%{user}'"
   zh_TW: "sudo 作為使用者 '%{user}'"
   de: "sudo als Benutzer '%{user}'"
-"Updating aqua ...":
-  en: "Updating aqua ..."
-  lt: "Atnaujinama aqua ..."
-  es: "Actualizando aqua..."
-  fr: "Mise à jour d'aqua..."
-  zh_CN: "正在更新 aqua..."
-  zh_TW: "正在更新 aqua..."
-  de: "Aktualisiere aqua ..."
-"Updating aqua installed cli tools ...":
-  en: "Updating aqua installed cli tools ..."
-  lt: "Atnaujinami aqua įdiegti CLI įrankiai ..."
-  es: "Actualizando las herramientas CLI instaladas en aqua ..."
-  fr: "Mise à jour des outils cli installés d'aqua..."
-  zh_CN: "正在更新 aqua 安装的命令行界面工具..."
-  zh_TW: "正在更新 aqua 安裝的命令行介面工具..."
-  de: "Aktualisiere aqua installierte CLI-Tools ..."
 "Updating Volta packages...":
   en: "Updating Volta packages..."
   lt: "Atnaujinami Volta paketai..."
