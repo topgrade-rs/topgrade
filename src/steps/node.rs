@@ -125,7 +125,7 @@ impl Yarn {
         // Get the version of Yarn. After Yarn 2.x (berry),
         // "yarn global" has been replaced with "yarn dlx".
         //
-        // As "yarn dlx" don't need to "upgrade", we
+        // As "yarn dlx" doesn't need to "upgrade", we
         // ignore the whole task if Yarn is 2.x or above.
         let version = ctx
             .execute(&self.command)
