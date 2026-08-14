@@ -467,7 +467,7 @@ _version: 2
   lt: "Nepavyksta rasti jokių %{binary_names} PATH sąraše"
   es: "No se puede encontrar ninguno de %{binary_names} en PATH"
   fr: "Impossible de trouver l'un des %{binary_names} dans le PATH"
-  zh_CH: "在 PATH 中找不到 %{binary_names}"
+  zh_CN: "在 PATH 中找不到 %{binary_names}"
   zh_TW: "在 PATH 中找不到 %{binary_names}"
   de: "Kann keines von %{binary_names} im PATH finden"
 "None of {paths} exist":
