@@ -42,7 +42,7 @@ pub fn run_macports(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_mas(ctx: &ExecutionContext) -> Result<()> {
     let mas = require("mas")?;
-    print_separator(t!("macOS App Store"));
+    print_separator(t!("Mac App Store"));
 
     ctx.execute(mas).arg("upgrade").status_checked()
 }

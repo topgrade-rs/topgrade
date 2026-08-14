@@ -646,7 +646,7 @@ pub fn run_mandb(ctx: &ExecutionContext) -> Result<()> {
     let mandb = require("mandb")?;
 
     if !ctx.config().enable_mandb() {
-        return Err(SkipStep(t!("ManDB isn't enabled").to_string()).into());
+        return Err(SkipStep(t!("man-db isn't enabled").to_string()).into());
     }
 
     print_separator(t!("System Manuals"));
@@ -953,7 +953,7 @@ pub fn run_pihole_update(ctx: &ExecutionContext) -> Result<()> {
     let pihole = require("pihole")?;
     Path::new("/opt/pihole/update.sh").require()?;
 
-    print_separator("pihole");
+    print_separator("Pi-hole");
 
     let sudo = ctx.require_sudo()?;
     sudo.execute(ctx, &pihole)?.arg("-up").status_checked()
@@ -999,7 +999,7 @@ pub fn run_distrobox_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_dkp_pacman_update(ctx: &ExecutionContext) -> Result<()> {
     let dkp_pacman = require("dkp-pacman")?;
 
-    print_separator("Devkitpro pacman");
+    print_separator("devkitPro pacman");
 
     let sudo = ctx.require_sudo()?;
 
@@ -1163,7 +1163,7 @@ pub fn run_app_manager(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_cinnamon_spices_updater(ctx: &ExecutionContext) -> Result<()> {
     let cinnamon_spice_updater = require("cinnamon-spice-updater")?;
 
-    print_separator("Cinnamon spices");
+    print_separator("Cinnamon Spices");
 
     ctx.execute(cinnamon_spice_updater).arg("--update-all").status_checked()
 }
