@@ -872,7 +872,7 @@ pub fn run_flatpak(ctx: &ExecutionContext) -> Result<()> {
 
     let cleanup = ctx.config().cleanup();
     let yes = ctx.config().yes(Step::Flatpak);
-    print_separator("Flatpak User Packages");
+    print_separator(t!("Flatpak User Packages"));
 
     let mut update_args = vec!["update", "--user"];
     if yes {
