@@ -2379,9 +2379,9 @@ pub fn run_android_studio(ctx: &ExecutionContext) -> Result<()> {
         "android-studio-canary",
     ])?;
 
-    let help = ctx.execute(&studio).always().arg("--help").output_checked()?;
-    if String::from_utf8(help.stdout)?.contains("WordPress Studio") {
-        return Err(SkipStep("Binary is WordPress Studio CLI, not Android Studio".to_string()).into());
+    let help = ctx.execute(&studio).always().arg("--help").output_checked_utf8()?;
+    if help.stdout.contains("WordPress Studio") {
+        return Err(SkipStep("Command `studio` points to WordPress Studio CLI, not Android Studio".to_string()).into());
     }
 
     run_jetbrains_ide_generic::<false>(ctx, studio, "Android Studio")
