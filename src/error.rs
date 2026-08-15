@@ -70,6 +70,17 @@ impl Display for StepFailed {
     }
 }
 
+/// A root-elevated spawn refused because its binary resolves through a path a
+/// non-root user controls.
+#[derive(Error, Debug)]
+pub struct UntrustedRootPath(pub String);
+
+impl Display for UntrustedRootPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", t!("Refusing to run as root: {detail}", detail = self.0))
+    }
+}
+
 #[derive(Error, Debug)]
 pub struct UnsupportedSudo<'a> {
     pub sudo_kind: SudoKind,
