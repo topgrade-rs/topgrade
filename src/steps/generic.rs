@@ -1601,6 +1601,8 @@ pub fn run_dotnet_upgrade(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+const POWERSHELL_CLEANUP_MODULES_COMMAND: &str = include_str!("cleanup_powershell_modules.ps1");
+
 pub fn run_powershell(ctx: &ExecutionContext) -> Result<()> {
     let powershell = ctx.require_powershell()?;
 
@@ -1623,7 +1625,17 @@ pub fn run_powershell(ctx: &ExecutionContext) -> Result<()> {
 
     println!("{}", t!("Updating modules..."));
 
-    powershell.build_command(ctx, &cmd, use_sudo)?.status_checked()
+    powershell.build_command(ctx, &cmd, use_sudo)?.status_checked()?;
+
+    if !ctx.config().cleanup() {
+        return Ok(());
+    }
+
+    println!("{}", t!("Cleaning up old PowerShell module versions..."));
+
+    powershell
+        .build_command(ctx, POWERSHELL_CLEANUP_MODULES_COMMAND, use_sudo)?
+        .status_checked()
 }
 
 fn powershell_update_modules_command(assume_yes: bool) -> String {
@@ -1645,7 +1657,10 @@ fn powershell_update_modules_command(assume_yes: bool) -> String {
 
 #[cfg(test)]
 mod powershell_tests {
-    use super::powershell_update_modules_command;
+    use std::process::Command;
+
+    use super::{POWERSHELL_CLEANUP_MODULES_COMMAND, powershell_update_modules_command};
+    use crate::utils::which;
 
     #[test]
     fn assume_yes_suppresses_confirmation_without_force() {
@@ -1659,6 +1674,171 @@ mod powershell_tests {
         assert!(!cmd.contains("-Force"));
         assert!(!cmd.contains("exit 0"));
         assert!(!cmd.contains("topgradeUpdateModule"));
+    }
+
+    #[test]
+    fn cleanup_prefers_psresourceget_for_outdated_modules() {
+        let Some(powershell) = which("pwsh").or_else(|| which("powershell")) else {
+            return;
+        };
+
+        let fixture = String::from(
+            r#"
+function Get-InstalledPSResource {
+    param([string] $Version)
+
+    if ($Version -ne '*') {
+        throw 'Cleanup did not request every installed PSResource version'
+    }
+
+    1, 3, 2 | ForEach-Object {
+        [pscustomobject] @{
+            Name = 'Demo'
+            Version = [version] "$($_).0"
+            Type = 'Module'
+        }
+    }
+
+    1, 2 | ForEach-Object {
+        [pscustomobject] @{
+            Name = 'DemoScript'
+            Version = [version] "$($_).0"
+            Type = 'Script'
+        }
+    }
+}
+
+function Uninstall-PSResource {
+    param(
+        [Parameter(ValueFromPipeline)] $InputObject,
+        [switch] $Confirm,
+        [switch] $SkipDependencyCheck
+    )
+
+    process {
+        if (-not $PSBoundParameters.ContainsKey('Confirm') -or $Confirm) {
+            throw 'Cleanup did not suppress PSResourceGet confirmation'
+        }
+
+        if ($SkipDependencyCheck) {
+            throw 'Cleanup bypassed PSResourceGet dependency checks'
+        }
+
+        "PSRESOURCE:$($InputObject.Name):$($InputObject.Version)"
+    }
+}
+
+function Get-InstalledModule {
+    throw 'Cleanup selected PowerShellGet instead of PSResourceGet'
+}
+
+function Uninstall-Module {
+    throw 'Cleanup selected PowerShellGet instead of PSResourceGet'
+}
+"#,
+        ) + POWERSHELL_CLEANUP_MODULES_COMMAND;
+
+        let output = Command::new(powershell)
+            .args(["-NoProfile", "-Command"])
+            .arg(fixture)
+            .output()
+            .expect("PowerShell cleanup fixture should run");
+
+        assert!(
+            output.status.success(),
+            "PowerShell cleanup fixture failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let uninstalled = stdout
+            .lines()
+            .filter(|line| line.starts_with("PSRESOURCE:"))
+            .collect::<Vec<_>>();
+
+        assert_eq!(uninstalled, ["PSRESOURCE:Demo:2.0", "PSRESOURCE:Demo:1.0"]);
+    }
+
+    #[test]
+    fn cleanup_falls_back_to_powershellget_without_complete_psresourceget_pair() {
+        let Some(powershell) = which("pwsh").or_else(|| which("powershell")) else {
+            return;
+        };
+
+        let fixture = String::from(
+            r#"
+function Get-Command {
+    [CmdletBinding()]
+    param([string] $Name)
+
+    if ($Name -eq 'Get-InstalledPSResource') {
+        return [pscustomobject] @{ Name = $Name }
+    }
+
+    if ($Name -eq 'Uninstall-PSResource') {
+        return
+    }
+
+    throw "Unexpected command discovery: $Name"
+}
+
+function Get-InstalledPSResource {
+    throw 'Cleanup selected an incomplete PSResourceGet provider'
+}
+
+function Get-InstalledModule {
+    param([string[]] $Name, [switch] $AllVersions)
+
+    $versions = if ($AllVersions) { 1, 3, 2 } else { 3 }
+    $versions | ForEach-Object {
+        [pscustomobject] @{
+            Name = 'Demo'
+            Version = [version] "$($_).0"
+        }
+    }
+}
+
+function Uninstall-Module {
+    param(
+        [Parameter(ValueFromPipeline)] $InputObject,
+        [switch] $Confirm,
+        [switch] $Force
+    )
+
+    process {
+        if (-not $PSBoundParameters.ContainsKey('Confirm') -or $Confirm) {
+            throw 'Cleanup did not suppress PowerShellGet confirmation'
+        }
+
+        if ($Force) {
+            throw 'Cleanup bypassed PowerShellGet dependency checks'
+        }
+
+        "POWERSHELLGET:$($InputObject.Name):$($InputObject.Version)"
+    }
+}
+"#,
+        ) + POWERSHELL_CLEANUP_MODULES_COMMAND;
+
+        let output = Command::new(powershell)
+            .args(["-NoProfile", "-Command"])
+            .arg(fixture)
+            .output()
+            .expect("PowerShell cleanup fixture should run");
+
+        assert!(
+            output.status.success(),
+            "PowerShell cleanup fixture failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let uninstalled = stdout
+            .lines()
+            .filter(|line| line.starts_with("POWERSHELLGET:"))
+            .collect::<Vec<_>>();
+
+        assert_eq!(uninstalled, ["POWERSHELLGET:Demo:2.0", "POWERSHELLGET:Demo:1.0"]);
     }
 }
 
