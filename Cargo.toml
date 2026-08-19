@@ -48,7 +48,7 @@ jetbrains-toolbox-updater = "6.0.0"
 indexmap = { version = "2.9.0", features = ["serde"] }
 serde_json = "1.0.145"
 itertools = "0.15.0"
-clap-cargo = "0.18.0"
+clap-cargo = "0.19.0"
 edit = "0.1.5"
 
 [build-dependencies]
