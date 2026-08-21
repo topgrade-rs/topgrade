@@ -142,7 +142,10 @@ pub fn run_in_tmux(config: TmuxConfig) -> Result<()> {
         TmuxSessionMode::AttachIfNotInSession => {
             if is_inside_tmux {
                 // Only attach to the newly-created session if we're not currently in a tmux session.
-                println!("{}", t!("Topgrade launched in a new tmux session"));
+                println!(
+                    "{}",
+                    t!("Topgrade launched in a new {multiplexer} session", multiplexer = "tmux")
+                );
                 return Ok(());
             } else {
                 tmux.build().args(["attach-session", "-t", &session]).exec()
