@@ -204,7 +204,7 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
         .unwrap_or(HOME_DIR.join(".oh-my-zsh"))
         .require()?;
 
-    print_separator("oh-my-zsh");
+    print_separator("Oh My Zsh");
 
     let custom_dir = env::var::<_>("ZSH_CUSTOM")
         .or_else(|_| {

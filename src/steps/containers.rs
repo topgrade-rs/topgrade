@@ -120,7 +120,7 @@ fn list_containers(ctx: &ExecutionContext, crt: &Path) -> Result<Vec<Container>>
         let split_res = line.split(' ').collect::<Vec<&str>>();
         if split_res.len() != 2 {
             bail!(format!(
-                "Got erroneous output from `{} image ls --format \"{{.Repository}}:{{.Tag}} {{.ID}}\"; Expected line to split into 2 parts",
+                "Got erroneous output from `{} image ls --format \"{{.Repository}}:{{.Tag}} {{.ID}}\"`; Expected line to split into 2 parts",
                 crt.display()
             ));
         }
@@ -150,11 +150,11 @@ fn list_containers(ctx: &ExecutionContext, crt: &Path) -> Result<Vec<Container>>
                 .output_checked_utf8()?
         };
         let mut platform = inspect_output.stdout;
-        // truncate the tailing new line character
+        // truncate the trailing new line character
         platform.truncate(platform.len() - 1);
         if !platform.contains('/') {
             bail!(format!(
-                "Got erroneous output from `{} image ls --format \"{{.Repository}}:{{.Tag}} {{.ID}}\"; Expected platform to contain '/'",
+                "Got erroneous output from `{} image ls --format \"{{.Repository}}:{{.Tag}} {{.ID}}\"`; Expected platform to contain '/'",
                 crt.display()
             ));
         }

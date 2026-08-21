@@ -240,7 +240,7 @@ impl Step {
             Atuin =>
             {
                 #[cfg(unix)]
-                runner.execute(*self, "atuin", || unix::run_atuin(ctx))?
+                runner.execute(*self, "Atuin", || unix::run_atuin(ctx))?
             }
             Audit => {
                 #[cfg(target_os = "dragonfly")]
@@ -297,7 +297,7 @@ impl Step {
             CinnamonSpices =>
             {
                 #[cfg(target_os = "linux")]
-                runner.execute(*self, "Cinnamon spices", || linux::run_cinnamon_spices_updater(ctx))?
+                runner.execute(*self, "Cinnamon Spices", || linux::run_cinnamon_spices_updater(ctx))?
             }
             ClamAvDb => runner.execute(*self, "ClamAV Databases", || generic::run_freshclam(ctx))?,
             ClaudeCode => runner.execute(*self, "Claude Code", || generic::run_claude_code(ctx))?,
@@ -306,7 +306,7 @@ impl Step {
             }
             Codex => runner.execute(*self, "Codex", || generic::run_codex(ctx))?,
             Colima => runner.execute(*self, "Colima", || generic::run_colima(ctx))?,
-            Composer => runner.execute(*self, "composer", || generic::run_composer_update(ctx))?,
+            Composer => runner.execute(*self, "Composer", || generic::run_composer_update(ctx))?,
             Conda => runner.execute(*self, "conda", || generic::run_conda_update(ctx))?,
             ConfigUpdate =>
             {
@@ -366,9 +366,9 @@ impl Step {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "Gear Lever", || linux::run_gearlever(ctx))?
             }
-            Gem => runner.execute(*self, "gem", || generic::run_gem(ctx))?,
+            Gem => runner.execute(*self, "Gems", || generic::run_gem(ctx))?,
             Getnf => runner.execute(*self, "getnf", || generic::run_getnf_update(ctx))?,
-            Ghcup => runner.execute(*self, "ghcup", || generic::run_ghcup_update(ctx))?,
+            Ghcup => runner.execute(*self, "GHCup", || generic::run_ghcup_update(ctx))?,
             GitRepos => runner.execute(*self, "Git Repositories", || git::run_git_pull_or_fetch(ctx))?,
             GithubCliExtensions => runner.execute(*self, "GitHub CLI Extensions", || {
                 generic::run_ghcli_extensions_upgrade(ctx)
@@ -376,7 +376,7 @@ impl Step {
             GnomeShellExtensions =>
             {
                 #[cfg(all(unix, not(any(target_os = "macos", target_os = "android"))))]
-                runner.execute(*self, "Gnome Shell Extensions", || unix::upgrade_gnome_extensions(ctx))?
+                runner.execute(*self, "GNOME Shell extensions", || unix::upgrade_gnome_extensions(ctx))?
             }
             Go => {
                 runner.execute(*self, "go-global-update", || go::run_go_global_update(ctx))?;
@@ -408,7 +408,7 @@ impl Step {
                 runner.execute(*self, "Install Release", || unix::run_install_release(ctx))?
             }
             JetbrainsAqua => runner.execute(*self, "JetBrains Aqua Plugins", || generic::run_jetbrains_aqua(ctx))?,
-            JetbrainsClion => runner.execute(*self, "JetBrains CL", || generic::run_jetbrains_clion(ctx))?,
+            JetbrainsClion => runner.execute(*self, "JetBrains CLion", || generic::run_jetbrains_clion(ctx))?,
             JetbrainsDatagrip => {
                 runner.execute(*self, "JetBrains DataGrip", || generic::run_jetbrains_datagrip(ctx))?
             }
@@ -469,7 +469,7 @@ impl Step {
             Mas =>
             {
                 #[cfg(target_os = "macos")]
-                runner.execute(*self, "App Store", || macos::run_mas(ctx))?
+                runner.execute(*self, "Mac App Store", || macos::run_mas(ctx))?
             }
             Maza =>
             {
@@ -487,7 +487,7 @@ impl Step {
                 #[cfg(windows)]
                 runner.execute(*self, "Microsoft Store", || windows::microsoft_store(ctx))?
             }
-            Miktex => runner.execute(*self, "miktex", || generic::run_miktex_packages_update(ctx))?,
+            Miktex => runner.execute(*self, "MiKTeX", || generic::run_miktex_packages_update(ctx))?,
             Mise => runner.execute(*self, "mise", || generic::run_mise(ctx))?,
             Myrepos => runner.execute(*self, "myrepos", || generic::run_myrepos_update(ctx))?,
             Nix => {
@@ -528,7 +528,7 @@ impl Step {
             Pixi => runner.execute(*self, "pixi", || generic::run_pixi_update(ctx))?,
             Pkg => {
                 #[cfg(target_os = "dragonfly")]
-                runner.execute(*self, "Dragonfly BSD Packages", || dragonfly::upgrade_packages(ctx))?;
+                runner.execute(*self, "DragonFly BSD Packages", || dragonfly::upgrade_packages(ctx))?;
                 #[cfg(target_os = "freebsd")]
                 runner.execute(*self, "FreeBSD Packages", || freebsd::upgrade_packages(ctx))?;
                 #[cfg(target_os = "openbsd")]
@@ -594,7 +594,7 @@ impl Step {
                 runner.execute(*self, "Restarts", || linux::run_needrestart(ctx))?
             }
             Rtcl => runner.execute(*self, "rtcl", || generic::run_rtcl(ctx))?,
-            RubyGems => runner.execute(*self, "rubygems", || generic::run_rubygems(ctx))?,
+            RubyGems => runner.execute(*self, "RubyGems", || generic::run_rubygems(ctx))?,
             Rustup => runner.execute(*self, "rustup", || generic::run_rustup(ctx))?,
             Rye => runner.execute(*self, "rye", || generic::run_rye(ctx))?,
             Scoop =>
@@ -636,11 +636,11 @@ impl Step {
                     runner.execute(*self, "zinit", || zsh::run_zinit(ctx))?;
                     runner.execute(*self, "zi", || zsh::run_zi(ctx))?;
                     runner.execute(*self, "zim", || zsh::run_zim(ctx))?;
-                    runner.execute(*self, "oh-my-zsh", || zsh::run_oh_my_zsh(ctx))?;
-                    runner.execute(*self, "oh-my-bash", || unix::run_oh_my_bash(ctx))?;
+                    runner.execute(*self, "Oh My Zsh", || zsh::run_oh_my_zsh(ctx))?;
+                    runner.execute(*self, "Oh My Bash", || unix::run_oh_my_bash(ctx))?;
                     runner.execute(*self, "fisher", || unix::run_fisher(ctx))?;
                     runner.execute(*self, "bash-it", || unix::run_bashit(ctx))?;
-                    runner.execute(*self, "oh-my-fish", || unix::run_oh_my_fish(ctx))?;
+                    runner.execute(*self, "Oh My Fish", || unix::run_oh_my_fish(ctx))?;
                     runner.execute(*self, "fish-plug", || unix::run_fish_plug(ctx))?;
                     runner.execute(*self, "fundle", || unix::run_fundle(ctx))?
                 }
@@ -679,10 +679,10 @@ impl Step {
                             println!("{}", t!("Error detecting current distribution: {error}", error = e));
                         }
                     }
-                    runner.execute(*self, "pihole", || linux::run_pihole_update(ctx))?;
+                    runner.execute(*self, "Pi-hole", || linux::run_pihole_update(ctx))?;
                 }
                 #[cfg(windows)]
-                runner.execute(*self, "Windows update", || windows::windows_update(ctx))?;
+                runner.execute(*self, "Windows Update", || windows::windows_update(ctx))?;
                 #[cfg(target_os = "macos")]
                 runner.execute(*self, "System update", || macos::upgrade_macos(ctx))?;
                 #[cfg(target_os = "freebsd")]
@@ -690,7 +690,7 @@ impl Step {
                 #[cfg(target_os = "openbsd")]
                 runner.execute(*self, "OpenBSD Upgrade", || openbsd::upgrade_openbsd(ctx))?
             }
-            Tldr => runner.execute(*self, "TLDR", || generic::run_tldr(ctx))?,
+            Tldr => runner.execute(*self, "tldr", || generic::run_tldr(ctx))?,
             Tlmgr => runner.execute(*self, "tlmgr", || generic::run_tlmgr_update(ctx))?,
             Tmux =>
             {
@@ -728,7 +728,7 @@ impl Step {
                 runner.execute(*self, "The Ultimate vimrc", || vim::upgrade_ultimate_vimrc(ctx))?;
                 runner.execute(*self, "voom", || vim::run_voom(ctx))?
             }
-            VitePlus => runner.execute(*self, "viteplus", || node::run_viteplus_upgrade(ctx))?,
+            VitePlus => runner.execute(*self, "Vite+", || node::run_viteplus_upgrade(ctx))?,
             VoltaPackages => runner.execute(*self, "volta packages", || node::run_volta_packages_upgrade(ctx))?,
             Vscode => runner.execute(*self, "Visual Studio Code extensions", || {
                 generic::run_vscode_extensions_update(ctx)
@@ -780,7 +780,7 @@ impl Step {
             Zerobrew =>
             {
                 #[cfg(unix)]
-                runner.execute(*self, "Zerobrew", || unix::run_zerobrew(ctx))?
+                runner.execute(*self, "zerobrew", || unix::run_zerobrew(ctx))?
             }
             Zigup => runner.execute(*self, "zigup", || generic::run_zigup(ctx))?,
             Zvm => runner.execute(*self, "ZVM", || generic::run_zvm(ctx))?,
@@ -793,7 +793,7 @@ impl Step {
 #[expect(clippy::too_many_lines)]
 pub(crate) fn default_steps() -> Vec<Step> {
     use Step::*;
-    // For now, SelfUpdate isn't included as it's ran before the other non-steps (pre-commands, sudo, etc)
+    // For now, SelfUpdate isn't included as it's run before the other non-steps (pre-commands, sudo, etc)
     vec![
         // Steps that should run first
         // Falconf can install programs we want to immediately detect and update

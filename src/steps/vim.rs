@@ -122,7 +122,7 @@ pub fn upgrade_vim(ctx: &ExecutionContext) -> Result<()> {
 
     let output = ctx.execute(&vim).always().arg("--version").output_checked_utf8()?;
     if !output.stdout.starts_with("VIM") {
-        return Err(SkipStep(t!("vim binary might be actually nvim").to_string()).into());
+        return Err(SkipStep(t!("vim binary might actually be nvim").to_string()).into());
     }
 
     let vimrc = vimrc()?;
