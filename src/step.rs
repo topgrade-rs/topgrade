@@ -25,6 +25,7 @@ pub enum Step {
     AM,
     AndroidStudio,
     Antigravity,
+    AntigravityCli,
     AppMan,
     Aqua,
     Asdf,
@@ -216,6 +217,7 @@ impl Step {
             Antigravity => runner.execute(*self, "Antigravity extensions", || {
                 generic::run_antigravity_extensions_update(ctx)
             })?,
+            AntigravityCli => runner.execute(*self, "Antigravity CLI", || generic::run_antigravity_cli(ctx))?,
             AppMan =>
             {
                 #[cfg(target_os = "linux")]
@@ -978,6 +980,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         InstallRelease,
         Vagrant,
         HermesAgent,
+        AntigravityCli,
         // Steps that should run last
         // Last out of convention
         CustomCommands,
