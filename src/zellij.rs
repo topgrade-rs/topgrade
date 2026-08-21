@@ -10,6 +10,7 @@ use color_eyre::eyre::eyre;
 use crate::command::CommandExt;
 use crate::config::ZellijConfig;
 use crate::config::ZellijSessionMode;
+use crate::execution_context::ExecutionContext;
 use crate::utils::which;
 
 use rust_i18n::t;
@@ -38,8 +39,9 @@ impl Zellij {
         }
         command
     }
-    /// Create a new zellij session with the given name, running the given command.
-    fn new_session(&self, session_name: &str) -> Result<()> {
+    /// Create a new zellij session with the given name, running `command` with `args` in a tab
+    /// (and pane) named `tab_name`.
+    fn new_session(&self, session_name: &str, tab_name: &str, command: &str, args: &[&str]) -> Result<()> {
         self.build()
             // see https://zellij.dev/documentation/programmatic-control.html#1-create-a-session
             .args(["attach", "--create-background", session_name])
@@ -52,21 +54,31 @@ impl Zellij {
         // `layout {tab {pane command="env" {args (env args) "topgrade" (topgrade args);};};}`
         // with all args double-quoted.
         // see https://zellij.dev/documentation/creating-a-layout.html for reference.
-
-        // NB: we don't need to TOPGRADE_KEEP_END like in tmux, since zellij keeps the pane on finish
-        let mut env_args = "args \"TOPGRADE_INSIDE_ZELLIJ=1\"".to_owned();
-        for arg in env::args() {
+        let mut args_kdl = String::new();
+        for arg in args {
             // append double-quoted ` "arg"`, escaping double-quotes inside arg itself
-            env_args.push_str(&format!(" \"{}\"", arg.replace("\"", "\\\"")));
+            args_kdl.push_str(&format!(" \"{}\"", arg.replace("\"", "\\\"")));
         }
-        let layout_string =
-            format!(r#"layout {{ tab name="topgrade" {{ pane name="topgrade" command="env" {{{env_args};}};}};}}"#);
+        let layout_string = format!(
+            r#"layout {{ tab name="{tab_name}" {{ pane name="{tab_name}" command="{command}" {{ args {args_kdl}; }}; }}; }}"#
+        );
         self.build()
             .env("ZELLIJ_SESSION_NAME", session_name)
             .args(["action", "override-layout", "--layout-string", &layout_string])
             .output_checked()?;
         Ok(())
     }
+    /// Add a new tab named `tab_name` to the (possibly background) session `session_name`,
+    /// running `command` with `args`.
+    fn new_tab(&self, session_name: &str, tab_name: &str, command: &str, args: &[&str]) -> Result<()> {
+        self.build()
+            .env("ZELLIJ_SESSION_NAME", session_name)
+            .args(["action", "new-tab", "-n", tab_name, "--", command])
+            .args(args)
+            .output_checked()?;
+        Ok(())
+    }
+
     /// Names of all zellij sessions, including EXITED ones (which still occupy their name).
     fn session_names(&self) -> Result<HashSet<String>> {
         let output = self
@@ -82,12 +94,13 @@ impl Zellij {
     /// avoid duplicate session names.
     ///
     /// The session name is returned.
-    fn new_unique_session(&self, session_name: &str) -> Result<String> {
+    fn new_unique_session(&self, session_name: &str, tab_name: &str, command: &str, args: &[&str]) -> Result<String> {
         let existing = self.session_names().context("Error listing zellij sessions")?;
         let mut session = session_name.to_owned();
         for i in 1.. {
             if !existing.contains(&session) {
-                self.new_session(&session).context("Error running Topgrade in zellij")?;
+                self.new_session(&session, tab_name, command, args)
+                    .context("Error running Topgrade in zellij")?;
                 return Ok(session);
             }
             session = format!("{session_name}-{i}");
@@ -101,7 +114,13 @@ pub fn run_in_zellij(config: ZellijConfig) -> Result<()> {
 
     // Find an unused session and run `topgrade` in it with the current command's arguments.
     let session_name = "topgrade";
-    let session = zellij.new_unique_session(session_name)?;
+    // we want zellij to run a "env TOPGRADE_INSIDE_ZELLIJ=1 (current topgrade invocation)".
+    // "env" we supply as a command separately, and the invocation we get from env::args().
+    // NB: we don't need to TOPGRADE_KEEP_END like in tmux, since zellij keeps the pane on finish
+    let mut relaunch_args = vec!["TOPGRADE_INSIDE_ZELLIJ=1".to_owned()];
+    relaunch_args.extend(env::args());
+    let relaunch_args: Vec<&str> = relaunch_args.iter().map(String::as_str).collect();
+    let session = zellij.new_unique_session(session_name, "topgrade", "env", &relaunch_args)?;
 
     let is_inside_zellij = env::var("ZELLIJ").is_ok();
     let err = match config.session_mode {
@@ -130,4 +149,19 @@ pub fn run_in_zellij(config: ZellijConfig) -> Result<()> {
     };
 
     Err(eyre!("{err}")).context("Failed to `execvp(3)` zellij")
+}
+
+/// Run `command` with `args` in a new zellij tab named `tab_name`, reusing the session tracked
+/// on `ctx` (across `ssh_step` calls for successive remotes) if one exists, or starting one
+/// otherwise.
+pub fn run_command(ctx: &ExecutionContext, tab_name: &str, command: &str, args: &[&str]) -> Result<()> {
+    let zellij = Zellij::new(ctx.config().zellij_config()?.args);
+
+    if let Some(session_name) = ctx.get_zellij_session() {
+        zellij.new_tab(&session_name, tab_name, command, args)?;
+    } else {
+        let name = zellij.new_unique_session("topgrade", tab_name, command, args)?;
+        ctx.set_zellij_session(name);
+    }
+    Ok(())
 }
