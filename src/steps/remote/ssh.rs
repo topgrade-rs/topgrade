@@ -5,6 +5,9 @@ use crate::{
     command::CommandExt, error::SkipStep, execution_context::ExecutionContext, terminal::print_separator, utils,
 };
 
+#[cfg(unix)]
+use crate::config::Multiplexer;
+
 fn prepare_async_ssh_command(args: &mut Vec<&str>) {
     args.insert(0, "ssh");
     args.push("--keep");
@@ -23,11 +26,33 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
     let env = format!("TOPGRADE_PREFIX={hostname}");
     args.extend(["env", &env, "$SHELL", "-lc", topgrade]);
 
+    // run remotes in the multiplexer if one is specified
     #[cfg(unix)]
-    if ctx.config().run_in_tmux() && !ctx.run_type().dry() {
-        prepare_async_ssh_command(&mut args);
-        crate::tmux::run_command(ctx, hostname, &shell_words::join(args))?;
-        return Err(SkipStep(String::from(t!("Remote Topgrade launched in Tmux"))).into());
+    if !ctx.run_type().dry() {
+        match ctx.config().run_in_multiplexer()? {
+            Multiplexer::No => {}
+            Multiplexer::Tmux => {
+                // FIXME: here, we ask tmux to run `ssh ... $SHELL -lc (topgrade) --keep`
+                // and $SHELL does not pass the last --keep to topgrade. we'd need to wire in
+                // format!("'{topgrade} --keep'") as a single arg, conditional on tmux.
+                prepare_async_ssh_command(&mut args);
+                crate::tmux::run_command(ctx, hostname, &shell_words::join(args))?;
+                return Err(SkipStep(String::from(t!(
+                    "Remote Topgrade launched in {multiplexer}",
+                    multiplexer = "Tmux"
+                )))
+                .into());
+            }
+            Multiplexer::Zellij => {
+                // NB: no need to --keep, since zellij keeps panes on exit
+                crate::zellij::run_command(ctx, hostname, "ssh", &args)?;
+                return Err(SkipStep(String::from(t!(
+                    "Remote Topgrade launched in {multiplexer}",
+                    multiplexer = "Zellij"
+                )))
+                .into());
+            }
+        }
     }
 
     if ctx.config().open_remotes_in_new_terminal() && !ctx.run_type().dry() && cfg!(windows) {
