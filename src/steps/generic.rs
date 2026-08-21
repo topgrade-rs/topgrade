@@ -2369,19 +2369,48 @@ fn run_jetbrains_ide(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result
     run_jetbrains_ide_generic::<true>(ctx, bin, name)
 }
 
-pub fn run_android_studio(ctx: &ExecutionContext) -> Result<()> {
-    // We don't use `run_jetbrains_ide` here because that would print "JetBrains Android Studio",
-    //  which is incorrect as Android Studio is made by Google. Just "Android Studio" is fine.
-    run_jetbrains_ide_generic::<false>(
-        ctx,
-        require_one([
+enum Studio {
+    AndroidStudio(PathBuf),
+    WordPressStudio(PathBuf),
+}
+
+impl Studio {
+    fn android_studio(self) -> Result<PathBuf> {
+        match self {
+            Studio::AndroidStudio(studio) => Ok(studio),
+            Studio::WordPressStudio(studio) => Err(SkipStep(format!(
+                "Command `{}` points to WordPress Studio CLI, not Android Studio",
+                studio.display()
+            ))
+            .into()),
+        }
+    }
+
+    fn get(ctx: &ExecutionContext) -> Result<Self> {
+        let studio = require_one([
             "studio",
             "android-studio",
             "android-studio-beta",
             "android-studio-canary",
-        ])?,
-        "Android Studio",
-    )
+        ])?;
+
+        // Check if `studio --help` mentions "WordPress Studio". Android Studio does not, WordPress Studio does.
+        let output = ctx.execute(&studio).always().arg("--help").output_checked_utf8()?;
+
+        if output.stdout.contains("WordPress Studio") {
+            debug!("Detected `studio` as WordPress Studio");
+            Ok(Self::WordPressStudio(studio))
+        } else {
+            debug!("Detected `studio` as Android Studio");
+            Ok(Self::AndroidStudio(studio))
+        }
+    }
+}
+
+pub fn run_android_studio(ctx: &ExecutionContext) -> Result<()> {
+    // We don't use `run_jetbrains_ide` here because that would print "JetBrains Android Studio",
+    //  which is incorrect as Android Studio is made by Google. Just "Android Studio" is fine.
+    run_jetbrains_ide_generic::<false>(ctx, Studio::get(ctx)?.android_studio()?, "Android Studio")
 }
 
 pub fn run_jetbrains_aqua(ctx: &ExecutionContext) -> Result<()> {
