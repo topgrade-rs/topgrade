@@ -375,6 +375,10 @@
 # Upgrade deno executable to the given version.
 # version = "stable"
 
+# Pass `--no-delta` to `deno upgrade` to skip delta patches and download the full
+# binary instead. Useful on low-memory machines where applying a delta fails.
+# no_delta = false
+
 
 [viteplus]
 # Use sudo if the Vite+ directory isn't owned by the current user

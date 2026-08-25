@@ -177,6 +177,7 @@ pub struct Skills {
 #[serde(deny_unknown_fields)]
 pub struct Deno {
     version: Option<String>,
+    no_delta: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -2025,6 +2026,14 @@ impl Config {
         self.config_file.deno.as_ref().and_then(|deno| deno.version.as_deref())
     }
 
+    pub fn deno_no_delta(&self) -> bool {
+        self.config_file
+            .deno
+            .as_ref()
+            .and_then(|deno| deno.no_delta)
+            .unwrap_or(false)
+    }
+
     #[cfg(target_os = "linux")]
     pub fn firmware_upgrade(&self) -> bool {
         self.config_file
@@ -2321,6 +2330,18 @@ mod test {
             config_file: ConfigFile::default(),
             allowed_steps: Vec::new(),
         }
+    }
+
+    #[test]
+    fn deno_no_delta_defaults_off_and_reads_config() {
+        assert!(!config().deno_no_delta(), "default should leave delta upgrades enabled");
+
+        let config_file: ConfigFile = toml::from_str("[deno]\nno_delta = true\n").unwrap();
+        let cfg = Config {
+            config_file,
+            ..config()
+        };
+        assert!(cfg.deno_no_delta());
     }
 
     #[test]

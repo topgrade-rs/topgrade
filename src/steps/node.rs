@@ -234,6 +234,13 @@ impl Deno {
             }
         }
 
+        // Delta upgrades download a small patch, but building the new binary from it needs
+        // enough memory to hold the whole thing. On low-RAM machines that allocation fails,
+        // so `--no-delta` lets those users fall back to a full download.
+        if ctx.config().deno_no_delta() {
+            args.push("--no-delta");
+        }
+
         ctx.execute(&self.command).arg("upgrade").args(args).status_checked()?;
         Ok(())
     }
