@@ -23,11 +23,12 @@ struct Zellij {
 }
 
 impl Zellij {
-    fn new(args: Vec<String>) -> Self {
-        Self {
-            zellij: which("zellij").expect("Could not find zellij"),
+    fn new(args: Vec<String>) -> Result<Self> {
+        Ok(Self {
+            zellij: which("zellij")
+                .ok_or_else(|| eyre!(t!("Cannot find {binary_name} in PATH", binary_name = "zellij")))?,
             args: if args.is_empty() { None } else { Some(args) },
-        }
+        })
     }
 
     #[allow(clippy::disallowed_methods)]
@@ -85,7 +86,13 @@ impl Zellij {
             .build()
             .args(["list-sessions", "--short", "--no-formatting"])
             // exits with status 1 when there are no sessions, which is fine
-            .output_checked_with_utf8(|_| Ok(()))
+            .output_checked_with_utf8(|output| {
+                if output.status.code() == Some(1) && output.stderr.contains("No active zellij sessions found") {
+                    Ok(())
+                } else {
+                    Err(())
+                }
+            })
             .context("Error listing zellij sessions")?;
         Ok(output.stdout.lines().map(str::to_owned).collect())
     }
@@ -95,7 +102,7 @@ impl Zellij {
     ///
     /// The session name is returned.
     fn new_unique_session(&self, session_name: &str, tab_name: &str, command: &str, args: &[&str]) -> Result<String> {
-        let existing = self.session_names().context("Error listing zellij sessions")?;
+        let existing = self.session_names()?;
         let mut session = session_name.to_owned();
         for i in 1.. {
             if !existing.contains(&session) {
@@ -110,7 +117,7 @@ impl Zellij {
 }
 
 pub fn run_in_zellij(config: ZellijConfig) -> Result<()> {
-    let zellij = Zellij::new(config.args);
+    let zellij = Zellij::new(config.args)?;
 
     // Find an unused session and run `topgrade` in it with the current command's arguments.
     let session_name = "topgrade";
@@ -155,7 +162,7 @@ pub fn run_in_zellij(config: ZellijConfig) -> Result<()> {
 /// on `ctx` (across `ssh_step` calls for successive remotes) if one exists, or starting one
 /// otherwise.
 pub fn run_command(ctx: &ExecutionContext, tab_name: &str, command: &str, args: &[&str]) -> Result<()> {
-    let zellij = Zellij::new(ctx.config().zellij_config()?.args);
+    let zellij = Zellij::new(ctx.config().zellij_config()?.args)?;
 
     if let Some(session_name) = ctx.get_zellij_session() {
         zellij.new_tab(&session_name, tab_name, command, args)?;
