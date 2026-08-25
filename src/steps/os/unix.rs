@@ -1144,8 +1144,6 @@ pub fn run_atuin(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(atuin).status_checked()
 }
 
-/// Update Adless' hosts-based domain blocklist using `sudo adless update`
-#[cfg_attr(not(unix), allow(dead_code))]
 pub fn run_adless(ctx: &ExecutionContext) -> Result<()> {
     let adless = require("adless")?;
 
