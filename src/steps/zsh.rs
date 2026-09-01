@@ -34,7 +34,7 @@ pub fn run_zr(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zr");
 
-    execute_interactive_zsh(ctx, &zsh, "zr --update").status_checked()
+    execute_interactive_zsh(ctx, &zsh, "zr +update").status_checked()
 }
 
 fn zdotdir() -> PathBuf {
