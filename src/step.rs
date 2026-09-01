@@ -26,6 +26,7 @@ pub enum Step {
     AndroidStudio,
     Antigravity,
     AppMan,
+    AppManager,
     Aqua,
     Asdf,
     Atom,
@@ -220,6 +221,11 @@ impl Step {
             {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "appman", || linux::run_appman(ctx))?
+            }
+            AppManager =>
+            {
+                #[cfg(target_os = "linux")]
+                runner.execute(*self, "AppManager", || linux::run_app_manager(ctx))?
             }
             Aqua => runner.execute(*self, "aqua", || generic::run_aqua(ctx))?,
             Asdf =>
@@ -820,6 +826,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         ConfigUpdate,
         AM,
         AppMan,
+        AppManager,
         DebGet,
         Toolbx,
         Snap,
