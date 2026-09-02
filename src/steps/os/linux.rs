@@ -1146,6 +1146,14 @@ pub fn run_gearlever(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
+pub fn run_app_manager(ctx: &ExecutionContext) -> Result<()> {
+    let app_manager = require("app-manager")?;
+
+    print_separator("AppManager");
+
+    ctx.execute(app_manager).arg("--update-all").status_checked()
+}
+
 pub fn run_cinnamon_spices_updater(ctx: &ExecutionContext) -> Result<()> {
     let cinnamon_spice_updater = require("cinnamon-spice-updater")?;
 
