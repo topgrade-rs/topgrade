@@ -2564,26 +2564,12 @@ pub fn run_claude_code_plugins(ctx: &ExecutionContext) -> Result<()> {
     if success { Ok(()) } else { Err(eyre!(StepFailed)) }
 }
 
-fn is_standalone_codex(codex: &Path, codex_home: &Path) -> bool {
-    let standalone_releases = codex_home.join("packages/standalone/releases");
-
-    codex
-        .canonicalize()
-        .ok()
-        .zip(standalone_releases.canonicalize().ok())
-        .is_some_and(|(codex, standalone_releases)| codex.starts_with(standalone_releases))
-}
-
 pub fn run_codex(ctx: &ExecutionContext) -> Result<()> {
     let codex = require("codex")?;
 
-    // The standalone installer exposes `codex` on PATH via a symlink, while the
-    // executable itself lives under `$CODEX_HOME/packages/standalone/releases`.
-    let codex_home = env::var_os("CODEX_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| HOME_DIR.join(".codex"));
-    if !is_standalone_codex(&codex, &codex_home) {
-        let local_bin = HOME_DIR.join(".local/bin");
+    // `codex` will only update if the standalone binary is installed under `~/.local/bin`.
+    let local_bin = HOME_DIR.join(".local/bin");
+    if !codex.starts_with(&local_bin) {
         return Err(SkipStep(format!(
             "codex is not installed under {}; update it via its package manager",
             local_bin.display()
@@ -2593,71 +2579,6 @@ pub fn run_codex(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Codex");
     ctx.execute(codex).arg("update").status_checked()
-}
-
-#[cfg(test)]
-mod codex_tests {
-    use super::is_standalone_codex;
-    use std::fs;
-    use std::path::Path;
-    use tempfile::tempdir;
-
-    fn create_file(path: &Path) {
-        fs::create_dir_all(path.parent().unwrap()).unwrap();
-        fs::write(path, "codex").unwrap();
-    }
-
-    #[test]
-    fn detects_binary_in_custom_codex_home() {
-        let temp = tempdir().unwrap();
-        let codex_home = temp.path().join("custom-codex-home");
-        let codex = codex_home.join("packages/standalone/releases/0.1.0/bin/codex");
-        create_file(&codex);
-
-        assert!(is_standalone_codex(&codex, &codex_home));
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn detects_standalone_binary_through_path_symlink() {
-        use std::os::unix::fs::symlink;
-
-        let temp = tempdir().unwrap();
-        let codex_home = temp.path().join(".codex");
-        let release = codex_home.join("packages/standalone/releases/0.1.0");
-        let codex = release.join("bin/codex");
-        create_file(&codex);
-
-        let current = codex_home.join("packages/standalone/current");
-        symlink(&release, &current).unwrap();
-
-        let local_codex = temp.path().join(".local/bin/codex");
-        fs::create_dir_all(local_codex.parent().unwrap()).unwrap();
-        symlink(current.join("bin/codex"), &local_codex).unwrap();
-
-        assert!(is_standalone_codex(&local_codex, &codex_home));
-    }
-
-    #[test]
-    fn rejects_package_manager_binary() {
-        let temp = tempdir().unwrap();
-        let codex_home = temp.path().join(".codex");
-        fs::create_dir_all(codex_home.join("packages/standalone/releases")).unwrap();
-        let codex = temp.path().join("package-manager/bin/codex");
-        create_file(&codex);
-
-        assert!(!is_standalone_codex(&codex, &codex_home));
-    }
-
-    #[test]
-    fn rejects_unresolvable_paths() {
-        let temp = tempdir().unwrap();
-
-        assert!(!is_standalone_codex(
-            &temp.path().join("missing-codex"),
-            &temp.path().join("missing-codex-home")
-        ));
-    }
 }
 
 pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
