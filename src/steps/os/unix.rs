@@ -1144,6 +1144,15 @@ pub fn run_atuin(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(atuin).status_checked()
 }
 
+pub fn run_adless(ctx: &ExecutionContext) -> Result<()> {
+    let adless = require("adless")?;
+
+    print_separator("Adless");
+
+    let sudo = ctx.require_sudo()?;
+    sudo.execute(ctx, &adless)?.arg("update").status_checked()
+}
+
 #[cfg(not(any(target_os = "android", target_os = "macos")))]
 pub fn run_sera(ctx: &ExecutionContext) -> Result<()> {
     let sera = require("sera")?;
