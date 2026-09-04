@@ -2569,7 +2569,7 @@ pub fn run_codex(ctx: &ExecutionContext) -> Result<()> {
 
     // `codex` will only update if the standalone binary is installed under `~/.local/bin`.
     let local_bin = HOME_DIR.join(".local/bin");
-    if !codex.canonicalize().is_ok_and(|path| path.starts_with(&local_bin)) {
+    if !codex.starts_with(&local_bin) {
         return Err(SkipStep(format!(
             "codex is not installed under {}; update it via its package manager",
             local_bin.display()
