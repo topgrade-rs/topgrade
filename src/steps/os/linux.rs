@@ -421,7 +421,7 @@ fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
         sudo.execute(ctx, &layman)?.args(["-s", "ALL"]).status_checked()?;
     }
 
-    println!("{}", t!("Syncing portage"));
+    println!("{}", t!("Syncing Portage"));
     if let Some(ego) = which("ego") {
         // The Funtoo team doesn't recommend running both ego sync and emerge --sync
         sudo.execute(ctx, &ego)?.arg("sync").status_checked()?;
@@ -641,7 +641,7 @@ pub fn run_mandb(ctx: &ExecutionContext) -> Result<()> {
     let mandb = require("mandb")?;
 
     if !ctx.config().enable_mandb() {
-        return Err(SkipStep(t!("ManDB isn't enabled").to_string()).into());
+        return Err(SkipStep(t!("man-db isn't enabled").to_string()).into());
     }
 
     print_separator(t!("System Manuals"));
@@ -752,7 +752,7 @@ fn upgrade_nixos(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_neon(ctx: &ExecutionContext) -> Result<()> {
-    // KDE neon is ubuntu based but uses it's own manager, pkcon
+    // KDE neon is Ubuntu based but uses its own manager, pkcon
     // running apt update with KDE neon is an error
     // in theory rpm based distributions use pkcon as well, though that
     // seems rare
@@ -811,7 +811,7 @@ pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
     if (HOOKS.iter().any(|hook| Path::new(hook).exists()) || dnf_runs_needrestart(ctx))
         && ctx.config().should_run(Step::System)
     {
-        return Err(SkipStep(String::from(t!("needrestart will be ran by the package manager"))).into());
+        return Err(SkipStep(String::from(t!("needrestart will be run by the package manager"))).into());
     }
 
     print_separator(t!("Check for needed restarts"));
@@ -872,7 +872,7 @@ pub fn run_flatpak(ctx: &ExecutionContext) -> Result<()> {
 
     let cleanup = ctx.config().cleanup();
     let yes = ctx.config().yes(Step::Flatpak);
-    print_separator("Flatpak User Packages");
+    print_separator(t!("Flatpak User Packages"));
 
     let mut update_args = vec!["update", "--user"];
     if yes {
@@ -947,7 +947,7 @@ pub fn run_pihole_update(ctx: &ExecutionContext) -> Result<()> {
     let pihole = require("pihole")?;
     Path::new("/opt/pihole/update.sh").require()?;
 
-    print_separator("pihole");
+    print_separator("Pi-hole");
 
     let sudo = ctx.require_sudo()?;
     sudo.execute(ctx, &pihole)?.arg("-up").status_checked()
@@ -993,7 +993,7 @@ pub fn run_distrobox_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_dkp_pacman_update(ctx: &ExecutionContext) -> Result<()> {
     let dkp_pacman = require("dkp-pacman")?;
 
-    print_separator("Devkitpro pacman");
+    print_separator("devkitPro pacman");
 
     let sudo = ctx.require_sudo()?;
 
@@ -1079,7 +1079,7 @@ pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
         ))?;
         if !update_allowed {
             return Err(
-                SkipStep(t!("Skip the Waydroid step because the user don't want to proceed").to_string()).into(),
+                SkipStep(t!("Skip the Waydroid step because the user doesn't want to proceed").to_string()).into(),
             );
         }
     }
@@ -1157,7 +1157,7 @@ pub fn run_app_manager(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_cinnamon_spices_updater(ctx: &ExecutionContext) -> Result<()> {
     let cinnamon_spice_updater = require("cinnamon-spice-updater")?;
 
-    print_separator("Cinnamon spices");
+    print_separator("Cinnamon Spices");
 
     ctx.execute(cinnamon_spice_updater).arg("--update-all").status_checked()
 }

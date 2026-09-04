@@ -34,7 +34,7 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
   [`deb-get install topgrade`](https://github.com/wimpysworld/deb-get/blob/main/01-main/packages/topgrade)
 - Arch Linux (AUR): [topgrade](https://aur.archlinux.org/packages/topgrade)
   or [topgrade-bin](https://aur.archlinux.org/packages/topgrade-bin)
-- [PyPi](https://pypi.org/): `pip`, `pipx`, or `uv tool` [
+- [PyPI](https://pypi.org/): `pip`, `pipx`, or `uv tool` [
   `install topgrade`](https://pypi.org/project/topgrade/)
 - Windows ([Winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/)): [
   `winget install --id=topgrade-rs.topgrade  -e`](https://winstall.app/apps/topgrade-rs.topgrade)

@@ -63,7 +63,7 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     let toml_file = cargo_dir.join(".crates.toml").require()?;
 
     if fs::metadata(&toml_file)?.len() == 0 {
-        return Err(SkipStep(format!("{} exists but empty", toml_file.display())).into());
+        return Err(SkipStep(format!("{} exists but is empty", toml_file.display())).into());
     }
 
     print_separator("Cargo");
@@ -243,7 +243,7 @@ impl Apm {
         match self {
             Self::AtomPackageManager(apm) => Ok(apm),
             Self::Other => {
-                Err(SkipStep(t!("Command `apm` does not appear to be Atom Package Manager").to_string()).into())
+                Err(SkipStep(t!("Command `apm` does not appear to be the Atom Package Manager").to_string()).into())
             }
         }
     }
@@ -799,7 +799,10 @@ fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Resu
     debug!("Detected {name} version as: {version}");
 
     if version < Version::new(1, 86, 0) {
-        return Err(SkipStep(format!("Too old {name} version to have update extensions command")).into());
+        return Err(SkipStep(format!(
+            "The {name} version is too old to have the update extensions command"
+        ))
+        .into());
     }
 
     print_separator(variant.display_name());
@@ -1197,7 +1200,7 @@ pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_miktex_packages_update(ctx: &ExecutionContext) -> Result<()> {
     let miktex = require("miktex")?;
-    print_separator("miktex");
+    print_separator("MiKTeX");
 
     ctx.execute(miktex).args(["packages", "update"]).status_checked()
 }
@@ -1211,7 +1214,7 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
         (Ok(py), _) => py,
         (Err(_), Ok(py3)) => py3,
         (Err(py_err), Err(py3_err)) => {
-            return Err(SkipStep(format!("Skip due to following reasons: {py_err} {py3_err}")).into());
+            return Err(SkipStep(format!("Skip due to the following reasons: {py_err} {py3_err}")).into());
         }
     };
 
@@ -1334,12 +1337,12 @@ pub fn run_pip_review_local_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_pipupgrade_update(ctx: &ExecutionContext) -> Result<()> {
     let pipupgrade = require("pipupgrade")?;
 
-    print_separator("Pipupgrade");
+    print_separator("pipupgrade");
     if !ctx.config().enable_pipupgrade() {
         print_warning(
-            "Pipupgrade is disabled by default. Enable it by setting enable_pipupgrade=true in the configuration.",
+            "pipupgrade is disabled by default. Enable it by setting enable_pipupgrade=true in the configuration.",
         );
-        return Err(SkipStep(String::from("Pipupgrade is disabled by default")).into());
+        return Err(SkipStep(String::from("pipupgrade is disabled by default")).into());
     }
     ctx.execute(pipupgrade)
         .args(ctx.config().pipupgrade_arguments().split_whitespace())
@@ -1364,7 +1367,7 @@ pub fn run_stack_update(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_ghcup_update(ctx: &ExecutionContext) -> Result<()> {
     let ghcup = require("ghcup")?;
-    print_separator("ghcup");
+    print_separator("GHCup");
 
     ctx.execute(ghcup).arg("upgrade").status_checked()
 }
@@ -1372,7 +1375,7 @@ pub fn run_ghcup_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_tldr(ctx: &ExecutionContext) -> Result<()> {
     let tldr = require("tldr")?;
 
-    print_separator("TLDR");
+    print_separator("tldr");
 
     ctx.execute(tldr).arg("--update").status_checked()
 }
@@ -1484,7 +1487,7 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
         .always()
         .args(["global", "config", "--absolute", "--quiet", "home"])
         .output_checked_utf8()
-        .map_err(|e| SkipStep(t!("Error getting the composer directory: {error}", error = e).to_string()))
+        .map_err(|e| SkipStep(t!("Error getting the Composer directory: {error}", error = e).to_string()))
         .map(|s| PathBuf::from(s.stdout.trim()))?
         .require()?;
 
@@ -1774,7 +1777,7 @@ pub fn run_raco_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn bin_update(ctx: &ExecutionContext) -> Result<()> {
     let bin = require("bin")?;
 
-    print_separator("Bin");
+    print_separator("bin");
     ctx.execute(bin).arg("update").status_checked()
 }
 
@@ -1886,7 +1889,7 @@ pub fn run_freshclam(ctx: &ExecutionContext) -> Result<()> {
         }
     }
 
-    print_separator(t!("Update ClamAV Database(FreshClam)"));
+    print_separator(t!("Update ClamAV Database (FreshClam)"));
 
     let output = ctx.execute(&freshclam).output()?;
     let output = match output {
@@ -2098,7 +2101,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         let start_trimmed = uv_version_output_stdout
             .trim_start_matches("uv")
             .trim_start_matches(' ');
-        // Remove the tailing part " (c4d0caaee 2024-12-19)\n", if it's there
+        // Remove the trailing part " (c4d0caaee 2024-12-19)\n", if it's there
         match start_trimmed.find(' ') {
             None => start_trimmed.trim_end_matches('\n'), // Otherwise, just strip the newline
             Some(i) => &start_trimmed[..i],
@@ -2650,7 +2653,7 @@ pub fn run_opencode(ctx: &ExecutionContext) -> Result<()> {
         .canonicalize()
         .is_ok_and(|p| p.is_descendant_of(&script_install_path))
     {
-        return Err(SkipStep(t!("OpenCode not installed with the official script").to_string()).into());
+        return Err(SkipStep(t!("OpenCode is not installed with the official script").to_string()).into());
     }
     print_separator("OpenCode");
     ctx.execute(opencode).arg("upgrade").status_checked()
