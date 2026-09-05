@@ -298,7 +298,7 @@ impl ArchPackageManager for Shelly {
             .status_checked()?;
 
         ctx.execute(&self.executable)
-            .arg("upgrade-all")
+            .args(["upgrade", "all"])
             .args(ctx.config().shelly_arguments().split_whitespace())
             .arg_if(ctx.config().should_run(Step::Flatpak), "--no-flatpak")
             .arg_if(ctx.config().yes(Step::System), "--no-confirm")
