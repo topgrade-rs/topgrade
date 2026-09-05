@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.10.0](https://github.com/topgrade-rs/topgrade/compare/v17.9.0...v17.10.0) - 2026-09-05
+
+### Added
+
+- *(step)* add Adless ([#2271](https://github.com/topgrade-rs/topgrade/pull/2271))
+- *(step)* add AppManager ([#2289](https://github.com/topgrade-rs/topgrade/pull/2289))
+- *(step)* add Hermes Agent ([#2257](https://github.com/topgrade-rs/topgrade/pull/2257))
+- *(vscode)* clean obsolete extension directories ([#2228](https://github.com/topgrade-rs/topgrade/pull/2228))
+- *(skills)* prefer local skills binary and add package manager config ([#2243](https://github.com/topgrade-rs/topgrade/pull/2243))
+
+### Fixed
+
+- *(shelly)* fix upgrade command ([#2301](https://github.com/topgrade-rs/topgrade/pull/2301))
+- *(codex)* detect standalone installation symlink ([#2296](https://github.com/topgrade-rs/topgrade/pull/2296))
+- *(zr)* use new update command ([#2290](https://github.com/topgrade-rs/topgrade/pull/2290))
+- *(nobara)* use `nobara-sync` instead of `dnf` ([#2248](https://github.com/topgrade-rs/topgrade/pull/2248))
+- *(rubygems)* correctly skip step instead of doing nothing
+
 ## [17.9.0](https://github.com/topgrade-rs/topgrade/compare/v17.8.0...v17.9.0) - 2026-07-28
 
 ### Added
