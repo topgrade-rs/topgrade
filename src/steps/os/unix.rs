@@ -204,21 +204,21 @@ pub fn run_fisher(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(&fish)
         .always()
-        .args(["-c", "type -t fisher"])
+        .arg("--command=type --type fisher")
         .output_checked_utf8()
         .map(|_| ())
         .map_err(|_| SkipStep(t!("`fisher` is not defined in `fish`").to_string()))?;
 
     ctx.execute(&fish)
         .always()
-        .args(["-c", "echo \"$__fish_config_dir/fish_plugins\""])
+        .arg("--command=echo \"$__fish_config_dir/fish_plugins\"")
         .output_checked_utf8()
         .and_then(|output| Path::new(&output.stdout.trim()).require().map(|_| ()))
         .map_err(|err| SkipStep(t!("`fish_plugins` path doesn't exist: {err}", err = err).to_string()))?;
 
     ctx.execute(&fish)
         .always()
-        .args(["-c", "fish_update_completions"])
+        .arg("--command=fish_update_completions")
         .output_checked_utf8()
         .map(|_| ())
         .map_err(|_| SkipStep(t!("`fish_update_completions` is not available").to_string()))?;
@@ -228,17 +228,17 @@ pub fn run_fisher(ctx: &ExecutionContext) -> Result<()> {
     let version_str = ctx
         .execute(&fish)
         .always()
-        .args(["-c", "fisher --version"])
+        .arg("--command=fisher --version")
         .output_checked_utf8()?
         .stdout;
     debug!("Fisher version: {}", version_str);
 
     if version_str.starts_with("fisher version 3.") {
         // v3 - see https://github.com/topgrade-rs/topgrade/pull/37#issuecomment-1283844506
-        ctx.execute(&fish).args(["-c", "fisher"]).status_checked()
+        ctx.execute(&fish).arg("--command=fisher").status_checked()
     } else {
         // v4
-        ctx.execute(&fish).args(["-c", "fisher update"]).status_checked()
+        ctx.execute(&fish).arg("--command=fisher update").status_checked()
     }
 }
 
@@ -284,7 +284,7 @@ pub fn run_oh_my_fish(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("oh-my-fish");
 
-    ctx.execute(fish).args(["-c", "omf update"]).status_checked()
+    ctx.execute(fish).arg("--command=omf update").status_checked()
 }
 
 pub fn run_pkgin(ctx: &ExecutionContext) -> Result<()> {
@@ -313,7 +313,7 @@ pub fn run_fish_plug(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("fish-plug");
 
-    ctx.execute(fish).args(["-c", "plug update"]).status_checked()
+    ctx.execute(fish).arg("--command=plug update").status_checked()
 }
 
 /// Upgrades `fundle` and `fundle` plugins.
@@ -328,7 +328,7 @@ pub fn run_fundle(ctx: &ExecutionContext) -> Result<()> {
     print_separator("fundle");
 
     ctx.execute(fish)
-        .args(["-c", "fundle self-update && fundle update"])
+        .arg("--command=fundle self-update && fundle update")
         .status_checked()
 }
 
@@ -395,7 +395,7 @@ pub fn run_brew_formula(ctx: &ExecutionContext, variant: BrewVariant) -> Result<
 
     brew.execute(ctx)?
         .args(["upgrade", "--formula"])
-        .arg_if(ctx.config().yes(Step::BrewFormula), "-y")
+        .arg_if(ctx.config().yes(Step::BrewFormula), "--no-ask")
         .arg_if(ctx.config().brew_fetch_head(), "--fetch-HEAD")
         .status_checked()?;
 
@@ -464,14 +464,14 @@ pub fn run_brew_cask(ctx: &ExecutionContext, variant: BrewVariant) -> Result<()>
     let mut brew_args = vec![];
 
     if cask_upgrade_exists {
-        brew_args.extend(["cu", "-y"]);
+        brew_args.extend(["cu", "--yes"]);
         if ctx.config().brew_cask_greedy() {
-            brew_args.push("-a");
+            brew_args.push("--all");
         }
     } else {
         brew_args.extend(["upgrade", "--cask"]);
         if ctx.config().yes(Step::BrewCask) {
-            brew_args.push("-y");
+            brew_args.push("--no-ask");
         }
         if ctx.config().brew_cask_greedy() {
             brew_args.push("--greedy");
@@ -514,7 +514,7 @@ pub fn run_guix(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Guix");
 
     ctx.execute(&guix).arg("pull").status_checked()?;
-    ctx.execute(&guix).args(["package", "-u"]).status_checked()?;
+    ctx.execute(&guix).args(["package", "--upgrade"]).status_checked()?;
 
     Ok(())
 }

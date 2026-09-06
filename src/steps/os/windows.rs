@@ -93,12 +93,12 @@ pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
 ///
 /// If the command is installed and the user hasn't installed any Linux distros
 /// on it, command `wsl -l` would print a help message and exit with failure, we
-/// use this to check whether WSL is install or not.
+/// use this to check whether WSL is installed or not.
 fn is_wsl_installed() -> Result<bool> {
     if let Some(wsl) = which("wsl") {
         // Don't use `output_checked` as an execution failure log is not wanted
         #[expect(clippy::disallowed_methods)]
-        let output = Command::new(wsl).arg("-l").output()?;
+        let output = Command::new(wsl).arg("--list").output()?;
         let status = output.status;
 
         if status.success() {
@@ -113,7 +113,7 @@ fn get_wsl_distributions(ctx: &ExecutionContext, wsl: &Path) -> Result<Vec<Strin
     let output = ctx
         .execute(wsl)
         .always()
-        .args(["--list", "-q"])
+        .args(["--list", "--quiet"])
         .output_checked_utf8()?
         .stdout;
     Ok(output
@@ -127,7 +127,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     let topgrade = ctx
         .execute(wsl)
         .always()
-        .args(["-d", dist, "bash", "-lc", "which topgrade"])
+        .args(["--distribution", dist, "bash", "-lc", "which topgrade"])
         .output_checked_utf8()
         .map_err(|_| SkipStep(t!("Could not find Topgrade installed in WSL").to_string()))?
         .stdout // The normal output from `which topgrade` appends a newline, so we trim it here.
@@ -140,7 +140,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
         // elements instead of parsing their contents. `"${@:3}"` forwards the flags
         // to `topgrade` (not `bash`) and expands to nothing when there are none.
         .args([
-            "-d",
+            "--distribution",
             dist,
             "bash",
             "-lc",

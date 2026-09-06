@@ -61,9 +61,13 @@ impl Npm {
     /// of this NPM instance.
     ///
     /// If the "NPM" version is larger than 8.11.0, we use
-    /// `--location=global`; otherwise, use `-g`.
+    /// `--location=global`; otherwise, use `--global`.
     fn global_location_arg(&self, ctx: &ExecutionContext) -> &str {
-        if self.is_npm_8(ctx) { "--location=global" } else { "-g" }
+        if self.is_npm_8(ctx) {
+            "--location=global"
+        } else {
+            "--global"
+        }
     }
 
     #[cfg(target_os = "linux")]
@@ -213,7 +217,7 @@ impl Deno {
             } else if bin_version >= Version::new(1, 0, 0) {
                 match version {
                     "stable" | "rc" | "canary" => {
-                        // Prior to v1.6.0, `deno upgrade` is not able fetch the latest tag version.
+                        // Prior to v1.6.0, `deno upgrade` is not able to fetch the latest tag version.
                         return Err(
                             SkipStep("Deno (1.0.0-1.6.0) cannot be upgraded to a named channel".to_string()).into(),
                         );

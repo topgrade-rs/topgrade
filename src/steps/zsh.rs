@@ -23,7 +23,7 @@ use etcetera::base_strategy::BaseStrategy;
 fn execute_interactive_zsh(ctx: &ExecutionContext, zsh: &Path, command: &str) -> Executor {
     let script = format!("{command}; exit $?");
     let mut exec = ctx.execute(zsh);
-    exec.args(["-i", "-c", &script]);
+    exec.args(["--interactive", "-c", &script]);
     exec
 }
 
@@ -66,7 +66,7 @@ pub fn run_antidote(ctx: &ExecutionContext) -> Result<()> {
         // Commands handed to an *interactive* zsh must end on a builtin (#2158).
         AntidoteUpdate::Shell => ctx
             .execute(zsh)
-            .args(["-i", "-c", "antidote update; exit $?"])
+            .args(["--interactive", "-c", "antidote update; exit $?"])
             .status_checked(),
         AntidoteUpdate::Source(antidote) => ctx
             .execute(zsh)
@@ -80,7 +80,7 @@ fn antidote_available_in_shell(ctx: &ExecutionContext, zsh: &Path) -> bool {
     // Commands handed to an *interactive* zsh must end on a builtin (#2158).
     ctx.execute(zsh)
         .always()
-        .args(["-i", "-c", "command -v antidote"])
+        .args(["--interactive", "-c", "command -v antidote"])
         .output_checked()
         .is_ok()
 }
@@ -102,7 +102,7 @@ pub fn run_antigen(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("antigen");
 
-    execute_interactive_zsh(ctx, &zsh, "antigen selfupdate ; antigen update").status_checked()
+    execute_interactive_zsh(ctx, &zsh, "antigen selfupdate; antigen update").status_checked()
 }
 
 pub fn run_zgenom(ctx: &ExecutionContext) -> Result<()> {
@@ -125,7 +125,9 @@ pub fn run_zplug(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("zplug");
 
-    ctx.execute(zsh).args(["-i", "-c", "zplug update"]).status_checked()
+    ctx.execute(zsh)
+        .args(["--interactive", "-c", "zplug update"])
+        .status_checked()
 }
 
 pub fn run_zinit(ctx: &ExecutionContext) -> Result<()> {
@@ -167,7 +169,7 @@ pub fn run_zim(ctx: &ExecutionContext) -> Result<()> {
     print_separator("zim");
 
     ctx.execute(zsh)
-        .args(["-i", "-c", "zimfw upgrade && zimfw update"])
+        .args(["--interactive", "-c", "zimfw upgrade && zimfw update"])
         .status_checked()
 }
 
@@ -187,7 +189,7 @@ pub fn run_oh_my_zsh(ctx: &ExecutionContext) -> Result<()> {
         let res_env_zsh = ctx
             .execute("zsh")
             .always()
-            .args(["-ic", "print -rn -- ${ZSH:?}"])
+            .args(["--interactive", "-c", "print -rn -- ${ZSH:?}"])
             .output_checked_utf8();
 
         // this command will fail if `ZSH` is not set
