@@ -2549,6 +2549,16 @@ pub fn run_claude_code_plugins(ctx: &ExecutionContext) -> Result<()> {
 
     let mut success = true;
     for plugin in &plugins {
+        // A plugin loaded straight from `~/.claude/skills/` has no marketplace behind it,
+        // so `claude plugin update` refuses it and nothing can be updated anyway.
+        if plugin.id.ends_with("@skills-dir") {
+            debug!(
+                "Skipping plugin {}: loaded from ~/.claude/skills, no marketplace",
+                plugin.id
+            );
+            continue;
+        }
+
         let mut cmd = ctx.execute(&claude);
         cmd.args(["plugin", "update", &plugin.id, "--scope", &plugin.scope]);
 
