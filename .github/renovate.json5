@@ -6,6 +6,7 @@
         ":semanticCommitTypeAll(chore)",
         ":disableRateLimiting",
     ],
+    maxMajorIncrement: 0,
     customManagers: [
         {
             customType: "regex",
