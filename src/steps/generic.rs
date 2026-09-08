@@ -2870,3 +2870,11 @@ pub fn run_hermes_agent(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(hermes).arg("update").status_checked()
 }
+
+pub fn run_antigravity_cli(ctx: &ExecutionContext) -> Result<()> {
+    let agy = require("agy")?;
+
+    print_separator("Antigravity CLI");
+
+    ctx.execute(agy).arg("update").status_checked()
+}
