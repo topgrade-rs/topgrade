@@ -8,7 +8,7 @@ use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
 use serde::Deserialize;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::env;
 use std::ffi::{OsStr, OsString};
 #[cfg(unix)]
@@ -2528,6 +2528,11 @@ pub fn run_claude_code_plugins(ctx: &ExecutionContext) -> Result<()> {
         project_path: Option<PathBuf>,
     }
 
+    #[derive(Deserialize)]
+    struct ClaudeMarketplace {
+        name: String,
+    }
+
     let claude = require("claude")?;
 
     print_separator("Claude Code Plugins");
@@ -2535,6 +2540,18 @@ pub fn run_claude_code_plugins(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(&claude)
         .args(["plugin", "marketplace", "update"])
         .status_checked()?;
+
+    let output = ctx
+        .execute(&claude)
+        .args(["plugin", "marketplace", "list", "--json"])
+        .output_checked_utf8()?;
+    let marketplaces: Vec<ClaudeMarketplace> = serde_json::from_str(&output.stdout).wrap_err_with(|| {
+        output_changed_message!(
+            "claude plugin marketplace list --json",
+            "json output is invalid or does not match expected structure"
+        )
+    })?;
+    let marketplaces: HashSet<String> = marketplaces.into_iter().map(|m| m.name).collect();
 
     let output = ctx
         .execute(&claude)
@@ -2549,6 +2566,15 @@ pub fn run_claude_code_plugins(ctx: &ExecutionContext) -> Result<()> {
 
     let mut success = true;
     for plugin in &plugins {
+        // Plugin ids are `<name>@<marketplace>`. A plugin whose marketplace is not configured
+        // (e.g. one loaded straight from `~/.claude/skills/`, reported as `@skills-dir`) has
+        // nothing to pull from, so `claude plugin update` refuses it.
+        let marketplace = plugin.id.rsplit_once('@').map(|(_, marketplace)| marketplace);
+        if !marketplace.is_some_and(|m| marketplaces.contains(m)) {
+            debug!("Skipping plugin {}: no configured marketplace behind it", plugin.id);
+            continue;
+        }
+
         let mut cmd = ctx.execute(&claude);
         cmd.args(["plugin", "update", &plugin.id, "--scope", &plugin.scope]);
 
