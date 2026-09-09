@@ -2551,7 +2551,7 @@ pub fn run_claude_code_plugins(ctx: &ExecutionContext) -> Result<()> {
             "json output is invalid or does not match expected structure"
         )
     })?;
-    let marketplaces: HashSet<&str> = marketplaces.iter().map(|m| m.name.as_str()).collect();
+    let marketplaces: HashSet<String> = marketplaces.into_iter().map(|m| m.name).collect();
 
     let output = ctx
         .execute(&claude)
