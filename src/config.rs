@@ -2198,14 +2198,6 @@ impl Config {
             .unwrap_or(false)
     }
 
-    pub fn sheldon_non_interactive(&self) -> bool {
-        self.config_file
-            .sheldon
-            .as_ref()
-            .and_then(|sheldon| sheldon.non_interactive)
-            .unwrap_or(false)
-    }
-
     pub fn mise_bump(&self) -> bool {
         self.config_file
             .mise
