@@ -2393,12 +2393,7 @@ impl Studio {
     }
 
     fn get(ctx: &ExecutionContext) -> Result<Self> {
-        let studio = require_one([
-            "studio",
-            "android-studio",
-            "android-studio-beta",
-            "android-studio-canary",
-        ])?;
+        let studio = require("studio")?;
 
         // Check if `studio --help` mentions "WordPress Studio". Android Studio does not, WordPress Studio does.
         let output = ctx.execute(&studio).always().arg("--help").output_checked_utf8()?;
@@ -2414,9 +2409,15 @@ impl Studio {
 }
 
 pub fn run_android_studio(ctx: &ExecutionContext) -> Result<()> {
+    let studio = Studio::get(ctx)
+        .or_else(|_| {
+            require_one(["android-studio", "android-studio-beta", "android-studio-canary"]).map(Studio::AndroidStudio)
+        })?
+        .android_studio()?;
+
     // We don't use `run_jetbrains_ide` here because that would print "JetBrains Android Studio",
     //  which is incorrect as Android Studio is made by Google. Just "Android Studio" is fine.
-    run_jetbrains_ide_generic::<false>(ctx, Studio::get(ctx)?.android_studio()?, "Android Studio")
+    run_jetbrains_ide_generic::<false>(ctx, studio, "Android Studio")
 }
 
 pub fn run_jetbrains_aqua(ctx: &ExecutionContext) -> Result<()> {
