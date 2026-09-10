@@ -195,7 +195,7 @@ pub fn run_sheldon(ctx: &ExecutionContext) -> Result<()> {
         .args(["lock", "--update"])
         .arg_if(ctx.config().sheldon_quiet(), "--quiet")
         .arg_if(ctx.config().sheldon_verbose(), "--verbose")
-        .arg_if(ctx.config().sheldon_non_interactive(), "--non-interactive")
+        .arg_if(ctx.config().yes(Step::Sheldon), "--non-interactive")
         .status_checked()?;
     Ok(())
 }
