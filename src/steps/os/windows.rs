@@ -93,7 +93,7 @@ pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
 ///
 /// If the command is installed and the user hasn't installed any Linux distros
 /// on it, command `wsl -l` would print a help message and exit with failure, we
-/// use this to check whether WSL is install or not.
+/// use this to check whether WSL is installed or not.
 fn is_wsl_installed() -> Result<bool> {
     if let Some(wsl) = which("wsl") {
         // Don't use `output_checked` as an execution failure log is not wanted

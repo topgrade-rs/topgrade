@@ -125,7 +125,7 @@ impl Yarn {
         // Get the version of Yarn. After Yarn 2.x (berry),
         // "yarn global" has been replaced with "yarn dlx".
         //
-        // As "yarn dlx" don't need to "upgrade", we
+        // As "yarn dlx" doesn't need to "upgrade", we
         // ignore the whole task if Yarn is 2.x or above.
         let version = ctx
             .execute(&self.command)
@@ -213,7 +213,7 @@ impl Deno {
             } else if bin_version >= Version::new(1, 0, 0) {
                 match version {
                     "stable" | "rc" | "canary" => {
-                        // Prior to v1.6.0, `deno upgrade` is not able fetch the latest tag version.
+                        // Prior to v1.6.0, `deno upgrade` is not able to fetch the latest tag version.
                         return Err(
                             SkipStep("Deno (1.0.0-1.6.0) cannot be upgraded to a named channel".to_string()).into(),
                         );
@@ -317,7 +317,7 @@ fn should_use_sudo(npm: &Npm, ctx: &ExecutionContext) -> Result<bool> {
         if ctx.config().npm_use_sudo() {
             Ok(true)
         } else {
-            Err(SkipStep(format!("{} root is owned by another user which is not the current user. Set use_sudo = true under the [npm] section in your configuration to run {} as sudo", npm.variant, npm.variant))
+            Err(SkipStep(format!("{} root is owned by another user who is not the current user. Set use_sudo = true under the [npm] section in your configuration to run {} as sudo", npm.variant, npm.variant))
                 .into())
         }
     } else {
@@ -331,7 +331,7 @@ fn should_use_sudo_viteplus(viteplus: &VitePlus, ctx: &ExecutionContext) -> Resu
         if ctx.config().viteplus_use_sudo() {
             Ok(true)
         } else {
-            Err(SkipStep("Vite+ root is owned by another user which is not the current user. Set use_sudo = true under the [viteplus] section in your configuration to run Vite+ as sudo".to_string())
+            Err(SkipStep("Vite+ root is owned by another user who is not the current user. Set use_sudo = true under the [viteplus] section in your configuration to run Vite+ as sudo".to_string())
                 .into())
         }
     } else {
@@ -345,7 +345,7 @@ fn should_use_sudo_yarn(yarn: &Yarn, ctx: &ExecutionContext) -> Result<bool> {
         if ctx.config().yarn_use_sudo() {
             Ok(true)
         } else {
-            Err(SkipStep("Yarn root is owned by another user which is not the current user. Set use_sudo = true under the [yarn] section in your configuration to run Yarn as sudo".to_string())
+            Err(SkipStep("Yarn root is owned by another user who is not the current user. Set use_sudo = true under the [yarn] section in your configuration to run Yarn as sudo".to_string())
                 .into())
         }
     } else {

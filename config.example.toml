@@ -179,13 +179,13 @@
 # greedy_cask = true
 
 # For the BrewCask step
-# If `Repo Cask Upgrade` does not exist, then use the `--greedy_latest` option.
+# If `Repo Cask Upgrade` does not exist, then use the `--greedy-latest` option.
 # NOTE: the above entry `greedy_cask` contains this entry, though you can enable
 # both of them, they won't clash with each other.
 # greedy_latest = true
 
 # For the BrewCask step
-# If `Repo Cask Upgrade` does not exist, then use the `--greedy_auto_updates` option.
+# If `Repo Cask Upgrade` does not exist, then use the `--greedy-auto-updates` option.
 # NOTE: the above entry `greedy_cask` contains this entry, though you can enable
 # both of them, they won't clash with each other.
 # greedy_auto_updates = true
@@ -210,6 +210,9 @@
 
 # Arguments to pass dnf when updating packages
 # dnf_arguments = "--refresh"
+
+# Arguments to pass apt when updating packages
+# apt_arguments = "-o Dpkg::Progress-Fancy=1"
 
 # aura_aur_arguments = "-kx"
 
@@ -434,7 +437,7 @@
 # use_sudo = false
 
 [lensfun]
-# If disabled, Topgrade invokes `lensfun‑update‑data` without root privilege,
+# If disabled, Topgrade invokes `lensfun-update-data` without root privilege,
 # then the update will be only available to you. Otherwise, `sudo` is required,
 # and the update will be installed system-wide, i.e., available to all users.
 # (default: false)
@@ -504,6 +507,10 @@
 # If this is set to true, `cargo install-update` is run quietly.
 # (default: false)
 # quiet = true
+
+# If this is set to true, `cargo install-update` passes `--locked` to `cargo install`.
+# (default: false)
+# locked = true
 
 # Other options like `--locked` or `--jobs` can be passed to `cargo install`
 # using the `CARGO_INSTALL_OPTS` environment variable.
