@@ -2826,6 +2826,7 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
         .execute(&mise)
         .current_dir(temp_dir.path())
         .args(["self-update"])
+        .arg_if(ctx.config().yes(Step::Mise), "--yes")
         .output_checked_with(|_| Ok(()))?;
     let status_code = output
         .status
