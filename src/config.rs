@@ -478,7 +478,6 @@ pub struct JuliaConfig {
 pub struct Sheldon {
     quiet: Option<bool>,
     verbose: Option<bool>,
-    non_interactive: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]

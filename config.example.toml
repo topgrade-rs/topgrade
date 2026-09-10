@@ -173,7 +173,6 @@
 
 
 [sheldon]
-# non_interactive = false
 # quiet = false
 # verbose = false
 
