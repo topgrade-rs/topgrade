@@ -2410,10 +2410,8 @@ impl Studio {
 
 pub fn run_android_studio(ctx: &ExecutionContext) -> Result<()> {
     let studio = Studio::get(ctx)
-        .or_else(|_| {
-            require_one(["android-studio", "android-studio-beta", "android-studio-canary"]).map(Studio::AndroidStudio)
-        })?
-        .android_studio()?;
+        .and_then(|x| x.android_studio())
+        .or_else(|_| require_one(["android-studio", "android-studio-beta", "android-studio-canary"]))?;
 
     // We don't use `run_jetbrains_ide` here because that would print "JetBrains Android Studio",
     //  which is incorrect as Android Studio is made by Google. Just "Android Studio" is fine.
