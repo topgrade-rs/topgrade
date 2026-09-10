@@ -355,6 +355,25 @@
 # (default: false)
 # verbose = false
 
+# Do not load any config files
+# (default: false)
+# no_config = false
+
+# Do not load any environment variables from config files
+# (default: false)
+# no_env = false
+
+# Do not run any hooks from config files
+# (default: false)
+# no_hooks = false
+
+# Read/write directly to stdin/stdout/stderr instead of by line
+# (default: false)
+# raw = false
+
+# Require lockfile URLs to be present during installation
+# (default: false)
+# locked = false
 
 [go]
 # Exclude specified binaries from `gup update`

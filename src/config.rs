@@ -194,6 +194,11 @@ pub struct Mise {
     verbose: Option<bool>,
     quiet: Option<bool>,
     silent: Option<bool>,
+    no_config: Option<bool>,
+    no_env: Option<bool>,
+    no_hooks: Option<bool>,
+    raw: Option<bool>,
+    locked: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -2176,6 +2181,46 @@ impl Config {
             .mise
             .as_ref()
             .and_then(|mise| mise.bump)
+            .unwrap_or(false)
+    }
+
+    pub fn mise_no_config(&self) -> bool {
+        self.config_file
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.no_config)
+            .unwrap_or(false)
+    }
+
+    pub fn mise_no_env(&self) -> bool {
+        self.config_file
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.no_env)
+            .unwrap_or(false)
+    }
+
+    pub fn mise_no_hooks(&self) -> bool {
+        self.config_file
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.no_hooks)
+            .unwrap_or(false)
+    }
+
+    pub fn mise_raw(&self) -> bool {
+        self.config_file
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.raw)
+            .unwrap_or(false)
+    }
+
+    pub fn mise_locked(&self) -> bool {
+        self.config_file
+            .mise
+            .as_ref()
+            .and_then(|mise| mise.locked)
             .unwrap_or(false)
     }
 
