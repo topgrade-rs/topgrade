@@ -120,7 +120,7 @@ pub fn run_gem(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Gems");
 
-    if !env::var_os("RBENV_SHELL").is_none() {
+    if env::var_os("RBENV_SHELL").is_some() {
         debug!("Detected rbenv. Avoiding --user-install");
     }
 
