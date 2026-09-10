@@ -172,6 +172,10 @@
 # self_update = true
 
 
+[sheldon]
+# quiet = false
+# verbose = false
+
 [brew]
 # For the BrewCask step
 # If `Repo Cask Upgrade` exists, then use the `-a` option.

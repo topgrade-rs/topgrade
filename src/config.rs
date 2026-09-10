@@ -475,6 +475,13 @@ pub struct JuliaConfig {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct Sheldon {
+    quiet: Option<bool>,
+    verbose: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 pub struct Zigup {
     target_versions: Option<Vec<String>>,
     install_dir: Option<String>,
@@ -578,6 +585,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = merge2::option::recursive)]
     mise: Option<Mise>,
+
+    #[merge(strategy = merge2::option::recursive)]
+    sheldon: Option<Sheldon>,
 
     #[merge(strategy = merge2::option::recursive)]
     yarn: Option<Yarn>,
@@ -2168,6 +2178,22 @@ impl Config {
             .chezmoi
             .as_ref()
             .and_then(|chezmoi| chezmoi.exclude_encrypted)
+            .unwrap_or(false)
+    }
+
+    pub fn sheldon_quiet(&self) -> bool {
+        self.config_file
+            .sheldon
+            .as_ref()
+            .and_then(|sheldon| sheldon.quiet)
+            .unwrap_or(false)
+    }
+
+    pub fn sheldon_verbose(&self) -> bool {
+        self.config_file
+            .sheldon
+            .as_ref()
+            .and_then(|sheldon| sheldon.verbose)
             .unwrap_or(false)
     }
 
