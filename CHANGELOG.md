@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.10.1](https://github.com/topgrade-rs/topgrade/compare/v17.10.0...v17.10.1) - 2026-09-11
+
+Re-release of v17.10.1 because of release mishap
+
 ## [17.10.0](https://github.com/topgrade-rs/topgrade/compare/v17.9.0...v17.10.0) - 2026-09-10
 
 ### Added
