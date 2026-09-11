@@ -37,11 +37,13 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     let is_current = is_openbsd_current()?;
 
     if ctx.config().cleanup() {
-        sudo.execute(ctx, "/usr/sbin/pkg_delete")?.arg("-ac").status_checked()?;
+        sudo.execute(ctx, "/usr/sbin/pkg_delete")?
+            .arg("-acI")
+            .status_checked()?;
     }
 
     sudo.execute(ctx, "/usr/sbin/pkg_add")?
-        .arg("-u")
+        .arg("-uI")
         .arg_if(is_current, "-Dsnap")
         .status_checked()
 }
