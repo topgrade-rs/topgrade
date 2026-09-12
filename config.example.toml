@@ -51,6 +51,9 @@
 # Arguments to pass tmux when pulling Repositories
 # tmux_arguments = "-S /var/tmux.sock"
 
+# Arguments to pass to zellij (no default value)
+# zellij_arguments = ""
+
 # Do not set the terminal title (default: true)
 # set_title = true
 
@@ -81,6 +84,15 @@
 # and only attaching to it if not inside tmux
 # (default: "attach_if_not_in_session", allowed values: "attach_if_not_in_session", "attach_always")
 # tmux_session_mode = "attach_if_not_in_session"
+
+# Run inside zellij (default: false)
+# run_in_zellij = true
+
+# Changes the way topgrade interacts with
+# the zellij session, creating the session
+# and only attaching to it if not inside zellij
+# (default: "attach_if_not_in_session", allowed values: "attach_if_not_in_session", "attach_always")
+# zellij_session_mode = "attach_if_not_in_session"
 
 # Cleanup temporary or old files (default: false)
 # cleanup = true
