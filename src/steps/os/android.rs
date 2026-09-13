@@ -3,7 +3,7 @@ use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::terminal::print_separator;
 use crate::utils::require;
-use crate::utils::which;
+use crate::utils::which_one;
 use color_eyre::Result;
 use color_eyre::eyre::OptionExt;
 
