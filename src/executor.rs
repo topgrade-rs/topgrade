@@ -273,6 +273,16 @@ pub enum ExecutorOutput {
     Dry,
 }
 
+impl ExecutorOutput {
+    /// Can be used on output returned by `.always()` executors
+    pub fn unwrap_wet(self) -> Output {
+        match self {
+            Self::Wet(output) => output,
+            Self::Dry => panic!("Called `unwrap_wet` on dry output. Improper use of `unwrap_wet`."),
+        }
+    }
+}
+
 /// A struct representing a command. Trying to execute it will just print its arguments.
 pub struct DryCommand {
     program: OsString,
