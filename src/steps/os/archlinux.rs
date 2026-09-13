@@ -9,7 +9,7 @@ use crate::command::CommandExt;
 use crate::error::TopgradeError;
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
-use crate::utils::which;
+use crate::utils::{which, which_one};
 use crate::{config, output_changed_message};
 
 pub trait ArchPackageManager {
@@ -141,7 +141,7 @@ impl ArchPackageManager for Pacman {
 impl Pacman {
     pub fn get() -> Option<Self> {
         Some(Self {
-            executable: which("powerpill").unwrap_or_else(|| PathBuf::from("pacman")),
+            executable: which_one(["powerpill", "pacman"])?,
         })
     }
 }

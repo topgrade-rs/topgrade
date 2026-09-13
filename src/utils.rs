@@ -239,6 +239,16 @@ pub fn require_flatpak(ctx: &ExecutionContext, name: &str) -> Result<Executor> {
     }
 }
 
+#[allow(unused)]
+pub fn which_one<T: AsRef<OsStr> + Debug>(binary_names: impl IntoIterator<Item = T>) -> Option<PathBuf> {
+    for bin in binary_names {
+        if let Some(path) = which(&bin) {
+            return Some(path);
+        }
+    }
+    None
+}
+
 pub fn require_one<T: AsRef<OsStr> + Debug>(binary_names: impl IntoIterator<Item = T>) -> Result<PathBuf> {
     let mut failed_bins = Vec::new();
     for bin in binary_names {
