@@ -252,9 +252,9 @@ pub fn which_one<T: AsRef<OsStr> + Debug>(binary_names: impl IntoIterator<Item =
 pub fn require_one<T: AsRef<OsStr> + Debug>(binary_names: impl IntoIterator<Item = T>) -> Result<PathBuf> {
     let mut failed_bins = Vec::new();
     for bin in binary_names {
-        match require(&bin) {
-            Ok(path) => return Ok(path),
-            Err(_) => failed_bins.push(bin),
+        match which(&bin) {
+            Some(path) => return Ok(path),
+            None => failed_bins.push(bin),
         }
     }
 
