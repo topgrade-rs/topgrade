@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use color_eyre::eyre;
 use color_eyre::eyre::{Context, Result};
@@ -51,10 +51,10 @@ impl ArchPackageManager for YayParu {
 }
 
 impl YayParu {
-    fn get(exec_name: &str, pacman: &Path) -> Option<Self> {
+    fn get(exec_name: &str, pacman: &Option<PathBuf>) -> Option<Self> {
         Some(Self {
             executable: which(exec_name)?,
-            pacman: pacman.to_owned(),
+            pacman: pacman.as_ref()?.to_owned(),
         })
     }
 }
@@ -313,7 +313,7 @@ fn box_package_manager<P: 'static + ArchPackageManager>(package_manager: P) -> B
 }
 
 pub fn get_arch_package_manager(ctx: &ExecutionContext) -> Option<Box<dyn ArchPackageManager>> {
-    let pacman = which("powerpill").unwrap_or_else(|| PathBuf::from("pacman"));
+    let pacman = which_one(["powerpill", "pacman"]);
 
     match ctx.config().arch_package_manager() {
         config::ArchPackageManager::Autodetect => GarudaUpdate::get()
