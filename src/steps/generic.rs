@@ -1529,7 +1529,7 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
         let output: Utf8Output = output.try_into()?;
         print!("{}\n{}", output.stdout, output.stderr);
         if (output.stdout.contains("valet") || output.stderr.contains("valet"))
-            && let Some(valet) = which("valet")
+            && let Some(valet) = which("valet")?
         {
             ctx.execute(valet).arg("install").status_checked()?;
         }
@@ -2682,7 +2682,7 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
     }
 
     // Prefer a locally installed `skills` binary over a package runner
-    if let Some(skills) = which("skills") {
+    if let Some(skills) = which("skills")? {
         print_separator("Skills");
         return ctx.execute(skills).args(["update", "--global"]).status_checked();
     }

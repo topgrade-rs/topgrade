@@ -238,14 +238,14 @@ fn upgrade_wolfi_linux(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
-    if let Some(bootc) = which("bootc")
+    if let Some(bootc) = which("bootc")?
         && ctx.config().bootc()
     {
         let sudo = ctx.require_sudo()?;
         return sudo.execute(ctx, &bootc)?.arg("upgrade").status_checked();
     }
 
-    if let Some(ostree) = which("rpm-ostree")
+    if let Some(ostree) = which("rpm-ostree")?
         && ctx.config().rpm_ostree()
     {
         return ctx.execute(ostree).arg("upgrade").status_checked();
@@ -283,7 +283,7 @@ fn upgrade_nilrt(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_fedora_immutable(ctx: &ExecutionContext) -> Result<()> {
-    if let Some(bootc) = which("bootc")
+    if let Some(bootc) = which("bootc")?
         && ctx.config().bootc()
     {
         let sudo = ctx.require_sudo()?;
@@ -417,12 +417,12 @@ fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
     let emerge = require("emerge")?;
     let sudo = ctx.require_sudo()?;
 
-    if let Some(layman) = which("layman") {
+    if let Some(layman) = which("layman")? {
         sudo.execute(ctx, &layman)?.args(["-s", "ALL"]).status_checked()?;
     }
 
     println!("{}", t!("Syncing portage"));
-    if let Some(ego) = which("ego") {
+    if let Some(ego) = which("ego")? {
         // The Funtoo team doesn't recommend running both ego sync and emerge --sync
         sudo.execute(ctx, &ego)?.arg("sync").status_checked()?;
     } else {
@@ -437,7 +437,7 @@ fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
             .status_checked()?;
     }
 
-    if let Some(eix_update) = which("eix-update") {
+    if let Some(eix_update) = which("eix-update")? {
         sudo.execute(ctx, &eix_update)?.status_checked()?;
     }
 
@@ -465,13 +465,13 @@ enum AptKind {
 fn detect_apt() -> Result<(AptKind, PathBuf)> {
     use AptKind::*;
 
-    if let Some(apt_fast) = which("apt-fast") {
+    if let Some(apt_fast) = which("apt-fast")? {
         Ok((AptFast, apt_fast))
-    } else if let Some(mist) = which("mist") {
+    } else if let Some(mist) = which("mist")? {
         Ok((Mist, mist))
     } else if Path::new("/usr/bin/nala").exists() {
         Ok((Nala, Path::new("/usr/bin/nala").to_path_buf()))
-    } else if let Some(apt) = which("apt") {
+    } else if let Some(apt) = which("apt")? {
         Ok((Apt, apt))
     } else {
         Ok((AptGet, require("apt-get")?))
@@ -783,19 +783,20 @@ fn upgrade_kde_linux(ctx: &ExecutionContext) -> Result<()> {
 
 // `dnf4` runs `needrestart` itself via the EPEL plugin during a system upgrade, but `dnf5`
 // doesn't. The plugin config exists in both cases, so `dnf` version check is needed here.
-fn dnf_runs_needrestart(ctx: &ExecutionContext) -> bool {
+fn dnf_runs_needrestart(ctx: &ExecutionContext) -> Result<bool> {
     if !Path::new("/etc/dnf/plugins/needrestart.conf").exists() {
-        return false;
+        return Ok(false);
     }
-    let Some(dnf) = which("dnf") else {
-        return false;
+    let Some(dnf) = which("dnf")? else {
+        return Ok(false);
     };
-    ctx.execute(&dnf)
+    Ok(ctx
+        .execute(&dnf)
         .always()
         .arg("--version")
         .output_checked_utf8()
         .map(|output| !output.stdout.contains("dnf5"))
-        .unwrap_or(false)
+        .unwrap_or(false))
 }
 
 pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
@@ -808,7 +809,7 @@ pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
         "/etc/apt/apt.conf.d/99needrestart",
     ];
 
-    if (HOOKS.iter().any(|hook| Path::new(hook).exists()) || dnf_runs_needrestart(ctx))
+    if (HOOKS.iter().any(|hook| Path::new(hook).exists()) || dnf_runs_needrestart(ctx)?)
         && ctx.config().should_run(Step::System)
     {
         return Err(SkipStep(String::from(t!("needrestart will be ran by the package manager"))).into());
