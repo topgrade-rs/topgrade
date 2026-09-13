@@ -720,6 +720,14 @@ impl ConfigFile {
             let entry_path = entry?.path();
 
             if entry_path.is_file() {
+                let file_name = entry_path
+                    .file_name()
+                    .expect("`fs::read_dir` does not return paths ending in `..`")
+                    .to_string_lossy();
+                if file_name.eq_ignore_ascii_case(".DS_Store") {
+                    debug!("Skipping .DS_Store file at {}", entry_path.display());
+                    continue;
+                }
                 debug!(
                     "Found additional (directory) configuration file at {}",
                     entry_path.display()
