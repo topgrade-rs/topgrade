@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.11.0](https://github.com/topgrade-rs/topgrade/compare/v17.10.1...v17.11.0) - 2026-09-13
+
+### Added
+- *(pkg)* make non-interactive when `assume_yes` ([#2322](https://github.com/topgrade-rs/topgrade/pull/2322))
+
+### Fixed
+- ignore .DS_Store files when parsing configuration files ([#2326](https://github.com/topgrade-rs/topgrade/pull/2326))
+- *(sheldon)* move generic options before `lock --update` ([#2329](https://github.com/topgrade-rs/topgrade/pull/2329))
+
 ## [17.10.1](https://github.com/topgrade-rs/topgrade/compare/v17.10.0...v17.10.1) - 2026-09-11
 
 Re-release of v17.10.1 because of release mishap
