@@ -2805,10 +2805,8 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Ollama");
 
     let mut server: Option<ExecutorChild> = None;
-    if let ExecutorOutput::Wet(out) = ctx.execute(&ollama).always().args(["list"]).output()?
-        && String::from_utf8_lossy(&out.stderr).contains("could not connect")
-        && !ctx.run_type().dry()
-    {
+    let out = ctx.execute(&ollama).always().args(["list"]).output()?.unwrap_wet();
+    if String::from_utf8_lossy(&out.stderr).contains("could not connect") && !ctx.run_type().dry() {
         debug!("Ollama server not running, starting temporary server");
         server = Some(ollama_serve(ctx, &ollama)?);
         // wait max 2 seconds for server to start
