@@ -5,7 +5,7 @@ use std::process::Command;
 use std::sync::{Mutex, OnceLock};
 
 use clap::ValueEnum;
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{Result, eyre};
 use serde::Deserialize;
 use strum::EnumString;
 
@@ -64,7 +64,7 @@ pub struct ExecutionContext<'a> {
     under_ssh: bool,
     #[cfg(target_os = "linux")]
     distribution: &'a Result<Distribution>,
-    powershell: OnceLock<Result<Powershell, SkipStep>>,
+    powershell: OnceLock<Result<Powershell>>,
 }
 
 impl<'a> ExecutionContext<'a> {
@@ -129,14 +129,29 @@ impl<'a> ExecutionContext<'a> {
         self.distribution
     }
 
-    pub fn powershell(&self) -> &Result<Powershell, SkipStep> {
+    fn powershell(&self) -> &Result<Powershell> {
         self.powershell.get_or_init(|| Powershell::new(self))
     }
 
     pub fn require_powershell(&self) -> Result<&Powershell> {
         self.powershell()
             .as_ref()
-            // necessary because `skip` is a `&SkipStep` borrowed from `self` (`skip.into()` gives E0521)
-            .map_err(|skip| SkipStep(skip.0.clone()).into())
+            // necessary because `e` is a `&Result` borrowed from `self` (`e.into()` gives E0521)
+            .map_err(|e| {
+                if let Some(skip) = e.downcast_ref::<SkipStep>() {
+                    skip.clone().into()
+                } else {
+                    // Loses error context
+                    eyre!("{}", e)
+                }
+            })
+    }
+
+    pub fn opt_powershell(&self) -> Result<Option<&Powershell>> {
+        match self.require_powershell() {
+            Ok(powershell) => Ok(Some(powershell)),
+            Err(e) if e.downcast_ref::<SkipStep>().is_some() => Ok(None),
+            Err(e) => Err(e),
+        }
     }
 }

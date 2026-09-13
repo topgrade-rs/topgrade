@@ -7,7 +7,7 @@ use std::sync::OnceLock;
 use color_eyre::eyre::{Context, Result, eyre};
 use rust_i18n::t;
 
-use tracing::{debug, error, warn};
+use tracing::{debug, warn};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::reload::{Handle, Layer};
 use tracing_subscriber::util::SubscriberInitExt;
@@ -78,6 +78,20 @@ where
     }
 }
 
+#[allow(unused)]
+pub trait OptionExt<T> {
+    fn or_else_fallible<F: FnOnce() -> Result<Option<T>>>(self, f: F) -> Result<Option<T>>;
+}
+
+impl<T> OptionExt<T> for Option<T> {
+    fn or_else_fallible<F: FnOnce() -> Result<Option<T>>>(self, f: F) -> Result<Option<T>> {
+        match self {
+            Some(x) => Ok(Some(x)),
+            None => f(),
+        }
+    }
+}
+
 /// `[linux] wsl_use_windows_path`, set once at startup. While unset the filter keeps its
 /// default: off outside WSL, on inside.
 static WSL_USE_WINDOWS_PATH: OnceLock<bool> = OnceLock::new();
@@ -127,17 +141,14 @@ fn is_windows_mount_path(path: &Path, prefixes: &[PathBuf]) -> bool {
 }
 
 /// `which`, but skips executables on Windows drive mounts.
-fn which_native_in_wsl<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBuf> {
+fn which_native_in_wsl<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<Option<PathBuf>> {
     let mut candidates = match which_crate::which_all(&binary_name) {
         Ok(candidates) => candidates,
         Err(which_crate::Error::CannotFindBinaryPath) => {
             debug!("Cannot find {:?}", &binary_name);
-            return None;
+            return Ok(None);
         }
-        Err(e) => {
-            error!("Detecting {:?} failed: {}", &binary_name, e);
-            return None;
-        }
+        Err(e) => return Err(eyre!(e).wrap_err(format!("Detecting {:?} failed", binary_name))),
     };
 
     let prefixes = windows_mount_prefixes();
@@ -149,7 +160,7 @@ fn which_native_in_wsl<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBu
     match native {
         Some(path) => {
             debug!("Detected {:?} as {:?}", &path, &binary_name);
-            Some(path)
+            Ok(Some(path))
         }
         // Every PATH match was a Windows binary on a drive mount.
         None if saw_candidate => {
@@ -157,16 +168,16 @@ fn which_native_in_wsl<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBu
                 "Cannot find native {:?} in PATH (only Windows binaries via WSL interop)",
                 &binary_name
             );
-            None
+            Ok(None)
         }
         None => {
             debug!("Cannot find {:?}", &binary_name);
-            None
+            Ok(None)
         }
     }
 }
 
-pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBuf> {
+pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<Option<PathBuf>> {
     if wsl_windows_path_filter_enabled() {
         return which_native_in_wsl(&binary_name);
     }
@@ -174,26 +185,19 @@ pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBuf> {
     match which_crate::which(&binary_name) {
         Ok(path) => {
             debug!("Detected {:?} as {:?}", &path, &binary_name);
-            Some(path)
+            Ok(Some(path))
         }
-        Err(e) => {
-            match e {
-                which_crate::Error::CannotFindBinaryPath => {
-                    debug!("Cannot find {:?}", &binary_name);
-                }
-                _ => {
-                    error!("Detecting {:?} failed: {}", &binary_name, e);
-                }
-            }
-
-            None
+        Err(which_crate::Error::CannotFindBinaryPath) => {
+            debug!("Cannot find {:?}", &binary_name);
+            Ok(None)
         }
+        Err(e) => Err(eyre!(e).wrap_err(format!("Detecting {:?} failed", binary_name))),
     }
 }
 
 pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
     if wsl_windows_path_filter_enabled() {
-        return which_native_in_wsl(&binary_name).ok_or_else(|| {
+        return which_native_in_wsl(&binary_name)?.ok_or_else(|| {
             SkipStep(format!(
                 "{}",
                 t!(
@@ -218,7 +222,7 @@ pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
             )
         ))
         .into()),
-        Err(e) => Err(color_eyre::eyre::Report::new(e).wrap_err(format!("Detecting {:?} failed", binary_name))),
+        Err(e) => Err(eyre!(e).wrap_err(format!("Detecting {:?} failed", binary_name))),
     }
 }
 
@@ -240,19 +244,19 @@ pub fn require_flatpak(ctx: &ExecutionContext, name: &str) -> Result<Executor> {
 }
 
 #[allow(unused)]
-pub fn which_one<T: AsRef<OsStr> + Debug>(binary_names: impl IntoIterator<Item = T>) -> Option<PathBuf> {
+pub fn which_one<T: AsRef<OsStr> + Debug>(binary_names: impl IntoIterator<Item = T>) -> Result<Option<PathBuf>> {
     for bin in binary_names {
-        if let Some(path) = which(&bin) {
-            return Some(path);
+        if let Some(path) = which(&bin)? {
+            return Ok(Some(path));
         }
     }
-    None
+    Ok(None)
 }
 
 pub fn require_one<T: AsRef<OsStr> + Debug>(binary_names: impl IntoIterator<Item = T>) -> Result<PathBuf> {
     let mut failed_bins = Vec::new();
     for bin in binary_names {
-        match which(&bin) {
+        match which(&bin)? {
             Some(path) => return Ok(path),
             None => failed_bins.push(bin),
         }

@@ -9,7 +9,7 @@ use crate::command::CommandExt;
 use crate::error::TopgradeError;
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
-use crate::utils::{which, which_one};
+use crate::utils::{OptionExt, which, which_one};
 use crate::{config, output_changed_message};
 
 pub trait ArchPackageManager {
@@ -51,11 +51,15 @@ impl ArchPackageManager for YayParu {
 }
 
 impl YayParu {
-    fn get(exec_name: &str, pacman: &Option<PathBuf>) -> Option<Self> {
-        Some(Self {
-            executable: which(exec_name)?,
-            pacman: pacman.as_ref()?.to_owned(),
-        })
+    fn get(exec_name: &str, pacman: &Option<PathBuf>) -> Result<Option<Self>> {
+        let pacman = match pacman.as_ref() {
+            Some(pacman) => pacman,
+            None => return Ok(None),
+        };
+        Ok(which(exec_name)?.map(|x| Self {
+            executable: x,
+            pacman: pacman.to_owned(),
+        }))
     }
 }
 
@@ -77,10 +81,8 @@ impl ArchPackageManager for GarudaUpdate {
 }
 
 impl GarudaUpdate {
-    fn get() -> Option<Self> {
-        Some(Self {
-            executable: which("garuda-update")?,
-        })
+    fn get() -> Result<Option<Self>> {
+        Ok(which("garuda-update")?.map(|x| Self { executable: x }))
     }
 }
 
@@ -108,10 +110,8 @@ impl ArchPackageManager for Trizen {
 }
 
 impl Trizen {
-    fn get() -> Option<Self> {
-        Some(Self {
-            executable: which("trizen")?,
-        })
+    fn get() -> Result<Option<Self>> {
+        Ok(which("trizen")?.map(|x| Self { executable: x }))
     }
 }
 
@@ -139,10 +139,8 @@ impl ArchPackageManager for Pacman {
 }
 
 impl Pacman {
-    pub fn get() -> Option<Self> {
-        Some(Self {
-            executable: which_one(["powerpill", "pacman"])?,
-        })
+    fn get() -> Result<Option<Self>> {
+        Ok(which_one(["powerpill", "pacman"])?.map(|x| Self { executable: x }))
     }
 }
 
@@ -151,10 +149,8 @@ pub struct Pikaur {
 }
 
 impl Pikaur {
-    fn get() -> Option<Self> {
-        Some(Self {
-            executable: which("pikaur")?,
-        })
+    fn get() -> Result<Option<Self>> {
+        Ok(which("pikaur")?.map(|x| Self { executable: x }))
     }
 }
 
@@ -182,10 +178,8 @@ pub struct Pamac {
 }
 
 impl Pamac {
-    fn get() -> Option<Self> {
-        Some(Self {
-            executable: which("pamac")?,
-        })
+    fn get() -> Result<Option<Self>> {
+        Ok(which("pamac")?.map(|x| Self { executable: x }))
     }
 }
 impl ArchPackageManager for Pamac {
@@ -212,10 +206,8 @@ pub struct Aura {
 }
 
 impl Aura {
-    fn get() -> Option<Self> {
-        Some(Self {
-            executable: which("aura")?,
-        })
+    fn get() -> Result<Option<Self>> {
+        Ok(which("aura")?.map(|x| Self { executable: x }))
     }
 }
 
@@ -276,10 +268,8 @@ pub struct Shelly {
 }
 
 impl Shelly {
-    fn get() -> Option<Self> {
-        Some(Self {
-            executable: which("shelly")?,
-        })
+    fn get() -> Result<Option<Self>> {
+        Ok(which("shelly")?.map(|x| Self { executable: x }))
     }
 }
 
@@ -312,34 +302,34 @@ fn box_package_manager<P: 'static + ArchPackageManager>(package_manager: P) -> B
     Box::new(package_manager) as Box<dyn ArchPackageManager>
 }
 
-pub fn get_arch_package_manager(ctx: &ExecutionContext) -> Option<Box<dyn ArchPackageManager>> {
-    let pacman = which_one(["powerpill", "pacman"]);
+pub fn get_arch_package_manager(ctx: &ExecutionContext) -> Result<Option<Box<dyn ArchPackageManager>>> {
+    let pacman = which_one(["powerpill", "pacman"])?;
 
-    match ctx.config().arch_package_manager() {
-        config::ArchPackageManager::Autodetect => GarudaUpdate::get()
+    Ok(match ctx.config().arch_package_manager() {
+        config::ArchPackageManager::Autodetect => GarudaUpdate::get()?
             .map(box_package_manager)
-            .or_else(|| YayParu::get("paru", &pacman).map(box_package_manager))
-            .or_else(|| YayParu::get("yay", &pacman).map(box_package_manager))
-            .or_else(|| Trizen::get().map(box_package_manager))
-            .or_else(|| Pikaur::get().map(box_package_manager))
-            .or_else(|| Pamac::get().map(box_package_manager))
-            .or_else(|| Pacman::get().map(box_package_manager))
-            .or_else(|| Aura::get().map(box_package_manager)),
-        config::ArchPackageManager::GarudaUpdate => GarudaUpdate::get().map(box_package_manager),
-        config::ArchPackageManager::Trizen => Trizen::get().map(box_package_manager),
-        config::ArchPackageManager::Paru => YayParu::get("paru", &pacman).map(box_package_manager),
-        config::ArchPackageManager::Yay => YayParu::get("yay", &pacman).map(box_package_manager),
-        config::ArchPackageManager::Pacman => Pacman::get().map(box_package_manager),
-        config::ArchPackageManager::Pikaur => Pikaur::get().map(box_package_manager),
-        config::ArchPackageManager::Pamac => Pamac::get().map(box_package_manager),
-        config::ArchPackageManager::Aura => Aura::get().map(box_package_manager),
-        config::ArchPackageManager::Shelly => Shelly::get().map(box_package_manager),
-    }
+            .or_else_fallible(|| Ok(YayParu::get("paru", &pacman)?.map(box_package_manager)))?
+            .or_else_fallible(|| Ok(YayParu::get("yay", &pacman)?.map(box_package_manager)))?
+            .or_else_fallible(|| Ok(Trizen::get()?.map(box_package_manager)))?
+            .or_else_fallible(|| Ok(Pikaur::get()?.map(box_package_manager)))?
+            .or_else_fallible(|| Ok(Pamac::get()?.map(box_package_manager)))?
+            .or_else_fallible(|| Ok(Pacman::get()?.map(box_package_manager)))?
+            .or_else_fallible(|| Ok(Aura::get()?.map(box_package_manager)))?,
+        config::ArchPackageManager::GarudaUpdate => GarudaUpdate::get()?.map(box_package_manager),
+        config::ArchPackageManager::Trizen => Trizen::get()?.map(box_package_manager),
+        config::ArchPackageManager::Paru => YayParu::get("paru", &pacman)?.map(box_package_manager),
+        config::ArchPackageManager::Yay => YayParu::get("yay", &pacman)?.map(box_package_manager),
+        config::ArchPackageManager::Pacman => Pacman::get()?.map(box_package_manager),
+        config::ArchPackageManager::Pikaur => Pikaur::get()?.map(box_package_manager),
+        config::ArchPackageManager::Pamac => Pamac::get()?.map(box_package_manager),
+        config::ArchPackageManager::Aura => Aura::get()?.map(box_package_manager),
+        config::ArchPackageManager::Shelly => Shelly::get()?.map(box_package_manager),
+    })
 }
 
 pub fn upgrade_arch_linux(ctx: &ExecutionContext) -> Result<()> {
     let package_manager =
-        get_arch_package_manager(ctx).ok_or_else(|| eyre::Report::from(TopgradeError::FailedGettingPackageManager))?;
+        get_arch_package_manager(ctx)?.ok_or_else(|| eyre::Report::from(TopgradeError::FailedGettingPackageManager))?;
     package_manager.upgrade(ctx)
 }
 

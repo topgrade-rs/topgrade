@@ -24,7 +24,7 @@ struct Tmux {
 impl Tmux {
     fn new(args: Vec<String>) -> Result<Self> {
         Ok(Self {
-            tmux: which("tmux").ok_or_else(|| eyre!(t!("Cannot find {binary_name} in PATH", binary_name = "tmux")))?,
+            tmux: which("tmux")?.ok_or_else(|| eyre!(t!("Cannot find {binary_name} in PATH", binary_name = "tmux")))?,
             args: if args.is_empty() { None } else { Some(args) },
         })
     }

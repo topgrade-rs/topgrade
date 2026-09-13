@@ -108,7 +108,7 @@ impl Display for DryRun {
     }
 }
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone)]
 pub struct SkipStep(pub String);
 
 impl Display for SkipStep {
