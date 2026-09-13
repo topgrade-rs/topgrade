@@ -790,13 +790,13 @@ fn dnf_runs_needrestart(ctx: &ExecutionContext) -> Result<bool> {
     let Some(dnf) = which("dnf")? else {
         return Ok(false);
     };
-    Ok(ctx
+    let stdout = ctx
         .execute(&dnf)
         .always()
         .arg("--version")
-        .output_checked_utf8()
-        .map(|output| !output.stdout.contains("dnf5"))
-        .unwrap_or(false))
+        .output_checked_utf8()?
+        .stdout;
+    Ok(!stdout.contains("dnf5"))
 }
 
 pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
