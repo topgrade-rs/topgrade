@@ -160,6 +160,7 @@ static MISE_SHIMS: LazyLock<PathBuf> = LazyLock::new(|| {
 
 fn shim_is_nonfunctional(path: &Path) -> Result<bool> {
     // --help is usually safe to run. A program not supporting it and erroring is okay too.
+    debug!("{path:?} is in mise shims dir ({MISE_SHIMS:?}), running `{path:?} --help` to check if it is functional");
     // TODO: no easy way to do this without requiring `ctx` in `which` and `require`
     #[expect(clippy::disallowed_methods)]
     let out = Command::new(path).arg("--help").output()?;
