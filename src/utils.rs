@@ -158,7 +158,7 @@ static MISE_SHIMS: LazyLock<PathBuf> = LazyLock::new(|| {
         .join("shims")
 });
 
-fn shim_is_nonfunctional(path: &Path) -> Result<bool> {
+fn mise_shim_is_nonfunctional(path: &Path) -> Result<bool> {
     // --help is usually safe to run. A program not supporting it and erroring is okay too.
     debug!("{path:?} is in mise shims dir ({MISE_SHIMS:?}), running `{path:?} --help` to check if it is functional");
     // TODO: no easy way to do this without requiring `ctx` in `which` and `require`
@@ -184,7 +184,7 @@ pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<Option<PathBuf>>
     let mut errors = HashSet::new();
     let path = 'find: {
         for path in candidates {
-            if path.starts_with(&*MISE_SHIMS) && shim_is_nonfunctional(&path)? {
+            if path.starts_with(&*MISE_SHIMS) && mise_shim_is_nonfunctional(&path)? {
                 errors.insert("a Windows binary via WSL interop");
                 continue;
             }
