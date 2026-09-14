@@ -51,6 +51,9 @@ itertools = "0.15.0"
 clap-cargo = "0.19.0"
 edit = "0.1.5"
 
+# Temporary transitive dependency pins
+rust-i18n-support = "=4.2.1"
+
 [build-dependencies]
 parse-changelog = { version = "0.6.15", default-features = false }
 
