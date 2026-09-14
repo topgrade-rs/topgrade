@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, OnceLock};
 
 use color_eyre::eyre::{Context, Result, eyre};
+use itertools::Itertools;
 use rust_i18n::t;
 
 use tracing::{debug, warn};
@@ -246,9 +247,7 @@ pub fn require_one<T: AsRef<OsStr> + Debug>(binary_names: impl IntoIterator<Item
             "Cannot find any of {binary_names} in PATH",
             binary_names = failed_bins
                 .iter()
-                .map(|bin| format!("{:?}", bin))
-                .collect::<Vec<_>>()
-                .join(", ")
+                .format_with(", ", |bin, f| f(&format_args!("{:?}", bin)))
         )
     ))
     .into())
@@ -273,9 +272,7 @@ pub fn require_one_path<T: AsRef<Path> + Debug>(paths: impl IntoIterator<Item = 
             "None of {paths} exist",
             paths = failed_paths
                 .iter()
-                .map(|path| format!("{:?}", path))
-                .collect::<Vec<_>>()
-                .join(", ")
+                .format_with(", ", |path, f| f(&format_args!("{:?}", path)))
         )
     ))
     .into())
