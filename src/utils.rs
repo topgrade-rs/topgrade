@@ -2,7 +2,7 @@ use crate::output_changed_message;
 use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use std::sync::LazyLock;
+use std::sync::{LazyLock, OnceLock};
 
 use color_eyre::eyre::{Context, Result, eyre};
 use rust_i18n::t;
