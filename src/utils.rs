@@ -148,13 +148,15 @@ fn is_windows_mount_path(path: &Path) -> bool {
 
 /// Mise shims dir, normally ~/.local/share/mise/shims
 static MISE_SHIMS: LazyLock<PathBuf> = LazyLock::new(|| {
-    #[cfg(unix)]
-    let data_dir = XDG_DIRS.data_dir();
-    #[cfg(windows)]
-    let data_dir = WINDOWS_DIRS.cache_dir(); // AppData\Local
     env::var("MISE_DATA_DIR")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| data_dir.join("mise"))
+        .unwrap_or_else(|_| {
+            #[cfg(unix)]
+            let data_dir = XDG_DIRS.data_dir();
+            #[cfg(windows)]
+            let data_dir = WINDOWS_DIRS.cache_dir(); // AppData\Local
+            data_dir.join("mise")
+        })
         .join("shims")
 });
 
