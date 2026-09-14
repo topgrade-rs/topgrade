@@ -3486,6 +3486,7 @@ dependencies = [
  "regex",
  "regex-split",
  "rust-i18n",
+ "rust-i18n-support",
  "rust-ini",
  "self_update",
  "semver",
