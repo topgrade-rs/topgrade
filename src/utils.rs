@@ -148,32 +148,39 @@ fn is_windows_mount_path(path: &Path) -> bool {
 
 /// Mise shims dir, normally ~/.local/share/mise/shims
 static MISE_SHIMS: LazyLock<PathBuf> = LazyLock::new(|| {
-    env::var("MISE_DATA_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| {
-            #[cfg(unix)]
-            let data_dir = XDG_DIRS.data_dir();
-            #[cfg(windows)]
-            let data_dir = WINDOWS_DIRS.cache_dir(); // AppData\Local
-            data_dir.join("mise")
-        })
-        .join("shims")
+    env::var("MISE_SHIMS_DIR").map(PathBuf::from).unwrap_or_else(|_| {
+        env::var("MISE_DATA_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| {
+                #[cfg(unix)]
+                let data_dir = XDG_DIRS.data_dir();
+                #[cfg(windows)]
+                let data_dir = WINDOWS_DIRS.cache_dir(); // AppData\Local
+                data_dir.join("mise")
+            })
+            .join("shims")
+    })
 });
 
 fn mise_shim_is_nonfunctional(path: &Path) -> Result<bool> {
     // --help is usually safe to run. A program not supporting it and erroring is okay too.
     debug!("{path:?} is in mise shims dir ({MISE_SHIMS:?}), running `{path:?} --help` to check if it is functional");
-    // TODO: no easy way to do this without requiring `ctx` in `which` and `require`
+    // TODO: There's no easy way to do this without `which` and `require` taking `ctx`.
+    //  This loses automatic logging and damp runs.
     #[expect(clippy::disallowed_methods)]
-    let out = Command::new(path).arg("--help").output()?;
-    let stdout = match String::from_utf8(out.stdout) {
-        Ok(stdout) => stdout,
+    let out = Command::new(path)
+        .arg("--help")
+        .output()
+        .wrap_err_with(|| format!("Running `{} --help` failed", path.display()))?;
+    let stderr = match String::from_utf8(out.stderr) {
+        Ok(stderr) => stderr,
         Err(_) => return Ok(false), // Non-UTF-8 output is weird, but mise's shim errors are UTF-8 so it must be working
     };
-    Ok(stdout.contains("mise ERROR No version is set for shim:"))
+    Ok(stderr.contains("mise ERROR No version is set for shim:"))
 }
 
 pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<Option<PathBuf>> {
+    #[expect(clippy::disallowed_methods)]
     let candidates = match which_crate::which_all(&binary_name) {
         Ok(candidates) => candidates,
         Err(which_crate::Error::CannotFindBinaryPath) => {
@@ -187,11 +194,11 @@ pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<Option<PathBuf>>
     let path = 'find: {
         for path in candidates {
             if path.starts_with(&*MISE_SHIMS) && mise_shim_is_nonfunctional(&path)? {
-                errors.insert("a Windows binary via WSL interop");
+                errors.insert("a Mise shim without global default version");
                 continue;
             }
             if wsl_windows_path_filter_enabled() && is_windows_mount_path(&path) {
-                errors.insert("a Mise shim without global default version");
+                errors.insert("a Windows binary via WSL interop");
                 continue;
             }
             break 'find Some(path);
@@ -204,13 +211,12 @@ pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<Option<PathBuf>>
             debug!("Detected {:?} as {:?}", &path, &binary_name);
             Ok(Some(path))
         }
-        // Every PATH match was a Windows binary on a drive mount.
         None => {
             if !errors.is_empty() {
                 debug!(
                     "Cannot find usable {:?} in PATH (only {})",
                     &binary_name,
-                    errors.into_iter().join(", and ")
+                    errors.into_iter().sorted().join(", and ")
                 );
             } else {
                 debug!("Cannot find {:?}", &binary_name);

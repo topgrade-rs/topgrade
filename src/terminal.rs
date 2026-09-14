@@ -6,6 +6,7 @@ use std::sync::{LazyLock, Mutex};
 use std::time::Duration;
 
 use chrono::{Local, Timelike};
+use color_eyre::Result;
 use color_eyre::eyre;
 use color_eyre::eyre::Context;
 use console::{Term, measure_text_width, style};
@@ -14,27 +15,27 @@ use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use notify_rust::{Notification, Timeout};
 use rust_i18n::t;
 use tracing::{debug, error};
-#[cfg(windows)]
-use which_crate::which;
 
 use crate::command::CommandExt;
 use crate::runner::StepResult;
+#[cfg(windows)]
+use crate::utils::which_one;
 
 static TERMINAL: LazyLock<Mutex<Terminal>> = LazyLock::new(|| Mutex::new(Terminal::new()));
 
 #[cfg(unix)]
-pub fn shell() -> String {
-    env::var("SHELL").unwrap_or_else(|_| "sh".to_string())
+pub fn shell() -> Result<String> {
+    Ok(env::var("SHELL").unwrap_or_else(|_| "sh".to_string()))
 }
 
 #[cfg(windows)]
-pub fn shell() -> &'static str {
-    which("pwsh").map(|_| "pwsh").unwrap_or("powershell")
+pub fn shell() -> Result<&'static str> {
+    which_one(["pwsh", "powershell"])?.ok_or_eyre("Expected pwsh or powershell to be available")?
 }
 
 #[expect(clippy::disallowed_methods)]
-pub fn run_shell() -> eyre::Result<()> {
-    Command::new(shell()).env("IN_TOPGRADE", "1").status_checked()
+pub fn run_shell() -> Result<()> {
+    Command::new(shell()?).env("IN_TOPGRADE", "1").status_checked()
 }
 
 struct Terminal {
