@@ -2,7 +2,7 @@ use crate::output_changed_message;
 use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
+use std::sync::LazyLock;
 
 use color_eyre::eyre::{Context, Result, eyre};
 use rust_i18n::t;
@@ -110,34 +110,31 @@ fn wsl_windows_path_filter_enabled() -> bool {
 }
 
 /// Mount points backed by Windows drives (drvfs on WSL1, 9p/virtiofs on WSL2).
-fn windows_mount_prefixes() -> &'static [PathBuf] {
-    static PREFIXES: OnceLock<Vec<PathBuf>> = OnceLock::new();
-    PREFIXES.get_or_init(|| {
-        // On a read failure the list stays empty, so the filter is inert (plain lookup).
-        let mounts = std::fs::read_to_string("/proc/mounts").unwrap_or_else(|e| {
-            warn!("Could not read /proc/mounts: {e}; WSL Windows-path filter stays inert");
-            String::new()
-        });
-        mounts
-            .lines()
-            .filter_map(|line| {
-                let mut cols = line.split_whitespace();
-                let _source = cols.next()?;
-                let mount_point = cols.next()?;
-                let fstype = cols.next()?;
-                let options = cols.next().unwrap_or("");
-                // A Windows drive is WSL1 drvfs, or a WSL2 9p/virtiofs mount tagged
-                // `aname=drvfs`. Keying on that tag rather than the fstype avoids WSL's own
-                // 9p/virtiofs mounts (/usr/lib/wsl/drivers, /mnt/wslg) and still catches a
-                // drive mounted via virtiofs.
-                (fstype == "drvfs" || options.contains("aname=drvfs")).then(|| PathBuf::from(mount_point))
-            })
-            .collect()
-    })
-}
+static PREFIXES: LazyLock<Vec<PathBuf>> = LazyLock::new(|| {
+    // On a read failure the list stays empty, so the filter is inert (plain lookup).
+    let mounts = std::fs::read_to_string("/proc/mounts").unwrap_or_else(|e| {
+        warn!("Could not read /proc/mounts: {e}; WSL Windows-path filter stays inert");
+        String::new()
+    });
+    mounts
+        .lines()
+        .filter_map(|line| {
+            let mut cols = line.split_whitespace();
+            let _source = cols.next()?;
+            let mount_point = cols.next()?;
+            let fstype = cols.next()?;
+            let options = cols.next().unwrap_or("");
+            // A Windows drive is WSL1 drvfs, or a WSL2 9p/virtiofs mount tagged
+            // `aname=drvfs`. Keying on that tag rather than the fstype avoids WSL's own
+            // 9p/virtiofs mounts (/usr/lib/wsl/drivers, /mnt/wslg) and still catches a
+            // drive mounted via virtiofs.
+            (fstype == "drvfs" || options.contains("aname=drvfs")).then(|| PathBuf::from(mount_point))
+        })
+        .collect()
+});
 
-fn is_windows_mount_path(path: &Path, prefixes: &[PathBuf]) -> bool {
-    prefixes.iter().any(|prefix| path.starts_with(prefix))
+fn is_windows_mount_path(path: &Path) -> bool {
+    PREFIXES.iter().any(|prefix| path.starts_with(prefix))
 }
 
 /// `which`, but skips executables on Windows drive mounts.
@@ -151,11 +148,10 @@ fn which_native_in_wsl<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<Option
         Err(e) => return Err(eyre!(e).wrap_err(format!("Detecting {:?} failed", binary_name))),
     };
 
-    let prefixes = windows_mount_prefixes();
     let mut saw_candidate = false;
     let native = candidates.find(|path| {
         saw_candidate = true;
-        !is_windows_mount_path(path, prefixes)
+        !is_windows_mount_path(path)
     });
     match native {
         Some(path) => {
