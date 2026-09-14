@@ -6,6 +6,7 @@ use std::path::Path;
 use std::process::{Child, Command, ExitStatus, Output, Stdio};
 
 use color_eyre::eyre::Result;
+use itertools::Itertools;
 use rust_i18n::t;
 use tracing::{Level, debug, enabled};
 
@@ -388,7 +389,6 @@ fn log_command<
                 env = env_iter
                     .filter_map(|(key, val)| val.map(|val| (key, val))) // Remove None values
                     .map(|(key, val)| format!("{:?}={:?}", key, val))
-                    .collect::<Vec<_>>()
                     .join(" ")
             )
         )

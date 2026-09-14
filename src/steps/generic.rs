@@ -3,6 +3,7 @@ use color_eyre::eyre::Result;
 use color_eyre::eyre::{OptionExt, bail, eyre};
 #[cfg(unix)]
 use etcetera::BaseStrategy;
+use itertools::Itertools;
 use jetbrains_toolbox_updater::{FindError, find_jetbrains_toolbox, update_jetbrains_toolbox};
 use regex::bytes::Regex;
 use rust_i18n::t;
@@ -793,7 +794,6 @@ fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Resu
     let version_string = version_string
         .split('.')
         .map(|s| if s == "0" { "0" } else { s.trim_start_matches('0') })
-        .collect::<Vec<_>>()
         .join(".");
 
     let version = Version::parse(&version_string)
