@@ -196,34 +196,16 @@ pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<Option<PathBuf>>
 }
 
 pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
-    if wsl_windows_path_filter_enabled() {
-        return which_native_in_wsl(&binary_name)?.ok_or_else(|| {
-            SkipStep(format!(
-                "{}",
-                t!(
-                    "Cannot find {binary_name} in PATH",
-                    binary_name = format!("{:?}", &binary_name)
-                )
-            ))
-            .into()
-        });
-    }
-
-    match which_crate::which(&binary_name) {
-        Ok(path) => {
-            debug!("Detected {:?} as {:?}", &path, &binary_name);
-            Ok(path)
-        }
-        Err(which_crate::Error::CannotFindBinaryPath) => Err(SkipStep(format!(
+    which(&binary_name)?.ok_or_else(|| {
+        SkipStep(format!(
             "{}",
             t!(
                 "Cannot find {binary_name} in PATH",
                 binary_name = format!("{:?}", &binary_name)
             )
         ))
-        .into()),
-        Err(e) => Err(eyre!(e).wrap_err(format!("Detecting {:?} failed", binary_name))),
-    }
+        .into()
+    })
 }
 
 #[allow(unused)]
