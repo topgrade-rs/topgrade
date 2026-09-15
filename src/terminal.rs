@@ -9,6 +9,8 @@ use chrono::{Local, Timelike};
 use color_eyre::Result;
 use color_eyre::eyre;
 use color_eyre::eyre::Context;
+#[cfg(windows)]
+use color_eyre::eyre::OptionExt;
 use console::{Term, measure_text_width, style};
 use crossterm::event::{DisableBracketedPaste, EnableBracketedPaste, Event, KeyCode, KeyEventKind, read};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
