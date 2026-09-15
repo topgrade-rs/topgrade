@@ -641,6 +641,11 @@ impl Step {
             Shell => {
                 #[cfg(unix)]
                 {
+                    // oh-my-zsh must run before any zsh plugin/module manager below: those
+                    // managers invoke `zsh` as a subprocess, and if oh-my-zsh has a pending
+                    // update it prompts interactively inside that subshell, ignoring `-y`.
+                    // See https://github.com/topgrade-rs/topgrade/issues/2270.
+                    runner.execute(*self, "oh-my-zsh", || zsh::run_oh_my_zsh(ctx))?;
                     runner.execute(*self, "zr", || zsh::run_zr(ctx))?;
                     runner.execute(*self, "antibody", || zsh::run_antibody(ctx))?;
                     runner.execute(*self, "antidote", || zsh::run_antidote(ctx))?;
@@ -650,7 +655,6 @@ impl Step {
                     runner.execute(*self, "zinit", || zsh::run_zinit(ctx))?;
                     runner.execute(*self, "zi", || zsh::run_zi(ctx))?;
                     runner.execute(*self, "zim", || zsh::run_zim(ctx))?;
-                    runner.execute(*self, "oh-my-zsh", || zsh::run_oh_my_zsh(ctx))?;
                     runner.execute(*self, "oh-my-bash", || unix::run_oh_my_bash(ctx))?;
                     runner.execute(*self, "fisher", || unix::run_fisher(ctx))?;
                     runner.execute(*self, "bash-it", || unix::run_bashit(ctx))?;
