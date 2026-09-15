@@ -20,6 +20,7 @@ use tracing::{debug, error};
 
 use crate::command::CommandExt;
 use crate::runner::StepResult;
+#[cfg(unix)]
 use crate::utils::which;
 #[cfg(windows)]
 use crate::utils::which_one;
