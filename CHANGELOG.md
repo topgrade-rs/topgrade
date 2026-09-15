@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.11.1](https://github.com/topgrade-rs/topgrade/compare/v17.11.0...v17.11.1) - 2026-09-15
+
+### Fixed
+- crash when `dnf --version` fails
+
 ## [17.11.0](https://github.com/topgrade-rs/topgrade/compare/v17.10.1...v17.11.0) - 2026-09-13
 
 ### Added
