@@ -3,4 +3,6 @@ disallowed-methods = [
     { path = "std::process::Command::output", reason = "Use `output_checked[_with][_utf8]`" },
     { path = "std::process::Command::spawn", reason = "Use `spawn_checked`" },
     { path = "std::process::Command::status", reason = "Use `status_checked`" },
+    { path = "which::which", reason = "Use `utils::which`" },
+    { path = "which::which_all", reason = "Use `utils::which`" },
 ]
