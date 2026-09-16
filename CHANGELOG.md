@@ -315,7 +315,7 @@ Rerelease of 17.2.0 because of CD mishap
 - *(deps)* lock file maintenance ([#1666](https://github.com/topgrade-rs/topgrade/pull/1666))
 - *(deps)* update rust crate tokio to ~1.49.0 ([#1663](https://github.com/topgrade-rs/topgrade/pull/1663))
 - *(renovate)* change semantic commit type to always be 'chore' ([#1665](https://github.com/topgrade-rs/topgrade/pull/1665))
-- fix category (os -> command-line-utlilities) in Cargo.toml ([#1664](https://github.com/topgrade-rs/topgrade/pull/1664))
+- fix category (os -> command-line-utilities) in Cargo.toml ([#1664](https://github.com/topgrade-rs/topgrade/pull/1664))
 - remove deprecated authors field from Cargo.toml ([#1661](https://github.com/topgrade-rs/topgrade/pull/1661))
 - add authors and maintainers to pyproject.toml ([#1662](https://github.com/topgrade-rs/topgrade/pull/1662))
 - *(deps)* update rust crate clap_complete to v4.5.64 ([#1654](https://github.com/topgrade-rs/topgrade/pull/1654))

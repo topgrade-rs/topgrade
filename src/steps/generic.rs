@@ -754,7 +754,7 @@ fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Resu
     let bin_name = variant.bin_name();
     let bin = require(bin_name)?;
 
-    // VSCode has update command only since 1.86 version ("january 2024" update), disable the update for prior versions
+    // VSCode has an update command only since version 1.86 ("January 2024" update); disable the update for prior versions
     //
     // The output of `code --version` has two possible formats:
     // 1. 3 lines: version, git commit, instruction set. We parse only the first one
@@ -2104,7 +2104,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         let start_trimmed = uv_version_output_stdout
             .trim_start_matches("uv")
             .trim_start_matches(' ');
-        // Remove the tailing part " (c4d0caaee 2024-12-19)\n", if it's there
+        // Remove the trailing part " (c4d0caaee 2024-12-19)\n", if it's there
         match start_trimmed.find(' ') {
             None => start_trimmed.trim_end_matches('\n'), // Otherwise, just strip the newline
             Some(i) => &start_trimmed[..i],
@@ -2213,7 +2213,7 @@ pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
     let bun = require("bun")?;
 
     // From the official install script (both install.sh and install.ps1), Bun uses
-    // the path set in this variable as the install root, and its defaults to
+    // the path set in this variable as the install root, and it defaults to
     // `$HOME/.bun`
     //
     // UNIX: https://bun.sh/install.sh

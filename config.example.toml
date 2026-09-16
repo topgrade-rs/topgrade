@@ -105,7 +105,7 @@
 #
 # this will be ignored if the binary is built without self update support
 #
-# available also via setting the environment variable TOPGRADE_NO_SELF_UPGRADE)
+# (also available by setting the environment variable TOPGRADE_NO_SELF_UPGRADE)
 # no_self_update = true
 
 # Extra tracing filter directives
@@ -311,7 +311,7 @@
 # wsl_update_use_web_download = true
 
 # The default for winget_silent_install is true,
-# this example turns off silent install.
+# this example turns off silent installation.
 # winget_silent_install = false
 
 # Causes Topgrade to rename itself during the run to allow package managers
@@ -322,7 +322,7 @@
 # Use sudo to elevate privileges for the Windows Package Manager (winget)
 # Only use this option if you want to run the Winget step in sudo-mode.
 # Running winget in sudo-mode is generally not recommended, as not every
-# package supports installing / upgrading in sudo-mode and it may cause issues
+# package supports installing / upgrading in sudo-mode, and it may cause issues
 # with some packages or may even cause the Winget-step to fail.
 # If any problems occur, please try running Topgrade without this option first
 # before reporting an issue.
@@ -461,13 +461,13 @@
 
 # Specifies the directory that the zig files will be installed to.
 # If defined, passed with the --install-dir command line flag.
-# If not defined, zigup will use its default behaviour.
+# If not defined, zigup will use its default behavior.
 # (default: not defined)
 # install_dir = "~/.zig"
 
 # Specifies the path of the symlink which will be set to point at the default compiler version.
 # If defined, passed with the --path-link command line flag.
-# If not defined, zigup will use its default behaviour.
+# If not defined, zigup will use its default behavior.
 # This is not meaningful if set_default is not enabled.
 # (default: not defined)
 # path_link = "~/.bin/zig"

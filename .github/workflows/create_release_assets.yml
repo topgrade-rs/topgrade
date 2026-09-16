@@ -16,7 +16,7 @@ jobs:
   # Publish release files for CD native environments
   native_build:
     permissions:
-      # Use to sign the release artifacts
+      # Used to sign the release artifacts
       id-token: write
       # Used to upload release artifacts
       contents: write
@@ -145,7 +145,7 @@ jobs:
   # Publish release files for non-CD-native environments
   cross_build:
     permissions:
-      # Use to sign the release artifacts
+      # Used to sign the release artifacts
       id-token: write
       # Used to upload release artifacts
       contents: write
@@ -210,7 +210,7 @@ jobs:
       - name: Run tests
         run: cross test --target "${matrix_target}"
         # Running tests on FreeBSD is impossible; see https://github.com/cross-rs/cross/wiki/FAQ#running-bsd-tests
-        # Not that this is *NOT* the same as the original issue with `ld: cannot find -lgeom`, but a new issue:
+        # Note that this is *NOT* the same as the original issue with `ld: cannot find -lgeom`, but a new issue:
         # error: test failed, to rerun pass `--lib`
         # Caused by:
         #   could not execute process `/target/x86_64-unknown-freebsd/debug/deps/topgrade-9b1670d87ca863dd` (never executed)

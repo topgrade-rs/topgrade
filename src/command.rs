@@ -228,7 +228,7 @@ impl CommandExt for Command {
 }
 
 fn get_program_and_args(cmd: &Command) -> (String, String) {
-    // We're not doing anything weird with commands that are invalid UTF-8 so this is fine.
+    // We're not doing anything weird with commands that are invalid UTF-8, so this is fine.
     let program = cmd.get_program().to_string_lossy().into_owned();
     let args = shell_words::join(cmd.get_args().map(|arg| arg.to_string_lossy()));
     (program, args)

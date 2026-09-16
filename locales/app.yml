@@ -574,12 +574,12 @@ _version: 2
   zh_CN: "系统更新"
   zh_TW: "系統更新"
   de: "System-Update"
-"needrestart will be ran by the package manager":
-  en: "needrestart will be ran by the package manager"
+"needrestart will be run by the package manager":
+  en: "needrestart will be run by the package manager"
   lt: "needrestart paleistas paketų tvarkyklės"
   es: "needrestart será ejecutado por el administrador de paquetes"
   fr: "needrestart sera exécuté par le gestionnaire de paquets"
-  zh_CN: "neddrestart 将被包管理器运行"
+  zh_CN: "needrestart 将被包管理器运行"
   zh_TW: "needrestart 將被套件管理員執行"
   de: "needrestart wird vom Paketmanager ausgeführt"
 "Check for needed restarts":

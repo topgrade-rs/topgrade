@@ -97,32 +97,32 @@ configuration file.
 
 ### Custom Commands
 
-Custom commands can be defined in the configuration file, which can be run before, during, or after the inbuilt commands, as
+Custom commands can be defined in the configuration file, which can be run before, during, or after the built-in commands, as
 required.
 By default, the custom commands are run using a new shell according to the `$SHELL` environment variable on Unix (falls
 back to `sh`) or `pwsh` on Windows (falls back to `powershell`).
 
 On Unix, if you want to run your command using an interactive shell, for example to source your shell's RC files, you
 can add `-i` at the start of your custom command.
-Although note that this requires the command to exit the shell correctly, or else the shell will hang indefinitely.
+Note, however, that this requires the command to exit the shell correctly, or else the shell will hang indefinitely.
 
 ## Remote Execution
 
 You can specify a key called `remote_topgrades` in the configuration file.
 This key should contain a list of hostnames that have Topgrade installed on them.
 Topgrade will use `ssh` to run `topgrade` on remote hosts before acting locally.
-To limit the execution only to specific hosts use the `--remote-host-limit` parameter.
+To limit the execution only to specific hosts, use the `--remote-host-limit` parameter.
 
 ## Contribution
 
 ### Problems or missing features?
 
-Open a new issue describing your problem and if possible provide a solution.
+Open a new issue describing your problem and, if possible, provide a solution.
 
 ### Missing a feature or found an unsupported tool/distro?
 
-Just let us now what you are missing by opening an issue.
-For tools, please open an issue describing the tool, which platforms it supports and if possible, give us an example of
+Just let us know what you are missing by opening an issue.
+For tools, please open an issue describing the tool, which platforms it supports, and if possible, give us an example of
 its usage.
 
 ### Want to contribute?

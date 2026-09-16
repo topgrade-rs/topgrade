@@ -752,11 +752,11 @@ fn upgrade_nixos(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_neon(ctx: &ExecutionContext) -> Result<()> {
-    // KDE neon is ubuntu based but uses it's own manager, pkcon
+    // KDE neon is Ubuntu-based but uses its own manager, pkcon
     // running apt update with KDE neon is an error
-    // in theory rpm based distributions use pkcon as well, though that
-    // seems rare
-    // if that comes up we need to create a Distribution::PackageKit or some such
+    // In theory RPM-based distributions use pkcon as well, though that
+    // seems rare;
+    // if that comes up, we need to create a Distribution::PackageKit or some such
 
     let pkcon = require("pkcon")?;
     let sudo = ctx.require_sudo()?;
@@ -768,7 +768,7 @@ fn upgrade_neon(ctx: &ExecutionContext) -> Result<()> {
     exe.arg("update")
         .arg_if(ctx.config().yes(Step::System), "-y")
         .arg_if(ctx.config().cleanup(), "--autoremove")
-        // from pkcon man, exit code 5 is 'Nothing useful was done.'
+        // from the pkcon man page, exit code 5 is 'Nothing useful was done.'
         .status_checked_with_codes(&[5])?;
 
     Ok(())
@@ -812,7 +812,7 @@ pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
     if (HOOKS.iter().any(|hook| Path::new(hook).exists()) || dnf_runs_needrestart(ctx)?)
         && ctx.config().should_run(Step::System)
     {
-        return Err(SkipStep(String::from(t!("needrestart will be ran by the package manager"))).into());
+        return Err(SkipStep(String::from(t!("needrestart will be run by the package manager"))).into());
     }
 
     print_separator(t!("Check for needed restarts"));
@@ -1320,7 +1320,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fedoraremixonwsl() {
+    fn test_fedoraremixforwsl() {
         test_template(include_str!("os_release/fedoraremixforwsl"), Distribution::Fedora);
     }
 

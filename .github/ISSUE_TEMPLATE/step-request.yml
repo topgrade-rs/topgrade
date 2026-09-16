@@ -54,8 +54,8 @@ body:
   - type: input
     attributes:
       label: Installation
-      description: If it's self-updatable, what's the install path Topgrade should look for? What is the condition for self update to run (e.g. only if a specific installation method was used).
-      placeholder: "`~/.local/bin/uv`: when installed with a the install script"
+      description: If it's self-updatable, what's the install path Topgrade should look for? What is the condition for self-update to run (e.g. only if a specific installation method was used).
+      placeholder: "`~/.local/bin/uv`: when installed with the install script"
 
   - type: textarea
     attributes:

@@ -43,7 +43,7 @@ fn require_go_bin(ctx: &ExecutionContext, name: &str) -> Result<PathBuf> {
         // > On Unix, the value is a colon-separated string.
         // > On Windows, the value is a semicolon-separated string.
         // > On Plan 9, the value is a list.
-        // Should we also fallback to the env variable?
+        // Should we also fall back to the env variable?
         let gopath_output = ctx.execute(go).always().args(["env", "GOPATH"]).output_checked_utf8()?;
         let gopath = gopath_output.stdout.trim();
 
