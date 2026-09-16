@@ -9,31 +9,51 @@ use std::path::Path;
 use std::path::PathBuf;
 use tracing::debug;
 
-/// Locate the containers `toolbx` binary (<https://github.com/containers/toolbox>).
+/// A binary named `toolbox` found in `PATH`.
 ///
 /// Several distributions ship an unrelated tool that is also called `toolbox`,
 /// most notably openSUSE (<https://github.com/openSUSE/microos-toolbox>), so
-/// finding a binary named `toolbox` in `PATH` is not enough. We confirm it is
-/// the real containers `toolbx` by checking that `toolbox --version` reports
-/// `toolbox version ...`, which the openSUSE tool does not.
-fn require_containers_toolbx(ctx: &ExecutionContext) -> Result<PathBuf> {
-    let toolbx = require("toolbox")?;
+/// finding a binary named `toolbox` in `PATH` is not enough to know it is the
+/// containers `toolbx` (<https://github.com/containers/toolbox>).
+enum Toolbx {
+    /// The containers `toolbx`, which we know how to update.
+    Containers(PathBuf),
+    /// Some other `toolbox` (e.g. openSUSE's), which we leave alone.
+    Other,
+}
 
-    let version_output = ctx.execute(&toolbx).always().arg("--version").output_checked_utf8();
+impl Toolbx {
+    fn containers(self) -> Result<PathBuf> {
+        match self {
+            Self::Containers(toolbx) => Ok(toolbx),
+            Self::Other => Err(SkipStep(
+                "Found a `toolbox` binary, but it is not the containers toolbx (e.g. openSUSE's toolbox)".to_string(),
+            )
+            .into()),
+        }
+    }
 
-    match version_output {
-        Ok(output) if is_containers_toolbx_version(&output.stdout) => Ok(toolbx),
-        _ => Err(SkipStep(
-            "Found a `toolbox` binary, but it is not the containers toolbx (e.g. openSUSE's toolbox)".to_string(),
-        )
-        .into()),
+    fn get(ctx: &ExecutionContext) -> Result<Self> {
+        let toolbx = require("toolbox")?;
+
+        let version_output = ctx.execute(&toolbx).always().arg("--version").output_checked_utf8();
+
+        // containers `toolbx` prints `toolbox version <x.y.z>`, whereas
+        // openSUSE's unrelated `toolbox` does not support `--version` at all.
+        match version_output {
+            Ok(output) if is_containers_toolbx_version(&output.stdout) => {
+                debug!("Detected `toolbox` as the containers toolbx");
+                Ok(Self::Containers(toolbx))
+            }
+            _ => {
+                debug!("Detected `toolbox` as another tool (e.g. openSUSE's)");
+                Ok(Self::Other)
+            }
+        }
     }
 }
 
 /// Whether `toolbox --version` output belongs to the containers `toolbx`.
-///
-/// containers `toolbx` prints `toolbox version <x.y.z>`, whereas openSUSE's
-/// unrelated `toolbox` does not support `--version` at all.
 fn is_containers_toolbx_version(stdout: &str) -> bool {
     stdout.trim_start().starts_with("toolbox version")
 }
@@ -61,7 +81,7 @@ fn list_toolboxes(ctx: &ExecutionContext, toolbx: &Path) -> Result<Vec<String>> 
 }
 
 pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
-    let toolbx = require_containers_toolbx(ctx)?;
+    let toolbx = Toolbx::get(ctx)?.containers()?;
 
     print_separator("Toolbx");
     let toolboxes = list_toolboxes(ctx, &toolbx)?;
