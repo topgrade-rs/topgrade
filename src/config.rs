@@ -251,9 +251,11 @@ pub enum ArchPackageManager {
 #[serde(rename_all = "snake_case")]
 pub enum SkillsPackageManager {
     #[default]
-    Npx,
+    #[serde(alias = "npx")]
+    Npm,
     Pnpm,
     Bun,
+    Yarn,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Default)]
@@ -2030,7 +2032,7 @@ impl Config {
             .unwrap_or(false)
     }
 
-    /// Package runner to use to run the `skills` CLI (npx / pnpx / bunx)
+    /// Package runner to use to run the `skills` CLI (npx / pnpx / bunx / yarn dlx)
     pub fn skills_package_manager(&self) -> SkillsPackageManager {
         self.config_file
             .skills
@@ -2316,6 +2318,23 @@ mod test {
         assert_eq!(left.system_prune, Some(false));
         // Left None is filled from right
         assert_eq!(left.use_sudo, Some(true));
+    }
+
+    /// `package_manager = "npx"` shipped in 17.10.0 as the only value; keep it working.
+    #[test]
+    fn test_skills_package_manager() {
+        for (value, expected) in [
+            ("npm", SkillsPackageManager::Npm),
+            ("pnpm", SkillsPackageManager::Pnpm),
+            ("bun", SkillsPackageManager::Bun),
+            ("yarn", SkillsPackageManager::Yarn),
+            ("npx", SkillsPackageManager::Npm),
+        ] {
+            let config = config_from_toml(&format!("[skills]\npackage_manager = \"{value}\"\n"));
+            assert_eq!(config.skills_package_manager(), expected, "{value}");
+        }
+
+        assert_eq!(config_from_toml("").skills_package_manager(), SkillsPackageManager::Npm);
     }
 
     /// Test the default configuration in `config.example.toml` is valid.

@@ -2688,16 +2688,18 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
     }
 
     // Fall back to a package runner; only npx needs `--yes` to auto-confirm the download
-    let (runner, uses_yes_flag) = match ctx.config().skills_package_manager() {
-        SkillsPackageManager::Npx => ("npx", true),
-        SkillsPackageManager::Pnpm => ("pnpx", false),
-        SkillsPackageManager::Bun => ("bunx", false),
+    let (runner, runner_args, uses_yes_flag) = match ctx.config().skills_package_manager() {
+        SkillsPackageManager::Npm => ("npx", &[][..], true),
+        SkillsPackageManager::Pnpm => ("pnpx", &[][..], false),
+        SkillsPackageManager::Bun => ("bunx", &[][..], false),
+        SkillsPackageManager::Yarn => ("yarn", &["dlx"][..], false),
     };
 
     let runner = require(runner)?;
     print_separator("Skills");
     ctx.execute(runner)
         .arg_if(uses_yes_flag && ctx.config().yes(Step::Skills), "--yes")
+        .args(runner_args)
         .args(["skills", "update", "--global"])
         .status_checked()
 }
