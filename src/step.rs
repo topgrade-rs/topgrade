@@ -56,6 +56,7 @@ pub enum Step {
     Conda,
     ConfigUpdate,
     Containers,
+    CopilotPlugins,
     Cursor,
     CursorAgent,
     CustomCommands,
@@ -328,6 +329,7 @@ impl Step {
                 runner.execute(*self, "config-update", || linux::run_config_update(ctx))?
             }
             Containers => runner.execute(*self, "Containers", || containers::run_containers(ctx))?,
+            CopilotPlugins => runner.execute(*self, "GitHub Copilot Plugins", || generic::run_copilot_plugins(ctx))?,
             Cursor => runner.execute(*self, "Cursor extensions", || {
                 generic::run_cursor_extensions_update(ctx)
             })?,
@@ -951,6 +953,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         ClamAvDb,
         ClaudeCode,
         ClaudeCodePlugins,
+        CopilotPlugins,
         Codex,
         Opencode,
         Colima,

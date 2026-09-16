@@ -2624,6 +2624,16 @@ pub fn run_claude_code_plugins(ctx: &ExecutionContext) -> Result<()> {
     if success { Ok(()) } else { Err(eyre!(StepFailed)) }
 }
 
+pub fn run_copilot_plugins(ctx: &ExecutionContext) -> Result<()> {
+    let copilot = require("copilot")?;
+
+    print_separator("GitHub Copilot Plugins");
+
+    ctx.execute(&copilot)
+        .args(["plugin", "update", "--all"])
+        .status_checked()
+}
+
 pub fn run_codex(ctx: &ExecutionContext) -> Result<()> {
     let codex = require("codex")?;
 
