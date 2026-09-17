@@ -124,8 +124,8 @@ fn run() -> Result<()> {
     debug!("self-update Feature Enabled: {:?}", cfg!(feature = "self-update"));
     debug!("Configuration: {:?}", config);
 
-    match config.run_in_multiplexer() {
-        Multiplexer::No => {},
+    match config.run_in_multiplexer()? {
+        Multiplexer::No => {}
         Multiplexer::Tmux => {
             if env::var("TOPGRADE_INSIDE_TMUX").is_err() {
                 #[cfg(unix)]
