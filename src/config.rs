@@ -107,6 +107,13 @@ pub enum UpdatesAutoReboot {
     Ask,
 }
 
+#[derive(Debug, Copy, Clone)]
+pub enum Multiplexer {
+    Tmux,
+    Zellij,
+    No,
+}
+
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
 pub struct Windows {
@@ -444,6 +451,16 @@ pub enum TmuxSessionMode {
     AttachAlways,
 }
 
+#[derive(Clone, Copy, Debug)]
+// #[derive(Clone, Copy, Debug, Deserialize, ValueEnum, Default)]
+// #[clap(rename_all = "snake_case")]
+// #[serde(rename_all = "snake_case")]
+pub enum ZellijSessionMode {
+    // #[default]
+    // AttachIfNotInSession,
+    AttachAlways,
+}
+
 /// Controls when the end-of-run desktop notification is sent.
 #[derive(Clone, Copy, Debug, Deserialize, ValueEnum, Default)]
 #[clap(rename_all = "snake_case")]
@@ -461,6 +478,11 @@ pub enum NotifyEnd {
 pub struct TmuxConfig {
     pub args: Vec<String>,
     pub session_mode: TmuxSessionMode,
+}
+
+pub struct ZellijConfig {
+    pub args: Vec<String>,
+    pub session_mode: ZellijSessionMode,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1208,9 +1230,10 @@ impl Config {
                 .unwrap_or(false)
     }
 
-    /// Tell whether we should run in tmux.
-    pub fn run_in_tmux(&self) -> bool {
-        !self.opt.no_tmux
+    /// Tell whether we should run in a multiplexer.
+    pub fn run_in_multiplexer(&self) -> Multiplexer {
+        // TODO: better resolution of multiplexers
+        match !self.opt.no_tmux
             && (self.opt.run_in_tmux
                 || self
                     .config_file
@@ -1218,6 +1241,11 @@ impl Config {
                     .as_ref()
                     .and_then(|misc| misc.run_in_tmux)
                     .unwrap_or(false))
+        {
+            true => Multiplexer::Tmux,
+            // TODO: use zellij only on --zellij flag
+            false => Multiplexer::Zellij,
+        }
     }
 
     /// The preferred way to run the new tmux session.
@@ -1344,6 +1372,15 @@ impl Config {
             session_mode: self.tmux_session_mode(),
         })
     }
+    pub fn zellij_config(&self) -> Result<ZellijConfig> {
+        let args = self.zellij_arguments()?;
+        Ok(ZellijConfig {
+            args,
+            // TODO: zellij session mode
+            // session_mode: self.zellij_session_mode(),
+            session_mode: ZellijSessionMode::AttachAlways,
+        })
+    }
 
     /// Extra Tmux arguments
     fn tmux_arguments(&self) -> Result<Vec<String>> {
@@ -1362,6 +1399,11 @@ impl Config {
             //     Caused by:
             //         missing closing quote
             .with_context(|| format!("Failed to parse `tmux_arguments`: `{args}`"))
+    }
+    /// Extra zellij arguments
+    fn zellij_arguments(&self) -> Result<Vec<String>> {
+        // TODO: zellij args
+        Ok(Vec::new())
     }
 
     /// Prompt for a key before exiting
