@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.12.0](https://github.com/topgrade-rs/topgrade/compare/v17.11.0...v17.12.0) - 2026-09-19
+
+### Added
+- *(skills)* support `yarn dlx` and adjust configuration options ([#2346](https://github.com/topgrade-rs/topgrade/pull/2346))
+
+### Fixed
+- crash when `dnf --version` fails
+
 ## [17.11.0](https://github.com/topgrade-rs/topgrade/compare/v17.10.1...v17.11.0) - 2026-09-13
 
 ### Added
