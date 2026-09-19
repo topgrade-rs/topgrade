@@ -90,6 +90,9 @@ nix = { version = "0.31", features = ["hostname", "signal", "user"] }
 rust-ini = "0.21"
 self_update_crate = { version = "0.44", default-features = false, optional = true, package = "self_update", features = ["archive-tar", "compression-flate2", "rustls", "reqwest"] }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+reqwest = { version = "0.13.5", features = ["blocking", "json"] }
+
 [target.'cfg(windows)'.dependencies]
 is_elevated = "0.1"
 parselnk = "0.1"

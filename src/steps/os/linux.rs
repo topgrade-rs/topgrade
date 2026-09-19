@@ -1,15 +1,20 @@
+use std::io;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::process::Stdio;
 
-use color_eyre::eyre::{Result, eyre};
+use color_eyre::eyre::{OptionExt, Result, WrapErr, eyre};
 use ini::Ini;
 use rust_i18n::t;
+use semver::Version;
+use serde::Deserialize;
 use tracing::{debug, warn};
 
 use crate::command::CommandExt;
 use crate::config::NixHandler;
 use crate::error::{SkipStep, TopgradeError};
 use crate::execution_context::ExecutionContext;
+use crate::executor::ExecutorChild;
 use crate::step::Step;
 use crate::steps::generic::IS_WSL;
 use crate::steps::os::archlinux;
@@ -1193,6 +1198,69 @@ pub fn run_protonplus_update(ctx: &ExecutionContext) -> Result<()> {
     print_separator(if flatpak { "ProtonPlus (Flatpak)" } else { "ProtonPlus" });
 
     cmd().args(["update", "all"]).status_checked()
+}
+
+pub fn run_zed(ctx: &ExecutionContext) -> Result<()> {
+    let zed = require("zed")?;
+
+    if !zed.starts_with(HOME_DIR.join(".local/bin")) {
+        return Err(SkipStep("Not a standalone Zed installation".to_string()).into());
+    }
+
+    print_separator("Zed");
+
+    let version = Version::parse(
+        ctx.execute(zed)
+            .always()
+            .arg("--version")
+            .output_checked_utf8()?
+            .stdout
+            .split(' ')
+            .nth(1)
+            .ok_or_else(|| {
+                eyre!(output_changed_message!(
+                    "zed --version",
+                    "Should be in 'Zed x.y.z <...>' format"
+                ))
+            })?,
+    )
+    .wrap_err_with(|| output_changed_message!("zed --version", "Should be a valid version"))?;
+
+    let client = reqwest::blocking::Client::builder().user_agent("Topgrade").build()?;
+
+    #[derive(Deserialize)]
+    struct Response {
+        tag_name: String,
+    }
+
+    let latest = Version::parse(
+        client
+            .get("https://api.github.com/repos/zed-industries/zed/releases/latest")
+            .send()
+            .wrap_err("Failed to get latest version")?
+            .json::<Response>()?
+            .tag_name
+            .strip_prefix('v')
+            .ok_or_eyre("Tag on GitHub doesn't start with 'v'")?,
+    )?;
+
+    if version < latest {
+        let mut response = client
+            .get("https://zed.dev/install.sh")
+            .send()
+            .wrap_err("Failed to download install script")?;
+        let child = ctx.execute("sh").stdin(Stdio::piped()).spawn()?;
+        let mut child = match child {
+            ExecutorChild::Wet(child) => child,
+            ExecutorChild::Dry => return Ok(()),
+        };
+        io::copy(&mut response, &mut child.stdin.take().unwrap())?;
+        child.wait()?;
+    } else {
+        println!("Zed is up-to-date");
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
