@@ -1203,6 +1203,10 @@ pub fn run_protonplus_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_zed(ctx: &ExecutionContext) -> Result<()> {
     let zed = require("zed")?;
 
+    if !zed.starts_with(HOME_DIR.join(".local/bin/zed")) {
+        return Err(SkipStep("Not a standalone Zed installation".to_string()).into());
+    }
+
     print_separator("Zed");
 
     let version = Version::parse(
@@ -1220,7 +1224,7 @@ pub fn run_zed(ctx: &ExecutionContext) -> Result<()> {
                 ))
             })?,
     )
-        .wrap_err_with(|| output_changed_message!("zed --version", "Should be a valid version"))?;
+    .wrap_err_with(|| output_changed_message!("zed --version", "Should be a valid version"))?;
 
     let client = reqwest::blocking::Client::builder().user_agent("Topgrade").build()?;
 
