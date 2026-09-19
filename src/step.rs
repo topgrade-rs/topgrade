@@ -199,6 +199,7 @@ pub enum Step {
     Yadm,
     Yarn,
     Yazi,
+    Zed,
     Zerobrew,
     Zigup,
     Zvm,
@@ -791,6 +792,11 @@ impl Step {
             }
             Yarn => runner.execute(*self, "yarn", || node::run_yarn_upgrade(ctx))?,
             Yazi => runner.execute(*self, "Yazi packages", || generic::run_yazi(ctx))?,
+            Zed =>
+            {
+                #[cfg(target_os = "linux")]
+                runner.execute(*self, "Zed", || linux::run_zed(ctx))?
+            }
             Zerobrew =>
             {
                 #[cfg(unix)]
@@ -995,6 +1001,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Vagrant,
         HermesAgent,
         AntigravityCli,
+        Zed,
         // Steps that should run last
         // Last out of convention
         CustomCommands,
