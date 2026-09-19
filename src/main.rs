@@ -242,7 +242,7 @@ fn run() -> Result<()> {
                         "Install one of `sudo`, `doas`, `pkexec`, `run0` or `please` to run these steps."
                     ));
 
-                    // if this windows version supported Windows Sudo, the error would have been WinSudoDisabled
+                    // If this Windows version supported Windows Sudo, the error would have been WinSudoDisabled
                     #[cfg(windows)]
                     print_warning(t!("Install gsudo to run these steps."));
                 }

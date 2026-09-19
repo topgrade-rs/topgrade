@@ -150,7 +150,7 @@ fn list_containers(ctx: &ExecutionContext, crt: &Path) -> Result<Vec<Container>>
                 .output_checked_utf8()?
         };
         let mut platform = inspect_output.stdout;
-        // truncate the tailing new line character
+        // truncate the trailing newline character
         platform.truncate(platform.len() - 1);
         if !platform.contains('/') {
             bail!(format!(

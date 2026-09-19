@@ -20,7 +20,7 @@ use crate::sudo::Sudo;
 /// An enum telling whether Topgrade should perform dry runs or actually perform the steps.
 #[derive(Clone, Copy, Debug, Deserialize, Default, EnumString, ValueEnum)]
 pub enum RunType {
-    /// Executing commands will just print the command with its argument.
+    /// Executing commands will just print the command with its arguments.
     Dry,
 
     /// Executing commands will perform actual execution.

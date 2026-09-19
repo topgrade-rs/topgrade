@@ -807,7 +807,7 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
 ///
 /// See: <https://github.com/NixOS/nix/issues/5473>
 fn nix_profile_dir(nix: &Path) -> Result<Option<PathBuf>> {
-    // NOTE: `nix` uses the location of the `nix-env` binary for this but we're using the `nix`
+    // NOTE: `nix` uses the location of the `nix-env` binary for this, but we're using the `nix`
     // binary; should be the same.
     let nix_bin_dir = nix.parent();
     if nix_bin_dir.and_then(|p| p.file_name()) != Some(OsStr::new("bin")) {

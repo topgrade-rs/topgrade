@@ -98,7 +98,7 @@ jobs:
     environment:
       name: pypi
     permissions:
-      # Use to sign the release artifacts, and for trusted publishing
+      # Used to sign the release artifacts, and for trusted publishing
       id-token: write
       # Used to upload release artifacts
       contents: write
