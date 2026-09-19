@@ -1200,6 +1200,65 @@ pub fn run_protonplus_update(ctx: &ExecutionContext) -> Result<()> {
     cmd().args(["update", "all"]).status_checked()
 }
 
+pub fn run_zed(ctx: &ExecutionContext) -> Result<()> {
+    let zed = require("zed")?;
+
+    print_separator("Zed");
+
+    let version = Version::parse(
+        ctx.execute(zed)
+            .always()
+            .arg("--version")
+            .output_checked_utf8()?
+            .stdout
+            .split(' ')
+            .nth(1)
+            .ok_or_else(|| {
+                eyre!(output_changed_message!(
+                    "zed --version",
+                    "Should be in 'Zed x.y.z <...>' format"
+                ))
+            })?,
+    )
+        .wrap_err_with(|| output_changed_message!("zed --version", "Should be a valid version"))?;
+
+    let client = reqwest::blocking::Client::builder().user_agent("Topgrade").build()?;
+
+    #[derive(Deserialize)]
+    struct Response {
+        tag_name: String,
+    }
+
+    let latest = Version::parse(
+        client
+            .get("https://api.github.com/repos/zed-industries/zed/releases/latest")
+            .send()
+            .wrap_err("Failed to get latest version")?
+            .json::<Response>()?
+            .tag_name
+            .strip_prefix('v')
+            .ok_or_eyre("Tag on GitHub doesn't start with 'v'")?,
+    )?;
+
+    if version < latest {
+        let mut response = client
+            .get("https://zed.dev/install.sh")
+            .send()
+            .wrap_err("Failed to download install script")?;
+        let child = ctx.execute("sh").stdin(Stdio::piped()).spawn()?;
+        let mut child = match child {
+            ExecutorChild::Wet(child) => child,
+            ExecutorChild::Dry => return Ok(()),
+        };
+        io::copy(&mut response, &mut child.stdin.take().unwrap())?;
+        child.wait()?;
+    } else {
+        println!("Zed is up-to-date");
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1410,63 +1469,4 @@ mod tests {
         test_template(include_str!("os_release/origami-nvidia"), Distribution::FedoraImmutable);
         test_template(include_str!("os_release/origami-test"), Distribution::FedoraImmutable);
     }
-}
-
-pub fn run_zed(ctx: &ExecutionContext) -> Result<()> {
-    let zed = require("zed")?;
-
-    print_separator("Zed");
-
-    let version = Version::parse(
-        ctx.execute(zed)
-            .always()
-            .arg("--version")
-            .output_checked_utf8()?
-            .stdout
-            .split(' ')
-            .nth(1)
-            .ok_or_else(|| {
-                eyre!(output_changed_message!(
-                    "zed --version",
-                    "Should be in 'Zed x.y.z <...>' format"
-                ))
-            })?,
-    )
-    .wrap_err_with(|| output_changed_message!("zed --version", "Should be a valid version"))?;
-
-    let client = reqwest::blocking::Client::builder().user_agent("Topgrade").build()?;
-
-    #[derive(Deserialize)]
-    struct Response {
-        tag_name: String,
-    }
-
-    let latest = Version::parse(
-        client
-            .get("https://api.github.com/repos/zed-industries/zed/releases/latest")
-            .send()
-            .wrap_err("Failed to get latest version")?
-            .json::<Response>()?
-            .tag_name
-            .strip_prefix('v')
-            .ok_or_eyre("Tag on GitHub doesn't start with 'v'")?,
-    )?;
-
-    if version < latest {
-        let mut response = client
-            .get("https://zed.dev/install.sh")
-            .send()
-            .wrap_err("Failed to download install script")?;
-        let child = ctx.execute("sh").stdin(Stdio::piped()).spawn()?;
-        let mut child = match child {
-            ExecutorChild::Wet(child) => child,
-            ExecutorChild::Dry => return Ok(()),
-        };
-        io::copy(&mut response, &mut child.stdin.take().unwrap())?;
-        child.wait()?;
-    } else {
-        println!("Zed is up-to-date");
-    }
-
-    Ok(())
 }
