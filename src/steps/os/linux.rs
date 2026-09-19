@@ -1203,7 +1203,7 @@ pub fn run_protonplus_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_zed(ctx: &ExecutionContext) -> Result<()> {
     let zed = require("zed")?;
 
-    if !zed.starts_with(HOME_DIR.join(".local/bin/zed")) {
+    if !zed.starts_with(HOME_DIR.join(".local/bin")) {
         return Err(SkipStep("Not a standalone Zed installation".to_string()).into());
     }
 
