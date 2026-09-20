@@ -527,3 +527,8 @@
 #   yarn (runs `yarn dlx skills`)
 # (default: npm)
 # package_manager = "npm"
+
+[uv]
+# Pass --force to `uv cache prune`, useful if you have long-running `uv` processes
+# (default: false)
+# cache_force = true
