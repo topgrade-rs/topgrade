@@ -18,7 +18,7 @@ use etcetera::base_strategy::Windows;
 use etcetera::base_strategy::Xdg;
 use rust_i18n::{i18n, t};
 use std::sync::LazyLock;
-use tempfile::tempdir;
+use tempfile::{TempDir, tempdir};
 use tracing::debug;
 
 use self::config::{CommandLineArgs, Config};
@@ -58,6 +58,27 @@ pub(crate) static WINDOWS_DIRS: LazyLock<Windows> = LazyLock::new(|| Windows::ne
 
 // Init and load the i18n files
 i18n!("locales", fallback = "en");
+
+struct TempCwd {
+    #[allow(unused)]
+    temp_dir: TempDir,
+    old_cwd: PathBuf,
+}
+
+impl TempCwd {
+    fn new() -> Result<Self> {
+        let old_cwd = env::current_dir()?;
+        let temp_dir = tempdir()?;
+        env::set_current_dir(&temp_dir)?;
+        Ok(Self { temp_dir, old_cwd })
+    }
+}
+
+impl Drop for TempCwd {
+    fn drop(&mut self) {
+        env::set_current_dir(&self.old_cwd).expect("Restoring cwd failed");
+    }
+}
 
 fn run() -> Result<()> {
     install_color_eyre()?;
@@ -108,10 +129,6 @@ fn run() -> Result<()> {
         return Ok(());
     }
 
-    // Make sure this stays in scope
-    let temp_dir = tempdir()?;
-    env::set_current_dir(&temp_dir)?;
-
     let config = Config::load(opt)?;
     // Update the logger with the full filter directives.
     update_tracing(&reload_handle, &config.tracing_filter_directives())?;
@@ -126,6 +143,10 @@ fn run() -> Result<()> {
     debug!("Binary path: {:?}", env::current_exe());
     debug!("self-update Feature Enabled: {:?}", cfg!(feature = "self-update"));
     debug!("Configuration: {:?}", config);
+
+    // Some steps (like mise or pi) have different behavior when ran in a project directory.
+    //  Since Topgrade only handles global updates, run all commands in a temporary directory.
+    let _temp_cwd = TempCwd::new()?;
 
     if config.run_in_tmux() && env::var("TOPGRADE_INSIDE_TMUX").is_err() {
         #[cfg(unix)]
