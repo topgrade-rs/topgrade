@@ -18,6 +18,7 @@ use etcetera::base_strategy::Windows;
 use etcetera::base_strategy::Xdg;
 use rust_i18n::{i18n, t};
 use std::sync::LazyLock;
+use tempfile::tempdir;
 use tracing::debug;
 
 use self::config::{CommandLineArgs, Config};
@@ -106,6 +107,10 @@ fn run() -> Result<()> {
         print!("{}", config::EXAMPLE_CONFIG);
         return Ok(());
     }
+
+    // Make sure this stays in scope
+    let temp_dir = tempdir()?;
+    env::set_current_dir(&temp_dir)?;
 
     let config = Config::load(opt)?;
     // Update the logger with the full filter directives.

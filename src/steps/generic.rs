@@ -19,7 +19,7 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::LazyLock;
 use std::{fs, io::Write};
 use sysinfo::{ProcessRefreshKind, RefreshKind, System, UpdateKind};
-use tempfile::{tempdir, tempfile_in};
+use tempfile::tempfile_in;
 use tracing::{debug, error, warn};
 use walkdir::WalkDir;
 
@@ -1026,19 +1026,15 @@ mod vscode_tests {
 
 pub fn run_pi(ctx: &ExecutionContext) -> Result<()> {
     let pi = require("pi")?;
-    let temp_dir = tempdir()?;
 
     print_separator("pi");
 
-    // `pi` reads project-local settings from `./.pi/settings.json`, so run
-    // from a fresh directory to restrict this step to global packages.
     // Newer Pi versions expose explicit update targets. Feature-detect those flags
     // so Topgrade updates Pi itself and global extensions, while older Pi versions
     // keep the previous combined `pi update` behavior.
     let pi_update_help = ctx
         .execute(&pi)
         .always()
-        .current_dir(temp_dir.path())
         .args(["update", "--help"])
         .output_checked_utf8()?;
 
@@ -1057,21 +1053,12 @@ pub fn run_pi(ctx: &ExecutionContext) -> Result<()> {
         } else if pi_installed_through_homebrew {
             debug!("Skipping `pi update --self`: pi is installed via Homebrew");
         } else {
-            ctx.execute(&pi)
-                .current_dir(temp_dir.path())
-                .args(["update", "--self"])
-                .status_checked()?;
+            ctx.execute(&pi).args(["update", "--self"]).status_checked()?;
         }
 
-        ctx.execute(&pi)
-            .current_dir(temp_dir.path())
-            .args(["update", "--extensions"])
-            .status_checked()
+        ctx.execute(&pi).args(["update", "--extensions"]).status_checked()
     } else {
-        ctx.execute(&pi)
-            .current_dir(temp_dir.path())
-            .arg("update")
-            .status_checked()
+        ctx.execute(&pi).arg("update").status_checked()
     }
 }
 
@@ -2842,23 +2829,16 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
     let mise = require("mise")?;
-    // Run from a fresh directory so caller project-local mise.toml files do not
-    // affect the mise step.
-    let temp_dir = tempdir()?;
 
     print_separator("mise");
 
-    ctx.execute(&mise)
-        .current_dir(temp_dir.path())
-        .args(["plugins", "update"])
-        .status_checked()?;
+    ctx.execute(&mise).args(["plugins", "update"]).status_checked()?;
 
     // This used to run self-update and check for exit code 1 and the string 'cannot update' in stderr.
     //  However, this caused issues with mise's y/n prompt (https://github.com/topgrade-rs/topgrade/issues/2307).
     let supports_self_update = ctx
         .execute(&mise)
         .always()
-        .current_dir(temp_dir.path())
         .arg("--help")
         .output_checked_utf8()?
         .stdout
@@ -2866,7 +2846,6 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
 
     if supports_self_update {
         ctx.execute(&mise)
-            .current_dir(temp_dir.path())
             .args(["self-update"])
             .arg_if(ctx.config().yes(Step::Mise), "--yes")
             .status_checked()?;
@@ -2876,7 +2855,6 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(&mise)
         .arg("upgrade")
-        .current_dir(temp_dir.path())
         .arg_if(ctx.config().mise_interactive(), "--interactive")
         .arg_if(ctx.config().mise_bump(), "--bump")
         .arg_if(ctx.config().mise_silent(), "--silent")
@@ -2895,21 +2873,20 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
             .status_checked()?;
     }
 
-    refresh_mise_env(ctx, &mise, temp_dir.path())
+    refresh_mise_env(ctx, &mise)
 }
 
 /// Refresh the process environment after `mise upgrade` so later steps and binary
 /// lookups resolve the upgraded mise-managed tools. `mise env --json` reports the
 /// activated environment, which we apply to the `PATH`/vars that child commands inherit.
 /// See <https://github.com/topgrade-rs/topgrade/issues/2041>.
-fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path, neutral_cwd: &Path) -> Result<()> {
+fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path) -> Result<()> {
     if ctx.run_type().dry() {
         return Ok(());
     }
 
     let output = ctx
         .execute(mise)
-        .current_dir(neutral_cwd)
         .args(["env", "--json"])
         .output_checked()
         .wrap_err("failed to run `mise env --json`")?;
