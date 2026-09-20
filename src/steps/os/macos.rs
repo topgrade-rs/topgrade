@@ -66,10 +66,7 @@ pub fn run_microsoft_office(ctx: &ExecutionContext) -> Result<()> {
         return Ok(());
     }
 
-    // Install updates, waiting up to 600 seconds for completion
-    ctx.execute(&msupdate)
-        .args(["--install", "--wait", "600"])
-        .status_checked()
+    ctx.execute(&msupdate).arg("--install").status_checked()
 }
 
 pub fn upgrade_macos(ctx: &ExecutionContext) -> Result<()> {
