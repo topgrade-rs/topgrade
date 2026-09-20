@@ -2194,7 +2194,10 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
 
     if ctx.config().cleanup() {
         // Prune cache
-        ctx.execute(&uv_exec).args(["cache", "prune"]).status_checked()?;
+        ctx.execute(&uv_exec)
+            .args(["cache", "prune"])
+            .arg_if(ctx.config().uv_cache_force(), "--force")
+            .status_checked()?;
     }
 
     Ok(())
