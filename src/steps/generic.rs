@@ -2852,6 +2852,7 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
 
     let supports_self_update = ctx
         .execute(&mise)
+        .always()
         .current_dir(temp_dir.path())
         .arg("--help")
         .output_checked_utf8()?
