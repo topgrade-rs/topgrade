@@ -2929,7 +2929,10 @@ pub fn run_hermes_agent(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Hermes Agent");
 
-    ctx.execute(hermes).arg("update").status_checked()
+    ctx.execute(hermes)
+        .arg("update")
+        .arg_if(ctx.config().yes(Step::HermesAgent), "--yes")
+        .status_checked()
 }
 
 pub fn run_antigravity_cli(ctx: &ExecutionContext) -> Result<()> {
