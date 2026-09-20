@@ -2850,25 +2850,22 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
         .args(["plugins", "update"])
         .status_checked()?;
 
-    let output = ctx
+    let supports_self_update = ctx
         .execute(&mise)
         .current_dir(temp_dir.path())
-        .args(["self-update"])
-        .arg_if(ctx.config().yes(Step::Mise), "--yes")
-        .output_checked_with(|_| Ok(()))?;
-    let status_code = output
-        .status
-        .code()
-        .ok_or_eyre("Couldn't get status code (terminated by signal)")?;
-    let stderr = std::str::from_utf8(&output.stderr).wrap_err("Expected output to be valid UTF-8")?;
-    if stderr.contains("cannot update") && status_code == 1 {
-        debug!("Mise self-update not available")
+        .arg("--help")
+        .output_checked_utf8()?
+        .stdout
+        .contains("self-update");
+
+    if supports_self_update {
+        ctx.execute(&mise)
+            .current_dir(temp_dir.path())
+            .args(["self-update"])
+            .arg_if(ctx.config().yes(Step::Mise), "--yes")
+            .status_checked()?;
     } else {
-        std::io::stdout().lock().write_all(&output.stdout)?;
-        std::io::stderr().lock().write_all(&output.stderr)?;
-        if status_code != 0 {
-            return Err(StepFailed.into());
-        }
+        debug!("Mise self-update not available");
     }
 
     ctx.execute(&mise)
