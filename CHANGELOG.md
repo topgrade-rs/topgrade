@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.12.0](https://github.com/topgrade-rs/topgrade/compare/v17.11.0...v17.12.0) - 2026-09-20
+
+### Added
+- *(uv)* add `cache_force` option to force cache pruning ([#2359](https://github.com/topgrade-rs/topgrade/pull/2359))
+- *(step)* add Zed ([#2353](https://github.com/topgrade-rs/topgrade/pull/2353))
+- *(skills)* support `yarn dlx` and adjust configuration options ([#2346](https://github.com/topgrade-rs/topgrade/pull/2346))
+
+### Fixed
+- *(mise)* fix errors from mise self-update confirmation ([#2357](https://github.com/topgrade-rs/topgrade/pull/2357))
+- *(microsoft_office)* remove unnecessary 10 minute wait ([#2360](https://github.com/topgrade-rs/topgrade/pull/2360))
+- crash when `dnf --version` fails
+
 ## [17.11.0](https://github.com/topgrade-rs/topgrade/compare/v17.10.1...v17.11.0) - 2026-09-13
 
 ### Added
