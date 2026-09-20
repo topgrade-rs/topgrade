@@ -532,6 +532,12 @@ pub struct Pkgfile {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct Uv {
+    cache_force: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 /// Configuration file
 pub struct ConfigFile {
     #[merge(strategy = merge2::option::recursive)]
@@ -647,6 +653,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = merge2::option::recursive)]
     viteplus: Option<VitePlus>,
+
+    #[merge(strategy = merge2::option::recursive)]
+    uv: Option<Uv>,
 }
 
 fn config_directory() -> PathBuf {
@@ -2283,6 +2292,14 @@ impl Config {
             .pkgfile
             .as_ref()
             .and_then(|pkgfile| pkgfile.enable)
+            .unwrap_or(false)
+    }
+
+    pub fn uv_cache_force(&self) -> bool {
+        self.config_file
+            .uv
+            .as_ref()
+            .and_then(|uv| uv.cache_force)
             .unwrap_or(false)
     }
 }
