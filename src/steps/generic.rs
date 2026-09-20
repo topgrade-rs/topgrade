@@ -2825,7 +2825,6 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
-    ctx.execute("pwd").status_checked()?;
     let mise = require("mise")?;
 
     print_separator("mise");
