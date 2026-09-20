@@ -2850,6 +2850,8 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
         .args(["plugins", "update"])
         .status_checked()?;
 
+    // This used to run self-update and check for exit code 1 and the string 'cannot update' in stderr.
+    //  However, this caused issues with mise's y/n prompt (https://github.com/topgrade-rs/topgrade/issues/2307).
     let supports_self_update = ctx
         .execute(&mise)
         .always()
