@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [17.12.0](https://github.com/topgrade-rs/topgrade/compare/v17.11.0...v17.12.0) - 2026-09-20
 
+### Changed
+- The current working directory is now set to a temporary directory for all steps, including custom commands ([#2358](https://github.com/topgrade-rs/topgrade/pull/2358))
+
 ### Added
 - *(uv)* add `cache_force` option to force cache pruning ([#2359](https://github.com/topgrade-rs/topgrade/pull/2359))
 - *(step)* add Zed ([#2353](https://github.com/topgrade-rs/topgrade/pull/2353))
