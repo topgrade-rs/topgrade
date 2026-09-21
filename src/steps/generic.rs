@@ -34,7 +34,9 @@ use crate::output_changed_message;
 use crate::step::Step;
 use crate::sudo::SudoExecuteOpts;
 use crate::terminal::{print_info, print_separator, shell};
-use crate::utils::{PathExt, check_is_python_2_or_shim, require, require_one, require_option, which};
+use crate::utils::{
+    PathExt, check_is_python_2_or_shim, is_installed_via_homebrew, require, require_one, require_option, which,
+};
 use crate::{
     error::{DryRun, SkipStep, StepFailed, TopgradeError},
     terminal::print_warning,
@@ -1043,9 +1045,7 @@ pub fn run_pi(ctx: &ExecutionContext) -> Result<()> {
 
     // `pi update --self` errors when PI_SKIP_VERSION_CHECK is set. Homebrew sets it when it runs.
     let pi_skip_version_check_env = std::env::var("PI_SKIP_VERSION_CHECK").is_ok();
-    let pi_installed_through_homebrew = pi
-        .canonicalize()
-        .is_ok_and(|p| p.to_string_lossy().contains("/Cellar/"));
+    let pi_installed_through_homebrew = is_installed_via_homebrew(&pi);
 
     if supports_explicit_update_targets {
         if pi_skip_version_check_env {
@@ -2834,23 +2834,27 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(&mise).args(["plugins", "update"]).status_checked()?;
 
-    // This used to run self-update and check for exit code 1 and the string 'cannot update' in stderr.
-    //  However, this caused issues with mise's y/n prompt (https://github.com/topgrade-rs/topgrade/issues/2307).
-    let supports_self_update = ctx
-        .execute(&mise)
-        .always()
-        .arg("--help")
-        .output_checked_utf8()?
-        .stdout
-        .contains("self-update");
-
-    if supports_self_update {
-        ctx.execute(&mise)
-            .args(["self-update"])
-            .arg_if(ctx.config().yes(Step::Mise), "--yes")
-            .status_checked()?;
+    if is_installed_via_homebrew(&mise) {
+        debug!("Skipping `mise self-update`: mise is installed via Homebrew");
     } else {
-        debug!("Mise self-update not available");
+        // This used to run self-update and check for exit code 1 and the string 'cannot update' in stderr.
+        //  However, this caused issues with mise's y/n prompt (https://github.com/topgrade-rs/topgrade/issues/2307).
+        let supports_self_update = ctx
+            .execute(&mise)
+            .always()
+            .arg("--help")
+            .output_checked_utf8()?
+            .stdout
+            .contains("self-update");
+
+        if supports_self_update {
+            ctx.execute(&mise)
+                .args(["self-update"])
+                .arg_if(ctx.config().yes(Step::Mise), "--yes")
+                .status_checked()?;
+        } else {
+            debug!("Mise self-update not available");
+        }
     }
 
     ctx.execute(&mise)
