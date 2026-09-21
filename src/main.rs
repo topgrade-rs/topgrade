@@ -144,10 +144,6 @@ fn run() -> Result<()> {
     debug!("self-update Feature Enabled: {:?}", cfg!(feature = "self-update"));
     debug!("Configuration: {:?}", config);
 
-    // Some steps (like mise or pi) have different behavior when ran in a project directory.
-    //  Since Topgrade only handles global updates, run all commands in a temporary directory.
-    let _temp_cwd = TempCwd::new()?;
-
     if config.run_in_tmux() && env::var("TOPGRADE_INSIDE_TMUX").is_err() {
         #[cfg(unix)]
         {
@@ -155,6 +151,10 @@ fn run() -> Result<()> {
             return Ok(());
         }
     }
+
+    // Some steps (like mise or pi) have different behavior when ran in a project directory.
+    //  Since Topgrade only handles global updates, run all commands in a temporary directory.
+    let _temp_cwd = TempCwd::new()?;
 
     let elevated = is_elevated();
 
