@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.12.1](https://github.com/topgrade-rs/topgrade/compare/v17.12.0...v17.12.1) - 2026-09-21
+
+### Fixed
+- don't set cwd when respawning in tmux to fix crash ([#2367](https://github.com/topgrade-rs/topgrade/pull/2367))
+- *(mise)* skip self-update when managed by Homebrew ([#2363](https://github.com/topgrade-rs/topgrade/pull/2363))
+
 ## [17.12.0](https://github.com/topgrade-rs/topgrade/compare/v17.11.0...v17.12.0) - 2026-09-20
 
 ### Changed
