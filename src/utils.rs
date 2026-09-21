@@ -253,6 +253,12 @@ pub fn require_one<T: AsRef<OsStr> + Debug>(binary_names: impl IntoIterator<Item
     .into())
 }
 
+pub fn is_installed_via_homebrew(binary: &Path) -> bool {
+    binary
+        .canonicalize()
+        .is_ok_and(|p| p.to_string_lossy().contains("/Cellar/"))
+}
+
 #[allow(dead_code)]
 pub fn require_one_path<T: AsRef<Path> + Debug>(paths: impl IntoIterator<Item = T>) -> Result<PathBuf> {
     let mut failed_paths = Vec::new();
