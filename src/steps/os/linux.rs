@@ -1250,7 +1250,7 @@ pub fn run_zed(ctx: &ExecutionContext) -> Result<()> {
         client
             .get("https://api.github.com/repos/zed-industries/zed/releases")
             .send()
-            .wrap_err("Failed to get latest version")?
+            .wrap_err("Failed to fetch releases")?
             .json::<Vec<Response>>()?
             .into_iter()
             .find(|release| release.prerelease && release.tag_name.ends_with("-pre"))
