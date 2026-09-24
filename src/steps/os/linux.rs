@@ -1209,47 +1209,71 @@ pub fn run_zed(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Zed");
 
-    let version = Version::parse(
-        ctx.execute(zed)
-            .always()
-            .arg("--version")
-            .output_checked_utf8()?
-            .stdout
-            .split(' ')
-            .nth(1)
-            .ok_or_else(|| {
-                eyre!(output_changed_message!(
-                    "zed --version",
-                    "Should be in 'Zed x.y.z <...>' format"
-                ))
-            })?,
-    )
-    .wrap_err_with(|| output_changed_message!("zed --version", "Should be a valid version"))?;
+    let output = ctx.execute(zed).always().arg("--version").output_checked_utf8()?.stdout;
+    let mut words = output.split_whitespace();
+    // Stable prints `Zed x.y.z <...>`, other channels print `Zed <channel> x.y.z <...>`
+    let (channel, version) = match (words.next(), words.next(), words.next()) {
+        (Some("Zed"), Some(channel @ ("preview" | "nightly" | "dev")), Some(version)) => (channel, version),
+        (Some("Zed"), Some(version), _) => ("stable", version),
+        _ => {
+            return Err(eyre!(output_changed_message!(
+                "zed --version",
+                "Should be in 'Zed [channel] x.y.z <...>' format"
+            )));
+        }
+    };
+    let version = Version::parse(version)
+        .wrap_err_with(|| output_changed_message!("zed --version", "Should be a valid version"))?;
+
+    if channel != "stable" && channel != "preview" {
+        return Err(
+            SkipStep(t!("Updates unsupported for the Zed {channel} channel", channel = channel).to_string()).into(),
+        );
+    }
 
     let client = reqwest::blocking::Client::builder().user_agent("Topgrade").build()?;
 
     #[derive(Deserialize)]
     struct Response {
         tag_name: String,
+        prerelease: bool,
     }
 
-    let latest = Version::parse(
+    let release = if channel == "stable" {
         client
             .get("https://api.github.com/repos/zed-industries/zed/releases/latest")
             .send()
             .wrap_err("Failed to get latest version")?
             .json::<Response>()?
-            .tag_name
-            .strip_prefix('v')
-            .ok_or_eyre("Tag on GitHub doesn't start with 'v'")?,
-    )?;
+    } else {
+        // Preview releases are GitHub prereleases tagged `vx.y.z-pre`; the list is sorted newest first
+        client
+            .get("https://api.github.com/repos/zed-industries/zed/releases")
+            .send()
+            .wrap_err("Failed to fetch releases")?
+            .json::<Vec<Response>>()?
+            .into_iter()
+            .find(|release| release.prerelease && release.tag_name.ends_with("-pre"))
+            .ok_or_else(|| eyre!(t!("No Zed preview release found on GitHub")))?
+    };
+
+    let tag = release
+        .tag_name
+        .strip_prefix('v')
+        .ok_or_eyre("Tag on GitHub doesn't start with 'v'")?;
+    // The installed preview reports `x.y.z` without the `-pre` suffix
+    let latest = Version::parse(tag.strip_suffix("-pre").unwrap_or(tag))?;
 
     if version < latest {
         let mut response = client
             .get("https://zed.dev/install.sh")
             .send()
             .wrap_err("Failed to download install script")?;
-        let child = ctx.execute("sh").stdin(Stdio::piped()).spawn()?;
+        let child = ctx
+            .execute("sh")
+            .env("ZED_CHANNEL", channel)
+            .stdin(Stdio::piped())
+            .spawn()?;
         let mut child = match child {
             ExecutorChild::Wet(child) => child,
             ExecutorChild::Dry => return Ok(()),
