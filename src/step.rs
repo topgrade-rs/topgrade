@@ -878,7 +878,6 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Rcm,
         Maza,
         Adless,
-        Hyprpm,
         Atuin,
         Atom,
         Fossil,
@@ -1004,6 +1003,8 @@ pub(crate) fn default_steps() -> Vec<Step> {
         // Runs `sudo -k` at startup, which drops cached sudo credentials for every later step
         BrewFormula,
         BrewCask,
+        // Runs `sudo -k` at the end, which drops cached sudo credentials for every later step
+        Hyprpm,
         // Last out of convention
         CustomCommands,
         // Last because it prompts for restart
