@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.12.2](https://github.com/topgrade-rs/topgrade/compare/v17.12.1...v17.12.2) - 2026-09-26
+
+### Fixed
+- *(hyprpm)* run hyprpm at the end to avoid dropping cached sudo credentials for other steps
+- *(brew)* run brew at the end to avoid dropping cached sudo credentials for other steps
+- *(zed)* support preview channel ([#2372](https://github.com/topgrade-rs/topgrade/pull/2372))
+
 ## [17.12.1](https://github.com/topgrade-rs/topgrade/compare/v17.12.0...v17.12.1) - 2026-09-21
 
 ### Fixed
