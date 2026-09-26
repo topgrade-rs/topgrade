@@ -1,10 +1,18 @@
+#[cfg(windows)]
+use crate::WINDOWS_DIRS;
+#[cfg(unix)]
+use crate::XDG_DIRS;
 use crate::output_changed_message;
+use std::collections::HashSet;
+use std::env;
 use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::{LazyLock, OnceLock};
 
 use color_eyre::eyre::{Context, Result, eyre};
+use etcetera::BaseStrategy;
 use itertools::Itertools;
 use rust_i18n::t;
 
@@ -138,9 +146,42 @@ fn is_windows_mount_path(path: &Path) -> bool {
     PREFIXES.iter().any(|prefix| path.starts_with(prefix))
 }
 
-/// `which`, but skips executables on Windows drive mounts.
-fn which_native_in_wsl<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<Option<PathBuf>> {
-    let mut candidates = match which_crate::which_all(&binary_name) {
+/// Mise shims dir, normally ~/.local/share/mise/shims
+static MISE_SHIMS: LazyLock<PathBuf> = LazyLock::new(|| {
+    env::var("MISE_SHIMS_DIR").map(PathBuf::from).unwrap_or_else(|_| {
+        env::var("MISE_DATA_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| {
+                #[cfg(unix)]
+                let data_dir = XDG_DIRS.data_dir();
+                #[cfg(windows)]
+                let data_dir = WINDOWS_DIRS.cache_dir(); // AppData\Local
+                data_dir.join("mise")
+            })
+            .join("shims")
+    })
+});
+
+fn mise_shim_is_nonfunctional(path: &Path) -> Result<bool> {
+    // --help is usually safe to run. A program not supporting it and erroring is okay too.
+    debug!("{path:?} is in mise shims dir ({MISE_SHIMS:?}), running `{path:?} --help` to check if it is functional");
+    // TODO: There's no easy way to do this without `which` and `require` taking `ctx`.
+    //  This loses automatic logging and damp runs.
+    #[expect(clippy::disallowed_methods)]
+    let out = Command::new(path)
+        .arg("--help")
+        .output()
+        .wrap_err_with(|| format!("Running `{} --help` failed", path.display()))?;
+    let stderr = match String::from_utf8(out.stderr) {
+        Ok(stderr) => stderr,
+        Err(_) => return Ok(false), // Non-UTF-8 output is weird, but mise's shim errors are UTF-8 so it must be working
+    };
+    Ok(stderr.contains("mise ERROR No version is set for shim:"))
+}
+
+pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<Option<PathBuf>> {
+    #[expect(clippy::disallowed_methods)]
+    let candidates = match which_crate::which_all(&binary_name) {
         Ok(candidates) => candidates,
         Err(which_crate::Error::CannotFindBinaryPath) => {
             debug!("Cannot find {:?}", &binary_name);
@@ -149,46 +190,39 @@ fn which_native_in_wsl<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<Option
         Err(e) => return Err(eyre!(e).wrap_err(format!("Detecting {:?} failed", binary_name))),
     };
 
-    let mut saw_candidate = false;
-    let native = candidates.find(|path| {
-        saw_candidate = true;
-        !is_windows_mount_path(path)
-    });
-    match native {
+    let mut errors = HashSet::new();
+    let path = 'find: {
+        for path in candidates {
+            if path.starts_with(&*MISE_SHIMS) && mise_shim_is_nonfunctional(&path)? {
+                errors.insert("a Mise shim without global default version");
+                continue;
+            }
+            if wsl_windows_path_filter_enabled() && is_windows_mount_path(&path) {
+                errors.insert("a Windows binary via WSL interop");
+                continue;
+            }
+            break 'find Some(path);
+        }
+        None
+    };
+
+    match path {
         Some(path) => {
             debug!("Detected {:?} as {:?}", &path, &binary_name);
             Ok(Some(path))
         }
-        // Every PATH match was a Windows binary on a drive mount.
-        None if saw_candidate => {
-            debug!(
-                "Cannot find native {:?} in PATH (only Windows binaries via WSL interop)",
-                &binary_name
-            );
-            Ok(None)
-        }
         None => {
-            debug!("Cannot find {:?}", &binary_name);
+            if !errors.is_empty() {
+                debug!(
+                    "Cannot find usable {:?} in PATH (only {})",
+                    &binary_name,
+                    errors.into_iter().sorted().join(", and ")
+                );
+            } else {
+                debug!("Cannot find {:?}", &binary_name);
+            }
             Ok(None)
         }
-    }
-}
-
-pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<Option<PathBuf>> {
-    if wsl_windows_path_filter_enabled() {
-        return which_native_in_wsl(&binary_name);
-    }
-
-    match which_crate::which(&binary_name) {
-        Ok(path) => {
-            debug!("Detected {:?} as {:?}", &path, &binary_name);
-            Ok(Some(path))
-        }
-        Err(which_crate::Error::CannotFindBinaryPath) => {
-            debug!("Cannot find {:?}", &binary_name);
-            Ok(None)
-        }
-        Err(e) => Err(eyre!(e).wrap_err(format!("Detecting {:?} failed", binary_name))),
     }
 }
 

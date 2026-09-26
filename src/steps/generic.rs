@@ -1461,7 +1461,7 @@ pub fn run_custom_command(name: &str, command: &str, ctx: &ExecutionContext) -> 
     #[cfg(not(unix))]
     let put_i = false;
 
-    ctx.execute(shell())
+    ctx.execute(shell()?)
         .arg_if(put_i, "-i")
         .env_if(ctx.config().yes(Step::CustomCommands), "TOPGRADE_YES", "1")
         .env_if(ctx.config().cleanup(), "TOPGRADE_CLEANUP", "1")
