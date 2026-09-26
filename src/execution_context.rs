@@ -60,6 +60,10 @@ pub struct ExecutionContext<'a> {
     /// This is used in `./steps/remote/ssh.rs`, where we want to run `topgrade` in a new
     /// tmux window for each remote.
     tmux_session: Mutex<Option<String>>,
+    /// Name of a zellij session to execute commands in, if any.
+    /// This is used in `./steps/remote/ssh.rs`, where we want to run `topgrade` in a new
+    /// zellij tab for each remote.
+    zellij_session: Mutex<Option<String>>,
     /// True if topgrade is running under ssh.
     under_ssh: bool,
     #[cfg(target_os = "linux")]
@@ -80,6 +84,7 @@ impl<'a> ExecutionContext<'a> {
             sudo,
             config,
             tmux_session: Mutex::new(None),
+            zellij_session: Mutex::new(None),
             under_ssh,
             #[cfg(target_os = "linux")]
             distribution,
@@ -122,6 +127,14 @@ impl<'a> ExecutionContext<'a> {
 
     pub fn get_tmux_session(&self) -> Option<String> {
         self.tmux_session.lock().unwrap().clone()
+    }
+
+    pub fn set_zellij_session(&self, session_name: String) {
+        self.zellij_session.lock().unwrap().replace(session_name);
+    }
+
+    pub fn get_zellij_session(&self) -> Option<String> {
+        self.zellij_session.lock().unwrap().clone()
     }
 
     #[cfg(target_os = "linux")]
