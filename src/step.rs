@@ -827,8 +827,6 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Winget,
         System,
         MicrosoftStore,
-        BrewFormula,
-        BrewCask,
         Zerobrew,
         Macports,
         Xcodes,
@@ -1003,6 +1001,9 @@ pub(crate) fn default_steps() -> Vec<Step> {
         AntigravityCli,
         Zed,
         // Steps that should run last
+        // Runs `sudo -k` at startup, which drops cached sudo credentials for every later step
+        BrewFormula,
+        BrewCask,
         // Last out of convention
         CustomCommands,
         // Last because it prompts for restart
