@@ -2827,6 +2827,38 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
     pull_result
 }
 
+#[derive(Deserialize)]
+struct MiseDoctor {
+    // Added in mise 2025.7.2
+    self_update_available: Option<bool>,
+}
+
+/// Packagers can disable `mise self-update` without removing the subcommand (e.g. the APT package
+/// ships a `mise-self-update-instructions.toml`), in which case it still shows up in `mise --help`
+/// but fails when run. `mise doctor` reports whether self-update is actually available.
+fn mise_supports_self_update(ctx: &ExecutionContext, mise: &Path) -> Result<bool> {
+    // `mise doctor` exits with 1 when it finds problems, so don't check the exit code.
+    let output = ctx
+        .execute(mise)
+        .always()
+        .args(["doctor", "--json"])
+        .output_checked_with_utf8(|_| Ok(()))?;
+    let doctor: MiseDoctor = serde_json::from_str(&output.stdout)
+        .wrap_err_with(|| output_changed_message!("mise doctor --json", "json output invalid"))?;
+    if let Some(available) = doctor.self_update_available {
+        return Ok(available);
+    }
+
+    // Older versions don't report it, but omit the subcommand when built without self-update.
+    Ok(ctx
+        .execute(mise)
+        .always()
+        .arg("--help")
+        .output_checked_utf8()?
+        .stdout
+        .contains("self-update"))
+}
+
 pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
     let mise = require("mise")?;
 
@@ -2839,15 +2871,7 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
     } else {
         // This used to run self-update and check for exit code 1 and the string 'cannot update' in stderr.
         //  However, this caused issues with mise's y/n prompt (https://github.com/topgrade-rs/topgrade/issues/2307).
-        let supports_self_update = ctx
-            .execute(&mise)
-            .always()
-            .arg("--help")
-            .output_checked_utf8()?
-            .stdout
-            .contains("self-update");
-
-        if supports_self_update {
+        if mise_supports_self_update(ctx, &mise)? {
             ctx.execute(&mise)
                 .args(["self-update"])
                 .arg_if(ctx.config().yes(Step::Mise), "--yes")
