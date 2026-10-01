@@ -32,11 +32,26 @@ pub fn ssh_step(ctx: &ExecutionContext, hostname: &str) -> Result<()> {
         match ctx.config().run_in_multiplexer()? {
             Multiplexer::No => {}
             Multiplexer::Tmux => {
+                // FIXME: here, we ask tmux to run `ssh ... $SHELL -lc (topgrade) --keep`
+                // and $SHELL does not pass the last --keep to topgrade. we'd need to wire in
+                // format!("'{topgrade} --keep'") as a single arg, conditional on tmux.
                 prepare_async_ssh_command(&mut args);
                 crate::tmux::run_command(ctx, hostname, &shell_words::join(args))?;
-                return Err(SkipStep(String::from(t!("Remote Topgrade launched in Tmux"))).into());
+                return Err(SkipStep(String::from(t!(
+                    "Remote Topgrade launched in {multiplexer}",
+                    multiplexer = "Tmux"
+                )))
+                .into());
             }
-            Multiplexer::Zellij => !todo!(),
+            Multiplexer::Zellij => {
+                // NB: no need to --keep, since zellij keeps panes on exit
+                crate::zellij::run_command(ctx, hostname, "ssh", &args)?;
+                return Err(SkipStep(String::from(t!(
+                    "Remote Topgrade launched in {multiplexer}",
+                    multiplexer = "Zellij"
+                )))
+                .into());
+            }
         }
     }
 
