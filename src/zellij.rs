@@ -11,6 +11,7 @@ use crate::config::ZellijConfig;
 use crate::config::ZellijSessionMode;
 use crate::utils::which;
 
+use rust_i18n::t;
 #[cfg(unix)]
 use std::os::unix::process::CommandExt as _;
 
@@ -99,16 +100,21 @@ pub fn run_in_zellij(config: ZellijConfig) -> Result<()> {
 
     let is_inside_zellij = env::var("ZELLIJ").is_ok();
     let err = match config.session_mode {
-        // TODO: zellij AttachIfNotInSession
-        // ZellijSessionMode::AttachIfNotInSession => {
-        //     if is_inside_zellij {
-        //         // Only attach to the newly-created session if we're not currently in a zellij session.
-        //         println!("{}", t!("Topgrade launched in a new zellij session"));
-        //         return Ok(());
-        //     } else {
-        //         zellij.build().args(["attach-session", "-t", &session]).exec()
-        //     }
-        // }
+        ZellijSessionMode::AttachIfNotInSession => {
+            if is_inside_zellij {
+                // Only attach to the newly-created session if we're not currently in a zellij session.
+                println!(
+                    "{}",
+                    t!(
+                        "Topgrade launched in a new {multiplexer} session",
+                        multiplexer = "zellij"
+                    )
+                );
+                return Ok(());
+            } else {
+                zellij.build().args(["attach", &session]).exec()
+            }
+        }
         ZellijSessionMode::AttachAlways => {
             if is_inside_zellij {
                 zellij.build().args(["action", "switch-session", &session]).exec()
