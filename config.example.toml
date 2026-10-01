@@ -51,6 +51,9 @@
 # Arguments to pass tmux when pulling Repositories
 # tmux_arguments = "-S /var/tmux.sock"
 
+# Arguments to pass to zellij (no default value)
+# zellij_arguments = ""
+
 # Do not set the terminal title (default: true)
 # set_title = true
 
