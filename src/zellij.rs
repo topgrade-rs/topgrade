@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::env;
 use std::path::PathBuf;
 use std::process::Command;
@@ -66,28 +67,32 @@ impl Zellij {
             .output_checked()?;
         Ok(())
     }
+    /// Names of all zellij sessions, including EXITED ones (which still occupy their name).
+    fn session_names(&self) -> Result<HashSet<String>> {
+        let output = self
+            .build()
+            .args(["list-sessions", "--short", "--no-formatting"])
+            // exits with status 1 when there are no sessions, which is fine
+            .output_checked_with_utf8(|_| Ok(()))
+            .context("Error listing zellij sessions")?;
+        Ok(output.stdout.lines().map(str::to_owned).collect())
+    }
+
     /// Like [`new_session`] but it appends a digit to the session name (if necessary) to
     /// avoid duplicate session names.
     ///
     /// The session name is returned.
     fn new_unique_session(&self, session_name: &str) -> Result<String> {
-        self.new_session(session_name)
-            .context("Error running Topgrade in zellij")?;
-        Ok(session_name.to_owned())
-        // TODO: new_unique_session
-        // let mut session = session_name.to_owned();
-        // for i in 1.. {
-        //     if !self
-        //         .has_session(&session)
-        //         .context("Error determining if a tmux session exists")?
-        //     {
-        //         self.new_session(&session, command)
-        //             .context("Error running Topgrade in tmux")?;
-        //         return Ok(session);
-        //     }
-        //     session = format!("{session_name}-{i}");
-        // }
-        // unreachable!()
+        let existing = self.session_names().context("Error listing zellij sessions")?;
+        let mut session = session_name.to_owned();
+        for i in 1.. {
+            if !existing.contains(&session) {
+                self.new_session(&session).context("Error running Topgrade in zellij")?;
+                return Ok(session);
+            }
+            session = format!("{session_name}-{i}");
+        }
+        unreachable!()
     }
 }
 
