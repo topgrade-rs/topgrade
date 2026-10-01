@@ -31,7 +31,7 @@ impl Zellij {
         })
     }
 
-    #[allow(clippy::disallowed_methods)]
+    #[expect(clippy::disallowed_methods)]
     fn build(&self) -> Command {
         let mut command = Command::new(&self.zellij);
         // NB: unlike tmux, zellij seems to nest fine without any env-var wrangling.
@@ -42,30 +42,12 @@ impl Zellij {
     }
     /// Create a new zellij session with the given name, running `command` with `args` in a tab
     /// (and pane) named `tab_name`.
-    fn new_session(&self, session_name: &str, tab_name: &str, command: &str, args: &[&str]) -> Result<()> {
+    fn new_session(&self, session_name: &str, command: &str, args: &[&str]) -> Result<()> {
         self.build()
-            // see https://zellij.dev/documentation/programmatic-control.html#1-create-a-session
-            .args(["attach", "--create-background", session_name])
-            .output_checked()?;
-        // zellij can create a new background session with the layout we want,
-        // but only if given a path to a file with the layout.
-        // rather than make a temp-file, we spawn zellij with a default layout, then replace it with ours.
-
-        // for that, we'll need a layout string approximately of form:
-        // `layout {tab {pane command="env" {args (env args) "topgrade" (topgrade args);};};}`
-        // with all args double-quoted.
-        // see https://zellij.dev/documentation/creating-a-layout.html for reference.
-        let mut args_kdl = String::new();
-        for arg in args {
-            // append double-quoted ` "arg"`, escaping double-quotes inside arg itself
-            args_kdl.push_str(&format!(" \"{}\"", arg.replace("\"", "\\\"")));
-        }
-        let layout_string = format!(
-            r#"layout {{ tab name="{tab_name}" {{ pane name="{tab_name}" command="{command}" {{ args {args_kdl}; }}; }}; }}"#
-        );
-        self.build()
-            .env("ZELLIJ_SESSION_NAME", session_name)
-            .args(["action", "override-layout", "--layout-string", &layout_string])
+            // NB: `zellij attach --create-background <name> -- <cmd> <args..>` works for zellij>=0.45.1
+            .args(["attach", "--create-background", session_name, "--"])
+            .arg(command)
+            .args(args)
             .output_checked()?;
         Ok(())
     }
@@ -74,7 +56,8 @@ impl Zellij {
     fn new_tab(&self, session_name: &str, tab_name: &str, command: &str, args: &[&str]) -> Result<()> {
         self.build()
             .env("ZELLIJ_SESSION_NAME", session_name)
-            .args(["action", "new-tab", "-n", tab_name, "--", command])
+            .args(["action", "new-tab", "--session", session_name, "-n", tab_name])
+            .args(["--", command])
             .args(args)
             .output_checked()?;
         Ok(())
@@ -85,9 +68,11 @@ impl Zellij {
         let output = self
             .build()
             .args(["list-sessions", "--short", "--no-formatting"])
-            // exits with status 1 when there are no sessions, which is fine
             .output_checked_with_utf8(|output| {
-                if output.status.code() == Some(1) && output.stderr.contains("No active zellij sessions found") {
+                if output.status.code() == Some(0)
+                // exits with status 1 when there are no sessions, which is fine
+                    || output.status.code() == Some(1) && output.stderr.contains("No active zellij sessions found")
+                {
                     Ok(())
                 } else {
                     Err(())
@@ -101,12 +86,12 @@ impl Zellij {
     /// avoid duplicate session names.
     ///
     /// The session name is returned.
-    fn new_unique_session(&self, session_name: &str, tab_name: &str, command: &str, args: &[&str]) -> Result<String> {
+    fn new_unique_session(&self, session_name: &str, command: &str, args: &[&str]) -> Result<String> {
         let existing = self.session_names()?;
         let mut session = session_name.to_owned();
         for i in 1.. {
             if !existing.contains(&session) {
-                self.new_session(&session, tab_name, command, args)
+                self.new_session(&session, command, args)
                     .context("Error running Topgrade in zellij")?;
                 return Ok(session);
             }
@@ -127,7 +112,7 @@ pub fn run_in_zellij(config: ZellijConfig) -> Result<()> {
     let mut relaunch_args = vec!["TOPGRADE_INSIDE_ZELLIJ=1".to_owned()];
     relaunch_args.extend(env::args());
     let relaunch_args: Vec<&str> = relaunch_args.iter().map(String::as_str).collect();
-    let session = zellij.new_unique_session(session_name, "topgrade", "env", &relaunch_args)?;
+    let session = zellij.new_unique_session(session_name, "env", &relaunch_args)?;
 
     let is_inside_zellij = env::var("ZELLIJ").is_ok();
     let err = match config.session_mode {
@@ -167,7 +152,7 @@ pub fn run_command(ctx: &ExecutionContext, tab_name: &str, command: &str, args: 
     if let Some(session_name) = ctx.get_zellij_session() {
         zellij.new_tab(&session_name, tab_name, command, args)?;
     } else {
-        let name = zellij.new_unique_session("topgrade", tab_name, command, args)?;
+        let name = zellij.new_unique_session("topgrade", command, args)?;
         ctx.set_zellij_session(name);
     }
     Ok(())
