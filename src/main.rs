@@ -17,7 +17,7 @@ use etcetera::base_strategy::Windows;
 #[cfg(unix)]
 use etcetera::base_strategy::Xdg;
 use rust_i18n::{i18n, t};
-use std::sync::LazyLock;
+use std::sync::{LazyLock, OnceLock};
 use tempfile::{TempDir, tempdir};
 use tracing::debug;
 
@@ -58,6 +58,8 @@ pub(crate) static WINDOWS_DIRS: LazyLock<Windows> = LazyLock::new(|| Windows::ne
 
 // Init and load the i18n files
 i18n!("locales", fallback = "en");
+
+pub(crate) static OLD_CWD: OnceLock<PathBuf> = OnceLock::new();
 
 struct TempCwd {
     #[allow(unused)]
@@ -154,7 +156,8 @@ fn run() -> Result<()> {
 
     // Some steps (like mise or pi) have different behavior when ran in a project directory.
     //  Since Topgrade only handles global updates, run all commands in a temporary directory.
-    let _temp_cwd = TempCwd::new()?;
+    let temp_cwd = TempCwd::new()?;
+    OLD_CWD.set(temp_cwd.old_cwd.clone()).unwrap();
 
     let elevated = is_elevated();
 
