@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.12.3](https://github.com/topgrade-rs/topgrade/compare/v17.12.2...v17.12.3) - 2026-10-02
+
+### Fixed
+- restore old working directory when opening a shell ([#2391](https://github.com/topgrade-rs/topgrade/pull/2391))
+- *(mise)* skip self-update when disabled by the package manager ([#2374](https://github.com/topgrade-rs/topgrade/pull/2374))
+
 ## [17.12.2](https://github.com/topgrade-rs/topgrade/compare/v17.12.1...v17.12.2) - 2026-09-26
 
 ### Fixed
