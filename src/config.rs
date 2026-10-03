@@ -251,9 +251,11 @@ pub enum ArchPackageManager {
 #[serde(rename_all = "snake_case")]
 pub enum SkillsPackageManager {
     #[default]
-    Npx,
+    #[serde(alias = "npx")]
+    Npm,
     Pnpm,
     Bun,
+    Yarn,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Default)]
@@ -475,6 +477,13 @@ pub struct JuliaConfig {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct Sheldon {
+    quiet: Option<bool>,
+    verbose: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 pub struct Zigup {
     target_versions: Option<Vec<String>>,
     install_dir: Option<String>,
@@ -519,6 +528,12 @@ pub struct Rustup {
 #[serde(deny_unknown_fields)]
 pub struct Pkgfile {
     enable: Option<bool>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
+pub struct Uv {
+    cache_force: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -580,6 +595,9 @@ pub struct ConfigFile {
     mise: Option<Mise>,
 
     #[merge(strategy = merge2::option::recursive)]
+    sheldon: Option<Sheldon>,
+
+    #[merge(strategy = merge2::option::recursive)]
     yarn: Option<Yarn>,
 
     #[merge(strategy = merge2::option::recursive)]
@@ -635,6 +653,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = merge2::option::recursive)]
     viteplus: Option<VitePlus>,
+
+    #[merge(strategy = merge2::option::recursive)]
+    uv: Option<Uv>,
 }
 
 fn config_directory() -> PathBuf {
@@ -710,6 +731,14 @@ impl ConfigFile {
             let entry_path = entry?.path();
 
             if entry_path.is_file() {
+                let file_name = entry_path
+                    .file_name()
+                    .expect("`fs::read_dir` does not return paths ending in `..`")
+                    .to_string_lossy();
+                if file_name.eq_ignore_ascii_case(".DS_Store") {
+                    debug!("Skipping .DS_Store file at {}", entry_path.display());
+                    continue;
+                }
                 debug!(
                     "Found additional (directory) configuration file at {}",
                     entry_path.display()
@@ -1435,7 +1464,7 @@ impl Config {
             .unwrap_or(false)
     }
 
-    // Should wsl --update should use the --pre-release flag
+    // Should wsl --update use the --pre-release flag
     pub fn wsl_update_pre_release(&self) -> bool {
         self.config_file
             .windows
@@ -1765,7 +1794,7 @@ impl Config {
             .unwrap_or(false)
     }
 
-    /// Use zypper dist-upgrade (same as distro-sync on RH) instead of update (default: false on SLE/Leap, ignored on Tumbleweed (dup is always ran))
+    /// Use zypper dist-upgrade (same as distro-sync on RH) instead of update (default: false on SLE/Leap, ignored on Tumbleweed (dup is always run))
     pub fn suse_dup(&self) -> bool {
         self.config_file
             .linux
@@ -1774,7 +1803,7 @@ impl Config {
             .unwrap_or(false)
     }
 
-    /// Use rpm-ostree in *when rpm-ostree is detected* (default: true)
+    /// Use rpm-ostree *when rpm-ostree is detected* (default: true)
     pub fn rpm_ostree(&self) -> bool {
         self.config_file
             .linux
@@ -1783,7 +1812,7 @@ impl Config {
             .unwrap_or(false)
     }
 
-    /// Use bootc in *when bootc is detected* (default: false)
+    /// Use bootc *when bootc is detected* (default: false)
     pub fn bootc(&self) -> bool {
         self.config_file
             .linux
@@ -2012,7 +2041,7 @@ impl Config {
             .unwrap_or(false)
     }
 
-    /// Package runner to use to run the `skills` CLI (npx / pnpx / bunx)
+    /// Package runner to use to run the `skills` CLI (npx / pnpx / bunx / yarn dlx)
     pub fn skills_package_manager(&self) -> SkillsPackageManager {
         self.config_file
             .skills
@@ -2171,6 +2200,22 @@ impl Config {
             .unwrap_or(false)
     }
 
+    pub fn sheldon_quiet(&self) -> bool {
+        self.config_file
+            .sheldon
+            .as_ref()
+            .and_then(|sheldon| sheldon.quiet)
+            .unwrap_or(false)
+    }
+
+    pub fn sheldon_verbose(&self) -> bool {
+        self.config_file
+            .sheldon
+            .as_ref()
+            .and_then(|sheldon| sheldon.verbose)
+            .unwrap_or(false)
+    }
+
     pub fn mise_bump(&self) -> bool {
         self.config_file
             .mise
@@ -2249,6 +2294,14 @@ impl Config {
             .and_then(|pkgfile| pkgfile.enable)
             .unwrap_or(false)
     }
+
+    pub fn uv_cache_force(&self) -> bool {
+        self.config_file
+            .uv
+            .as_ref()
+            .and_then(|uv| uv.cache_force)
+            .unwrap_or(false)
+    }
 }
 
 #[cfg(test)]
@@ -2282,6 +2335,23 @@ mod test {
         assert_eq!(left.system_prune, Some(false));
         // Left None is filled from right
         assert_eq!(left.use_sudo, Some(true));
+    }
+
+    /// `package_manager = "npx"` shipped in 17.10.0 as the only value; keep it working.
+    #[test]
+    fn test_skills_package_manager() {
+        for (value, expected) in [
+            ("npm", SkillsPackageManager::Npm),
+            ("pnpm", SkillsPackageManager::Pnpm),
+            ("bun", SkillsPackageManager::Bun),
+            ("yarn", SkillsPackageManager::Yarn),
+            ("npx", SkillsPackageManager::Npm),
+        ] {
+            let config = config_from_toml(&format!("[skills]\npackage_manager = \"{value}\"\n"));
+            assert_eq!(config.skills_package_manager(), expected, "{value}");
+        }
+
+        assert_eq!(config_from_toml("").skills_package_manager(), SkillsPackageManager::Npm);
     }
 
     /// Test the default configuration in `config.example.toml` is valid.

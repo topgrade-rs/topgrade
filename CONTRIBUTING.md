@@ -11,7 +11,7 @@ We welcome and encourage contributions of all kinds, such as:
 
 You may use LLMs (AI tools) for:
 
-* Inspiration, problem solving, help with Rust, translation, etc.
+* Inspiration, problem-solving, help with Rust, translation, etc.
 * Generating small and self-contained snippets of code (e.g., shell scripts or utility functions)
 
 Do **not** use LLMs to:
@@ -125,7 +125,7 @@ modified:
 
 Be sure to apply your changes to
 [`config.example.toml`](https://github.com/topgrade-rs/topgrade/blob/main/config.example.toml),
-and have some basic documentations guiding user how to use these options.
+and have some basic documentation guiding users on how to use these options.
 
 ### Testing a pull request
 
@@ -169,7 +169,7 @@ It should be written in Markdown and wrapped at 80, for example:
 
 If your PR introduces user-facing messages, we need to ensure they are translated.
 Please add the translations to [`locales/app.yml`][app_yml]. For simple messages
-without arguments (e.g., "hello world"), we can simply translate them according
+without arguments (e.g., "hello world"), we can simply translate them accordingly
 (Tip: LLMs are good at translation). If a message contains
 arguments, e.g., "hello <NAME>", please follow this convention:
 
@@ -185,7 +185,7 @@ a preceding `%` when used in translations.
 
 ### Locales
 
-Some steps respect locale, which means their output can be in language other
+Some steps respect locale, which means their output can be in a language other
 than English. In those cases, we cannot rely on the output of a command.
 
 For example, one may want to check if a tool works by doing this:
@@ -198,6 +198,6 @@ if stdout.contains("help") {
 }
 ```
 
-If `xxx` respects locale, then the above code should work on English system,
+If `xxx` respects locale, then the above code should work on an English system;
 on a system that does not use English, e.g., it uses Chinese, that `"help"` may be
 translated to `"帮助"`, and the above code won't work.

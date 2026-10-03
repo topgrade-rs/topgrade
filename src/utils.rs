@@ -2,12 +2,13 @@ use crate::output_changed_message;
 use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
+use std::sync::{LazyLock, OnceLock};
 
 use color_eyre::eyre::{Context, Result, eyre};
+use itertools::Itertools;
 use rust_i18n::t;
 
-use tracing::{debug, error, warn};
+use tracing::{debug, warn};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::reload::{Handle, Layer};
 use tracing_subscriber::util::SubscriberInitExt;
@@ -78,6 +79,20 @@ where
     }
 }
 
+#[allow(unused)]
+pub trait OptionExt<T> {
+    fn or_else_fallible<F: FnOnce() -> Result<Option<T>>>(self, f: F) -> Result<Option<T>>;
+}
+
+impl<T> OptionExt<T> for Option<T> {
+    fn or_else_fallible<F: FnOnce() -> Result<Option<T>>>(self, f: F) -> Result<Option<T>> {
+        match self {
+            Some(x) => Ok(Some(x)),
+            None => f(),
+        }
+    }
+}
+
 /// `[linux] wsl_use_windows_path`, set once at startup. While unset the filter keeps its
 /// default: off outside WSL, on inside.
 static WSL_USE_WINDOWS_PATH: OnceLock<bool> = OnceLock::new();
@@ -96,60 +111,53 @@ fn wsl_windows_path_filter_enabled() -> bool {
 }
 
 /// Mount points backed by Windows drives (drvfs on WSL1, 9p/virtiofs on WSL2).
-fn windows_mount_prefixes() -> &'static [PathBuf] {
-    static PREFIXES: OnceLock<Vec<PathBuf>> = OnceLock::new();
-    PREFIXES.get_or_init(|| {
-        // On a read failure the list stays empty, so the filter is inert (plain lookup).
-        let mounts = std::fs::read_to_string("/proc/mounts").unwrap_or_else(|e| {
-            warn!("Could not read /proc/mounts: {e}; WSL Windows-path filter stays inert");
-            String::new()
-        });
-        mounts
-            .lines()
-            .filter_map(|line| {
-                let mut cols = line.split_whitespace();
-                let _source = cols.next()?;
-                let mount_point = cols.next()?;
-                let fstype = cols.next()?;
-                let options = cols.next().unwrap_or("");
-                // A Windows drive is WSL1 drvfs, or a WSL2 9p/virtiofs mount tagged
-                // `aname=drvfs`. Keying on that tag rather than the fstype avoids WSL's own
-                // 9p/virtiofs mounts (/usr/lib/wsl/drivers, /mnt/wslg) and still catches a
-                // drive mounted via virtiofs.
-                (fstype == "drvfs" || options.contains("aname=drvfs")).then(|| PathBuf::from(mount_point))
-            })
-            .collect()
-    })
-}
+static PREFIXES: LazyLock<Vec<PathBuf>> = LazyLock::new(|| {
+    // On a read failure the list stays empty, so the filter is inert (plain lookup).
+    let mounts = std::fs::read_to_string("/proc/mounts").unwrap_or_else(|e| {
+        warn!("Could not read /proc/mounts: {e}; WSL Windows-path filter stays inert");
+        String::new()
+    });
+    mounts
+        .lines()
+        .filter_map(|line| {
+            let mut cols = line.split_whitespace();
+            let _source = cols.next()?;
+            let mount_point = cols.next()?;
+            let fstype = cols.next()?;
+            let options = cols.next().unwrap_or("");
+            // A Windows drive is WSL1 drvfs, or a WSL2 9p/virtiofs mount tagged
+            // `aname=drvfs`. Keying on that tag rather than the fstype avoids WSL's own
+            // 9p/virtiofs mounts (/usr/lib/wsl/drivers, /mnt/wslg) and still catches a
+            // drive mounted via virtiofs.
+            (fstype == "drvfs" || options.contains("aname=drvfs")).then(|| PathBuf::from(mount_point))
+        })
+        .collect()
+});
 
-fn is_windows_mount_path(path: &Path, prefixes: &[PathBuf]) -> bool {
-    prefixes.iter().any(|prefix| path.starts_with(prefix))
+fn is_windows_mount_path(path: &Path) -> bool {
+    PREFIXES.iter().any(|prefix| path.starts_with(prefix))
 }
 
 /// `which`, but skips executables on Windows drive mounts.
-fn which_native_in_wsl<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBuf> {
+fn which_native_in_wsl<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<Option<PathBuf>> {
     let mut candidates = match which_crate::which_all(&binary_name) {
         Ok(candidates) => candidates,
         Err(which_crate::Error::CannotFindBinaryPath) => {
             debug!("Cannot find {:?}", &binary_name);
-            return None;
+            return Ok(None);
         }
-        Err(e) => {
-            error!("Detecting {:?} failed: {}", &binary_name, e);
-            return None;
-        }
+        Err(e) => return Err(eyre!(e).wrap_err(format!("Detecting {:?} failed", binary_name))),
     };
 
-    let prefixes = windows_mount_prefixes();
     let mut saw_candidate = false;
     let native = candidates.find(|path| {
         saw_candidate = true;
-        !is_windows_mount_path(path, prefixes)
+        !is_windows_mount_path(path)
     });
     match native {
         Some(path) => {
             debug!("Detected {:?} as {:?}", &path, &binary_name);
-            Some(path)
+            Ok(Some(path))
         }
         // Every PATH match was a Windows binary on a drive mount.
         None if saw_candidate => {
@@ -157,16 +165,16 @@ fn which_native_in_wsl<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBu
                 "Cannot find native {:?} in PATH (only Windows binaries via WSL interop)",
                 &binary_name
             );
-            None
+            Ok(None)
         }
         None => {
             debug!("Cannot find {:?}", &binary_name);
-            None
+            Ok(None)
         }
     }
 }
 
-pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBuf> {
+pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<Option<PathBuf>> {
     if wsl_windows_path_filter_enabled() {
         return which_native_in_wsl(&binary_name);
     }
@@ -174,52 +182,27 @@ pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBuf> {
     match which_crate::which(&binary_name) {
         Ok(path) => {
             debug!("Detected {:?} as {:?}", &path, &binary_name);
-            Some(path)
+            Ok(Some(path))
         }
-        Err(e) => {
-            match e {
-                which_crate::Error::CannotFindBinaryPath => {
-                    debug!("Cannot find {:?}", &binary_name);
-                }
-                _ => {
-                    error!("Detecting {:?} failed: {}", &binary_name, e);
-                }
-            }
-
-            None
+        Err(which_crate::Error::CannotFindBinaryPath) => {
+            debug!("Cannot find {:?}", &binary_name);
+            Ok(None)
         }
+        Err(e) => Err(eyre!(e).wrap_err(format!("Detecting {:?} failed", binary_name))),
     }
 }
 
 pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
-    if wsl_windows_path_filter_enabled() {
-        return which_native_in_wsl(&binary_name).ok_or_else(|| {
-            SkipStep(format!(
-                "{}",
-                t!(
-                    "Cannot find {binary_name} in PATH",
-                    binary_name = format!("{:?}", &binary_name)
-                )
-            ))
-            .into()
-        });
-    }
-
-    match which_crate::which(&binary_name) {
-        Ok(path) => {
-            debug!("Detected {:?} as {:?}", &path, &binary_name);
-            Ok(path)
-        }
-        Err(which_crate::Error::CannotFindBinaryPath) => Err(SkipStep(format!(
+    which(&binary_name)?.ok_or_else(|| {
+        SkipStep(format!(
             "{}",
             t!(
                 "Cannot find {binary_name} in PATH",
                 binary_name = format!("{:?}", &binary_name)
             )
         ))
-        .into()),
-        Err(e) => Err(color_eyre::eyre::Report::new(e).wrap_err(format!("Detecting {:?} failed", binary_name))),
-    }
+        .into()
+    })
 }
 
 #[allow(unused)]
@@ -239,12 +222,22 @@ pub fn require_flatpak(ctx: &ExecutionContext, name: &str) -> Result<Executor> {
     }
 }
 
+#[allow(unused)]
+pub fn which_one<T: AsRef<OsStr> + Debug>(binary_names: impl IntoIterator<Item = T>) -> Result<Option<PathBuf>> {
+    for bin in binary_names {
+        if let Some(path) = which(&bin)? {
+            return Ok(Some(path));
+        }
+    }
+    Ok(None)
+}
+
 pub fn require_one<T: AsRef<OsStr> + Debug>(binary_names: impl IntoIterator<Item = T>) -> Result<PathBuf> {
     let mut failed_bins = Vec::new();
     for bin in binary_names {
-        match require(&bin) {
-            Ok(path) => return Ok(path),
-            Err(_) => failed_bins.push(bin),
+        match which(&bin)? {
+            Some(path) => return Ok(path),
+            None => failed_bins.push(bin),
         }
     }
 
@@ -254,12 +247,16 @@ pub fn require_one<T: AsRef<OsStr> + Debug>(binary_names: impl IntoIterator<Item
             "Cannot find any of {binary_names} in PATH",
             binary_names = failed_bins
                 .iter()
-                .map(|bin| format!("{:?}", bin))
-                .collect::<Vec<_>>()
-                .join(", ")
+                .format_with(", ", |bin, f| f(&format_args!("{:?}", bin)))
         )
     ))
     .into())
+}
+
+pub fn is_installed_via_homebrew(binary: &Path) -> bool {
+    binary
+        .canonicalize()
+        .is_ok_and(|p| p.to_string_lossy().contains("/Cellar/"))
 }
 
 #[allow(dead_code)]
@@ -281,9 +278,7 @@ pub fn require_one_path<T: AsRef<Path> + Debug>(paths: impl IntoIterator<Item = 
             "None of {paths} exist",
             paths = failed_paths
                 .iter()
-                .map(|path| format!("{:?}", path))
-                .collect::<Vec<_>>()
-                .join(", ")
+                .format_with(", ", |path, f| f(&format_args!("{:?}", path)))
         )
     ))
     .into())

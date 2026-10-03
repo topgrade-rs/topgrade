@@ -17,7 +17,8 @@ use etcetera::base_strategy::Windows;
 #[cfg(unix)]
 use etcetera::base_strategy::Xdg;
 use rust_i18n::{i18n, t};
-use std::sync::LazyLock;
+use std::sync::{LazyLock, OnceLock};
+use tempfile::{TempDir, tempdir};
 use tracing::debug;
 
 use self::config::{CommandLineArgs, Config};
@@ -57,6 +58,29 @@ pub(crate) static WINDOWS_DIRS: LazyLock<Windows> = LazyLock::new(|| Windows::ne
 
 // Init and load the i18n files
 i18n!("locales", fallback = "en");
+
+pub(crate) static OLD_CWD: OnceLock<PathBuf> = OnceLock::new();
+
+struct TempCwd {
+    #[allow(unused)]
+    temp_dir: TempDir,
+    old_cwd: PathBuf,
+}
+
+impl TempCwd {
+    fn new() -> Result<Self> {
+        let old_cwd = env::current_dir()?;
+        let temp_dir = tempdir()?;
+        env::set_current_dir(&temp_dir)?;
+        Ok(Self { temp_dir, old_cwd })
+    }
+}
+
+impl Drop for TempCwd {
+    fn drop(&mut self) {
+        env::set_current_dir(&self.old_cwd).expect("Restoring cwd failed");
+    }
+}
 
 fn run() -> Result<()> {
     install_color_eyre()?;
@@ -129,6 +153,11 @@ fn run() -> Result<()> {
             return Ok(());
         }
     }
+
+    // Some steps (like mise or pi) have different behavior when ran in a project directory.
+    //  Since Topgrade only handles global updates, run all commands in a temporary directory.
+    let temp_cwd = TempCwd::new()?;
+    OLD_CWD.set(temp_cwd.old_cwd.clone()).unwrap();
 
     let elevated = is_elevated();
 
@@ -242,7 +271,7 @@ fn run() -> Result<()> {
                         "Install one of `sudo`, `doas`, `pkexec`, `run0` or `please` to run these steps."
                     ));
 
-                    // if this windows version supported Windows Sudo, the error would have been WinSudoDisabled
+                    // If this Windows version supported Windows Sudo, the error would have been WinSudoDisabled
                     #[cfg(windows)]
                     print_warning(t!("Install gsudo to run these steps."));
                 }

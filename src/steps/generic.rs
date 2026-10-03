@@ -3,12 +3,13 @@ use color_eyre::eyre::Result;
 use color_eyre::eyre::{OptionExt, bail, eyre};
 #[cfg(unix)]
 use etcetera::BaseStrategy;
+use itertools::Itertools;
 use jetbrains_toolbox_updater::{FindError, find_jetbrains_toolbox, update_jetbrains_toolbox};
 use regex::bytes::Regex;
 use rust_i18n::t;
 use semver::Version;
 use serde::Deserialize;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::env;
 use std::ffi::{OsStr, OsString};
 #[cfg(unix)]
@@ -18,7 +19,7 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::LazyLock;
 use std::{fs, io::Write};
 use sysinfo::{ProcessRefreshKind, RefreshKind, System, UpdateKind};
-use tempfile::{tempdir, tempfile_in};
+use tempfile::tempfile_in;
 use tracing::{debug, error, warn};
 use walkdir::WalkDir;
 
@@ -33,7 +34,9 @@ use crate::output_changed_message;
 use crate::step::Step;
 use crate::sudo::SudoExecuteOpts;
 use crate::terminal::{print_info, print_separator, shell};
-use crate::utils::{PathExt, check_is_python_2_or_shim, require, require_one, require_option, which};
+use crate::utils::{
+    PathExt, check_is_python_2_or_shim, is_installed_via_homebrew, require, require_one, require_option, which,
+};
 use crate::{
     error::{DryRun, SkipStep, StepFailed, TopgradeError},
     terminal::print_warning,
@@ -120,7 +123,7 @@ pub fn run_gem(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Gems");
 
-    if !env::var_os("RBENV_SHELL").is_none() {
+    if env::var_os("RBENV_SHELL").is_some() {
         debug!("Detected rbenv. Avoiding --user-install");
     }
 
@@ -191,7 +194,13 @@ pub fn run_sheldon(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Sheldon");
 
-    ctx.execute(sheldon).args(["lock", "--update"]).status_checked()
+    ctx.execute(sheldon)
+        .arg_if(ctx.config().sheldon_quiet(), "--quiet")
+        .arg_if(ctx.config().sheldon_verbose(), "--verbose")
+        .arg_if(ctx.config().yes(Step::Sheldon), "--non-interactive")
+        .args(["lock", "--update"])
+        .status_checked()?;
+    Ok(())
 }
 
 pub fn run_fossil(ctx: &ExecutionContext) -> Result<()> {
@@ -747,7 +756,7 @@ fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Resu
     let bin_name = variant.bin_name();
     let bin = require(bin_name)?;
 
-    // VSCode has update command only since 1.86 version ("january 2024" update), disable the update for prior versions
+    // VSCode has an update command only since version 1.86 ("January 2024" update); disable the update for prior versions
     //
     // The output of `code --version` has two possible formats:
     // 1. 3 lines: version, git commit, instruction set. We parse only the first one
@@ -787,7 +796,6 @@ fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Resu
     let version_string = version_string
         .split('.')
         .map(|s| if s == "0" { "0" } else { s.trim_start_matches('0') })
-        .collect::<Vec<_>>()
         .join(".");
 
     let version = Version::parse(&version_string)
@@ -1020,19 +1028,15 @@ mod vscode_tests {
 
 pub fn run_pi(ctx: &ExecutionContext) -> Result<()> {
     let pi = require("pi")?;
-    let temp_dir = tempdir()?;
 
     print_separator("pi");
 
-    // `pi` reads project-local settings from `./.pi/settings.json`, so run
-    // from a fresh directory to restrict this step to global packages.
     // Newer Pi versions expose explicit update targets. Feature-detect those flags
     // so Topgrade updates Pi itself and global extensions, while older Pi versions
     // keep the previous combined `pi update` behavior.
     let pi_update_help = ctx
         .execute(&pi)
         .always()
-        .current_dir(temp_dir.path())
         .args(["update", "--help"])
         .output_checked_utf8()?;
 
@@ -1041,9 +1045,7 @@ pub fn run_pi(ctx: &ExecutionContext) -> Result<()> {
 
     // `pi update --self` errors when PI_SKIP_VERSION_CHECK is set. Homebrew sets it when it runs.
     let pi_skip_version_check_env = std::env::var("PI_SKIP_VERSION_CHECK").is_ok();
-    let pi_installed_through_homebrew = pi
-        .canonicalize()
-        .is_ok_and(|p| p.to_string_lossy().contains("/Cellar/"));
+    let pi_installed_through_homebrew = is_installed_via_homebrew(&pi);
 
     if supports_explicit_update_targets {
         if pi_skip_version_check_env {
@@ -1051,21 +1053,12 @@ pub fn run_pi(ctx: &ExecutionContext) -> Result<()> {
         } else if pi_installed_through_homebrew {
             debug!("Skipping `pi update --self`: pi is installed via Homebrew");
         } else {
-            ctx.execute(&pi)
-                .current_dir(temp_dir.path())
-                .args(["update", "--self"])
-                .status_checked()?;
+            ctx.execute(&pi).args(["update", "--self"]).status_checked()?;
         }
 
-        ctx.execute(&pi)
-            .current_dir(temp_dir.path())
-            .args(["update", "--extensions"])
-            .status_checked()
+        ctx.execute(&pi).args(["update", "--extensions"]).status_checked()
     } else {
-        ctx.execute(&pi)
-            .current_dir(temp_dir.path())
-            .arg("update")
-            .status_checked()
+        ctx.execute(&pi).arg("update").status_checked()
     }
 }
 
@@ -1523,7 +1516,7 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
         let output: Utf8Output = output.try_into()?;
         print!("{}\n{}", output.stdout, output.stderr);
         if (output.stdout.contains("valet") || output.stderr.contains("valet"))
-            && let Some(valet) = which("valet")
+            && let Some(valet) = which("valet")?
         {
             ctx.execute(valet).arg("install").status_checked()?;
         }
@@ -2098,7 +2091,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         let start_trimmed = uv_version_output_stdout
             .trim_start_matches("uv")
             .trim_start_matches(' ');
-        // Remove the tailing part " (c4d0caaee 2024-12-19)\n", if it's there
+        // Remove the trailing part " (c4d0caaee 2024-12-19)\n", if it's there
         match start_trimmed.find(' ') {
             None => start_trimmed.trim_end_matches('\n'), // Otherwise, just strip the newline
             Some(i) => &start_trimmed[..i],
@@ -2188,7 +2181,10 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
 
     if ctx.config().cleanup() {
         // Prune cache
-        ctx.execute(&uv_exec).args(["cache", "prune"]).status_checked()?;
+        ctx.execute(&uv_exec)
+            .args(["cache", "prune"])
+            .arg_if(ctx.config().uv_cache_force(), "--force")
+            .status_checked()?;
     }
 
     Ok(())
@@ -2207,7 +2203,7 @@ pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
     let bun = require("bun")?;
 
     // From the official install script (both install.sh and install.ps1), Bun uses
-    // the path set in this variable as the install root, and its defaults to
+    // the path set in this variable as the install root, and it defaults to
     // `$HOME/.bun`
     //
     // UNIX: https://bun.sh/install.sh
@@ -2369,19 +2365,47 @@ fn run_jetbrains_ide(ctx: &ExecutionContext, bin: PathBuf, name: &str) -> Result
     run_jetbrains_ide_generic::<true>(ctx, bin, name)
 }
 
+enum Studio {
+    AndroidStudio(PathBuf),
+    WordPressStudio(PathBuf),
+}
+
+impl Studio {
+    fn android_studio(self) -> Result<PathBuf> {
+        match self {
+            Studio::AndroidStudio(studio) => Ok(studio),
+            Studio::WordPressStudio(studio) => Err(SkipStep(format!(
+                "Command `{}` points to WordPress Studio CLI, not Android Studio",
+                studio.display()
+            ))
+            .into()),
+        }
+    }
+
+    fn get(ctx: &ExecutionContext) -> Result<Self> {
+        let studio = require("studio")?;
+
+        // Check if `studio --help` mentions "WordPress Studio". Android Studio does not, WordPress Studio does.
+        let output = ctx.execute(&studio).always().arg("--help").output_checked_utf8()?;
+
+        if output.stdout.contains("WordPress Studio") {
+            debug!("Detected `studio` as WordPress Studio");
+            Ok(Self::WordPressStudio(studio))
+        } else {
+            debug!("Detected `studio` as Android Studio");
+            Ok(Self::AndroidStudio(studio))
+        }
+    }
+}
+
 pub fn run_android_studio(ctx: &ExecutionContext) -> Result<()> {
+    let studio = Studio::get(ctx)
+        .and_then(|x| x.android_studio())
+        .or_else(|_| require_one(["android-studio", "android-studio-beta", "android-studio-canary"]))?;
+
     // We don't use `run_jetbrains_ide` here because that would print "JetBrains Android Studio",
     //  which is incorrect as Android Studio is made by Google. Just "Android Studio" is fine.
-    run_jetbrains_ide_generic::<false>(
-        ctx,
-        require_one([
-            "studio",
-            "android-studio",
-            "android-studio-beta",
-            "android-studio-canary",
-        ])?,
-        "Android Studio",
-    )
+    run_jetbrains_ide_generic::<false>(ctx, studio, "Android Studio")
 }
 
 pub fn run_jetbrains_aqua(ctx: &ExecutionContext) -> Result<()> {
@@ -2528,6 +2552,11 @@ pub fn run_claude_code_plugins(ctx: &ExecutionContext) -> Result<()> {
         project_path: Option<PathBuf>,
     }
 
+    #[derive(Deserialize)]
+    struct ClaudeMarketplace {
+        name: String,
+    }
+
     let claude = require("claude")?;
 
     print_separator("Claude Code Plugins");
@@ -2535,6 +2564,18 @@ pub fn run_claude_code_plugins(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(&claude)
         .args(["plugin", "marketplace", "update"])
         .status_checked()?;
+
+    let output = ctx
+        .execute(&claude)
+        .args(["plugin", "marketplace", "list", "--json"])
+        .output_checked_utf8()?;
+    let marketplaces: Vec<ClaudeMarketplace> = serde_json::from_str(&output.stdout).wrap_err_with(|| {
+        output_changed_message!(
+            "claude plugin marketplace list --json",
+            "json output is invalid or does not match expected structure"
+        )
+    })?;
+    let marketplaces: HashSet<String> = marketplaces.into_iter().map(|m| m.name).collect();
 
     let output = ctx
         .execute(&claude)
@@ -2549,6 +2590,15 @@ pub fn run_claude_code_plugins(ctx: &ExecutionContext) -> Result<()> {
 
     let mut success = true;
     for plugin in &plugins {
+        // Plugin ids are `<name>@<marketplace>`. A plugin whose marketplace is not configured
+        // (e.g. one loaded straight from `~/.claude/skills/`, reported as `@skills-dir`) has
+        // nothing to pull from, so `claude plugin update` refuses it.
+        let marketplace = plugin.id.rsplit_once('@').map(|(_, marketplace)| marketplace);
+        if !marketplace.is_some_and(|m| marketplaces.contains(m)) {
+            debug!("Skipping plugin {}: no configured marketplace behind it", plugin.id);
+            continue;
+        }
+
         let mut cmd = ctx.execute(&claude);
         cmd.args(["plugin", "update", &plugin.id, "--scope", &plugin.scope]);
 
@@ -2569,7 +2619,7 @@ pub fn run_codex(ctx: &ExecutionContext) -> Result<()> {
 
     // `codex` will only update if the standalone binary is installed under `~/.local/bin`.
     let local_bin = HOME_DIR.join(".local/bin");
-    if !codex.canonicalize().is_ok_and(|path| path.starts_with(&local_bin)) {
+    if !codex.starts_with(&local_bin) {
         return Err(SkipStep(format!(
             "codex is not installed under {}; update it via its package manager",
             local_bin.display()
@@ -2622,22 +2672,24 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
     }
 
     // Prefer a locally installed `skills` binary over a package runner
-    if let Some(skills) = which("skills") {
+    if let Some(skills) = which("skills")? {
         print_separator("Skills");
         return ctx.execute(skills).args(["update", "--global"]).status_checked();
     }
 
     // Fall back to a package runner; only npx needs `--yes` to auto-confirm the download
-    let (runner, uses_yes_flag) = match ctx.config().skills_package_manager() {
-        SkillsPackageManager::Npx => ("npx", true),
-        SkillsPackageManager::Pnpm => ("pnpx", false),
-        SkillsPackageManager::Bun => ("bunx", false),
+    let (runner, runner_args, uses_yes_flag) = match ctx.config().skills_package_manager() {
+        SkillsPackageManager::Npm => ("npx", &[][..], true),
+        SkillsPackageManager::Pnpm => ("pnpx", &[][..], false),
+        SkillsPackageManager::Bun => ("bunx", &[][..], false),
+        SkillsPackageManager::Yarn => ("yarn", &["dlx"][..], false),
     };
 
     let runner = require(runner)?;
     print_separator("Skills");
     ctx.execute(runner)
         .arg_if(uses_yes_flag && ctx.config().yes(Step::Skills), "--yes")
+        .args(runner_args)
         .args(["skills", "update", "--global"])
         .status_checked()
 }
@@ -2745,10 +2797,8 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Ollama");
 
     let mut server: Option<ExecutorChild> = None;
-    if let ExecutorOutput::Wet(out) = ctx.execute(&ollama).always().args(["list"]).output()?
-        && String::from_utf8_lossy(&out.stderr).contains("could not connect")
-        && !ctx.run_type().dry()
-    {
+    let out = ctx.execute(&ollama).always().args(["list"]).output()?.unwrap_wet();
+    if String::from_utf8_lossy(&out.stderr).contains("could not connect") && !ctx.run_type().dry() {
         debug!("Ollama server not running, starting temporary server");
         server = Some(ollama_serve(ctx, &ollama)?);
         // wait max 2 seconds for server to start
@@ -2777,42 +2827,62 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
     pull_result
 }
 
+#[derive(Deserialize)]
+struct MiseDoctor {
+    // Added in mise 2025.7.2
+    self_update_available: Option<bool>,
+}
+
+/// Packagers can disable `mise self-update` without removing the subcommand (e.g. the APT package
+/// ships a `mise-self-update-instructions.toml`), in which case it still shows up in `mise --help`
+/// but fails when run. `mise doctor` reports whether self-update is actually available.
+fn mise_supports_self_update(ctx: &ExecutionContext, mise: &Path) -> Result<bool> {
+    // `mise doctor` exits with 1 when it finds problems, so don't check the exit code.
+    let output = ctx
+        .execute(mise)
+        .always()
+        .args(["doctor", "--json"])
+        .output_checked_with_utf8(|_| Ok(()))?;
+    let doctor: MiseDoctor = serde_json::from_str(&output.stdout)
+        .wrap_err_with(|| output_changed_message!("mise doctor --json", "json output invalid"))?;
+    if let Some(available) = doctor.self_update_available {
+        return Ok(available);
+    }
+
+    // Older versions don't report it, but omit the subcommand when built without self-update.
+    Ok(ctx
+        .execute(mise)
+        .always()
+        .arg("--help")
+        .output_checked_utf8()?
+        .stdout
+        .contains("self-update"))
+}
+
 pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
     let mise = require("mise")?;
-    // Run from a fresh directory so caller project-local mise.toml files do not
-    // affect the mise step.
-    let temp_dir = tempdir()?;
 
     print_separator("mise");
 
-    ctx.execute(&mise)
-        .current_dir(temp_dir.path())
-        .args(["plugins", "update"])
-        .status_checked()?;
+    ctx.execute(&mise).args(["plugins", "update"]).status_checked()?;
 
-    let output = ctx
-        .execute(&mise)
-        .current_dir(temp_dir.path())
-        .args(["self-update"])
-        .output_checked_with(|_| Ok(()))?;
-    let status_code = output
-        .status
-        .code()
-        .ok_or_eyre("Couldn't get status code (terminated by signal)")?;
-    let stderr = std::str::from_utf8(&output.stderr).wrap_err("Expected output to be valid UTF-8")?;
-    if stderr.contains("cannot update") && status_code == 1 {
-        debug!("Mise self-update not available")
+    if is_installed_via_homebrew(&mise) {
+        debug!("Skipping `mise self-update`: mise is installed via Homebrew");
     } else {
-        std::io::stdout().lock().write_all(&output.stdout)?;
-        std::io::stderr().lock().write_all(&output.stderr)?;
-        if status_code != 0 {
-            return Err(StepFailed.into());
+        // This used to run self-update and check for exit code 1 and the string 'cannot update' in stderr.
+        //  However, this caused issues with mise's y/n prompt (https://github.com/topgrade-rs/topgrade/issues/2307).
+        if mise_supports_self_update(ctx, &mise)? {
+            ctx.execute(&mise)
+                .args(["self-update"])
+                .arg_if(ctx.config().yes(Step::Mise), "--yes")
+                .status_checked()?;
+        } else {
+            debug!("Mise self-update not available");
         }
     }
 
     ctx.execute(&mise)
         .arg("upgrade")
-        .current_dir(temp_dir.path())
         .arg_if(ctx.config().mise_interactive(), "--interactive")
         .arg_if(ctx.config().mise_bump(), "--bump")
         .arg_if(ctx.config().mise_silent(), "--silent")
@@ -2831,21 +2901,20 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
             .status_checked()?;
     }
 
-    refresh_mise_env(ctx, &mise, temp_dir.path())
+    refresh_mise_env(ctx, &mise)
 }
 
 /// Refresh the process environment after `mise upgrade` so later steps and binary
 /// lookups resolve the upgraded mise-managed tools. `mise env --json` reports the
 /// activated environment, which we apply to the `PATH`/vars that child commands inherit.
 /// See <https://github.com/topgrade-rs/topgrade/issues/2041>.
-fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path, neutral_cwd: &Path) -> Result<()> {
+fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path) -> Result<()> {
     if ctx.run_type().dry() {
         return Ok(());
     }
 
     let output = ctx
         .execute(mise)
-        .current_dir(neutral_cwd)
         .args(["env", "--json"])
         .output_checked()
         .wrap_err("failed to run `mise env --json`")?;
@@ -2869,4 +2938,12 @@ pub fn run_hermes_agent(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Hermes Agent");
 
     ctx.execute(hermes).arg("update").status_checked()
+}
+
+pub fn run_antigravity_cli(ctx: &ExecutionContext) -> Result<()> {
+    let agy = require("agy")?;
+
+    print_separator("Antigravity CLI");
+
+    ctx.execute(agy).arg("update").status_checked()
 }

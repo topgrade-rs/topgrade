@@ -1,5 +1,6 @@
 use crate::command::CommandExt;
 use crate::execution_context::ExecutionContext;
+use crate::step::Step;
 use crate::terminal::print_separator;
 use color_eyre::eyre::Result;
 use rust_i18n::t;
@@ -37,11 +38,15 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     let is_current = is_openbsd_current()?;
 
     if ctx.config().cleanup() {
-        sudo.execute(ctx, "/usr/sbin/pkg_delete")?.arg("-ac").status_checked()?;
+        sudo.execute(ctx, "/usr/sbin/pkg_delete")?
+            .arg("-ac")
+            .arg_if(ctx.config().yes(Step::Pkg), "-I")
+            .status_checked()?;
     }
 
     sudo.execute(ctx, "/usr/sbin/pkg_add")?
         .arg("-u")
+        .arg_if(ctx.config().yes(Step::Pkg), "-I")
         .arg_if(is_current, "-Dsnap")
         .status_checked()
 }

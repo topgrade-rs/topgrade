@@ -14,6 +14,7 @@ use rust_i18n::t;
 use serde::Deserialize;
 use strum::Display;
 use thiserror::Error;
+use tracing::error;
 #[cfg(windows)]
 use tracing::{debug, warn};
 #[cfg(windows)]
@@ -171,7 +172,14 @@ impl Sudo {
             return Ok(Self { path: None, kind });
         }
 
-        match kind.which() {
+        // TODO: This throws away the error as `which` did previously.
+        //  If possible, propagate this error.
+        match kind
+            .which()
+            .inspect_err(|e| error!("Detecting sudo failed: {e}"))
+            .ok()
+            .flatten()
+        {
             Some(path) => {
                 let sudo = Self { path: Some(path), kind };
 
@@ -180,8 +188,8 @@ impl Sudo {
                     // Windows Sudo might be disabled, causing it to error on use.
                     //
                     // It checks two registry keys to determine its mode:
-                    // a "policy" (HLKM\SOFTWARE\Policies\Microsoft\Windows\Sudo\Enabled)
-                    // and a "setting" (HLKM\SOFTWARE\Microsoft\Windows\CurrentVersion\Sudo\Enabled).
+                    // a "policy" (HKLM\SOFTWARE\Policies\Microsoft\Windows\Sudo\Enabled)
+                    // and a "setting" (HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Sudo\Enabled).
                     //
                     // Both keys are u32's, with these meanings:
                     // 0 - Disabled
@@ -612,10 +620,10 @@ impl SudoKind {
     }
 
     /// Find the full path to the "sudo" binary, if it exists on the system.
-    fn which(self) -> Option<PathBuf> {
+    fn which(self) -> Result<Option<PathBuf>> {
         match self.binary_name() {
             Some(name) => which(name),
-            None => None,
+            None => Ok(None),
         }
     }
 }

@@ -807,7 +807,7 @@ pub fn run_nix_self_upgrade(ctx: &ExecutionContext) -> Result<()> {
 ///
 /// See: <https://github.com/NixOS/nix/issues/5473>
 fn nix_profile_dir(nix: &Path) -> Result<Option<PathBuf>> {
-    // NOTE: `nix` uses the location of the `nix-env` binary for this but we're using the `nix`
+    // NOTE: `nix` uses the location of the `nix-env` binary for this, but we're using the `nix`
     // binary; should be the same.
     let nix_bin_dir = nix.parent();
     if nix_bin_dir.and_then(|p| p.file_name()) != Some(OsStr::new("bin")) {
@@ -1142,6 +1142,15 @@ pub fn run_atuin(ctx: &ExecutionContext) -> Result<()> {
     print_separator("atuin");
 
     ctx.execute(atuin).status_checked()
+}
+
+pub fn run_adless(ctx: &ExecutionContext) -> Result<()> {
+    let adless = require("adless")?;
+
+    print_separator("Adless");
+
+    let sudo = ctx.require_sudo()?;
+    sudo.execute(ctx, &adless)?.arg("update").status_checked()
 }
 
 #[cfg(not(any(target_os = "android", target_os = "macos")))]

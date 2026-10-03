@@ -6,6 +6,7 @@ use std::path::Path;
 use std::process::{Child, Command, ExitStatus, Output, Stdio};
 
 use color_eyre::eyre::Result;
+use itertools::Itertools;
 use rust_i18n::t;
 use tracing::{Level, debug, enabled};
 
@@ -273,6 +274,16 @@ pub enum ExecutorOutput {
     Dry,
 }
 
+impl ExecutorOutput {
+    /// Can be used on output returned by `.always()` executors
+    pub fn unwrap_wet(self) -> Output {
+        match self {
+            Self::Wet(output) => output,
+            Self::Dry => panic!("Called `unwrap_wet` on dry output. Improper use of `unwrap_wet`."),
+        }
+    }
+}
+
 /// A struct representing a command. Trying to execute it will just print its arguments.
 pub struct DryCommand {
     program: OsString,
@@ -378,7 +389,6 @@ fn log_command<
                 env = env_iter
                     .filter_map(|(key, val)| val.map(|val| (key, val))) // Remove None values
                     .map(|(key, val)| format!("{:?}={:?}", key, val))
-                    .collect::<Vec<_>>()
                     .join(" ")
             )
         )

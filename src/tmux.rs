@@ -24,7 +24,7 @@ struct Tmux {
 impl Tmux {
     fn new(args: Vec<String>) -> Result<Self> {
         Ok(Self {
-            tmux: which("tmux").ok_or_else(|| eyre!(t!("Cannot find {binary_name} in PATH", binary_name = "tmux")))?,
+            tmux: which("tmux")?.ok_or_else(|| eyre!(t!("Cannot find {binary_name} in PATH", binary_name = "tmux")))?,
             args: if args.is_empty() { None } else { Some(args) },
         })
     }
@@ -54,8 +54,7 @@ impl Tmux {
         let _ = self
             .build()
             // `-d`: initial size comes from the global `default-size` option (instead
-            //       of passing `-x` and `-y` arguments.
-            //       (What do those even do?)
+            //       of passing `-x` and `-y` arguments. What do those even do?)
             // `-s`: session name
             // `-n`: window name (always `topgrade`)
             .args(["new-session", "-d", "-s", session_name, "-n", window_name, command])

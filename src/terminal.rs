@@ -17,6 +17,7 @@ use tracing::{debug, error};
 #[cfg(windows)]
 use which_crate::which;
 
+use crate::OLD_CWD;
 use crate::command::CommandExt;
 use crate::runner::StepResult;
 
@@ -34,7 +35,10 @@ pub fn shell() -> &'static str {
 
 #[expect(clippy::disallowed_methods)]
 pub fn run_shell() -> eyre::Result<()> {
-    Command::new(shell()).env("IN_TOPGRADE", "1").status_checked()
+    Command::new(shell())
+        .env("IN_TOPGRADE", "1")
+        .current_dir(OLD_CWD.get().expect("OLD_CWD should be set at this point"))
+        .status_checked()
 }
 
 struct Terminal {

@@ -21,11 +21,12 @@ pub struct Powershell {
 }
 
 impl Powershell {
-    /// Detects a usable PowerShell. The `Err` carries the reason so the step can
-    /// surface it as its skip message instead of a generic "not installed"
-    pub fn new(ctx: &ExecutionContext) -> Result<Self, SkipStep> {
+    /// Detects a usable PowerShell. The `Err`, if a `SkipStep`, carries the reason so the step can
+    /// surface it as its skip message instead of a generic "not installed". The `Err` can also
+    /// contain an error when `which` fails.
+    pub fn new(ctx: &ExecutionContext) -> Result<Self> {
         if terminal::is_dumb() {
-            return Err(SkipStep(t!("Cannot detect PowerShell in a dumb terminal").to_string()));
+            return Err(SkipStep(t!("Cannot detect PowerShell in a dumb terminal").to_string()).into());
         }
 
         let (path, is_pwsh) = Self::detect_path()?;
@@ -39,11 +40,11 @@ impl Powershell {
         Ok(ret)
     }
 
-    fn detect_path() -> Result<(PathBuf, bool), SkipStep> {
+    fn detect_path() -> Result<(PathBuf, bool)> {
         let mut skip_reason = SkipStep(t!("PowerShell is not installed").to_string());
 
         for (binary, is_pwsh) in [("pwsh", true), ("powershell", false)] {
-            let Some(path) = which(binary) else {
+            let Some(path) = which(binary)? else {
                 continue;
             };
 
@@ -63,7 +64,7 @@ impl Powershell {
             return Ok((path, is_pwsh));
         }
 
-        Err(skip_reason)
+        Err(skip_reason.into())
     }
 
     pub fn profile(&self) -> Option<&PathBuf> {
