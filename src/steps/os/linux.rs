@@ -322,7 +322,7 @@ fn upgrade_suse(ctx: &ExecutionContext) -> Result<()> {
         } else {
             "update"
         })
-        .arg_if(ctx.config().yes(Step::System), "-y")
+        .arg_if(ctx.config().yes(Step::System), "--no-confirm")
         .status_checked()?;
 
     Ok(())
@@ -336,7 +336,7 @@ fn upgrade_opensuse_tumbleweed(ctx: &ExecutionContext) -> Result<()> {
 
     sudo.execute(ctx, &zypper)?
         .arg("dist-upgrade")
-        .arg_if(ctx.config().yes(Step::System), "-y")
+        .arg_if(ctx.config().yes(Step::System), "--no-confirm")
         .status_checked()?;
 
     Ok(())
@@ -361,7 +361,7 @@ fn upgrade_openmandriva(ctx: &ExecutionContext) -> Result<()> {
     sudo.execute(ctx, &dnf)?
         .arg("upgrade")
         .args_if_some(ctx.config().dnf_arguments(), |args| args.split_whitespace())
-        .arg_if(ctx.config().yes(Step::System), "-y")
+        .arg_if(ctx.config().yes(Step::System), "--assumeyes")
         .status_checked()?;
 
     Ok(())
@@ -374,12 +374,12 @@ fn upgrade_pclinuxos(ctx: &ExecutionContext) -> Result<()> {
     sudo.execute(ctx, &apt_get)?
         .arg("update")
         .args_if_some(ctx.config().dnf_arguments(), |args| args.split_whitespace())
-        .arg_if(ctx.config().yes(Step::System), "-y")
+        .arg_if(ctx.config().yes(Step::System), "--yes")
         .status_checked()?;
 
     sudo.execute(ctx, &apt_get)?
         .arg("dist-upgrade")
-        .arg_if(ctx.config().yes(Step::System), "-y")
+        .arg_if(ctx.config().yes(Step::System), "--yes")
         .status_checked()?;
 
     Ok(())
@@ -390,12 +390,12 @@ fn upgrade_vanilla(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(&apx)
         .args(["update", "--all"])
-        .arg_if(ctx.config().yes(Step::System), "-y")
+        .arg_if(ctx.config().yes(Step::System), "--assume-yes")
         .status_checked()?;
 
     ctx.execute(&apx)
         .args(["upgrade", "--all"])
-        .arg_if(ctx.config().yes(Step::System), "-y")
+        .arg_if(ctx.config().yes(Step::System), "--assume-yes")
         .status_checked()?;
 
     Ok(())
@@ -406,13 +406,13 @@ fn upgrade_void(ctx: &ExecutionContext) -> Result<()> {
     let sudo = ctx.require_sudo()?;
 
     sudo.execute(ctx, &xbps)?
-        .args(["-Su", "xbps"])
-        .arg_if(ctx.config().yes(Step::System), "-y")
+        .args(["--sync", "--update", "xbps"])
+        .arg_if(ctx.config().yes(Step::System), "--yes")
         .status_checked()?;
 
     sudo.execute(ctx, &xbps)?
         .arg("-u")
-        .arg_if(ctx.config().yes(Step::System), "-y")
+        .arg_if(ctx.config().yes(Step::System), "--yes")
         .status_checked()?;
 
     Ok(())
@@ -494,7 +494,7 @@ fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
         ctx.execute(&apt).arg("upgrade").status_checked()?;
 
         // Simply return as MIST does not have `clean` and `autoremove`
-        // subcommands, neither the `-y` option (for now maybe?).
+        // subcommands, neither a `yes` option (for now maybe?).
         return Ok(());
     }
 
@@ -507,7 +507,7 @@ fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
 
     sudo.execute(ctx, &apt)?
         .arg(if kind == Nala { "upgrade" } else { "dist-upgrade" })
-        .arg_if(ctx.config().yes(Step::System), "-y")
+        .arg_if(ctx.config().yes(Step::System), "--yes")
         .args_if_some(ctx.config().apt_arguments(), |args| args.split_whitespace())
         .status_checked()?;
 
@@ -516,7 +516,7 @@ fn upgrade_debian(ctx: &ExecutionContext) -> Result<()> {
 
         sudo.execute(ctx, &apt)?
             .arg("autoremove")
-            .arg_if(ctx.config().yes(Step::System), "-y")
+            .arg_if(ctx.config().yes(Step::System), "--yes")
             .status_checked()?;
     }
 
@@ -559,7 +559,7 @@ fn upgrade_solus(ctx: &ExecutionContext) -> Result<()> {
     let sudo = ctx.require_sudo()?;
 
     sudo.execute(ctx, &eopkg)?
-        .arg_if(ctx.config().yes(Step::System), "-y")
+        .arg_if(ctx.config().yes(Step::System), "--yes-all")
         .arg("upgrade")
         .status_checked()?;
 
@@ -842,7 +842,7 @@ pub fn run_fwupdmgr(ctx: &ExecutionContext) -> Result<()> {
     if ctx.config().firmware_upgrade() {
         ctx.execute(&fwupdmgr)
             .arg("update")
-            .arg_if(ctx.config().yes(Step::System), "-y")
+            .arg_if(ctx.config().yes(Step::System), "--assume-yes")
             .status_checked_with_codes(&[2])
     } else {
         // Exit 0 from `fwupdmgr get-updates` means firmware updates are available.
@@ -882,14 +882,14 @@ pub fn run_flatpak(ctx: &ExecutionContext) -> Result<()> {
 
     let mut update_args = vec!["update", "--user"];
     if yes {
-        update_args.push("-y");
+        update_args.push("--assumeyes");
     }
     ctx.execute(&flatpak).args(&update_args).status_checked()?;
 
     if cleanup {
         let mut cleanup_args = vec!["uninstall", "--user", "--unused"];
         if yes {
-            cleanup_args.push("-y");
+            cleanup_args.push("--assumeyes");
         }
         ctx.execute(&flatpak).args(&cleanup_args).status_checked()?;
     }
@@ -899,26 +899,26 @@ pub fn run_flatpak(ctx: &ExecutionContext) -> Result<()> {
         let sudo = ctx.require_sudo()?;
         let mut update_args = vec!["update", "--system"];
         if yes {
-            update_args.push("-y");
+            update_args.push("--assumeyes");
         }
         sudo.execute(ctx, &flatpak)?.args(&update_args).status_checked()?;
         if cleanup {
             let mut cleanup_args = vec!["uninstall", "--system", "--unused"];
             if yes {
-                cleanup_args.push("-y");
+                cleanup_args.push("--assumeyes");
             }
             sudo.execute(ctx, &flatpak)?.args(&cleanup_args).status_checked()?;
         }
     } else {
         let mut update_args = vec!["update", "--system"];
         if yes {
-            update_args.push("-y");
+            update_args.push("--assumeyes");
         }
         ctx.execute(&flatpak).args(&update_args).status_checked()?;
         if cleanup {
             let mut cleanup_args = vec!["uninstall", "--system", "--unused"];
             if yes {
-                cleanup_args.push("-y");
+                cleanup_args.push("--assumeyes");
             }
             ctx.execute(flatpak).args(&cleanup_args).status_checked()?;
         }

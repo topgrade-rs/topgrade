@@ -11,7 +11,7 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     let sudo = ctx.require_sudo()?;
     sudo.execute(ctx, "/usr/local/sbin/pkg")?
         .arg("upgrade")
-        .arg_if(ctx.config().yes(Step::System), "-y")
+        .arg_if(ctx.config().yes(Step::System), "--yes")
         .status_checked()
 }
 
@@ -20,7 +20,7 @@ pub fn audit_packages(ctx: &ExecutionContext) -> Result<()> {
 
     let sudo = ctx.require_sudo()?;
     sudo.execute(ctx, "/usr/local/sbin/pkg")?
-        .args(["audit", "-Fr"])
+        .args(["audit", "--fetch", "--recursive"])
         .status_checked_with(|status| {
             if !status.success() {
                 println!(

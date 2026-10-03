@@ -90,7 +90,7 @@ impl Emacs {
         let emacs_upgrade_arg = EMACS_UPGRADE;
 
         ctx.execute(emacs)
-            .args(["--batch", "--debug-init", "-l"])
+            .args(["--batch", "--debug-init", "--load"])
             .arg(init_file)
             .arg("--eval")
             .arg(emacs_upgrade_arg)

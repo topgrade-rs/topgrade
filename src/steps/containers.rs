@@ -279,10 +279,10 @@ pub fn run_containers(ctx: &ExecutionContext) -> Result<()> {
         debug!("Removing dangling images");
         if let Some(sudo) = sudo {
             sudo.execute(ctx, &crt)?
-                .args(["image", "prune", "-f"])
+                .args(["image", "prune", "--force"])
                 .status_checked()?
         } else {
-            ctx.execute(&crt).args(["image", "prune", "-f"]).status_checked()?
+            ctx.execute(&crt).args(["image", "prune", "--force"]).status_checked()?
         }
     }
 
