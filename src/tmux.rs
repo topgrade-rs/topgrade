@@ -54,8 +54,7 @@ impl Tmux {
         let _ = self
             .build()
             // `-d`: initial size comes from the global `default-size` option (instead
-            //       of passing `-x` and `-y` arguments.
-            //       (What do those even do?)
+            //       of passing `-x` and `-y` arguments. What do those even do?)
             // `-s`: session name
             // `-n`: window name (always `topgrade`)
             .args(["new-session", "-d", "-s", session_name, "-n", window_name, command])

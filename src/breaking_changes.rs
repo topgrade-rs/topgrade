@@ -41,7 +41,7 @@ pub(crate) fn run() -> Result<()> {
         return Ok(());
     }
 
-    // If the major version is higher than the major part of the last ran version
+    // If the major version is higher than the major part of the last run version
     //  (this does only show v3 release notes if upgrading from v1 to v3 (skipping v2), but
     //  that isn't going to happen a lot anyway, and this is a lot simpler.)
     if VERSION.major

@@ -188,8 +188,8 @@ impl Sudo {
                     // Windows Sudo might be disabled, causing it to error on use.
                     //
                     // It checks two registry keys to determine its mode:
-                    // a "policy" (HLKM\SOFTWARE\Policies\Microsoft\Windows\Sudo\Enabled)
-                    // and a "setting" (HLKM\SOFTWARE\Microsoft\Windows\CurrentVersion\Sudo\Enabled).
+                    // a "policy" (HKLM\SOFTWARE\Policies\Microsoft\Windows\Sudo\Enabled)
+                    // and a "setting" (HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Sudo\Enabled).
                     //
                     // Both keys are u32's, with these meanings:
                     // 0 - Disabled

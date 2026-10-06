@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.12.3](https://github.com/topgrade-rs/topgrade/compare/v17.12.2...v17.12.3) - 2026-10-02
+
+### Fixed
+- restore old working directory when opening a shell ([#2391](https://github.com/topgrade-rs/topgrade/pull/2391))
+- *(mise)* skip self-update when disabled by the package manager ([#2374](https://github.com/topgrade-rs/topgrade/pull/2374))
+
+## [17.12.2](https://github.com/topgrade-rs/topgrade/compare/v17.12.1...v17.12.2) - 2026-09-26
+
+### Fixed
+- *(hyprpm)* run hyprpm at the end to avoid dropping cached sudo credentials for other steps
+- *(brew)* run brew at the end to avoid dropping cached sudo credentials for other steps
+- *(zed)* support preview channel ([#2372](https://github.com/topgrade-rs/topgrade/pull/2372))
+
+## [17.12.1](https://github.com/topgrade-rs/topgrade/compare/v17.12.0...v17.12.1) - 2026-09-21
+
+### Fixed
+- don't set cwd when respawning in tmux to fix crash ([#2367](https://github.com/topgrade-rs/topgrade/pull/2367))
+- *(mise)* skip self-update when managed by Homebrew ([#2363](https://github.com/topgrade-rs/topgrade/pull/2363))
+
+## [17.12.0](https://github.com/topgrade-rs/topgrade/compare/v17.11.0...v17.12.0) - 2026-09-20
+
+### Changed
+- The current working directory is now set to a temporary directory for all steps, including custom commands ([#2358](https://github.com/topgrade-rs/topgrade/pull/2358))
+
+### Added
+- *(uv)* add `cache_force` option to force cache pruning ([#2359](https://github.com/topgrade-rs/topgrade/pull/2359))
+- *(step)* add Zed ([#2353](https://github.com/topgrade-rs/topgrade/pull/2353))
+- *(skills)* support `yarn dlx` and adjust configuration options ([#2346](https://github.com/topgrade-rs/topgrade/pull/2346))
+
+### Fixed
+- *(mise)* fix errors from mise self-update confirmation ([#2357](https://github.com/topgrade-rs/topgrade/pull/2357))
+- *(microsoft_office)* remove unnecessary 10 minute wait ([#2360](https://github.com/topgrade-rs/topgrade/pull/2360))
+- crash when `dnf --version` fails
+
 ## [17.11.0](https://github.com/topgrade-rs/topgrade/compare/v17.10.1...v17.11.0) - 2026-09-13
 
 ### Added
@@ -315,7 +349,7 @@ Rerelease of 17.2.0 because of CD mishap
 - *(deps)* lock file maintenance ([#1666](https://github.com/topgrade-rs/topgrade/pull/1666))
 - *(deps)* update rust crate tokio to ~1.49.0 ([#1663](https://github.com/topgrade-rs/topgrade/pull/1663))
 - *(renovate)* change semantic commit type to always be 'chore' ([#1665](https://github.com/topgrade-rs/topgrade/pull/1665))
-- fix category (os -> command-line-utlilities) in Cargo.toml ([#1664](https://github.com/topgrade-rs/topgrade/pull/1664))
+- fix category (os -> command-line-utilities) in Cargo.toml ([#1664](https://github.com/topgrade-rs/topgrade/pull/1664))
 - remove deprecated authors field from Cargo.toml ([#1661](https://github.com/topgrade-rs/topgrade/pull/1661))
 - add authors and maintainers to pyproject.toml ([#1662](https://github.com/topgrade-rs/topgrade/pull/1662))
 - *(deps)* update rust crate clap_complete to v4.5.64 ([#1654](https://github.com/topgrade-rs/topgrade/pull/1654))

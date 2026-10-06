@@ -19,7 +19,7 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::LazyLock;
 use std::{fs, io::Write};
 use sysinfo::{ProcessRefreshKind, RefreshKind, System, UpdateKind};
-use tempfile::{tempdir, tempfile_in};
+use tempfile::tempfile_in;
 use tracing::{debug, error, warn};
 use walkdir::WalkDir;
 
@@ -34,7 +34,9 @@ use crate::output_changed_message;
 use crate::step::Step;
 use crate::sudo::SudoExecuteOpts;
 use crate::terminal::{print_info, print_separator, shell};
-use crate::utils::{PathExt, check_is_python_2_or_shim, require, require_one, require_option, which};
+use crate::utils::{
+    PathExt, check_is_python_2_or_shim, is_installed_via_homebrew, require, require_one, require_option, which,
+};
 use crate::{
     error::{DryRun, SkipStep, StepFailed, TopgradeError},
     terminal::print_warning,
@@ -64,7 +66,7 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
     let toml_file = cargo_dir.join(".crates.toml").require()?;
 
     if fs::metadata(&toml_file)?.len() == 0 {
-        return Err(SkipStep(format!("{} exists but empty", toml_file.display())).into());
+        return Err(SkipStep(format!("{} exists but is empty", toml_file.display())).into());
     }
 
     print_separator("Cargo");
@@ -250,7 +252,7 @@ impl Apm {
         match self {
             Self::AtomPackageManager(apm) => Ok(apm),
             Self::Other => {
-                Err(SkipStep(t!("Command `apm` does not appear to be Atom Package Manager").to_string()).into())
+                Err(SkipStep(t!("Command `apm` does not appear to be the Atom Package Manager").to_string()).into())
             }
         }
     }
@@ -754,7 +756,7 @@ fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Resu
     let bin_name = variant.bin_name();
     let bin = require(bin_name)?;
 
-    // VSCode has update command only since 1.86 version ("january 2024" update), disable the update for prior versions
+    // VSCode has an update command only since version 1.86 ("January 2024" update); disable the update for prior versions
     //
     // The output of `code --version` has two possible formats:
     // 1. 3 lines: version, git commit, instruction set. We parse only the first one
@@ -805,7 +807,10 @@ fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Resu
     debug!("Detected {name} version as: {version}");
 
     if version < Version::new(1, 86, 0) {
-        return Err(SkipStep(format!("Too old {name} version to have update extensions command")).into());
+        return Err(SkipStep(format!(
+            "The {name} version is too old to have the update extensions command"
+        ))
+        .into());
     }
 
     print_separator(variant.display_name());
@@ -1026,19 +1031,15 @@ mod vscode_tests {
 
 pub fn run_pi(ctx: &ExecutionContext) -> Result<()> {
     let pi = require("pi")?;
-    let temp_dir = tempdir()?;
 
     print_separator("pi");
 
-    // `pi` reads project-local settings from `./.pi/settings.json`, so run
-    // from a fresh directory to restrict this step to global packages.
     // Newer Pi versions expose explicit update targets. Feature-detect those flags
     // so Topgrade updates Pi itself and global extensions, while older Pi versions
     // keep the previous combined `pi update` behavior.
     let pi_update_help = ctx
         .execute(&pi)
         .always()
-        .current_dir(temp_dir.path())
         .args(["update", "--help"])
         .output_checked_utf8()?;
 
@@ -1047,9 +1048,7 @@ pub fn run_pi(ctx: &ExecutionContext) -> Result<()> {
 
     // `pi update --self` errors when PI_SKIP_VERSION_CHECK is set. Homebrew sets it when it runs.
     let pi_skip_version_check_env = std::env::var("PI_SKIP_VERSION_CHECK").is_ok();
-    let pi_installed_through_homebrew = pi
-        .canonicalize()
-        .is_ok_and(|p| p.to_string_lossy().contains("/Cellar/"));
+    let pi_installed_through_homebrew = is_installed_via_homebrew(&pi);
 
     if supports_explicit_update_targets {
         if pi_skip_version_check_env {
@@ -1057,21 +1056,12 @@ pub fn run_pi(ctx: &ExecutionContext) -> Result<()> {
         } else if pi_installed_through_homebrew {
             debug!("Skipping `pi update --self`: pi is installed via Homebrew");
         } else {
-            ctx.execute(&pi)
-                .current_dir(temp_dir.path())
-                .args(["update", "--self"])
-                .status_checked()?;
+            ctx.execute(&pi).args(["update", "--self"]).status_checked()?;
         }
 
-        ctx.execute(&pi)
-            .current_dir(temp_dir.path())
-            .args(["update", "--extensions"])
-            .status_checked()
+        ctx.execute(&pi).args(["update", "--extensions"]).status_checked()
     } else {
-        ctx.execute(&pi)
-            .current_dir(temp_dir.path())
-            .arg("update")
-            .status_checked()
+        ctx.execute(&pi).arg("update").status_checked()
     }
 }
 
@@ -1203,7 +1193,7 @@ pub fn run_mamba_update(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_miktex_packages_update(ctx: &ExecutionContext) -> Result<()> {
     let miktex = require("miktex")?;
-    print_separator("miktex");
+    print_separator("MiKTeX");
 
     ctx.execute(miktex).args(["packages", "update"]).status_checked()
 }
@@ -1217,7 +1207,7 @@ pub fn run_pip3_update(ctx: &ExecutionContext) -> Result<()> {
         (Ok(py), _) => py,
         (Err(_), Ok(py3)) => py3,
         (Err(py_err), Err(py3_err)) => {
-            return Err(SkipStep(format!("Skip due to following reasons: {py_err} {py3_err}")).into());
+            return Err(SkipStep(format!("Skip due to the following reasons: {py_err} {py3_err}")).into());
         }
     };
 
@@ -1340,12 +1330,12 @@ pub fn run_pip_review_local_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_pipupgrade_update(ctx: &ExecutionContext) -> Result<()> {
     let pipupgrade = require("pipupgrade")?;
 
-    print_separator("Pipupgrade");
+    print_separator("pipupgrade");
     if !ctx.config().enable_pipupgrade() {
         print_warning(
-            "Pipupgrade is disabled by default. Enable it by setting enable_pipupgrade=true in the configuration.",
+            "pipupgrade is disabled by default. Enable it by setting enable_pipupgrade=true in the configuration.",
         );
-        return Err(SkipStep(String::from("Pipupgrade is disabled by default")).into());
+        return Err(SkipStep(String::from("pipupgrade is disabled by default")).into());
     }
     ctx.execute(pipupgrade)
         .args(ctx.config().pipupgrade_arguments().split_whitespace())
@@ -1370,7 +1360,7 @@ pub fn run_stack_update(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn run_ghcup_update(ctx: &ExecutionContext) -> Result<()> {
     let ghcup = require("ghcup")?;
-    print_separator("ghcup");
+    print_separator("GHCup");
 
     ctx.execute(ghcup).arg("upgrade").status_checked()
 }
@@ -1378,7 +1368,7 @@ pub fn run_ghcup_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_tldr(ctx: &ExecutionContext) -> Result<()> {
     let tldr = require("tldr")?;
 
-    print_separator("TLDR");
+    print_separator("tldr");
 
     ctx.execute(tldr).arg("--update").status_checked()
 }
@@ -1490,7 +1480,7 @@ pub fn run_composer_update(ctx: &ExecutionContext) -> Result<()> {
         .always()
         .args(["global", "config", "--absolute", "--quiet", "home"])
         .output_checked_utf8()
-        .map_err(|e| SkipStep(t!("Error getting the composer directory: {error}", error = e).to_string()))
+        .map_err(|e| SkipStep(t!("Error getting the Composer directory: {error}", error = e).to_string()))
         .map(|s| PathBuf::from(s.stdout.trim()))?
         .require()?;
 
@@ -1780,7 +1770,7 @@ pub fn run_raco_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn bin_update(ctx: &ExecutionContext) -> Result<()> {
     let bin = require("bin")?;
 
-    print_separator("Bin");
+    print_separator("bin");
     ctx.execute(bin).arg("update").status_checked()
 }
 
@@ -1892,7 +1882,7 @@ pub fn run_freshclam(ctx: &ExecutionContext) -> Result<()> {
         }
     }
 
-    print_separator(t!("Update ClamAV Database(FreshClam)"));
+    print_separator(t!("Update ClamAV Database (FreshClam)"));
 
     let output = ctx.execute(&freshclam).output()?;
     let output = match output {
@@ -2104,7 +2094,7 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
         let start_trimmed = uv_version_output_stdout
             .trim_start_matches("uv")
             .trim_start_matches(' ');
-        // Remove the tailing part " (c4d0caaee 2024-12-19)\n", if it's there
+        // Remove the trailing part " (c4d0caaee 2024-12-19)\n", if it's there
         match start_trimmed.find(' ') {
             None => start_trimmed.trim_end_matches('\n'), // Otherwise, just strip the newline
             Some(i) => &start_trimmed[..i],
@@ -2194,7 +2184,10 @@ pub fn run_uv(ctx: &ExecutionContext) -> Result<()> {
 
     if ctx.config().cleanup() {
         // Prune cache
-        ctx.execute(&uv_exec).args(["cache", "prune"]).status_checked()?;
+        ctx.execute(&uv_exec)
+            .args(["cache", "prune"])
+            .arg_if(ctx.config().uv_cache_force(), "--force")
+            .status_checked()?;
     }
 
     Ok(())
@@ -2213,7 +2206,7 @@ pub fn run_bun(ctx: &ExecutionContext) -> Result<()> {
     let bun = require("bun")?;
 
     // From the official install script (both install.sh and install.ps1), Bun uses
-    // the path set in this variable as the install root, and its defaults to
+    // the path set in this variable as the install root, and it defaults to
     // `$HOME/.bun`
     //
     // UNIX: https://bun.sh/install.sh
@@ -2688,16 +2681,18 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
     }
 
     // Fall back to a package runner; only npx needs `--yes` to auto-confirm the download
-    let (runner, uses_yes_flag) = match ctx.config().skills_package_manager() {
-        SkillsPackageManager::Npx => ("npx", true),
-        SkillsPackageManager::Pnpm => ("pnpx", false),
-        SkillsPackageManager::Bun => ("bunx", false),
+    let (runner, runner_args, uses_yes_flag) = match ctx.config().skills_package_manager() {
+        SkillsPackageManager::Npm => ("npx", &[][..], true),
+        SkillsPackageManager::Pnpm => ("pnpx", &[][..], false),
+        SkillsPackageManager::Bun => ("bunx", &[][..], false),
+        SkillsPackageManager::Yarn => ("yarn", &["dlx"][..], false),
     };
 
     let runner = require(runner)?;
     print_separator("Skills");
     ctx.execute(runner)
         .arg_if(uses_yes_flag && ctx.config().yes(Step::Skills), "--yes")
+        .args(runner_args)
         .args(["skills", "update", "--global"])
         .status_checked()
 }
@@ -2710,7 +2705,7 @@ pub fn run_opencode(ctx: &ExecutionContext) -> Result<()> {
         .canonicalize()
         .is_ok_and(|p| p.is_descendant_of(&script_install_path))
     {
-        return Err(SkipStep(t!("OpenCode not installed with the official script").to_string()).into());
+        return Err(SkipStep(t!("OpenCode is not installed with the official script").to_string()).into());
     }
     print_separator("OpenCode");
     ctx.execute(opencode).arg("upgrade").status_checked()
@@ -2835,43 +2830,62 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
     pull_result
 }
 
+#[derive(Deserialize)]
+struct MiseDoctor {
+    // Added in mise 2025.7.2
+    self_update_available: Option<bool>,
+}
+
+/// Packagers can disable `mise self-update` without removing the subcommand (e.g. the APT package
+/// ships a `mise-self-update-instructions.toml`), in which case it still shows up in `mise --help`
+/// but fails when run. `mise doctor` reports whether self-update is actually available.
+fn mise_supports_self_update(ctx: &ExecutionContext, mise: &Path) -> Result<bool> {
+    // `mise doctor` exits with 1 when it finds problems, so don't check the exit code.
+    let output = ctx
+        .execute(mise)
+        .always()
+        .args(["doctor", "--json"])
+        .output_checked_with_utf8(|_| Ok(()))?;
+    let doctor: MiseDoctor = serde_json::from_str(&output.stdout)
+        .wrap_err_with(|| output_changed_message!("mise doctor --json", "json output invalid"))?;
+    if let Some(available) = doctor.self_update_available {
+        return Ok(available);
+    }
+
+    // Older versions don't report it, but omit the subcommand when built without self-update.
+    Ok(ctx
+        .execute(mise)
+        .always()
+        .arg("--help")
+        .output_checked_utf8()?
+        .stdout
+        .contains("self-update"))
+}
+
 pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
     let mise = require("mise")?;
-    // Run from a fresh directory so caller project-local mise.toml files do not
-    // affect the mise step.
-    let temp_dir = tempdir()?;
 
     print_separator("mise");
 
-    ctx.execute(&mise)
-        .current_dir(temp_dir.path())
-        .args(["plugins", "update"])
-        .status_checked()?;
+    ctx.execute(&mise).args(["plugins", "update"]).status_checked()?;
 
-    let output = ctx
-        .execute(&mise)
-        .current_dir(temp_dir.path())
-        .args(["self-update"])
-        .arg_if(ctx.config().yes(Step::Mise), "--yes")
-        .output_checked_with(|_| Ok(()))?;
-    let status_code = output
-        .status
-        .code()
-        .ok_or_eyre("Couldn't get status code (terminated by signal)")?;
-    let stderr = std::str::from_utf8(&output.stderr).wrap_err("Expected output to be valid UTF-8")?;
-    if stderr.contains("cannot update") && status_code == 1 {
-        debug!("Mise self-update not available")
+    if is_installed_via_homebrew(&mise) {
+        debug!("Skipping `mise self-update`: mise is installed via Homebrew");
     } else {
-        std::io::stdout().lock().write_all(&output.stdout)?;
-        std::io::stderr().lock().write_all(&output.stderr)?;
-        if status_code != 0 {
-            return Err(StepFailed.into());
+        // This used to run self-update and check for exit code 1 and the string 'cannot update' in stderr.
+        //  However, this caused issues with mise's y/n prompt (https://github.com/topgrade-rs/topgrade/issues/2307).
+        if mise_supports_self_update(ctx, &mise)? {
+            ctx.execute(&mise)
+                .args(["self-update"])
+                .arg_if(ctx.config().yes(Step::Mise), "--yes")
+                .status_checked()?;
+        } else {
+            debug!("Mise self-update not available");
         }
     }
 
     ctx.execute(&mise)
         .arg("upgrade")
-        .current_dir(temp_dir.path())
         .arg_if(ctx.config().mise_interactive(), "--interactive")
         .arg_if(ctx.config().mise_bump(), "--bump")
         .arg_if(ctx.config().mise_silent(), "--silent")
@@ -2890,21 +2904,20 @@ pub fn run_mise(ctx: &ExecutionContext) -> Result<()> {
             .status_checked()?;
     }
 
-    refresh_mise_env(ctx, &mise, temp_dir.path())
+    refresh_mise_env(ctx, &mise)
 }
 
 /// Refresh the process environment after `mise upgrade` so later steps and binary
 /// lookups resolve the upgraded mise-managed tools. `mise env --json` reports the
 /// activated environment, which we apply to the `PATH`/vars that child commands inherit.
 /// See <https://github.com/topgrade-rs/topgrade/issues/2041>.
-fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path, neutral_cwd: &Path) -> Result<()> {
+fn refresh_mise_env(ctx: &ExecutionContext, mise: &Path) -> Result<()> {
     if ctx.run_type().dry() {
         return Ok(());
     }
 
     let output = ctx
         .execute(mise)
-        .current_dir(neutral_cwd)
         .args(["env", "--json"])
         .output_checked()
         .wrap_err("failed to run `mise env --json`")?;

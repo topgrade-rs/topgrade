@@ -287,6 +287,12 @@ pub fn require_one<T: AsRef<OsStr> + Debug>(binary_names: impl IntoIterator<Item
     .into())
 }
 
+pub fn is_installed_via_homebrew(binary: &Path) -> bool {
+    binary
+        .canonicalize()
+        .is_ok_and(|p| p.to_string_lossy().contains("/Cellar/"))
+}
+
 #[allow(dead_code)]
 pub fn require_one_path<T: AsRef<Path> + Debug>(paths: impl IntoIterator<Item = T>) -> Result<PathBuf> {
     let mut failed_paths = Vec::new();
@@ -404,7 +410,7 @@ pub mod merge_strategies {
 /// # Shim
 /// On Windows, if you install `python` through `winget`, an actual `python`
 /// is installed as well as a `python3` shim. Shim is invocable, but when you
-/// execute it, the Microsoft App Store will be launched instead of a Python
+/// execute it, the Microsoft Store will be launched instead of a Python
 /// shell.
 ///
 /// We do this check through `python -V`, a shim will just give `Python` with

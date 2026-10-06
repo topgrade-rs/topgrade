@@ -105,7 +105,7 @@
 #
 # this will be ignored if the binary is built without self update support
 #
-# available also via setting the environment variable TOPGRADE_NO_SELF_UPGRADE)
+# (also available by setting the environment variable TOPGRADE_NO_SELF_UPGRADE)
 # no_self_update = true
 
 # Extra tracing filter directives
@@ -183,13 +183,13 @@
 # greedy_cask = true
 
 # For the BrewCask step
-# If `Repo Cask Upgrade` does not exist, then use the `--greedy_latest` option.
+# If `Repo Cask Upgrade` does not exist, then use the `--greedy-latest` option.
 # NOTE: the above entry `greedy_cask` contains this entry, though you can enable
 # both of them, they won't clash with each other.
 # greedy_latest = true
 
 # For the BrewCask step
-# If `Repo Cask Upgrade` does not exist, then use the `--greedy_auto_updates` option.
+# If `Repo Cask Upgrade` does not exist, then use the `--greedy-auto-updates` option.
 # NOTE: the above entry `greedy_cask` contains this entry, though you can enable
 # both of them, they won't clash with each other.
 # greedy_auto_updates = true
@@ -214,6 +214,9 @@
 
 # Arguments to pass dnf when updating packages
 # dnf_arguments = "--refresh"
+
+# Arguments to pass apt when updating packages
+# apt_arguments = "-o Dpkg::Progress-Fancy=1"
 
 # aura_aur_arguments = "-kx"
 
@@ -311,7 +314,7 @@
 # wsl_update_use_web_download = true
 
 # The default for winget_silent_install is true,
-# this example turns off silent install.
+# this example turns off silent installation.
 # winget_silent_install = false
 
 # Causes Topgrade to rename itself during the run to allow package managers
@@ -322,7 +325,7 @@
 # Use sudo to elevate privileges for the Windows Package Manager (winget)
 # Only use this option if you want to run the Winget step in sudo-mode.
 # Running winget in sudo-mode is generally not recommended, as not every
-# package supports installing / upgrading in sudo-mode and it may cause issues
+# package supports installing / upgrading in sudo-mode, and it may cause issues
 # with some packages or may even cause the Winget-step to fail.
 # If any problems occur, please try running Topgrade without this option first
 # before reporting an issue.
@@ -438,7 +441,7 @@
 # use_sudo = false
 
 [lensfun]
-# If disabled, Topgrade invokes `lensfun‑update‑data` without root privilege,
+# If disabled, Topgrade invokes `lensfun-update-data` without root privilege,
 # then the update will be only available to you. Otherwise, `sudo` is required,
 # and the update will be installed system-wide, i.e., available to all users.
 # (default: false)
@@ -509,7 +512,11 @@
 # (default: false)
 # quiet = true
 
-# Other options like `--locked` or `--jobs` can be passed to `cargo install`
+# If this is set to true, `cargo install-update` passes `--locked` to `cargo install`.
+# (default: false)
+# locked = true
+
+# Other options like `--jobs` can be passed to `cargo install`
 # using the `CARGO_INSTALL_OPTS` environment variable.
 
 [rustup]
@@ -521,8 +528,14 @@
 # Package runner to use to run the `skills` CLI when no local `skills`
 # binary is present in PATH.
 # Allowed values:
-#   npx  (runs `npx skills`)
+#   npm  (runs `npx skills`)
 #   pnpm (runs `pnpx skills`)
 #   bun  (runs `bunx skills`)
-# (default: npx)
-# package_manager = "npx"
+#   yarn (runs `yarn dlx skills`)
+# (default: npm)
+# package_manager = "npm"
+
+[uv]
+# Pass --force to `uv cache prune`, useful if you have long-running `uv` processes
+# (default: false)
+# cache_force = true

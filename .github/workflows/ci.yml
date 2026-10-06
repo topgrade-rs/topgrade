@@ -67,7 +67,7 @@ jobs:
           # Extract all variants from enum Step
           all_variants=$(sed -n '/^pub enum Step {/,/^}/p' src/step.rs | \
             grep -Po '^\s*\K[A-Z][A-Za-z0-9_]*' | \
-            # Ignore SelfUpdate as it's ran manually in main.rs
+            # Ignore SelfUpdate as it's run manually in main.rs
             grep -v '^SelfUpdate$' | \
           sort)
 

@@ -1,15 +1,20 @@
+use std::io;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::process::Stdio;
 
-use color_eyre::eyre::{Result, eyre};
+use color_eyre::eyre::{OptionExt, Result, WrapErr, eyre};
 use ini::Ini;
 use rust_i18n::t;
+use semver::Version;
+use serde::Deserialize;
 use tracing::{debug, warn};
 
 use crate::command::CommandExt;
 use crate::config::NixHandler;
 use crate::error::{SkipStep, TopgradeError};
 use crate::execution_context::ExecutionContext;
+use crate::executor::ExecutorChild;
 use crate::step::Step;
 use crate::steps::generic::IS_WSL;
 use crate::steps::os::archlinux;
@@ -421,7 +426,7 @@ fn upgrade_gentoo(ctx: &ExecutionContext) -> Result<()> {
         sudo.execute(ctx, &layman)?.args(["-s", "ALL"]).status_checked()?;
     }
 
-    println!("{}", t!("Syncing portage"));
+    println!("{}", t!("Syncing Portage"));
     if let Some(ego) = which("ego")? {
         // The Funtoo team doesn't recommend running both ego sync and emerge --sync
         sudo.execute(ctx, &ego)?.arg("sync").status_checked()?;
@@ -641,7 +646,7 @@ pub fn run_mandb(ctx: &ExecutionContext) -> Result<()> {
     let mandb = require("mandb")?;
 
     if !ctx.config().enable_mandb() {
-        return Err(SkipStep(t!("ManDB isn't enabled").to_string()).into());
+        return Err(SkipStep(t!("man-db isn't enabled").to_string()).into());
     }
 
     print_separator(t!("System Manuals"));
@@ -752,11 +757,11 @@ fn upgrade_nixos(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_neon(ctx: &ExecutionContext) -> Result<()> {
-    // KDE neon is ubuntu based but uses it's own manager, pkcon
+    // KDE neon is Ubuntu-based but uses its own manager, pkcon
     // running apt update with KDE neon is an error
-    // in theory rpm based distributions use pkcon as well, though that
-    // seems rare
-    // if that comes up we need to create a Distribution::PackageKit or some such
+    // In theory RPM-based distributions use pkcon as well, though that
+    // seems rare;
+    // if that comes up, we need to create a Distribution::PackageKit or some such
 
     let pkcon = require("pkcon")?;
     let sudo = ctx.require_sudo()?;
@@ -768,7 +773,7 @@ fn upgrade_neon(ctx: &ExecutionContext) -> Result<()> {
     exe.arg("update")
         .arg_if(ctx.config().yes(Step::System), "-y")
         .arg_if(ctx.config().cleanup(), "--autoremove")
-        // from pkcon man, exit code 5 is 'Nothing useful was done.'
+        // from the pkcon man page, exit code 5 is 'Nothing useful was done.'
         .status_checked_with_codes(&[5])?;
 
     Ok(())
@@ -812,7 +817,7 @@ pub fn run_needrestart(ctx: &ExecutionContext) -> Result<()> {
     if (HOOKS.iter().any(|hook| Path::new(hook).exists()) || dnf_runs_needrestart(ctx)?)
         && ctx.config().should_run(Step::System)
     {
-        return Err(SkipStep(String::from(t!("needrestart will be ran by the package manager"))).into());
+        return Err(SkipStep(String::from(t!("needrestart will be run by the package manager"))).into());
     }
 
     print_separator(t!("Check for needed restarts"));
@@ -873,7 +878,7 @@ pub fn run_flatpak(ctx: &ExecutionContext) -> Result<()> {
 
     let cleanup = ctx.config().cleanup();
     let yes = ctx.config().yes(Step::Flatpak);
-    print_separator("Flatpak User Packages");
+    print_separator(t!("Flatpak User Packages"));
 
     let mut update_args = vec!["update", "--user"];
     if yes {
@@ -948,7 +953,7 @@ pub fn run_pihole_update(ctx: &ExecutionContext) -> Result<()> {
     let pihole = require("pihole")?;
     Path::new("/opt/pihole/update.sh").require()?;
 
-    print_separator("pihole");
+    print_separator("Pi-hole");
 
     let sudo = ctx.require_sudo()?;
     sudo.execute(ctx, &pihole)?.arg("-up").status_checked()
@@ -994,7 +999,7 @@ pub fn run_distrobox_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_dkp_pacman_update(ctx: &ExecutionContext) -> Result<()> {
     let dkp_pacman = require("dkp-pacman")?;
 
-    print_separator("Devkitpro pacman");
+    print_separator("devkitPro pacman");
 
     let sudo = ctx.require_sudo()?;
 
@@ -1080,7 +1085,7 @@ pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
         ))?;
         if !update_allowed {
             return Err(
-                SkipStep(t!("Skip the Waydroid step because the user don't want to proceed").to_string()).into(),
+                SkipStep(t!("Skip the Waydroid step because the user doesn't want to proceed").to_string()).into(),
             );
         }
     }
@@ -1158,7 +1163,7 @@ pub fn run_app_manager(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_cinnamon_spices_updater(ctx: &ExecutionContext) -> Result<()> {
     let cinnamon_spice_updater = require("cinnamon-spice-updater")?;
 
-    print_separator("Cinnamon spices");
+    print_separator("Cinnamon Spices");
 
     ctx.execute(cinnamon_spice_updater).arg("--update-all").status_checked()
 }
@@ -1193,6 +1198,93 @@ pub fn run_protonplus_update(ctx: &ExecutionContext) -> Result<()> {
     print_separator(if flatpak { "ProtonPlus (Flatpak)" } else { "ProtonPlus" });
 
     cmd().args(["update", "all"]).status_checked()
+}
+
+pub fn run_zed(ctx: &ExecutionContext) -> Result<()> {
+    let zed = require("zed")?;
+
+    if !zed.starts_with(HOME_DIR.join(".local/bin")) {
+        return Err(SkipStep("Not a standalone Zed installation".to_string()).into());
+    }
+
+    print_separator("Zed");
+
+    let output = ctx.execute(zed).always().arg("--version").output_checked_utf8()?.stdout;
+    let mut words = output.split_whitespace();
+    // Stable prints `Zed x.y.z <...>`, other channels print `Zed <channel> x.y.z <...>`
+    let (channel, version) = match (words.next(), words.next(), words.next()) {
+        (Some("Zed"), Some(channel @ ("preview" | "nightly" | "dev")), Some(version)) => (channel, version),
+        (Some("Zed"), Some(version), _) => ("stable", version),
+        _ => {
+            return Err(eyre!(output_changed_message!(
+                "zed --version",
+                "Should be in 'Zed [channel] x.y.z <...>' format"
+            )));
+        }
+    };
+    let version = Version::parse(version)
+        .wrap_err_with(|| output_changed_message!("zed --version", "Should be a valid version"))?;
+
+    if channel != "stable" && channel != "preview" {
+        return Err(
+            SkipStep(t!("Updates unsupported for the Zed {channel} channel", channel = channel).to_string()).into(),
+        );
+    }
+
+    let client = reqwest::blocking::Client::builder().user_agent("Topgrade").build()?;
+
+    #[derive(Deserialize)]
+    struct Response {
+        tag_name: String,
+        prerelease: bool,
+    }
+
+    let release = if channel == "stable" {
+        client
+            .get("https://api.github.com/repos/zed-industries/zed/releases/latest")
+            .send()
+            .wrap_err("Failed to get latest version")?
+            .json::<Response>()?
+    } else {
+        // Preview releases are GitHub prereleases tagged `vx.y.z-pre`; the list is sorted newest first
+        client
+            .get("https://api.github.com/repos/zed-industries/zed/releases")
+            .send()
+            .wrap_err("Failed to fetch releases")?
+            .json::<Vec<Response>>()?
+            .into_iter()
+            .find(|release| release.prerelease && release.tag_name.ends_with("-pre"))
+            .ok_or_else(|| eyre!(t!("No Zed preview release found on GitHub")))?
+    };
+
+    let tag = release
+        .tag_name
+        .strip_prefix('v')
+        .ok_or_eyre("Tag on GitHub doesn't start with 'v'")?;
+    // The installed preview reports `x.y.z` without the `-pre` suffix
+    let latest = Version::parse(tag.strip_suffix("-pre").unwrap_or(tag))?;
+
+    if version < latest {
+        let mut response = client
+            .get("https://zed.dev/install.sh")
+            .send()
+            .wrap_err("Failed to download install script")?;
+        let child = ctx
+            .execute("sh")
+            .env("ZED_CHANNEL", channel)
+            .stdin(Stdio::piped())
+            .spawn()?;
+        let mut child = match child {
+            ExecutorChild::Wet(child) => child,
+            ExecutorChild::Dry => return Ok(()),
+        };
+        io::copy(&mut response, &mut child.stdin.take().unwrap())?;
+        child.wait()?;
+    } else {
+        println!("Zed is up-to-date");
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -1320,7 +1412,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fedoraremixonwsl() {
+    fn test_fedoraremixforwsl() {
         test_template(include_str!("os_release/fedoraremixforwsl"), Distribution::Fedora);
     }
 

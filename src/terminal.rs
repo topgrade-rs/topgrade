@@ -18,6 +18,7 @@ use notify_rust::{Notification, Timeout};
 use rust_i18n::t;
 use tracing::{debug, error};
 
+use crate::OLD_CWD;
 use crate::command::CommandExt;
 use crate::runner::StepResult;
 #[cfg(unix)]
@@ -43,7 +44,10 @@ pub fn shell() -> Result<PathBuf> {
 
 #[expect(clippy::disallowed_methods)]
 pub fn run_shell() -> Result<()> {
-    Command::new(shell()?).env("IN_TOPGRADE", "1").status_checked()
+    Command::new(shell()?)
+        .env("IN_TOPGRADE", "1")
+        .current_dir(OLD_CWD.get().expect("OLD_CWD should be set at this point"))
+        .status_checked()
 }
 
 struct Terminal {
