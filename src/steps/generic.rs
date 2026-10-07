@@ -537,7 +537,7 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
 
     let mut command = if is_root_install {
         let sudo = ctx.require_sudo()?;
-        sudo.execute(ctx, &vcpkg)?
+        sudo.execute_opts(ctx, &vcpkg, SudoExecuteOpts::new().preserve_env())?
     } else {
         ctx.execute(&vcpkg)
     };
