@@ -1506,14 +1506,6 @@ _version: 2
   zh_CN: "Flatpak %{name} 未安装"
   zh_TW: "Flatpak %{name} 未安装"
   de: "Flatpak %{name} ist nicht installiert"
-"OpenCode is not installed with the official script":
-  en: "OpenCode is not installed with the official script"
-  lt: "OpenCode neįdiegtas oficialiu skriptu"
-  es: "OpenCode no está instalado con el script oficial"
-  fr: "OpenCode n'est pas installé avec le script officiel"
-  zh_CN: "OpenCode 未通过官方脚本安装"
-  zh_TW: "OpenCode 未透過官方腳本安裝"
-  de: "OpenCode ist nicht mit dem offiziellen Skript installiert"
 "{editor} is running; skipping obsolete extension cleanup":
   en: "%{editor} is running; skipping obsolete extension cleanup"
   lt: "%{editor} veikia; pasenusių plėtinių valymas praleidžiamas"
