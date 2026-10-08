@@ -16,7 +16,7 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
 
     ctx.execute(&pkg)
         .arg("upgrade")
-        .arg_if(ctx.config().yes(Step::System), "-y")
+        .arg_if(ctx.config().yes(Step::System), "--yes")
         .status_checked()?;
 
     if !is_nala && ctx.config().cleanup() {
@@ -26,7 +26,7 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
 
         ctx.execute(apt)
             .arg("autoremove")
-            .arg_if(ctx.config().yes(Step::System), "-y")
+            .arg_if(ctx.config().yes(Step::System), "--yes")
             .status_checked()?;
     }
 

@@ -94,7 +94,7 @@ pub fn run_cargo_update(ctx: &ExecutionContext) -> Result<()> {
             .ok()
             .or_else(|| cargo_dir.join("bin/cargo-cache").if_exists());
         if let Some(e) = cargo_cache {
-            ctx.execute(e).args(["-a"]).status_checked()?;
+            ctx.execute(e).args(["--autoclean"]).status_checked()?;
         } else {
             let message = String::from(
                 "cargo-cache isn't installed so Topgrade can't cleanup cargo packages.\nInstall cargo-cache by running `cargo install cargo-cache`",
@@ -1118,7 +1118,7 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
 
     for env_name in env_names {
         ctx.execute(&conda)
-            .args(["update", "--all", "-n", env_name])
+            .args(["update", "--all", "--name", env_name])
             .arg_if(ctx.config().yes(Step::Conda), "--yes")
             .status_checked()?;
     }
@@ -1127,7 +1127,7 @@ pub fn run_conda_update(ctx: &ExecutionContext) -> Result<()> {
     if let Some(env_paths) = ctx.config().conda_env_paths() {
         for env_path in env_paths.iter() {
             ctx.execute(&conda)
-                .args(["update", "--all", "-p", env_path])
+                .args(["update", "--all", "--prefix", env_path])
                 .arg_if(ctx.config().yes(Step::Conda), "--yes")
                 .status_checked()?;
         }
@@ -1811,7 +1811,7 @@ pub fn update_julia_packages(ctx: &ExecutionContext) -> Result<()> {
         } else {
             "--startup-file=no"
         })
-        .args(["-e", "using Pkg; Pkg.update()"])
+        .arg("--eval=using Pkg; Pkg.update()")
         .status_checked()
 }
 
@@ -2519,12 +2519,12 @@ pub fn run_typst(ctx: &ExecutionContext) -> Result<()> {
     let raw_info = ctx
         .execute(&typst)
         .always()
-        .args(["info", "-f", "json"])
+        .args(["info", "--format", "json"])
         .output_checked_utf8()?
         .stdout;
     let info: TypstInfo = serde_json::from_str(&raw_info).wrap_err_with(|| {
         output_changed_message!(
-            "typst info -f json",
+            "typst info --format json",
             "json output invalid or does not contain .build.settings.self-update"
         )
     })?;
