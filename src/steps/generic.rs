@@ -2700,15 +2700,44 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_opencode(ctx: &ExecutionContext) -> Result<()> {
     let opencode = require("opencode")?;
 
+    // `opencode upgrade` can only self-update an official script install.
     let script_install_path = HOME_DIR.join(".opencode").join("bin");
-    if !opencode
+    let can_self_upgrade = opencode
         .canonicalize()
-        .is_ok_and(|p| p.is_descendant_of(&script_install_path))
-    {
-        return Err(SkipStep(t!("OpenCode is not installed with the official script").to_string()).into());
+        .is_ok_and(|p| p.is_descendant_of(&script_install_path));
+
+    let version_output = ctx.execute(&opencode).always().arg("-v").output_checked_utf8()?;
+    // Output will be something like: "opencode v2.X.Y\n"
+    let version_string = version_output.stdout.split_whitespace().nth(1).ok_or_else(|| {
+        eyre!(output_changed_message!(
+            "opencode -v",
+            "Expected version after 'opencode '"
+        ))
+    })?;
+    let version = Version::parse(version_string.trim_start_matches('v'))
+        .wrap_err_with(|| output_changed_message!("opencode -v", "Invalid version"))?;
+    let can_update_plugins = version >= Version::new(2, 0, 0);
+
+    if !can_self_upgrade {
+        debug!("Not installed via the official script, skipping self-upgrade");
     }
+    if !can_update_plugins {
+        debug!("OpenCode is older than 2.0.0, skipping plugin update");
+    }
+
+    if !can_self_upgrade && !can_update_plugins {
+        return Err(SkipStep("Nothing to upgrade for OpenCode".to_string()).into());
+    }
+
     print_separator("OpenCode");
-    ctx.execute(opencode).arg("upgrade").status_checked()
+    if can_self_upgrade {
+        ctx.execute(&opencode).arg("upgrade").status_checked()?;
+    }
+    if can_update_plugins {
+        ctx.execute(&opencode).args(["plugin", "update"]).status_checked()?;
+    }
+
+    Ok(())
 }
 
 fn ollama_serve(ctx: &ExecutionContext, ollama: &Path) -> Result<ExecutorChild> {
