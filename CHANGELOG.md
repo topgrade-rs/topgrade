@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.13.0](https://github.com/topgrade-rs/topgrade/compare/v17.12.3...v17.13.0) - 2026-10-10
+
+### Added
+- *(opencode)* perform v2 plugin updates ([#2398](https://github.com/topgrade-rs/topgrade/pull/2398))
+
+### Fixed
+- move falconf to end in step order ([#2406](https://github.com/topgrade-rs/topgrade/pull/2406))
+- *(shell)* quote sourced command paths ([#2141](https://github.com/topgrade-rs/topgrade/pull/2141))
+- *(which)* ignore mise shims without global default version ([#2343](https://github.com/topgrade-rs/topgrade/pull/2343))
+- *(locales)* correct mistranslations and command names
+- align summary names with step separators
+- *(flatpak)* translate the user packages separator
+- *(locales)* fix stray zh_CH key on PATH lookup message
+- *(containers)* close unclosed backtick in error messages
+- *(steps)* fix grammar and casing in step messages
+
 ## [17.12.3](https://github.com/topgrade-rs/topgrade/compare/v17.12.2...v17.12.3) - 2026-10-02
 
 ### Fixed
