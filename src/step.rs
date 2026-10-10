@@ -816,8 +816,6 @@ pub(crate) fn default_steps() -> Vec<Step> {
     // For now, SelfUpdate isn't included as it's run before the other non-steps (pre-commands, sudo, etc)
     vec![
         // Steps that should run first
-        // Falconf can install programs we want to immediately detect and update
-        Falconf,
         // Steps that don't have to run in a particular order
         Remotes,
         Wsl,
@@ -1005,6 +1003,10 @@ pub(crate) fn default_steps() -> Vec<Step> {
         BrewCask,
         // Runs `sudo -k` at the end, which drops cached sudo credentials for every later step
         Hyprpm,
+        // falconf itself should be updated before syncing, which other steps (like cargo) could do.
+        //  It should run before custom commands, since they might rely on programs/scripts installed
+        //  by falconf.
+        Falconf,
         // Last out of convention
         CustomCommands,
         // Last because it prompts for restart
