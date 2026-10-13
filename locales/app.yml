@@ -8,6 +8,7 @@ _version: 2
   zh_CN: "目前语言为 %{system_locale}"
   zh_TW: "目前語言為 %{system_locale}"
   de: "Aktuelle Systemsprache ist %{system_locale}"
+  ko: "현재 시스템 로케일은 %{system_locale}입니다"
 "Dry running: {program_name} {arguments}":
   en: "Dry running: %{program_name} %{arguments}"
   lt: "Bandomas paleidimas: %{program_name} %{arguments}"
@@ -16,6 +17,7 @@ _version: 2
   zh_CN: "正在模拟 %{program_name} %{arguments} 的运行过程"
   zh_TW: "正在模擬 %{program_name} %{arguments} 的執行過程"
   de: "Testlauf: %{program_name} %{arguments}"
+  ko: "모의 실행: %{program_name} %{arguments}"
 "Executing: {program_name} {arguments}":
   en: "Executing: %{program_name} %{arguments}"
   lt: "Vykdymas: %{program_name} %{arguments}"
@@ -24,6 +26,7 @@ _version: 2
   zh_CN: "执行： %{program_name} %{arguments}"
   zh_TW: "执行： %{program_name} %{arguments}"
   de: "Ausführung: %{program_name} %{arguments}"
+  ko: "실행 중: %{program_name} %{arguments}"
 "with env: {env}":
   en: "with env: %{env}"
   lt: "su env: %{env}"
@@ -32,6 +35,7 @@ _version: 2
   zh_CN: "与env： %{env}"
   zh_TW: "與env： %{env}"
   de: "mit env: %{env}"
+  ko: "환경 변수: %{env}"
 "in {directory}":
   en: "in %{directory}"
   lt: "kataloge %{directory}"
@@ -40,6 +44,7 @@ _version: 2
   zh_CN: "在 %{directory}"
   zh_TW: "在 %{directory}"
   de: "in %{directory}"
+  ko: "위치: %{directory}"
 "Rebooting...":
   en: "Rebooting..."
   lt: "Perkraunama..."
@@ -48,6 +53,7 @@ _version: 2
   zh_CN: "正在重新启动..."
   zh_TW: "正在重新啟動..."
   de: "Neustart..."
+  ko: "재부팅 중..."
 "Shutting down...":
   en: "Shutting down..."
   lt: "Išjungiamas..."
@@ -56,6 +62,7 @@ _version: 2
   zh_CN: "正在关机..."
   zh_TW: "正在關機..."
   de: "Herunterfahren..."
+  ko: "종료하는 중..."
 "Plugins upgraded":
   en: "Plugins upgraded"
   lt: "Įskiepiai atnaujinti"
@@ -64,6 +71,7 @@ _version: 2
   zh_CN: "已更新所有插件"
   zh_TW: "已更新所有擴充功能"
   de: "Plugins aktualisiert"
+  ko: "플러그인 업그레이드 완료"
 "Would self-update":
   en: "Would self-update"
   lt: "Atnaujintų save"
@@ -72,6 +80,7 @@ _version: 2
   zh_CN: "将自我更新"
   zh_TW: "將自行更新"
   de: "Würde sich selbst aktualisieren"
+  ko: "자체 업데이트를 수행할 예정입니다"
 "Pulling":
   en: "Pulling"
   lt: "Traukiama"
@@ -80,6 +89,7 @@ _version: 2
   zh_CN: "正在拉取"
   zh_TW: "正在拉取"
   de: "Abrufen"
+  ko: "풀(pull) 중"
 "Fetching":
   en: "Fetching"
   lt: "Gaunama"
@@ -88,6 +98,7 @@ _version: 2
   zh_CN: "正在获取"
   zh_TW: "正在獲取"
   de: "Abrufen"
+  ko: "페치(fetch) 중"
 "No breaking changes":
   en: "No breaking changes"
   lt: "Nėra esminių pakeitimų"
@@ -96,6 +107,7 @@ _version: 2
   zh_CN: "无破坏性变更"
   zh_TW: "無重大更改"
   de: "Keine inkompatiblen Änderungen"
+  ko: "호환성 변경 사항이 없습니다"
 "Dropping you to shell. Fix what you need and then exit the shell.":
   en: "Dropping you to shell. Fix what you need and then exit the shell."
   lt: "Perjungiama į komandų eilutę. Pataisykite, kas reikia, ir tada išeikite."
@@ -104,6 +116,7 @@ _version: 2
   zh_CN: "已切换到 Shell 环境。请修复需要的内容，完成后退出 Shell 。"
   zh_TW: "已切換到 shell 環境。修復完畢後請退出 shell 以繼續。"
   de: "Wechsel zur Shell. Beheben Sie die Probleme und verlassen Sie dann die Shell."
+  ko: "셸로 전환합니다. 필요한 부분을 수정한 뒤 셸을 종료하세요."
 "Topgrade launched in a new tmux session":
   en: "Topgrade launched in a new tmux session"
   lt: "Topgrade paleistas naujoje tmux sesijoje"
@@ -112,6 +125,7 @@ _version: 2
   zh_CN: "Topgrade 已在新的 tmux 会话中启动"
   zh_TW: "Topgrade 已啟動新 tmux 程式"
   de: "Topgrade in einer neuen tmux-Sitzung gestartet"
+  ko: "새 tmux 세션에서 Topgrade를 실행했습니다"
 "Topgrade upgraded from {from_version} to {to_version}:\n":
   en: "Topgrade upgraded from %{from_version} to %{to_version}:\n"
   lt: "Topgrade atnaujintas nuo %{from_version} iki %{to_version}:\n"
@@ -120,6 +134,7 @@ _version: 2
   zh_CN: "已将 Topgrade 从 %{from_version} 更新至 %{to_version}：\n"
   zh_TW: "已將 Topgrade 從 %{from_version} 更新至 %{to_version}：\n"
   de: "Topgrade von Version %{from_version} auf %{to_version} aktualisiert:\n"
+  ko: "Topgrade가 %{from_version}에서 %{to_version}(으)로 업그레이드되었습니다:\n"
 "Topgrade is up-to-date":
   en: "Topgrade is up-to-date"
   lt: "Topgrade yra naujausia"
@@ -128,6 +143,7 @@ _version: 2
   zh_CN: "Topgrade 为最新版本"
   zh_TW: "Topgrade 為最新版本"
   de: "Topgrade ist auf dem neuesten Stand"
+  ko: "Topgrade가 최신 버전입니다"
 "Updating modules...":
   en: "Updating modules..."
   lt: "Atnaujinami moduliai..."
@@ -136,6 +152,7 @@ _version: 2
   zh_CN: "正在更新模块..."
   zh_TW: "正在更新模組..."
   de: "Module werden aktualisiert..."
+  ko: "모듈 업데이트 중..."
 "PowerShell Modules Update":
   en: "PowerShell Modules Update"
   lt: "PowerShell modulių atnaujinimas"
@@ -144,6 +161,7 @@ _version: 2
   zh_CN: "PowerShell 模块更新"
   zh_TW: "PowerShell 模組更新"
   de: "PowerShell-Module Aktualisierung"
+  ko: "PowerShell 모듈 업데이트"
 "PowerShell is not installed":
   en: "PowerShell is not installed"
   lt: "PowerShell nėra įdiegtas"
@@ -152,6 +170,7 @@ _version: 2
   zh_CN: "未安装 PowerShell"
   zh_TW: "未安裝 PowerShell"
   de: "PowerShell ist nicht installiert"
+  ko: "PowerShell이 설치되어 있지 않습니다"
 "Cannot detect PowerShell in a dumb terminal":
   en: "Cannot detect PowerShell in a dumb terminal"
   lt: "Nepavyko aptikti PowerShell ribotame terminale"
@@ -160,6 +179,7 @@ _version: 2
   zh_CN: "无法在简易终端中检测 PowerShell"
   zh_TW: "無法在簡易終端機中偵測 PowerShell"
   de: "PowerShell kann in einem eingeschränkten Terminal nicht erkannt werden"
+  ko: "dumb 터미널에서는 PowerShell을 감지할 수 없습니다"
 "{binary} at {path} is a wrapper script":
   en: "%{binary} at %{path} is a wrapper script"
   lt: "%{binary} kelyje %{path} yra apvalkalo scenarijus"
@@ -168,6 +188,7 @@ _version: 2
   zh_CN: "%{path} 处的 %{binary} 是一个包装脚本"
   zh_TW: "%{path} 處的 %{binary} 是一個包裝指令稿"
   de: "%{binary} unter %{path} ist ein Wrapper-Skript"
+  ko: "%{path}의 %{binary}은(는) 래퍼 스크립트입니다"
 "PowerShellGet Update-Module is unavailable or could not be loaded. Skipping PowerShell module updates.":
   en: "PowerShellGet Update-Module is unavailable or could not be loaded. Skipping PowerShell module updates."
   lt: "PowerShellGet Update-Module nepasiekiama arba jos nepavyko įkelti. Praleidžiamas PowerShell modulių atnaujinimas."
@@ -176,6 +197,7 @@ _version: 2
   zh_CN: "PowerShellGet Update-Module 不可用或无法加载。正在跳过 PowerShell 模块更新。"
   zh_TW: "PowerShellGet Update-Module 無法使用或無法載入。正在略過 PowerShell 模組更新。"
   de: "PowerShellGet Update-Module ist nicht verfügbar oder konnte nicht geladen werden. PowerShell-Modulaktualisierung wird übersprungen."
+  ko: "PowerShellGet Update-Module을 사용할 수 없거나 불러오지 못했습니다. PowerShell 모듈 업데이트를 건너뜁니다."
 "Error detecting current distribution: {error}":
   en: "Error detecting current distribution: %{error}"
   lt: "Klaida nustatant dabartinę distribuciją: %{error}"
@@ -184,6 +206,7 @@ _version: 2
   zh_CN: "无法检测当前操作系统：%{error}"
   zh_TW: "無法偵測作業系統：%{error}"
   de: "Fehler bei der Erkennung der aktuellen Distribution: %{error}"
+  ko: "현재 배포판을 감지하는 중 오류 발생: %{error}"
 "Error: {error}":
   en: "Error: %{error}"
   lt: "Klaida: %{error}"
@@ -192,6 +215,7 @@ _version: 2
   zh_CN: "错误：%{error}"
   zh_TW: "錯誤：%{error}"
   de: "Fehler: %{error}"
+  ko: "오류: %{error}"
 "Failed":
   en: "Failed"
   lt: "Nepavyko"
@@ -200,6 +224,7 @@ _version: 2
   zh_CN: "失败"
   zh_TW: "失敗"
   de: "Fehlgeschlagen"
+  ko: "실패:"
 "pulling":
   en: "pulling"
   lt: "traukiama"
@@ -208,6 +233,7 @@ _version: 2
   zh_CN: "正在拉取"
   zh_TW: "正在拉取"
   de: "abrufen"
+  ko: "풀(pull)"
 "fetching":
   en: "fetching"
   lt: "gaunama"
@@ -216,6 +242,7 @@ _version: 2
   zh_CN: "正在获取"
   zh_TW: "正在獲取"
   de: "abrufen"
+  ko: "페치(fetch)"
 "Changed":
   en: "Changed"
   lt: "Pakeista"
@@ -224,6 +251,7 @@ _version: 2
   zh_CN: "已更改"
   zh_TW: "已更改"
   de: "Geändert"
+  ko: "변경됨"
 "Up-to-date":
   en: "Up-to-date"
   lt: "Atnaujinta"
@@ -232,6 +260,7 @@ _version: 2
   zh_CN: "已为最新版本"
   zh_TW: "已為最新版本"
   de: "Aktuell"
+  ko: "최신 상태"
 "Self update":
   en: "Self update"
   lt: "Savarankiškas atnaujinimas"
@@ -240,6 +269,7 @@ _version: 2
   zh_CN: "自我更新"
   zh_TW: "自行更新"
   de: "Selbstaktualisierung"
+  ko: "자체 업데이트"
 
 # The following 2 strings are used in the same sentence
 # i.e. *Only* updated repositories will be shown...
@@ -253,6 +283,7 @@ _version: 2
   zh_CN: "将仅"
   zh_TW: "將僅"
   de: "Nur"
+  ko: "업데이트된"
 "updated repositories will be shown...":
   en: "updated repositories will be shown..."
   lt: "bus rodomos atnaujintos saugyklos..."
@@ -261,6 +292,7 @@ _version: 2
   zh_CN: "显示被更新的 git 仓库..."
   zh_TW: "顯示被更新的 git 來源..."
   de: "aktualisierte Repositories werden angezeigt..."
+  ko: "저장소만 표시됩니다..."
 
 "because it has no remotes":
   en: "because it has no remotes"
@@ -270,6 +302,7 @@ _version: 2
   zh_CN: "因为其没有远程来源"
   zh_TW: "因為其沒有遠端來源"
   de: "da keine Remote-Quellen vorhanden sind"
+  ko: "(원격 저장소 없음)"
 "Skipping":
   en: "Skipping"
   lt: "Praleidžiama"
@@ -278,6 +311,7 @@ _version: 2
   zh_CN: "正在跳过"
   zh_TW: "正在略過"
   de: "Überspringe"
+  ko: "건너뜀"
 "Pacman backup configuration files found:":
   en: "Pacman backup configuration files found:"
   lt: "Rasti Pacman atsarginės konfigūracijos failai:"
@@ -286,6 +320,7 @@ _version: 2
   zh_CN: "找到 Pacman 配置备份："
   zh_TW: "找到 Pacman 設定備份檔："
   de: "Pacman-Backup-Konfigurationsdateien gefunden:"
+  ko: "Pacman 백업 설정 파일이 발견되었습니다:"
 "The package audit was successful, but vulnerable packages still remain on the system":
   en: "The package audit was successful, but vulnerable packages still remain on the system"
   lt: "Paketų patikra buvo sėkminga, tačiau sistemoje vis dar yra pažeidžiamų paketų"
@@ -294,6 +329,7 @@ _version: 2
   zh_CN: "软件包审计已通过，但系统中仍存在含漏洞的软件包"
   zh_TW: "雖然套件審查成功，但系統仍然殘留危險套件"
   de: "Das Paket-Audit war erfolgreich, aber es befinden sich noch anfällige Pakete im System"
+  ko: "패키지 감사는 성공했지만, 취약한 패키지가 시스템에 여전히 남아 있습니다"
 "Syncing Portage":
   en: "Syncing Portage"
   lt: "Sinchronizuojamas Portage"
@@ -302,6 +338,7 @@ _version: 2
   zh_CN: "正在同步 Portage"
   zh_TW: "正在同步 Portage"
   de: "Synchronisiere Portage"
+  ko: "Portage 동기화 중"
 "Finding available software":
   en: "Finding available software"
   lt: "Ieškoma prieinamos programinės įrangos"
@@ -310,6 +347,7 @@ _version: 2
   zh_CN: "正在寻找可用的软件"
   zh_TW: "正在尋找可用的軟體"
   de: "Suche nach verfügbarer Software"
+  ko: "사용 가능한 소프트웨어를 찾는 중"
 "A system update is available. Do you wish to install it?":
   en: "A system update is available. Do you wish to install it?"
   lt: "Yra sistemos atnaujinimas. Ar norite jį įdiegti?"
@@ -318,6 +356,7 @@ _version: 2
   zh_CN: "系统更新可用。是否立即安装？"
   zh_TW: "系統更新已就緒。是否立即安裝？"
   de: "Ein System-Update ist verfügbar. Möchten Sie es installieren?"
+  ko: "시스템 업데이트가 있습니다. 설치하시겠습니까?"
 "No new software available.":
   en: "No new software available."
   lt: "Nėra naujos programinės įrangos."
@@ -326,6 +365,7 @@ _version: 2
   zh_CN: "没有新的可用的软件包。"
   zh_TW: "沒有新軟體。"
   de: "Keine neue Software verfügbar."
+  ko: "새로운 소프트웨어가 없습니다."
 "No Xcode releases installed.":
   en: "No Xcode releases installed."
   lt: "Nėra įdiegtų Xcode versijų."
@@ -334,6 +374,7 @@ _version: 2
   zh_CN: "尚未安装 Xcode 发行版。"
   zh_TW: "尚未安裝 Xcode 發行版。"
   de: "Keine Xcode-Versionen installiert."
+  ko: "설치된 Xcode 릴리스가 없습니다."
 "Would you like to move the former Xcode release to the trash?":
   en: "Would you like to move the former Xcode release to the trash?"
   lt: "Ar norėtumėte perkelti ankstesnę Xcode versiją į šiukšliadėžę?"
@@ -342,6 +383,7 @@ _version: 2
   zh_CN: "是否将旧版 Xcode 移至垃圾桶？"
   zh_TW: "是否將舊版 Xcode 移至垃圾桶？"
   de: "Möchten Sie die frühere Xcode-Version in den Papierkorb verschieben?"
+  ko: "이전 Xcode 릴리스를 휴지통으로 이동하시겠습니까?"
 "New Xcode release detected:":
   en: "New Xcode release detected:"
   lt: "Nustatyta nauja Xcode versija:"
@@ -350,6 +392,7 @@ _version: 2
   zh_CN: "有新的 Xcode 版本："
   zh_TW: "有新的 Xcode 版本："
   de: "Neue Xcode-Version erkannt:"
+  ko: "새로운 Xcode 릴리스가 발견되었습니다:"
 "Would you like to install it?":
   en: "Would you like to install it?"
   lt: "Ar norite ją įdiegti?"
@@ -358,6 +401,7 @@ _version: 2
   zh_CN: "是否立即安装？"
   zh_TW: "是否立即安裝？"
   de: "Möchten Sie sie installieren?"
+  ko: "설치하시겠습니까?"
 "No global packages installed":
   en: "No global packages installed"
   lt: "Nėra įdiegtų globalių paketų."
@@ -366,6 +410,7 @@ _version: 2
   zh_CN: "尚未安装全局软件包"
   zh_TW: "尚未安裝全域套件"
   de: "Keine globalen Pakete installiert"
+  ko: "설치된 전역 패키지가 없습니다"
 "Remote Topgrade launched in tmux":
   en: "Remote Topgrade launched in tmux"
   lt: "Nuotolinis Topgrade paleistas tmux sesijoje"
@@ -374,6 +419,7 @@ _version: 2
   zh_CN: "已在 tmux 中启动远程 Topgrade"
   zh_TW: "已在 tmux 中啟動遠端 Topgrade 程序"
   de: "Remote-Topgrade in tmux gestartet"
+  ko: "tmux에서 원격 Topgrade를 실행했습니다"
 "Remote Topgrade launched in an external terminal":
   en: "Remote Topgrade launched in an external terminal"
   lt: "Nuotolinis Topgrade paleistas išoriniame terminale"
@@ -382,6 +428,7 @@ _version: 2
   zh_CN: "已在新终端窗口中启动远程 Topgrade"
   zh_TW: "已在新終端機視窗中啟動遠端 Topgrade"
   de: "Remote-Topgrade in einem externen Terminal gestartet"
+  ko: "외부 터미널에서 원격 Topgrade를 실행했습니다"
 "Collecting Vagrant boxes":
   en: "Collecting Vagrant boxes"
   lt: "Renkamos Vagrant dėžutės"
@@ -390,6 +437,7 @@ _version: 2
   zh_CN: "正在收集 Vagrant 盒子"
   zh_TW: "正在收集 Vagrant 盒子"
   de: "Sammle Vagrant-Boxen"
+  ko: "Vagrant 박스를 수집하는 중"
 "No Vagrant directories were specified in the configuration file":
   en: "No Vagrant directories were specified in the configuration file"
   lt: "Konfigūracijos faile nebuvo nurodyta jokių Vagrant katalogų."
@@ -398,6 +446,7 @@ _version: 2
   zh_CN: "尚未在配置中指定 Vagrant 目录"
   zh_TW: "尚未在設定檔中指定 Vagrant 資料夾"
   de: "In der Konfigurationsdatei wurden keine Vagrant-Verzeichnisse angegeben"
+  ko: "설정 파일에 Vagrant 디렉터리가 지정되지 않았습니다"
 "Vagrant boxes":
   en: "Vagrant boxes"
   lt: "Vagrant dėžutės"
@@ -406,6 +455,7 @@ _version: 2
   zh_CN: "Vagrant 盒子"
   zh_TW: "Vagrant 盒子"
   de: "Vagrant-Boxen"
+  ko: "Vagrant 박스"
 "No outdated boxes":
   en: "No outdated boxes"
   lt: "Nėra pasenusių dėžučių"
@@ -414,6 +464,7 @@ _version: 2
   zh_CN: "没有需要更新的盒子"
   zh_TW: "沒有需要更新的盒子"
   de: "Keine veralteten Boxen"
+  ko: "오래된 박스가 없습니다"
 "Summary":
   en: "Summary"
   lt: "Santrauka"
@@ -422,6 +473,7 @@ _version: 2
   zh_CN: "结果"
   zh_TW: "結果"
   de: "Zusammenfassung"
+  ko: "요약"
 "Topgrade finished with errors":
   en: "Topgrade finished with errors"
   lt: "Topgrade užbaigtas su klaidomis"
@@ -430,6 +482,7 @@ _version: 2
   zh_CN: "Topgrade 运行完成，但存在错误"
   zh_TW: "Topgrade 執行部分成功"
   de: "Topgrade wurde mit Fehlern beendet"
+  ko: "Topgrade가 오류와 함께 종료되었습니다"
 "Topgrade finished successfully":
   en: "Topgrade finished successfully"
   lt: "Topgrade sėkmingai užbaigtas"
@@ -438,6 +491,7 @@ _version: 2
   zh_CN: "Topgrade 运行成功"
   zh_TW: "Topgrade 執行成功"
   de: "Topgrade wurde erfolgreich beendet"
+  ko: "Topgrade가 성공적으로 완료되었습니다"
 "Topgrade {version_str} Breaking Changes":
   en: "Topgrade %{version_str} Breaking Changes"
   lt: "Topgrade %{version_str} esminiai pakeitimai"
@@ -446,6 +500,7 @@ _version: 2
   zh_CN: "Topgrade %{version_str} 破坏性更改"
   zh_TW: "Topgrade %{version_str} 重大更改"
   de: "Topgrade %{version_str} Inkompatible Änderungen"
+  ko: "Topgrade %{version_str} 호환성 변경 사항"
 "Path {path} doesn't exist":
   en: "Path %{path} doesn't exist"
   lt: "Kelias %{path} neegzistuoja"
@@ -454,6 +509,7 @@ _version: 2
   zh_CN: "路径 %{path} 不存在"
   zh_TW: "路徑 %{path} 不存在"
   de: "Pfad %{path} existiert nicht"
+  ko: "경로 %{path}이(가) 존재하지 않습니다"
 "Cannot find {binary_name} in PATH":
   en: "Cannot find %{binary_name} in PATH"
   lt: "Nepavyksta rasti %{binary_name} PATH aplanke"
@@ -462,6 +518,7 @@ _version: 2
   zh_CN: "在 $PATH 中找不到 %{binary_name} 二进制"
   zh_TW: "在 $PATH 中找不到 %{binary_name} 執行檔"
   de: "Kann %{binary_name} nicht im PATH finden"
+  ko: "PATH에서 %{binary_name}을(를) 찾을 수 없습니다"
 "Cannot find any of {binary_names} in PATH":
   en: "Cannot find any of %{binary_names} in PATH"
   lt: "Nepavyksta rasti jokių %{binary_names} PATH sąraše"
@@ -470,6 +527,7 @@ _version: 2
   zh_CN: "在 PATH 中找不到 %{binary_names}"
   zh_TW: "在 PATH 中找不到 %{binary_names}"
   de: "Kann keines von %{binary_names} im PATH finden"
+  ko: "PATH에서 %{binary_names} 중 어느 것도 찾을 수 없습니다"
 "None of {paths} exist":
   en: "None of %{paths} exist"
   lt: "Nė vienas iš %{paths} neegzistuoja"
@@ -478,6 +536,7 @@ _version: 2
   zh_CN: "%{paths} 均不存在"
   zh_TW: "%{paths} 均不存在"
   de: "Keiner von %{paths} existiert"
+  ko: "%{paths} 중 존재하는 경로가 없습니다"
 "Failed to get a UTF-8 encoded hostname":
   en: "Failed to get a UTF-8 encoded hostname"
   lt: "Nepavyko gauti UTF-8 koduoto kompiuterio pavadinimo"
@@ -486,6 +545,7 @@ _version: 2
   zh_CN: "无法获取 UTF-8 编码的主机名称"
   zh_TW: "無法取得 UTF-8 編碼的主機名稱"
   de: "Fehler beim Abrufen eines UTF-8-kodierten Hostnamens"
+  ko: "UTF-8로 인코딩된 호스트 이름 가져오기에 실패했습니다"
 "Failed to get hostname: {err}":
   en: "Failed to get hostname: %{err}"
   lt: "Nepavyko gauti kompiuterio pavadinimo: %{err}"
@@ -494,6 +554,7 @@ _version: 2
   zh_CN: "无法获取主机名称：%{err}"
   zh_TW: "無法取得主機名稱：%{err}"
   de: "Fehler beim Abrufen des Hostnamens: %{err}"
+  ko: "호스트 이름 가져오기에 실패했습니다: %{err}"
 "{python} is a Python 2, skip.":
   en: "%{python} is a Python 2, skip."
   lt: "%{python} yra Python 2, praleidžiama."
@@ -502,6 +563,7 @@ _version: 2
   zh_CN: "%{python} 是 Python 2，跳过。"
   zh_TW: "%{python} 是 Python 2，略過。"
   de: "%{python} ist Python 2, überspringe."
+  ko: "%{python}은(는) Python 2이므로 건너뜁니다."
 "{python} is a Python shim, skip.":
   en: "%{python} is a Python shim, skip."
   lt: "%{python} yra Python tarpinė, praleidžiama."
@@ -510,6 +572,7 @@ _version: 2
   zh_CN: "%{python} 是 Python shim，跳过。"
   zh_TW: "%{python} 是 Python shim，略過。"
   de: "%{python} ist ein Python-Shim, überspringe."
+  ko: "%{python}은(는) Python shim이므로 건너뜁니다."
 "{key} failed:":
   en: "%{key} failed:"
   lt: "%{key} nepavyko:"
@@ -518,6 +581,7 @@ _version: 2
   zh_CN: "%{key} 失败"
   zh_TW: "%{key} 失敗："
   de: "%{key} fehlgeschlagen:"
+  ko: "%{key} 실패:"
 "{step_name} failed":
   en: "%{step_name} failed"
   lt: "%{step_name} nepavyko."
@@ -526,6 +590,7 @@ _version: 2
   zh_CN: "%{step_name} 失败"
   zh_TW: "%{step_name} 失敗"
   de: "%{step_name} fehlgeschlagen"
+  ko: "%{step_name} 실패"
 "DragonFly BSD Packages":
   en: "DragonFly BSD Packages"
   lt: "DragonFly BSD paketai"
@@ -534,6 +599,7 @@ _version: 2
   zh_CN: "DragonFly BSD 软件包"
   zh_TW: "DragonFly BSD 套件"
   de: "DragonFly BSD Pakete"
+  ko: "DragonFly BSD 패키지"
 "DragonFly BSD Audit":
   en: "DragonFly BSD Audit"
   lt: "DragonFly BSD auditas"
@@ -542,6 +608,7 @@ _version: 2
   zh_CN: "DragonFly BSD 审计"
   zh_TW: "DragonFly BSD 審查"
   de: "DragonFly BSD Audit"
+  ko: "DragonFly BSD 감사"
 "FreeBSD Update":
   en: "FreeBSD Update"
   lt: "FreeBSD atnaujinimas"
@@ -550,6 +617,7 @@ _version: 2
   zh_CN: "FreeBSD 更新"
   zh_TW: "FreeBSD 更新"
   de: "FreeBSD Update"
+  ko: "FreeBSD 업데이트"
 "FreeBSD Packages":
   en: "FreeBSD Packages"
   lt: "FreeBSD paketai"
@@ -558,6 +626,7 @@ _version: 2
   zh_CN: "FreeBSD 软件包"
   zh_TW: "FreeBSD 套件"
   de: "FreeBSD Pakete"
+  ko: "FreeBSD 패키지"
 "FreeBSD Audit":
   en: "FreeBSD Audit"
   lt: "FreeBSD auditas"
@@ -566,6 +635,7 @@ _version: 2
   zh_CN: "FreeBSD 审计"
   zh_TW: "FreeBSD 審查"
   de: "FreeBSD Audit"
+  ko: "FreeBSD 감사"
 "System update":
   en: "System update"
   lt: "Sistemos atnaujinimas"
@@ -574,6 +644,7 @@ _version: 2
   zh_CN: "系统更新"
   zh_TW: "系統更新"
   de: "System-Update"
+  ko: "시스템 업데이트"
 "needrestart will be run by the package manager":
   en: "needrestart will be run by the package manager"
   lt: "needrestart paleistas paketų tvarkyklės"
@@ -582,6 +653,7 @@ _version: 2
   zh_CN: "needrestart 将被包管理器运行"
   zh_TW: "needrestart 將被套件管理員執行"
   de: "needrestart wird vom Paketmanager ausgeführt"
+  ko: "needrestart는 패키지 관리자가 실행합니다"
 "Check for needed restarts":
   en: "Check for needed restarts"
   lt: "Tikrinama, ar reikia perkrauti sistemą"
@@ -590,6 +662,7 @@ _version: 2
   zh_CN: "正在检查是否需要重新启动系统"
   zh_TW: "正在檢查是否需要重新啟動系統"
   de: "Überprüfe auf notwendige Neustarts"
+  ko: "재시작이 필요한지 확인"
 "Should not run in WSL":
   en: "Should not run in WSL"
   lt: "Neturėtų būti paleista WSL aplinkoje"
@@ -598,6 +671,7 @@ _version: 2
   zh_CN: "不应在 WSL 中运行"
   zh_TW: "不應在 WSL 中執行"
   de: "Sollte nicht in WSL ausgeführt werden"
+  ko: "WSL에서는 실행하면 안 됩니다"
 "Firmware upgrades":
   en: "Firmware upgrades"
   lt: "Firmware atnaujinimai"
@@ -606,6 +680,7 @@ _version: 2
   zh_CN: "固件升级"
   zh_TW: "韌體更新"
   de: "Firmware-Updates"
+  ko: "펌웨어 업그레이드"
 "fwupdmgr found firmware updates, but applying these is disabled in the config. Run 'fwupdmgr update' to update firmware manually.":
   en: "fwupdmgr found firmware updates, but applying these is disabled in the config. Run 'fwupdmgr update' to update firmware manually."
   lt: "fwupdmgr rado programinės aparatinės įrangos atnaujinimų, tačiau jų taikymas išjungtas konfigūracijoje. Paleiskite 'fwupdmgr update', kad atnaujintumėte rankiniu būdu."
@@ -614,6 +689,7 @@ _version: 2
   zh_CN: "fwupdmgr 找到了固件更新，但配置中已禁用自动应用。运行 'fwupdmgr update' 手动更新固件。"
   zh_TW: "fwupdmgr 找到了韌體更新，但設定中已停用自動套用。執行 'fwupdmgr update' 手動更新韌體。"
   de: "fwupdmgr hat Firmware-Updates gefunden, aber deren Anwendung ist in der Konfiguration deaktiviert. Führen Sie 'fwupdmgr update' aus, um die Firmware manuell zu aktualisieren."
+  ko: "fwupdmgr가 펌웨어 업데이트를 발견했지만, 설정에서 적용이 비활성화되어 있습니다. 펌웨어를 수동으로 업데이트하려면 'fwupdmgr update'를 실행하세요."
 "Flatpak System Packages":
   en: "Flatpak System Packages"
   lt: "Flatpak sistemos paketai"
@@ -622,6 +698,7 @@ _version: 2
   zh_CN: "Flatpak 系统软件包"
   zh_TW: "Flatpak 系統套件"
   de: "Flatpak Systempakete"
+  ko: "Flatpak 시스템 패키지"
 "Flatpak User Packages":
   en: "Flatpak User Packages"
   lt: "Flatpak vartotojo paketai"
@@ -630,6 +707,7 @@ _version: 2
   zh_CN: "Flatpak 用户软件包"
   zh_TW: "Flatpak 使用者套件"
   de: "Flatpak Benutzerpakete"
+  ko: "Flatpak 사용자 패키지"
 "Snapd socket does not exist":
   en: "Snapd socket does not exist"
   lt: "Snapd lizdas neegzistuoja"
@@ -638,6 +716,7 @@ _version: 2
   zh_CN: "找不到 Snapd 套接字"
   zh_TW: "找不到 Snapd 套接字"
   de: "Snapd-Socket existiert nicht"
+  ko: "Snapd 소켓이 존재하지 않습니다"
 "You need to specify at least one container":
   en: "You need to specify at least one container"
   lt: "Turite nurodyti bent vieną konteinerį"
@@ -646,6 +725,7 @@ _version: 2
   zh_CN: "必须指定至少一个容器"
   zh_TW: "必須指定至少一個容器"
   de: "Sie müssen mindestens einen Container angeben"
+  ko: "컨테이너를 하나 이상 지정해야 합니다"
 "Skipped in --yes":
   en: "Skipped in --yes"
   lt: "Praleista naudojant --yes"
@@ -654,6 +734,7 @@ _version: 2
   zh_CN: "已指定 --yes，跳过"
   zh_TW: "指定 --yes，略過"
   de: "Übersprungen mit --yes"
+  ko: "--yes 모드에서는 건너뜁니다"
 "Configuration update":
   en: "Configuration update"
   lt: "Konfigūracijos atnaujinimas"
@@ -662,6 +743,7 @@ _version: 2
   zh_CN: "配置更新"
   zh_TW: "設定更新"
   de: "Konfigurationsaktualisierung"
+  ko: "설정 업데이트"
 "Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?":
   en: "Going to execute `waydroid upgrade`, which would STOP the running container, is this ok?"
   lt: "Vykdysime `waydroid upgrade`, kuris sustabdys veikiančią konteinerį, ar tai priimtina?"
@@ -670,6 +752,7 @@ _version: 2
   zh_CN: "将执行 `waydroid upgrade`，并且“停止”运行容器。是否继续？"
   zh_TW: "將執行 `waydroid upgrade`，並且「停止」執行容器。是否繼續？"
   de: "`waydroid upgrade` wird ausgeführt, was den laufenden Container STOPPEN würde. Ist das in Ordnung?"
+  ko: "`waydroid upgrade`를 실행하면 실행 중인 컨테이너가 중지됩니다. 계속하시겠습니까?"
 "Skip the Waydroid step because the user doesn't want to proceed":
   en: "Skip the Waydroid step because the user doesn't want to proceed"
   lt: "Praleisti Waydroid žingsnį, nes vartotojas nenori tęsti"
@@ -678,6 +761,7 @@ _version: 2
   zh_CN: "使用者指定跳过 Waydroid 程序"
   zh_TW: "使用者指定略過 Waydroid 程式"
   de: "Überspringe den Waydroid-Schritt, da der Benutzer nicht fortfahren möchte"
+  ko: "사용자가 진행을 원하지 않아 Waydroid 단계를 건너뜁니다"
 "Mac App Store":
   en: "Mac App Store"
   lt: "macOS programų parduotuvė"
@@ -686,6 +770,7 @@ _version: 2
   zh_CN: "Mac App Store"
   zh_TW: "Mac App Store"
   de: "Mac App Store"
+  ko: "Mac App Store"
 "macOS system update":
   en: "macOS system update"
   lt: "macOS sistemos atnaujinimas"
@@ -694,6 +779,7 @@ _version: 2
   zh_CN: "macOS 系统更新"
   zh_TW: "macOS 系統更新"
   de: "macOS Systemupdate"
+  ko: "macOS 시스템 업데이트"
 "OpenBSD Update":
   en: "OpenBSD Update"
   lt: "OpenBSD atnaujinimas"
@@ -702,6 +788,7 @@ _version: 2
   zh_CN: "OpenBSD 更新"
   zh_TW: "OpenBSD 更新"
   de: "OpenBSD Update"
+  ko: "OpenBSD 업데이트"
 "OpenBSD Packages":
   en: "OpenBSD Packages"
   lt: "OpenBSD paketai"
@@ -710,6 +797,7 @@ _version: 2
   zh_CN: "OpenBSD 软件包"
   zh_TW: "OpenBSD 套件"
   de: "OpenBSD Pakete"
+  ko: "OpenBSD 패키지"
 "`fisher` is not defined in `fish`":
   en: "`fisher` is not defined in `fish`"
   lt: "`fisher` nėra apibrėžtas `fish` aplinkoje"
@@ -718,6 +806,7 @@ _version: 2
   zh_CN: "`fisher` 未在 `fish` 中指定"
   zh_TW: "`fisher` 未在 `fish` 中指定"
   de: "`fisher` ist in `fish` nicht definiert"
+  ko: "`fish`에 `fisher`가 정의되어 있지 않습니다"
 "`fish_plugins` path doesn't exist: {err}":
   en: "`fish_plugins` path doesn't exist: %{err}"
   lt: "`fish_plugins` kelias neegzistuoja: %{err}"
@@ -726,6 +815,7 @@ _version: 2
   zh_CN: "不存在 `fish_plugins` 路径：%{err}"
   zh_TW: "不存在 `fish_plugins` 路徑：%{err}"
   de: "Der Pfad `fish_plugins` existiert nicht: %{err}"
+  ko: "`fish_plugins` 경로가 존재하지 않습니다: %{err}"
 "`fish_update_completions` is not available":
   en: "`fish_update_completions` is not available"
   lt: "`fish_update_completions` nėra prieinamas"
@@ -734,6 +824,7 @@ _version: 2
   zh_CN: "无法使用 `fish_update_completions`"
   zh_TW: "無法使用 `fish_update_completions`"
   de: "`fish_update_completions` ist nicht verfügbar"
+  ko: "`fish_update_completions`을(를) 사용할 수 없습니다"
 "Desktop does not appear to be GNOME":
   en: "Desktop does not appear to be GNOME"
   lt: "Darbalaukis, matyt, nėra GNOME"
@@ -742,6 +833,7 @@ _version: 2
   zh_CN: "桌面环境不是 GNOME"
   zh_TW: "桌面環境不是 GNOME"
   de: "Desktop scheint nicht GNOME zu sein"
+  ko: "데스크톱이 GNOME이 아닌 것 같습니다"
 "Command `apm` does not appear to be the Atom Package Manager":
   en: "Command `apm` does not appear to be the Atom Package Manager"
   lt: "Panašu, kad komanda `apm` nėra „Atom Package Manager“"
@@ -750,6 +842,7 @@ _version: 2
   zh_CN: "`apm` 命令似乎不是 Atom Package Manager"
   zh_TW: "`apm` 命令似乎不是 Atom Package Manager"
   de: "Der Befehl `apm` scheint nicht der Atom Package Manager zu sein"
+  ko: "`apm` 명령이 Atom Package Manager가 아닌 것 같습니다"
 "GNOME Shell extensions are unregistered in DBus":
   en: "GNOME Shell extensions are unregistered in DBus"
   lt: "GNOME Shell priedai nėra užregistruoti DBus'e"
@@ -758,6 +851,7 @@ _version: 2
   zh_CN: "GNOME Shell 扩展在 DBus中未被注册"
   zh_TW: "GNOME Shell 擴充功能在 DBus 中未被註冊"
   de: "GNOME-Shell-Erweiterungen sind im DBus nicht registriert"
+  ko: "GNOME Shell 확장이 DBus에 등록되어 있지 않습니다"
 "GNOME Shell extensions":
   en: "GNOME Shell extensions"
   lt: "GNOME Shell priedai"
@@ -766,6 +860,7 @@ _version: 2
   zh_CN: "GNOME Shell 扩展"
   zh_TW: "GNOME Shell 擴充功能"
   de: "GNOME-Shell-Erweiterungen"
+  ko: "GNOME Shell 확장"
 "Not a custom brew for macOS":
   en: "Not a custom brew for macOS"
   lt: "Nėra pritaikyto macOS brew"
@@ -774,6 +869,7 @@ _version: 2
   zh_CN: "不是专用的 macOS brew"
   zh_TW: "不是專門的 macOS brew"
   de: "Kein angepasstes Brew für macOS"
+  ko: "macOS용 사용자 지정 brew가 아닙니다"
 "Homebrew cask support on Linux requires Homebrew 4.5.0 or later (found {version})":
   en: "Homebrew cask support on Linux requires Homebrew 4.5.0 or later (found %{version})"
   lt: "Homebrew cask palaikymas Linux sistemoje reikalauja Homebrew 4.5.0 arba naujesnes versijos (rasta %{version})"
@@ -782,6 +878,7 @@ _version: 2
   zh_CN: "Linux 上的 Homebrew cask 支持需要 Homebrew 4.5.0 或更高版本（找到 %{version}）"
   zh_TW: "Linux 上的 Homebrew cask 支援需要 Homebrew 4.5.0 或更高版本（找到 %{version}）"
   de: "Homebrew-Cask-Unterstützung unter Linux erfordert Homebrew 4.5.0 oder höher (gefunden %{version})"
+  ko: "Linux에서 Homebrew cask를 지원하려면 Homebrew 4.5.0 이상이 필요합니다 (현재 %{version})"
 "nix-darwin on macOS must be upgraded via darwin-rebuild switch":
   en: "nix-darwin on macOS must be upgraded via darwin-rebuild switch"
   lt: "nix-darwin macOS turi būti atnaujintas per darwin-rebuild perjungiklį"
@@ -790,6 +887,7 @@ _version: 2
   zh_CN: "nix-darwin 在 macOS 上必须使用 darwin-rebuild 更新"
   zh_TW: "nix-darwin 在 macOS 上必須使用 darwin-rebuild 更新"
   de: "nix-darwin auf macOS muss über darwin-rebuild switch aktualisiert werden"
+  ko: "macOS의 nix-darwin은 darwin-rebuild switch로 업그레이드해야 합니다"
 "`nix upgrade-nix` can only be used on macOS or non-NixOS Linux":
   en: "`nix upgrade-nix` can only be used on macOS or non-NixOS Linux"
   lt: "`nix upgrade-nix` gali būti naudojamas tik macOS arba Linux, kuris nėra NixOS"
@@ -798,6 +896,7 @@ _version: 2
   zh_CN: "`nix upgrade-nix` 仅能在 macOS 或非 NixOS 的 Linux 上使用"
   zh_TW: "`nix upgrade-nix` 僅能在 macOS 或非 NixOS 的 Linux 上使用"
   de: "`nix upgrade-nix` kann nur auf macOS oder nicht-NixOS-Linux verwendet werden"
+  ko: "`nix upgrade-nix`는 macOS 또는 NixOS가 아닌 Linux에서만 사용할 수 있습니다"
 "`nix upgrade-nix` cannot be run when Nix is installed in a profile":
   en: "`nix upgrade-nix` cannot be run when Nix is installed in a profile"
   lt: "`nix upgrade-nix` negali būti paleistas, kai Nix įdiegtas vartotojo aplinkoje"
@@ -806,6 +905,7 @@ _version: 2
   zh_CN: "`nix upgrade-nix` 无法在已将 Nix 安装在用户环境的系统上运行"
   zh_TW: "`nix upgrade-nix` 無法在已安裝 Nix 使用者環境的系統上使用"
   de: "`nix upgrade-nix` kann nicht ausgeführt werden, wenn Nix in einem Profil installiert ist"
+  ko: "Nix가 프로필에 설치된 경우 `nix upgrade-nix`를 실행할 수 없습니다"
 "Nix (self-upgrade)":
   en: "Nix (self-upgrade)"
   lt: "Nix (savarankiškas atnaujinimas)"
@@ -814,6 +914,7 @@ _version: 2
   zh_CN: "Nix（自我更新）"
   zh_TW: "Nix（自行更新）"
   de: "Nix (Selbst-Aktualisierung)"
+  ko: "Nix (자체 업그레이드)"
 "Pyenv is installed, but $PYENV_ROOT is not set correctly":
   en: "Pyenv is installed, but $PYENV_ROOT is not set correctly"
   lt: "Pyenv įdiegtas, tačiau $PYENV_ROOT nustatymas neteisingas"
@@ -822,6 +923,7 @@ _version: 2
   zh_CN: "已安装 Pyenv 但尚未正确设置 $PYENV_ROOT"
   zh_TW: "已安裝 Pyenv 但尚未正確設定 $PYENV_ROOT"
   de: "Pyenv ist installiert, aber $PYENV_ROOT ist nicht korrekt gesetzt"
+  ko: "Pyenv가 설치되어 있지만 $PYENV_ROOT가 올바르게 설정되지 않았습니다"
 "pyenv is not a git repository":
   en: "pyenv is not a git repository"
   lt: "pyenv nėra git saugykla"
@@ -830,6 +932,7 @@ _version: 2
   zh_CN: "pyenv 不是 git 仓库"
   zh_TW: "pyenv 不是 git 來源"
   de: "pyenv ist kein Git-Repository"
+  ko: "pyenv가 git 저장소가 아닙니다"
 "Bun Packages":
   en: "Bun Packages"
   lt: "Bun paketai"
@@ -838,6 +941,7 @@ _version: 2
   zh_CN: "Bun 软件包"
   zh_TW: "Bun 套件"
   de: "Bun-Pakete"
+  ko: "Bun 패키지"
 "WSL not installed":
   en: "WSL not installed"
   lt: "WSL nėra įdiegtas"
@@ -846,6 +950,7 @@ _version: 2
   zh_CN: "未安装 WSL"
   zh_TW: "未安裝 WSL"
   de: "WSL nicht installiert"
+  ko: "WSL이 설치되어 있지 않습니다"
 "Update WSL":
   en: "Update WSL"
   lt: "Atnaujinti WSL"
@@ -854,6 +959,7 @@ _version: 2
   zh_CN: "更新 WSL"
   zh_TW: "更新 WSL"
   de: "WSL aktualisieren"
+  ko: "WSL 업데이트"
 "Could not find Topgrade installed in WSL":
   en: "Could not find Topgrade installed in WSL"
   lt: "Nepavyko rasti Topgrade įdiegto WSL aplinkoje"
@@ -862,6 +968,7 @@ _version: 2
   zh_CN: "无法找到安装在 WSL 中的 Topgrade"
   zh_TW: "尚未在 WSL 內安裝 Topgrade"
   de: "Konnte Topgrade nicht in WSL finden"
+  ko: "WSL에 설치된 Topgrade를 찾을 수 없습니다"
 "The PSWindowsUpdate PowerShell module isn't installed so Topgrade can't run Windows Update.\nInstall PSWindowsUpdate by running `Install-Module PSWindowsUpdate` in PowerShell.":
   en: "The PSWindowsUpdate PowerShell module isn't installed so Topgrade can't run Windows Update.\nInstall PSWindowsUpdate by running `Install-Module PSWindowsUpdate` in PowerShell."
   lt: "PowerShell modulis PSWindowsUpdate nėra įdiegtas, todėl Topgrade negali paleisti „Windows Update“.\nĮdiekite PSWindowsUpdate paleisdami `Install-Module PSWindowsUpdate` PowerShell aplinkoje."
@@ -870,6 +977,7 @@ _version: 2
   zh_CN: "未安装 PowerShell 模块 PSWindowsUpdate，因此 Topgrade 无法运行 Windows 更新。\n请在 PowerShell 中运行 `Install-Module PSWindowsUpdate` 来安装 PSWindowsUpdate。"
   zh_TW: "PowerShell 模組 PSWindowsUpdate 未安裝，因此 Topgrade 無法執行 Windows 更新。\n請在 PowerShell 中執行 `Install-Module PSWindowsUpdate` 來安裝 PSWindowsUpdate。"
   de: "Das PowerShell-Modul PSWindowsUpdate ist nicht installiert, daher kann Topgrade Windows Update nicht ausführen.\nInstallieren Sie PSWindowsUpdate, indem Sie `Install-Module PSWindowsUpdate` in PowerShell ausführen."
+  ko: "PSWindowsUpdate PowerShell 모듈이 설치되어 있지 않아 Topgrade가 Windows Update를 실행할 수 없습니다.\nPowerShell에서 `Install-Module PSWindowsUpdate`를 실행하여 PSWindowsUpdate를 설치하세요."
 "PSWindowsUpdate is not installed":
   en: "PSWindowsUpdate is not installed"
   lt: "PSWindowsUpdate nėra įdiegtas"
@@ -878,6 +986,7 @@ _version: 2
   zh_CN: "未安装 PSWindowsUpdate"
   zh_TW: "未安裝 PSWindowsUpdate"
   de: "PSWindowsUpdate ist nicht installiert"
+  ko: "PSWindowsUpdate가 설치되어 있지 않습니다"
 "Connecting to {hostname}...":
   en: "Connecting to %{hostname}..."
   lt: "Jungiamasi prie %{hostname}..."
@@ -886,6 +995,7 @@ _version: 2
   zh_CN: "正在连接 %{hostname}..."
   zh_TW: "正在連接 %{hostname}..."
   de: "Verbinde mit %{hostname}..."
+  ko: "%{hostname}에 연결하는 중..."
 "Skipping powered off box {vagrant_box}":
   en: "Skipping powered off box %{vagrant_box}"
   lt: "Praleidžiama išjungta dėžutė %{vagrant_box}"
@@ -894,6 +1004,7 @@ _version: 2
   zh_CN: "正在跳过已关机的盒子 %{vagrant_box}"
   zh_TW: "正在略過已關機的盒子 %{vagrant_box}"
   de: "Überspringe ausgeschaltete Box %{vagrant_box}"
+  ko: "전원이 꺼진 박스 %{vagrant_box}을(를) 건너뜁니다"
 "`{repo_tag}` for `{platform}`":
   en: "`%{repo_tag}` for `%{platform}`"
   lt: "`%{repo_tag}` skirtas `%{platform}`"
@@ -902,6 +1013,7 @@ _version: 2
   zh_CN: "`%{repo_tag}` 给 `%{platform}`"
   zh_TW: "`%{repo_tag}` 給 `%{platform}`"
   de: "`%{repo_tag}` für `%{platform}`"
+  ko: "`%{platform}`용 `%{repo_tag}`"
 "Containers":
   en: "Containers"
   lt: "Konteineriai"
@@ -910,6 +1022,7 @@ _version: 2
   zh_CN: "容器"
   zh_TW: "容器"
   de: "Container"
+  ko: "컨테이너"
 "Emacs directory does not exist":
   en: "Emacs directory does not exist"
   lt: "Emacs katalogas neegzistuoja"
@@ -918,6 +1031,7 @@ _version: 2
   zh_CN: "找不到 Emacs 目录"
   zh_TW: "找不到 Emacs 資料夾"
   de: "Emacs-Verzeichnis existiert nicht"
+  ko: "Emacs 디렉터리가 존재하지 않습니다"
 "Error getting the Composer directory: {error}":
   en: "Error getting the Composer directory: %{error}"
   lt: "Klaida gaunant Composer katalogą: %{error}"
@@ -926,6 +1040,7 @@ _version: 2
   zh_CN: "无法获取 Composer 目录：%{error}"
   zh_TW: "無法取得 Composer 資料夾：%{error}"
   de: "Fehler beim Abrufen des Composer-Verzeichnisses: %{error}"
+  ko: "Composer 디렉터리를 가져오는 중 오류 발생: %{error}"
 "Composer directory {composer_home} isn't a descendant of the user's home directory":
   en: "Composer directory %{composer_home} isn't a descendant of the user's home directory"
   lt: "Composer katalogas %{composer_home} nėra vartotojo namų katalogo palikuonis"
@@ -934,6 +1049,7 @@ _version: 2
   zh_CN: "Composer 目录 %{composer_home} 不在主目录下"
   zh_TW: "Composer 資料夾 %{composer_home} 不在家目錄下"
   de: "Composer-Verzeichnis %{composer_home} ist kein Unterverzeichnis des Benutzer-Heimatverzeichnisses"
+  ko: "Composer 디렉터리 %{composer_home}이(가) 사용자 홈 디렉터리의 하위 경로가 아닙니다"
 "Composer":
   en: "Composer"
   lt: "Composer"
@@ -942,6 +1058,7 @@ _version: 2
   zh_CN: "Composer"
   zh_TW: "Composer"
   de: "Composer"
+  ko: "Composer"
 "Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK.":
   en: "Error running `dotnet tool list`. This is expected when a dotnet runtime is installed but no SDK."
   lt: "Klaida vykdant `dotnet tool list`. Tai tikėtina, kai įdiegtas dotnet vykdymo aplinkas, bet nėra SDK."
@@ -950,6 +1067,7 @@ _version: 2
   zh_CN: "运行 `dotnet tool list` 失败。已安装 dotnet 运行时但未安装 SDK"
   zh_TW: "執行 `dotnet tool list` 失敗。已安裝 dotnet 執行環境但未安裝 SDK"
   de: "Fehler bei der Ausführung von `dotnet tool list`. Dies ist zu erwarten, wenn eine dotnet-Laufzeit, aber kein SDK installiert ist."
+  ko: "`dotnet tool list` 실행 중 오류가 발생했습니다. dotnet 런타임만 설치되어 있고 SDK가 없는 경우 정상적인 동작입니다."
 "No dotnet global tools installed":
   en: "No dotnet global tools installed"
   lt: "Nėra įdiegtų dotnet globalių įrankių."
@@ -958,6 +1076,7 @@ _version: 2
   zh_CN: "尚未安装全局 dotnet 工具"
   zh_TW: "尚未安裝全域 dotnet 工具"
   de: "Keine globalen dotnet-Tools installiert"
+  ko: "설치된 dotnet 전역 도구가 없습니다"
 "Racket Package Manager":
   en: "Racket Package Manager"
   lt: "Racket paketų tvarkyklė"
@@ -966,6 +1085,7 @@ _version: 2
   zh_CN: "Racket 包管理器"
   zh_TW: "Racket 套件管理員"
   de: "Racket Paketmanager"
+  ko: "Racket 패키지 관리자"
 "GH failed":
   en: "GH failed"
   lt: "GH nepavyko"
@@ -974,6 +1094,7 @@ _version: 2
   zh_CN: "GH 失败"
   zh_TW: "GH 失敗"
   de: "GH fehlgeschlagen"
+  ko: "GH 실패"
 "GitHub CLI Extensions":
   en: "GitHub CLI Extensions"
   lt: "GitHub CLI plėtiniai"
@@ -982,6 +1103,7 @@ _version: 2
   zh_CN: "GitHub CLI 扩展"
   zh_TW: "GitHub CLI 擴充功能"
   de: "GitHub CLI-Erweiterungen"
+  ko: "GitHub CLI 확장"
 "Julia Packages":
   en: "Julia Packages"
   lt: "Julia paketai"
@@ -990,6 +1112,7 @@ _version: 2
   zh_CN: "Julia 软件包"
   zh_TW: "Julia 套件"
   de: "Julia-Pakete"
+  ko: "Julia 패키지"
 "Update ClamAV Database (FreshClam)":
   en: "Update ClamAV Database (FreshClam)"
   lt: "Atnaujinti ClamAV duomenų bazę (FreshClam)"
@@ -998,6 +1121,7 @@ _version: 2
   zh_CN: "更新 ClamAV 数据库（FreshClam）"
   zh_TW: "更新 ClamAV 資料庫（FreshClam）"
   de: "ClamAV-Datenbank aktualisieren (FreshClam)"
+  ko: "ClamAV 데이터베이스 업데이트 (FreshClam)"
 "Path {pattern} did not contain any git repositories":
   en: "Path %{pattern} did not contain any git repositories"
   lt: "Kelias %{pattern} neturi jokių git saugyklų"
@@ -1006,6 +1130,7 @@ _version: 2
   zh_CN: "路径 %{pattern} 中没有任何 git 仓库"
   zh_TW: "路徑 %{pattern} 中沒有任何 git 來源"
   de: "Pfad %{pattern} enthielt keine Git-Repositories"
+  ko: "경로 %{pattern}에 git 저장소가 없습니다"
 "No repositories to pull":
   en: "No repositories to pull"
   lt: "Nėra saugyklų, kurias traukti"
@@ -1014,6 +1139,7 @@ _version: 2
   zh_CN: "没有仓库可以拉取"
   zh_TW: "沒有來源可以拉取"
   de: "Keine Repositories zum Abrufen"
+  ko: "풀(pull)할 저장소가 없습니다"
 "Git repositories":
   en: "Git repositories"
   lt: "Git saugyklos"
@@ -1022,6 +1148,7 @@ _version: 2
   zh_CN: "Git 仓库"
   zh_TW: "Git 來源"
   de: "Git-Repositories"
+  ko: "Git 저장소"
 "Would pull {repo}":
   en: "Would pull %{repo}"
   lt: "Trauktų %{repo}"
@@ -1030,6 +1157,7 @@ _version: 2
   zh_CN: "拉取 %{repo}"
   zh_TW: "拉取 %{repo}"
   de: "Würde %{repo} abrufen"
+  ko: "%{repo}을(를) 풀(pull)할 예정입니다"
 "Would fetch {repo}":
   en: "Would fetch %{repo}"
   lt: "Gautų %{repo}"
@@ -1038,6 +1166,7 @@ _version: 2
   zh_CN: "获取 %{repo}"
   zh_TW: "獲取 %{repo}"
   de: "Würde %{repo} abrufen"
+  ko: "%{repo}을(를) 페치(fetch)할 예정입니다"
 "No Neovim config found":
   en: "No Neovim config found"
   lt: "Neovim konfigūracija nerasta"
@@ -1046,6 +1175,7 @@ _version: 2
   zh_CN: "未找到 Neovim 配置"
   zh_TW: "未找到 Neovim 設定"
   de: "Keine Neovim-Konfiguration gefunden"
+  ko: "Neovim 설정을 찾을 수 없습니다"
 "Node Package Manager":
   en: "Node Package Manager"
   lt: "Node paketų tvarkyklė (npm)"
@@ -1054,6 +1184,7 @@ _version: 2
   zh_CN: "Node Package Manager（npm）"
   zh_TW: "Node Package Manager（npm）"
   de: "Node Package Manager (npm)"
+  ko: "Node 패키지 관리자"
 "Performant Node Package Manager":
   en: "Performant Node Package Manager"
   lt: "Efektyvi Node paketų tvarkyklė (pnpm)"
@@ -1062,6 +1193,7 @@ _version: 2
   zh_CN: "Performant Node Package Manager (pnpm)"
   zh_TW: "Performant Node Package Manager（pnpm）"
   de: "Performanter Node Package Manager (pnpm)"
+  ko: "Performant Node 패키지 관리자"
 "Yarn Package Manager":
   en: "Yarn Package Manager"
   lt: "Yarn paketų tvarkyklė"
@@ -1070,6 +1202,7 @@ _version: 2
   zh_CN: "Yarn Package Manager"
   zh_TW: "Yarn 套件管理員"
   de: "Yarn Package Manager"
+  ko: "Yarn 패키지 관리자"
 "Deno installed outside of .deno directory":
   en: "Deno installed outside of .deno directory"
   lt: "Deno įdiegtas ne .deno kataloge"
@@ -1078,6 +1211,7 @@ _version: 2
   zh_CN: "Deno 安装在 .deno 目录外"
   zh_TW: "Deno 安裝在 .deno 資料夾外"
   de: "Deno außerhalb des .deno-Verzeichnisses installiert"
+  ko: "Deno가 .deno 디렉터리 밖에 설치되어 있습니다"
 "The Ultimate vimrc":
   en: "The Ultimate vimrc"
   lt: "Geriausias vimrc (The Ultimate vimrc)"
@@ -1086,6 +1220,7 @@ _version: 2
   zh_CN: "The Ultimate vimrc"
   zh_TW: "終極 vimrc（The Ultimate vimrc）"
   de: "Das ultimative vimrc"
+  ko: "The Ultimate vimrc"
 "vim binary might actually be nvim":
   en: "vim binary might actually be nvim"
   lt: "vim vykdomasis failas gali būti iš tikrųjų nvim"
@@ -1094,6 +1229,7 @@ _version: 2
   zh_CN: "vim 二进制可能为 nvim"
   zh_TW: "vim 執行檔可能為 nvim"
   de: "vim-Binärdatei könnte tatsächlich nvim sein"
+  ko: "vim 실행 파일이 실제로는 nvim일 수 있습니다"
 "`{process}` failed: {exit_status}":
   en: "`%{process}` failed: %{exit_status}"
   lt: "`%{process}` nepavyko: %{exit_status}"
@@ -1102,6 +1238,7 @@ _version: 2
   zh_CN: "`%{process}` 失败：%{exit_status}"
   zh_TW: "`%{process}` 失敗：%{exit_status}"
   de: "`%{process}` fehlgeschlagen: %{exit_status}"
+  ko: "`%{process}` 실패: %{exit_status}"
 "`{process}` failed: {exit_status} with {output}":
   en: "`%{process}` failed: %{exit_status} with %{output}"
   lt: "`%{process}` nepavyko: %{exit_status} su %{output}"
@@ -1110,6 +1247,7 @@ _version: 2
   zh_CN: "`%{process}` 失败：%{exit_status} 伴随 %{output}"
   zh_TW: "`%{process}` 失敗：%{exit_status} 伴隨 %{output}"
   de: "`%{process}` fehlgeschlagen: %{exit_status} mit %{output}"
+  ko: "`%{process}` 실패: %{exit_status}, 출력: %{output}"
 "Unknown Linux Distribution":
   en: "Unknown Linux Distribution"
   lt: "Nežinoma Linux distribucija"
@@ -1118,6 +1256,7 @@ _version: 2
   zh_CN: "未知 Linux 发行版"
   zh_TW: "未知 Linux 發行版"
   de: "Unbekannte Linux-Distribution"
+  ko: "알 수 없는 Linux 배포판"
 'File "/etc/os-release" does not exist or is empty':
   en: 'File "/etc/os-release" does not exist or is empty'
   lt: 'Failas "/etc/os-release" neegzistuoja arba yra tuščias'
@@ -1126,6 +1265,7 @@ _version: 2
   zh_CN: "文件 “/etc/os-release” 不存在或为空"
   zh_TW: '「/etc/os-release」不存在或為空'
   de: 'Datei "/etc/os-release" existiert nicht oder ist leer'
+  ko: "파일 \"/etc/os-release\"가 없거나 비어 있습니다"
 "Failed getting the system package manager":
   en: "Failed getting the system package manager"
   lt: "Nepavyko gauti sistemos paketų tvarkyklės"
@@ -1134,6 +1274,7 @@ _version: 2
   zh_CN: "获取系统包管理器失败"
   zh_TW: "偵測系統套件管理員失敗"
   de: "Fehler beim Abrufen des System-Paketmanagers"
+  ko: "시스템 패키지 관리자 가져오기에 실패했습니다"
 "A step failed":
   en: "A step failed"
   lt: "Vienas žingsnis nepavyko"
@@ -1142,6 +1283,7 @@ _version: 2
   zh_CN: "某步骤运行失败"
   zh_TW: "某步驟執行失敗"
   de: "Ein Schritt ist fehlgeschlagen"
+  ko: "일부 단계가 실패했습니다"
 "Dry running":
   en: "Dry running"
   lt: "Bandomasis paleidimas"
@@ -1150,6 +1292,7 @@ _version: 2
   zh_CN: "模拟运行"
   zh_TW: "模擬執行"
   de: "Testlauf"
+  ko: "모의 실행"
 
 # Summary texts
 "OK":
@@ -1160,6 +1303,7 @@ _version: 2
   zh_CN: "成功"
   zh_TW: "成功"
   de: "OK"
+  ko: "성공"
 "FAILED":
   en: "FAILED"
   lt: "NEPAVYKO"
@@ -1168,6 +1312,7 @@ _version: 2
   zh_CN: "失败"
   zh_TW: "失敗"
   de: "FEHLGESCHLAGEN"
+  ko: "실패"
 "IGNORED":
   en: "IGNORED"
   lt: "Nepaisyta"
@@ -1176,6 +1321,7 @@ _version: 2
   zh_CN: "忽略"
   zh_TW: "忽略"
   de: "IGNORIERT"
+  ko: "무시됨"
 "SKIPPED":
   en: "SKIPPED"
   lt: "Praleista"
@@ -1184,6 +1330,7 @@ _version: 2
   zh_CN: "跳过"
   zh_TW: "略過"
   de: "ÜBERSPRUNGEN"
+  ko: "건너뜀"
 
 # 'Y' and 'N' have to stay the same characters. Eg for German the translation
 # would look sth like "(Y) Ja / (N) Nein"
@@ -1195,6 +1342,7 @@ _version: 2
   zh_CN: "(Y)是/(N)否"
   zh_TW: "(Y)是/(N)否"
   de: "(Y) Ja / (N) Nein"
+  ko: "(Y)예/(N)아니오"
 
 # 'y', 'N', 's', 'q' have to stay the same throughout all translations.
 # Eg German would look like "(y) Wiederholen / (N) Nein / (s) Konsole / (q) Beenden"
@@ -1206,6 +1354,7 @@ _version: 2
   zh_CN: "再试一次？(y)是/(N)否/(s)Shell/(q)退出"
   zh_TW: "再試一次？ (y)是/(N)否/(s)Shell/(q)退出"
   de: "Wiederholen? (y) Ja / (n) Nein / (s) Shell / (q) Beenden"
+  ko: "다시 시도할까요? (y)예/(N)아니오/(s)셸/(q)종료"
 
 # 'R', 'P', 'S', 'Q' have to stay the same throughout all translations. Eg German would look like "\n(R) Neustarten\n(P) Herunterfahren\n(S) Konsole\n(Q) Beenden"
 "\n(R)eboot\n(P)oweroff\n(S)hell\n(Q)uit":
@@ -1216,6 +1365,7 @@ _version: 2
   zh_CN: "\n(R)重启\n(P)关机\n(S)Shell\n(Q)退出"
   zh_TW: "\n(R)重新啟動\n(P)關機\n(S)shell\n(Q)退出"
   de: "\n(R) Neustarten\n(P) Herunterfahren\n(S)hell\n(Q) Beenden"
+  ko: "\n(R)재부팅\n(P)전원 끄기\n(S)셸\n(Q)종료"
 
 "Continue?":
   en: "Continue?"
@@ -1225,6 +1375,7 @@ _version: 2
   zh_CN: "继续？"
   zh_TW: "繼續？"
   de: "Fortfahren?"
+  ko: "계속하시겠습니까?"
 
 "Topgrade should not be run as root, it will run commands with sudo or equivalent where needed.":
   en: "Topgrade should not be run as root, it will run commands with sudo or equivalent where needed."
@@ -1234,6 +1385,7 @@ _version: 2
   zh_CN: "Topgrade 不应以 root 身份运行，它会在需要时使用 sudo 或等效工具执行命令。"
   zh_TW: "Topgrade 不應以 root 身份執行，它會在需要時使用 sudo 或等效工具執行命令。"
   de: "Topgrade sollte nicht als Root ausgeführt werden, es führt Befehle mit sudo oder einem Äquivalent aus, wenn erforderlich."
+  ko: "Topgrade는 root로 실행하면 안 됩니다. 필요한 경우 sudo 또는 이에 준하는 방법으로 명령을 실행합니다."
 "Could not find sudo":
   en: "Could not find sudo"
   lt: "Nepavyko rasti sudo"
@@ -1242,6 +1394,7 @@ _version: 2
   zh_CN: "未找到 sudo"
   zh_TW: "找不到 sudo"
   de: "Konnte sudo nicht finden"
+  ko: "sudo를 찾을 수 없습니다"
 "Skipping step, sudo is required":
   en: "Skipping step, sudo is required"
   lt: "Žingsnis praleidžiamas, reikalingas sudo"
@@ -1250,6 +1403,7 @@ _version: 2
   zh_CN: "跳过步骤，需要 sudo"
   zh_TW: "跳過步驟，需要 sudo"
   de: "Schritt wird übersprungen, sudo ist erforderlich"
+  ko: "sudo가 필요하여 이 단계를 건너뜁니다"
 "\nSome steps were skipped as sudo or equivalent could not be found.":
   en: "\nSome steps were skipped as sudo or equivalent could not be found."
   lt: "\nKai kurie veiksmai buvo praleisti, nes nepavyko rasti sudo ar atitikmens."
@@ -1258,6 +1412,7 @@ _version: 2
   zh_CN: "\n由于未找到 sudo 或等效工具，某些步骤被跳过。"
   zh_TW: "\n某些步驟因為找不到 sudo 或同等的工具而被跳過。"
   de: "\nEinige Schritte wurden übersprungen, da sudo oder ein Äquivalent nicht gefunden wurde."
+  ko: "\nsudo 또는 이에 준하는 도구를 찾을 수 없어 일부 단계를 건너뛰었습니다."
 "Install one of `sudo`, `doas`, `pkexec`, `run0` or `please` to run these steps.":
   en: "Install one of `sudo`, `doas`, `pkexec`, `run0` or `please` to run these steps."
   lt: "Įdiekite vieną iš `sudo`, `doas`, `pkexec`, `run0` arba `please`, kad vykdytumėte šiuos veiksmus."
@@ -1266,6 +1421,7 @@ _version: 2
   zh_CN: "请安装 `sudo`、`doas`、`pkexec`、`run0` 或 `please` 之一来运行这些步骤。"
   zh_TW: "請安裝 `sudo`、`doas`、`pkexec`、`run0` 或 `please` 以執行這些步驟。"
   de: "Installieren Sie `sudo`, `doas`, `pkexec`, `run0` oder `please`, um diese Schritte auszuführen."
+  ko: "이 단계를 실행하려면 `sudo`, `doas`, `pkexec`, `run0`, `please` 중 하나를 설치하세요."
 "Install gsudo to run these steps.":
   en: "Install gsudo to run these steps."
   lt: "Įdiekite gsudo, kad vykdytumėte šiuos veiksmus."
@@ -1274,6 +1430,7 @@ _version: 2
   zh_CN: "请安装 gsudo 来运行这些步骤。"
   zh_TW: "請安裝 gsudo 來執行這些步驟。"
   de: "Installieren Sie gsudo, um diese Schritte auszuführen."
+  ko: "이 단계를 실행하려면 gsudo를 설치하세요."
 "Install gsudo or enable Windows Sudo to run these steps.\nFor Windows Sudo, the default 'In a new window' mode is not supported as it prevents Topgrade from waiting for commands to finish. Please configure it to use 'Inline' mode instead.\nGo to https://go.microsoft.com/fwlink/?linkid=2257346 to learn more.":
   en: "Install gsudo or enable Windows Sudo to run these steps.\nFor Windows Sudo, the default 'In a new window' mode is not supported as it prevents Topgrade from waiting for commands to finish. Please configure it to use 'Inline' mode instead.\nGo to https://go.microsoft.com/fwlink/?linkid=2257346 to learn more."
   lt: "Įdiekite gsudo arba įjunkite Windows Sudo, kad vykdytumėte šiuos veiksmus.\nWindows Sudo numatytasis „Naujo lango“ režimas nepalaikomas, nes jis neleidžia Topgrade laukti, kol komandos bus baigtos. Prašome nustatyti „Inline“ režimą.\nDaugiau sužinokite adresu https://go.microsoft.com/fwlink/?linkid=2257346."
@@ -1282,6 +1439,7 @@ _version: 2
   zh_CN: "请安装 gsudo 或启用 Windows Sudo 来运行这些步骤。\n在 Windows Sudo 中，默认的“新窗口”模式不受支持，因为它会阻止 Topgrade 等待命令完成。请将其配置为“内联”模式。\n了解更多信息：https://go.microsoft.com/fwlink/?linkid=2257346"
   zh_TW: "請安裝 gsudo 或啟用 Windows Sudo 來執行這些步驟。\n在 Windows Sudo 中，預設的「新視窗」模式不受支援，因為它會阻止 Topgrade 等待命令完成。請將其設定為「內嵌」模式。\n了解更多資訊：https://go.microsoft.com/fwlink/?linkid=2257346"
   de: "Installieren Sie gsudo oder aktivieren Sie Windows Sudo, um diese Schritte auszuführen.\nFür Windows Sudo wird der Standardmodus „In einem neuen Fenster“ nicht unterstützt, da er verhindert, dass Topgrade auf den Abschluss der Befehle wartet. Bitte konfigurieren Sie es stattdessen auf „Inline“-Modus.\nMehr erfahren unter https://go.microsoft.com/fwlink/?linkid=2257346."
+  ko: "이 단계를 실행하려면 gsudo를 설치하거나 Windows Sudo를 활성화하세요.\nWindows Sudo의 기본값인 '새 창' 모드는 Topgrade가 명령이 끝날 때까지 기다릴 수 없게 만들어 지원되지 않습니다. 대신 '인라인' 모드를 사용하도록 설정하세요.\n자세한 내용은 다음 주소에서 확인하세요: https://go.microsoft.com/fwlink/?linkid=2257346"
 "Windows Sudo was found, but it is set to 'In a new window' mode, which prevents Topgrade from waiting for commands to finish. Please configure it to use 'Inline' mode instead.\nGo to https://go.microsoft.com/fwlink/?linkid=2257346 to learn more.":
   en: "Windows Sudo was found, but it is set to 'In a new window' mode, which prevents Topgrade from waiting for commands to finish. Please configure it to use 'Inline' mode instead.\nGo to https://go.microsoft.com/fwlink/?linkid=2257346 to learn more."
   lt: "Rastas Windows Sudo, bet jis nustatytas „Naujo lango“ režimu, kuris neleidžia Topgrade laukti, kol bus baigtos komandos. Prašome nustatyti „Inline“ režimą.\nDaugiau sužinokite adresu https://go.microsoft.com/fwlink/?linkid=2257346."
@@ -1290,6 +1448,7 @@ _version: 2
   zh_CN: "检测到 Windows Sudo，但其被设置为“新窗口”模式，这会阻止 Topgrade 等待命令完成。请将其配置为“内联”模式。\n了解更多信息：https://go.microsoft.com/fwlink/?linkid=2257346"
   zh_TW: "偵測到 Windows Sudo，但它被設定為「新視窗」模式，這會阻止 Topgrade 等待命令完成。請將其設定為「內嵌」模式。\n了解更多資訊：https://go.microsoft.com/fwlink/?linkid=2257346"
   de: "Windows Sudo wurde gefunden, aber es ist auf den Modus „In einem neuen Fenster“ eingestellt, wodurch Topgrade nicht auf den Abschluss der Befehle warten kann. Bitte konfigurieren Sie es stattdessen auf den „Inline“-Modus.\nMehr erfahren unter https://go.microsoft.com/fwlink/?linkid=2257346."
+  ko: "Windows Sudo가 발견되었지만 '새 창' 모드로 설정되어 있어 Topgrade가 명령이 끝날 때까지 기다릴 수 없습니다. 대신 '인라인' 모드를 사용하도록 설정하세요.\n자세한 내용은 다음 주소에서 확인하세요: https://go.microsoft.com/fwlink/?linkid=2257346"
 "Cannot find sudo binary":
   en: "Cannot find sudo binary"
   lt: "Nepavyko rasti sudo dvejetainio failo"
@@ -1298,6 +1457,7 @@ _version: 2
   zh_CN: "找不到 sudo 可执行文件"
   zh_TW: "找不到 sudo 可執行檔"
   de: "Kann die sudo-Binärdatei nicht finden"
+  ko: "sudo 실행 파일을 찾을 수 없습니다"
 "Found Windows Sudo, but it is disabled":
   en: "Found Windows Sudo, but it is disabled"
   lt: "Rastas Windows Sudo, bet jis išjungtas"
@@ -1306,6 +1466,7 @@ _version: 2
   zh_CN: "检测到 Windows Sudo，但已被禁用"
   zh_TW: "偵測到 Windows Sudo，但已被停用"
   de: "Windows Sudo gefunden, aber es ist deaktiviert"
+  ko: "Windows Sudo가 발견되었지만 비활성화되어 있습니다"
 "Found Windows Sudo, but it is using 'In a new window' mode":
   en: "Found Windows Sudo, but it is using 'In a new window' mode"
   lt: "Rastas Windows Sudo, bet jis naudoja „Naujo lango“ režimą"
@@ -1314,6 +1475,7 @@ _version: 2
   zh_CN: "检测到 Windows Sudo，但其正在使用“新窗口”模式"
   zh_TW: "偵測到 Windows Sudo，但它正在使用「新視窗」模式"
   de: "Windows Sudo gefunden, aber es verwendet den Modus „In einem neuen Fenster“"
+  ko: "Windows Sudo가 발견되었지만 '새 창' 모드를 사용 중입니다"
 "{sudo_kind} does not support the {option} option":
   en: "%{sudo_kind} does not support the %{option} option"
   lt: "%{sudo_kind} nepalaiko parinkties %{option}"
@@ -1322,6 +1484,7 @@ _version: 2
   zh_CN: "%{sudo_kind} 不支持 %{option} 选项"
   zh_TW: "%{sudo_kind} 不支援 %{option} 選項"
   de: "%{sudo_kind} unterstützt die Option %{option} nicht"
+  ko: "%{sudo_kind}은(는) %{option} 옵션을 지원하지 않습니다"
 "sudo as user '{user}'":
   en: "sudo as user '%{user}'"
   lt: "sudo kaip vartotojas '%{user}'"
@@ -1330,6 +1493,7 @@ _version: 2
   zh_CN: "sudo 作为用户 '%{user}'"
   zh_TW: "sudo 作為使用者 '%{user}'"
   de: "sudo als Benutzer '%{user}'"
+  ko: "사용자 '%{user}'(으)로 sudo 실행"
 "Updating Volta packages...":
   en: "Updating Volta packages..."
   lt: "Atnaujinami Volta paketai..."
@@ -1338,6 +1502,7 @@ _version: 2
   zh_CN: "正在更新 Volta 软件包..."
   zh_TW: "正在更新 Volta 套件..."
   de: "Aktualisiere Volta-Pakete..."
+  ko: "Volta 패키지 업데이트 중..."
 "No packages installed with Volta":
   en: "No packages installed with Volta"
   lt: "Volta paketų nėra įdiegtų."
@@ -1346,6 +1511,7 @@ _version: 2
   zh_CN: "没有任何 Volta 软件包"
   zh_TW: "沒有任何 Volta 套件"
   de: "Keine Pakete mit Volta installiert"
+  ko: "Volta로 설치된 패키지가 없습니다"
 "pyenv-update plugin is not installed":
   en: "pyenv-update plugin is not installed"
   lt: "pyenv-update įskiepis nėra įdiegtas"
@@ -1354,6 +1520,7 @@ _version: 2
   zh_CN: "尚未安装 pyenv-update 插件"
   zh_TW: "尚未安裝 pyenv-update 擴充功能"
   de: "pyenv-update-Plugin ist nicht installiert"
+  ko: "pyenv-update 플러그인이 설치되어 있지 않습니다"
 "Respawning...":
   en: "Respawning..."
   lt: "Vėl paleidžiama..."
@@ -1362,6 +1529,7 @@ _version: 2
   zh_CN: "正在重新生成..."
   zh_TW: "正在重新生成..."
   de: "Neustarten..."
+  ko: "다시 실행하는 중..."
 "Could not find Topgrade in any WSL distribution":
   en: "Could not find Topgrade in any WSL distribution"
   lt: "Nepavyko rasti Topgrade jokioje WSL distribucijoje"
@@ -1370,6 +1538,7 @@ _version: 2
   zh_CN: "无法在任何 WSL 发行版中找到 Topgrade"
   zh_TW: "無法在任何 WSL 發行版中找到 Topgrade"
   de: "Konnte Topgrade in keiner WSL-Distribution finden"
+  ko: "어떤 WSL 배포판에서도 Topgrade를 찾을 수 없습니다"
 "Windows Update":
   en: "Windows Update"
   lt: "Windows atnaujinimas"
@@ -1378,6 +1547,7 @@ _version: 2
   zh_CN: "Windows 更新"
   zh_TW: "Windows 更新"
   de: "Windows-Update"
+  ko: "Windows Update"
 "Microsoft Store":
   en: "Microsoft Store"
   lt: "Microsoft parduotuvė"
@@ -1386,6 +1556,7 @@ _version: 2
   zh_CN: "Microsoft Store"
   zh_TW: "Microsoft Store"
   de: "Microsoft Store"
+  ko: "Microsoft Store"
 "Scanning for updates...":
   en: "Scanning for updates..."
   lt: "Tikrinama atnaujinimų paieška..."
@@ -1394,6 +1565,7 @@ _version: 2
   zh_CN: "正在扫描更新..."
   zh_TW: "正在掃描更新..."
   de: "Suche nach Updates..."
+  ko: "업데이트를 검색하는 중..."
 "Success, Microsoft Store apps are being updated in the background":
   en: "Success, Microsoft Store apps are being updated in the background"
   lt: "Sėkminga, Microsoft Store programos atnaujinamos fone"
@@ -1402,6 +1574,7 @@ _version: 2
   zh_CN: "成功，Microsoft Store 应用正在后台更新"
   zh_TW: "成功，Microsoft Store 應用程式正在後台更新"
   de: "Erfolg, Microsoft Store-Apps werden im Hintergrund aktualisiert"
+  ko: "성공, Microsoft Store 앱이 백그라운드에서 업데이트되고 있습니다"
 "No JetBrains Toolbox installation found":
   en: "No JetBrains Toolbox installation found"
   lt: "Nerasta JetBrains Toolbox įdiegimo"
@@ -1410,6 +1583,7 @@ _version: 2
   zh_CN: "找不到 JetBrains Toolbox 安装"
   zh_TW: "找不到 JetBrains Toolbox 安裝"
   de: "Keine JetBrains Toolbox-Installation gefunden"
+  ko: "JetBrains Toolbox 설치를 찾을 수 없습니다"
 "Unsupported operating system {os}":
   en: "Unsupported operating system %{os}"
   lt: "Nepalaikoma operacinė sistema %{os}"
@@ -1418,6 +1592,7 @@ _version: 2
   zh_CN: "不支持的操作系统 %{os}"
   zh_TW: "不支援的作業系統 %{os}"
   de: "Nicht unterstütztes Betriebssystem %{os}"
+  ko: "지원되지 않는 운영 체제입니다: %{os}"
 "jetbrains-toolbox-updater encountered an unexpected error during finding:":
   en: "jetbrains-toolbox-updater encountered an unexpected error during finding:"
   lt: "jetbrains-toolbox-updater susidūrė su netikėta klaida ieškant:"
@@ -1426,6 +1601,7 @@ _version: 2
   zh_CN: "jetbrains-toolbox-updater 在寻找过程中遇到意外错误："
   zh_TW: "jetbrains-toolbox-updater 在尋找過程中遇到意外錯誤："
   de: "jetbrains-toolbox-updater ist auf einen unerwarteten Fehler bei der Suche gestoßen:"
+  ko: "jetbrains-toolbox-updater가 검색 중 예기치 않은 오류를 만났습니다:"
 "jetbrains-toolbox-updater encountered an unexpected error during updating:":
   en: "jetbrains-toolbox-updater encountered an unexpected error during updating:"
   lt: "jetbrains-toolbox-updater susidūrė su netikėta klaida atnaujinant:"
@@ -1434,6 +1610,7 @@ _version: 2
   zh_CN: "jetbrains-toolbox-updater 在更新过程中遇到意外错误："
   zh_TW: "jetbrains-toolbox-updater 在更新過程中遇到意外錯誤："
   de: "jetbrains-toolbox-updater ist auf einen unerwarteten Fehler während der Aktualisierung gestoßen:"
+  ko: "jetbrains-toolbox-updater가 업데이트 중 예기치 않은 오류를 만났습니다:"
 "<output from `deb-get clean` omitted>":
   en: "<output from `deb-get clean` omitted>"
   lt: "<išvestis iš `deb-get clean` praleista>"
@@ -1442,6 +1619,7 @@ _version: 2
   zh_CN: "<省略了 `deb-get clean` 的输出>"
   zh_TW: "<省略了 `deb-get clean` 的輸出>"
   de: "<Ausgabe von `deb-get clean` ausgelassen>"
+  ko: "<`deb-get clean`의 출력 생략>"
 "linux.nix_handler = \"{value}\", but {resulting_tool} is not available":
   en: "linux.nix_handler = \"%{value}\", but %{resulting_tool} is not available"
   lt: "linux.nix_handler = \"%{value}\", bet %{resulting_tool} nėra pasiekiamas"
@@ -1450,6 +1628,7 @@ _version: 2
   zh_CN: "linux.nix_handler = \"%{value}\"，但 %{resulting_tool} 不可用"
   zh_TW: "linux.nix_handler = \"%{value}\"，但 %{resulting_tool} 不可用"
   de: "linux.nix_handler = \"%{value}\", aber %{resulting_tool} ist nicht verfügbar"
+  ko: "linux.nix_handler = \"%{value}\"이지만 %{resulting_tool}을(를) 사용할 수 없습니다"
 "{step}: linux.nix_handler = \"nh\", but neither $NH_FLAKE nor ${specific_var} were set":
   en: "%{step}: linux.nix_handler = \"nh\", but neither $NH_FLAKE nor $%{specific_var} were set"
   lt: "%{step}: linux.nix_handler = \"nh\", tačiau nebuvo nustatyti nei $NH_FLAKE, nei $%{specific_var}"
@@ -1458,6 +1637,7 @@ _version: 2
   zh_CN: "%{step}：linux.nix_handler = \"nh\", 但未设置 $NH_FLAKE 和 $%{specific_var}"
   zh_TW: "%{step}：linux.nix_handler = \"nh\"，但未設定 $NH_FLAKE 與 $%{specific_var}"
   de: "%{step}: linux.nix_handler = \"nh\", aber weder $NH_FLAKE noch $%{specific_var} wurden gesetzt"
+  ko: "%{step}: linux.nix_handler = \"nh\"이지만 $NH_FLAKE도 $%{specific_var}도 설정되지 않았습니다"
 "`{step}` step is deprecated":
   en: "`%{step}` step is deprecated"
   lt: "`%{step}` žingsnis yra nebenaudojamas"
@@ -1466,6 +1646,7 @@ _version: 2
   zh_CN: "`%{step}` 步骤已弃用"
   zh_TW: "`%{step}` 步驟已棄用"
   de: "Der Schritt `%{step}` ist veraltet"
+  ko: "`%{step}` 단계는 더 이상 사용되지 않습니다"
 "System Manuals":
   en: "System Manuals"
   lt: "Sistemos Vadovai"
@@ -1474,6 +1655,7 @@ _version: 2
   zh_CN: "系统手册"
   zh_TW: "系統手冊"
   de: "Systemhandbücher"
+  ko: "시스템 매뉴얼"
 "User Manuals":
   en: "User Manuals"
   lt: "Vartotojo Vadovai"
@@ -1482,6 +1664,7 @@ _version: 2
   zh_CN: "用户手册"
   zh_TW: "使用者手冊"
   de: "Benutzerhandbücher"
+  ko: "사용자 매뉴얼"
 "man-db isn't enabled":
   en: "man-db isn't enabled"
   lt: "man-db nėra įjungtas"
@@ -1490,6 +1673,7 @@ _version: 2
   zh_CN: "man-db 未启用"
   zh_TW: "man-db 未啟用"
   de: "man-db ist nicht aktiviert"
+  ko: "man-db가 활성화되어 있지 않습니다"
 "Neither `hx` nor `helix` command points to Helix Editor":
   en: "Neither `hx` nor `helix` command points to Helix Editor"
   lt: "Nei `hx`, nei `helix` komanda nenurodo į Helix redaktorių"
@@ -1498,6 +1682,7 @@ _version: 2
   zh_CN: "`hx` 和 `helix` 命令均未指向 Helix 编辑器"
   zh_TW: "`hx` 和 `helix` 命令均未指向 Helix 編輯器"
   de: "Weder der Befehl `hx` noch `helix` verweist auf den Helix-Editor"
+  ko: "`hx`와 `helix` 명령 모두 Helix Editor를 가리키지 않습니다"
 "Flatpak {name} is not installed":
   en: "Flatpak %{name} is not installed"
   lt: "Flatpak %{name} nėra įdiegtas"
@@ -1506,6 +1691,7 @@ _version: 2
   zh_CN: "Flatpak %{name} 未安装"
   zh_TW: "Flatpak %{name} 未安装"
   de: "Flatpak %{name} ist nicht installiert"
+  ko: "Flatpak %{name}이(가) 설치되어 있지 않습니다"
 "{editor} is running; skipping obsolete extension cleanup":
   en: "%{editor} is running; skipping obsolete extension cleanup"
   lt: "%{editor} veikia; pasenusių plėtinių valymas praleidžiamas"
@@ -1514,6 +1700,7 @@ _version: 2
   zh_CN: "%{editor} 正在运行；跳过清理已废弃的扩展目录"
   zh_TW: "%{editor} 正在執行；略過清理已淘汰的擴充功能目錄"
   de: "%{editor} wird ausgeführt; Bereinigung veralteter Erweiterungen wird übersprungen"
+  ko: "%{editor}이(가) 실행 중이므로 오래된 확장 정리를 건너뜁니다"
 "Would remove obsolete extension directory: {path}":
   en: "Would remove obsolete extension directory: %{path}"
   lt: "Būtų pašalintas pasenusio plėtinio katalogas: %{path}"
@@ -1522,6 +1709,7 @@ _version: 2
   zh_CN: "将删除已废弃的扩展目录：%{path}"
   zh_TW: "將刪除已淘汰的擴充功能目錄：%{path}"
   de: "Veraltetes Erweiterungsverzeichnis würde entfernt: %{path}"
+  ko: "오래된 확장 디렉터리를 삭제할 예정입니다: %{path}"
 "Removed obsolete extension directory: {path}":
   en: "Removed obsolete extension directory: %{path}"
   lt: "Pašalintas pasenusio plėtinio katalogas: %{path}"
@@ -1530,6 +1718,7 @@ _version: 2
   zh_CN: "已删除已废弃的扩展目录：%{path}"
   zh_TW: "已刪除已淘汰的擴充功能目錄：%{path}"
   de: "Veraltetes Erweiterungsverzeichnis entfernt: %{path}"
+  ko: "오래된 확장 디렉터리를 삭제했습니다: %{path}"
 "Updates unsupported for the Zed {channel} channel":
   en: "Updates unsupported for the Zed %{channel} channel"
   lt: "Zed %{channel} kanalo atnaujinimai nepalaikomi"
@@ -1538,6 +1727,7 @@ _version: 2
   zh_CN: "不支持更新 Zed %{channel} 渠道"
   zh_TW: "不支援更新 Zed %{channel} 通道"
   de: "Updates für den Zed-Kanal %{channel} werden nicht unterstützt"
+  ko: "Zed %{channel} 채널은 업데이트를 지원하지 않습니다"
 "No Zed preview release found on GitHub":
   en: "No Zed preview release found on GitHub"
   lt: "GitHub'e nerasta Zed preview leidimo"
@@ -1546,3 +1736,4 @@ _version: 2
   zh_CN: "在 GitHub 上找不到 Zed preview 版本"
   zh_TW: "在 GitHub 上找不到 Zed preview 版本"
   de: "Keine Zed-Preview-Version auf GitHub gefunden"
+  ko: "GitHub에서 Zed 프리뷰 릴리스를 찾을 수 없습니다"
