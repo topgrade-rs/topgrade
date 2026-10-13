@@ -677,9 +677,11 @@ impl ConfigFile {
     /// 0 = main config file
     /// 1 = additional config files coming from topgrade.d
     fn ensure() -> Result<(PathBuf, Vec<PathBuf>)> {
-        let mut res = (PathBuf::new(), Vec::new());
+        Self::ensure_in(&config_directory())
+    }
 
-        let config_directory = config_directory();
+    fn ensure_in(config_directory: &Path) -> Result<(PathBuf, Vec<PathBuf>)> {
+        let mut res = (PathBuf::new(), Vec::new());
 
         let possible_config_paths = [
             config_directory.join("topgrade.toml"),
@@ -695,12 +697,15 @@ impl ConfigFile {
             }
         }
 
-        res.1 = Self::find_topgrade_d_configs(&config_directory)?;
+        res.1 = Self::find_topgrade_d_configs(config_directory)?;
 
         // If no config file exists, create a default one in the config directory
         if !res.0.exists() && res.1.is_empty() {
             res.0.clone_from(&possible_config_paths[0]);
             debug!("No configuration exists");
+            if let Some(parent) = res.0.parent() {
+                fs::create_dir_all(parent).wrap_err_with(|| format!("Unable to create {}", parent.display()))?;
+            }
             write(&res.0, EXAMPLE_CONFIG).map_err(|e| {
                 debug!(
                     "Unable to write the example configuration file to {}: {}. Using blank config.",
@@ -2360,6 +2365,20 @@ mod test {
         let str = include_str!("../config.example.toml");
 
         assert!(toml::from_str::<ConfigFile>(str).is_ok());
+    }
+
+    /// Regression test for https://github.com/topgrade-rs/topgrade/issues/2283:
+    /// `--edit-config` must work when the config directory does not exist yet.
+    #[test]
+    fn test_edit_config_without_config_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        let config_directory = dir.path().join("missing");
+
+        let (path, extra) = ConfigFile::ensure_in(&config_directory).unwrap();
+
+        assert_eq!(path, config_directory.join("topgrade.toml"));
+        assert!(extra.is_empty());
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), EXAMPLE_CONFIG);
     }
 
     /// `topgrade.d` must not be auto-created, only read when present.
