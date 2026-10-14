@@ -26,6 +26,46 @@ use crate::{HOME_DIR, output_changed_message};
 
 static OS_RELEASE_PATH: &str = "/etc/os-release";
 
+pub fn upgrade_linux(ctx: &ExecutionContext) -> Result<()> {
+    print_separator(t!("System update"));
+
+    let bootc = detect_bootc(ctx)?;
+
+    if let Some(bootc) = &bootc
+        && ctx.config().bootc()
+    {
+        let sudo = ctx.require_sudo()?;
+        return sudo.execute(ctx, bootc)?.arg("upgrade").status_checked();
+    }
+
+    match ctx.distribution() {
+        Ok(distribution) => distribution.upgrade(ctx),
+        Err(e) => {
+            println!("{}", t!("Error detecting current distribution: {error}", error = e));
+            if bootc.is_some() {
+                println!(
+                    "{}",
+                    t!(
+                        "\nbootc is available but disabled. To use it for system updates, set bootc = true under [linux] in the configuration"
+                    )
+                );
+            }
+            Err(SkipStep(e.to_string()).into())
+        }
+    }
+}
+
+fn detect_bootc(ctx: &ExecutionContext) -> Result<Option<PathBuf>> {
+    match which("bootc") {
+        Ok(bootc) => Ok(bootc),
+        Err(e) if ctx.config().bootc() => Err(e),
+        Err(e) => {
+            debug!("Ignoring bootc detection error while bootc is disabled: {e:?}");
+            Ok(None)
+        }
+    }
+}
+
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Distribution {
@@ -148,8 +188,6 @@ impl Distribution {
     }
 
     pub fn upgrade(self, ctx: &ExecutionContext) -> Result<()> {
-        print_separator(t!("System update"));
-
         match self {
             Distribution::Alpine => upgrade_alpine_linux(ctx),
             Distribution::Chimera => upgrade_chimera_linux(ctx),
@@ -243,13 +281,6 @@ fn upgrade_wolfi_linux(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_redhat(ctx: &ExecutionContext) -> Result<()> {
-    if let Some(bootc) = which("bootc")?
-        && ctx.config().bootc()
-    {
-        let sudo = ctx.require_sudo()?;
-        return sudo.execute(ctx, &bootc)?.arg("upgrade").status_checked();
-    }
-
     if let Some(ostree) = which("rpm-ostree")?
         && ctx.config().rpm_ostree()
     {
@@ -288,13 +319,6 @@ fn upgrade_nilrt(ctx: &ExecutionContext) -> Result<()> {
 }
 
 fn upgrade_fedora_immutable(ctx: &ExecutionContext) -> Result<()> {
-    if let Some(bootc) = which("bootc")?
-        && ctx.config().bootc()
-    {
-        let sudo = ctx.require_sudo()?;
-        return sudo.execute(ctx, &bootc)?.arg("upgrade").status_checked();
-    }
-
     let ostree = require("rpm-ostree")?;
     ctx.execute(ostree).arg("upgrade").status_checked()?;
 
