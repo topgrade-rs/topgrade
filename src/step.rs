@@ -2,8 +2,6 @@ use crate::execution_context::ExecutionContext;
 use crate::runner::Runner;
 use clap::ValueEnum;
 use color_eyre::Result;
-#[cfg(target_os = "linux")]
-use rust_i18n::t;
 use serde::Deserialize;
 use strum::{EnumCount, EnumIter, EnumString, VariantNames};
 
@@ -686,14 +684,8 @@ impl Step {
                     // by other package managers.
                     runner.execute(Shell, "packer.nu", || linux::run_packer_nu(ctx))?;
 
-                    match ctx.distribution() {
-                        Ok(distribution) => {
-                            runner.execute(*self, "System update", || distribution.upgrade(ctx))?;
-                        }
-                        Err(e) => {
-                            println!("{}", t!("Error detecting current distribution: {error}", error = e));
-                        }
-                    }
+                    runner.execute(*self, "System update", || linux::upgrade_linux(ctx))?;
+
                     runner.execute(*self, "Pi-hole", || linux::run_pihole_update(ctx))?;
                 }
                 #[cfg(windows)]
