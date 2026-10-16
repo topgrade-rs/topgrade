@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [17.13.1)(https://github.com/topgrade-rs/topgrade/compare/v17.13.0...v17.13.1) - 2026-10-16
+## [17.13.1](https://github.com/topgrade-rs/topgrade/compare/v17.13.0...v17.13.1) - 2026-10-16
 
 Update dependencies to fix AUR build
 
