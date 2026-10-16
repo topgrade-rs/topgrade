@@ -355,6 +355,8 @@ pub struct Vim {
     force_plug_update: Option<bool>,
 
     vim_pack_prune: Option<bool>,
+
+    show_output: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1577,6 +1579,15 @@ impl Config {
             .unwrap_or(false)
     }
 
+    /// Whether to show the full Vim/Neovim plugin upgrade output
+    pub fn vim_show_output(&self) -> bool {
+        self.config_file
+            .vim
+            .as_ref()
+            .and_then(|c| c.show_output)
+            .unwrap_or(false)
+    }
+
     /// Binaries to exclude from `gup update`
     pub fn gup_exclude(&self) -> &[String] {
         self.config_file
@@ -2379,6 +2390,13 @@ mod test {
         assert_eq!(path, config_directory.join("topgrade.toml"));
         assert!(extra.is_empty());
         assert_eq!(std::fs::read_to_string(&path).unwrap(), EXAMPLE_CONFIG);
+    }
+
+    #[test]
+    fn test_vim_show_output() {
+        assert!(!config().vim_show_output());
+        assert!(!config_from_toml("[vim]\nshow_output = false").vim_show_output());
+        assert!(config_from_toml("[vim]\nshow_output = true").vim_show_output());
     }
 
     /// `topgrade.d` must not be auto-created, only read when present.
