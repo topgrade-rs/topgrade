@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.13.0](https://github.com/topgrade-rs/topgrade/compare/v17.12.3...v17.13.0) - 2026-10-16
+
+### Added
+- *(linux)* allow bootc on unrecognised distros ([#2416](https://github.com/topgrade-rs/topgrade/pull/2416))
+- *(locale)* add Korean translations ([#2412](https://github.com/topgrade-rs/topgrade/pull/2412))
+- *(opencode)* perform v2 plugin updates ([#2398](https://github.com/topgrade-rs/topgrade/pull/2398))
+
+### Fixed
+- *(bin)* forward --yes to bin update ([#2423](https://github.com/topgrade-rs/topgrade/pull/2423))
+- create the config directory before writing the example config ([#2413](https://github.com/topgrade-rs/topgrade/pull/2413))
+- move falconf to end in step order ([#2406](https://github.com/topgrade-rs/topgrade/pull/2406))
+- *(shell)* quote sourced command paths ([#2141](https://github.com/topgrade-rs/topgrade/pull/2141))
+- *(which)* ignore mise shims without global default version ([#2343](https://github.com/topgrade-rs/topgrade/pull/2343))
+- *(locales)* correct mistranslations and command names
+- align summary names with step separators
+- *(flatpak)* translate the user packages separator
+- *(locales)* fix stray zh_CH key on PATH lookup message
+- *(containers)* close unclosed backtick in error messages
+- *(steps)* fix grammar and casing in step messages
+
 ## [17.12.3](https://github.com/topgrade-rs/topgrade/compare/v17.12.2...v17.12.3) - 2026-10-02
 
 ### Fixed
