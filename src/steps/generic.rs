@@ -1771,7 +1771,10 @@ pub fn bin_update(ctx: &ExecutionContext) -> Result<()> {
     let bin = require("bin")?;
 
     print_separator("bin");
-    ctx.execute(bin).arg("update").status_checked()
+    ctx.execute(bin)
+        .arg("update")
+        .arg_if(ctx.config().yes(Step::Bin), "--yes")
+        .status_checked()
 }
 
 pub fn spicetify_upgrade(ctx: &ExecutionContext) -> Result<()> {
