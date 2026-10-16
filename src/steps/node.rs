@@ -61,9 +61,13 @@ impl Npm {
     /// of this NPM instance.
     ///
     /// If the "NPM" version is larger than 8.11.0, we use
-    /// `--location=global`; otherwise, use `-g`.
+    /// `--location=global`; otherwise, use `--global`.
     fn global_location_arg(&self, ctx: &ExecutionContext) -> &str {
-        if self.is_npm_8(ctx) { "--location=global" } else { "-g" }
+        if self.is_npm_8(ctx) {
+            "--location=global"
+        } else {
+            "--global"
+        }
     }
 
     #[cfg(target_os = "linux")]
