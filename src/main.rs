@@ -36,6 +36,8 @@ mod ctrlc;
 mod error;
 mod execution_context;
 mod executor;
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+mod pty;
 mod runner;
 #[cfg(windows)]
 mod self_renamer;
