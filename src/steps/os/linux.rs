@@ -71,6 +71,7 @@ fn detect_bootc(ctx: &ExecutionContext) -> Result<Option<PathBuf>> {
 pub enum Distribution {
     Alpine,
     AOSC,
+    AerynOS,
     Wolfi,
     Arch,
     Bedrock,
@@ -108,6 +109,7 @@ impl Distribution {
         Ok(match id {
             Some("alpine") => Distribution::Alpine,
             Some("aosc") => Distribution::AOSC,
+            Some("aerynos") => Distribution::AerynOS,
             Some("chimera") => Distribution::Chimera,
             Some("wolfi") => Distribution::Wolfi,
             Some("centos") | Some("rhel") | Some("ol") => Distribution::CentOS,
@@ -214,6 +216,7 @@ impl Distribution {
             Distribution::Nobara => upgrade_nobara(ctx),
             Distribution::NILRT => upgrade_nilrt(ctx),
             Distribution::AOSC => upgrade_aosc(ctx),
+            Distribution::AerynOS => upgrade_aerynos(ctx),
         }
     }
 
@@ -252,6 +255,16 @@ fn upgrade_aosc(ctx: &ExecutionContext) -> Result<()> {
 
     sudo.execute(ctx, &oma)?
         .arg("upgrade")
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .status_checked()
+}
+
+fn upgrade_aerynos(ctx: &ExecutionContext) -> Result<()> {
+    let moss = require("moss")?;
+    let sudo = ctx.require_sudo()?;
+
+    sudo.execute(ctx, &moss)?
+        .args(["sync", "--update"])
         .arg_if(ctx.config().yes(Step::System), "-y")
         .status_checked()
 }
@@ -1337,6 +1350,11 @@ mod tests {
     #[test]
     fn test_aosc() {
         test_template(include_str!("os_release/aosc"), Distribution::AOSC);
+    }
+
+    #[test]
+    fn test_aerynos() {
+        test_template(include_str!("os_release/aerynos"), Distribution::AerynOS);
     }
 
     #[test]
