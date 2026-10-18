@@ -76,6 +76,7 @@ pub enum Step {
     Ghcup,
     GitRepos,
     GithubCliExtensions,
+    GithubCliSkills,
     GnomeShellExtensions,
     Go,
     Guix,
@@ -386,6 +387,7 @@ impl Step {
             GithubCliExtensions => runner.execute(*self, "GitHub CLI Extensions", || {
                 generic::run_ghcli_extensions_upgrade(ctx)
             })?,
+            GithubCliSkills => runner.execute(*self, "GitHub CLI Skills", || generic::run_ghcli_skills_upgrade(ctx))?,
             GnomeShellExtensions =>
             {
                 #[cfg(all(unix, not(any(target_os = "macos", target_os = "android"))))]
@@ -938,6 +940,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Raco,
         Spicetify,
         GithubCliExtensions,
+        GithubCliSkills,
         Bob,
         Certbot,
         GitRepos,

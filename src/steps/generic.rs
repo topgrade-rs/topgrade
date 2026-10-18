@@ -1803,6 +1803,24 @@ pub fn run_ghcli_extensions_upgrade(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()
 }
 
+pub fn run_ghcli_skills_upgrade(ctx: &ExecutionContext) -> Result<()> {
+    let gh = require("gh")?;
+
+    // `gh skill` only exists in recent versions of the GitHub CLI.
+    let result = ctx
+        .execute(&gh)
+        .always()
+        .args(["skill", "--help"])
+        .output_checked_utf8();
+    if result.is_err() {
+        debug!("GH skill result {:?}", result);
+        return Err(SkipStep("GitHub CLI has no skill command".to_string()).into());
+    }
+
+    print_separator("GitHub CLI Skills");
+    ctx.execute(&gh).args(["skill", "update", "--all"]).status_checked()
+}
+
 pub fn update_julia_packages(ctx: &ExecutionContext) -> Result<()> {
     let julia = require("julia")?;
 
