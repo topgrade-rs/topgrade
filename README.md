@@ -55,6 +55,7 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 - NixOS or Nix (nixpkgs): [topgrade](https://search.nixos.org/packages?show=topgrade)
 - Alpine Linux: [`sudo apk add topgrade`](https://pkgs.alpinelinux.org/package/edge/community/x86_64/topgrade)
 - Void Linux: [`sudo xbps-install -S topgrade`](https://voidlinux.org/packages/?arch=x86_64&q=topgrade)
+- Fedora Linux ([Terra](https://terrapkg.com/)): [`sudo dnf install topgrade`](https://github.com/terrapkg/packages/blob/frawhide/anda/tools/topgrade/rust-topgrade.spec)
 
 ## Usage
 
