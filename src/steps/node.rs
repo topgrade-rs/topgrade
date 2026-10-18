@@ -234,6 +234,10 @@ impl Deno {
             }
         }
 
+        if ctx.config().deno_no_delta() {
+            args.push("--no-delta");
+        }
+
         ctx.execute(&self.command).arg("upgrade").args(args).status_checked()?;
         Ok(())
     }

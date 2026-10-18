@@ -382,6 +382,10 @@
 [deno]
 # Upgrade deno executable to the given version.
 # version = "stable"
+#
+# Pass `--no-delta` to `deno upgrade`, so it downloads the full binary instead of
+# a delta patch (useful on machines with little memory).
+# no_delta = true
 
 
 [viteplus]
