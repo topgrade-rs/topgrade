@@ -2740,15 +2740,15 @@ pub fn run_opencode(ctx: &ExecutionContext) -> Result<()> {
         .is_ok_and(|p| p.is_descendant_of(&script_install_path));
 
     let version_output = ctx.execute(&opencode).always().arg("-v").output_checked_utf8()?;
-    // Output will be something like: "opencode v2.X.Y\n"
-    let version_string = version_output.stdout.split_whitespace().nth(1).ok_or_else(|| {
-        eyre!(output_changed_message!(
-            "opencode -v",
-            "Expected version after 'opencode '"
-        ))
-    })?;
-    let version = Version::parse(version_string.trim_start_matches('v'))
-        .wrap_err_with(|| output_changed_message!("opencode -v", "Invalid version"))?;
+    // Output will be something like: "opencode v2.X.Y\n" or "1.X.Y"
+    let mut it = version_output.stdout.split_whitespace();
+    let version = Version::parse(match (it.next(), it.next()) {
+        (_, Some(version_string)) => version_string.trim_start_matches("v"),
+        (Some(version_string), _) => version_string,
+        (None, _) => return Err(eyre!(output_changed_message!("opencode -v", "No version found"))),
+    })
+    .wrap_err_with(|| output_changed_message!("opencode -v", "Invalid version"))?;
+
     let can_update_plugins = version >= Version::new(2, 0, 0);
 
     if !can_self_upgrade {
