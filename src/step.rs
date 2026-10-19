@@ -148,6 +148,7 @@ pub enum Step {
     Pnpm,
     Poetry,
     Powershell,
+    PreCommitGc,
     Protonplus,
     Protonup,
     Pyenv,
@@ -570,6 +571,7 @@ impl Step {
             Pnpm => runner.execute(*self, "pnpm", || node::run_pnpm_upgrade(ctx))?,
             Poetry => runner.execute(*self, "Poetry", || generic::run_poetry(ctx))?,
             Powershell => runner.execute(*self, "PowerShell Modules Update", || generic::run_powershell(ctx))?,
+            PreCommitGc => runner.execute(*self, "pre-commit gc", || generic::run_pre_commit_gc(ctx))?,
             Protonplus =>
             {
                 #[cfg(target_os = "linux")]
@@ -954,6 +956,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         PlatformioCore,
         Lensfun,
         Poetry,
+        PreCommitGc,
         Uv,
         Zvm,
         Aqua,

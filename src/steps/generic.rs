@@ -1976,6 +1976,18 @@ pub fn run_lensfun_update_data(ctx: &ExecutionContext) -> Result<()> {
     }
 }
 
+pub fn run_pre_commit_gc(ctx: &ExecutionContext) -> Result<()> {
+    let pre_commit = require("pre-commit")?;
+
+    if !ctx.config().cleanup() {
+        return Err(SkipStep("Cleanup is disabled".to_string()).into());
+    }
+
+    print_separator("pre-commit gc");
+
+    ctx.execute(pre_commit).arg("gc").status_checked()
+}
+
 pub fn run_poetry(ctx: &ExecutionContext) -> Result<()> {
     let poetry = require("poetry")?;
 
