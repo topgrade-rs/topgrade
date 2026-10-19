@@ -41,6 +41,9 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 - macOS or Linux ([Homebrew](https://brew.sh/)): [`brew install topgrade`](https://formulae.brew.sh/formula/topgrade)
 - Fedora/RHEL/AlmaLinux/CentOS-Stream ([Copr](https://copr.fedorainfracloud.org/)): [
   `sudo dnf copr enable lilay/topgrade && sudo dnf install topgrade`](https://copr.fedorainfracloud.org/coprs/lilay/topgrade/)
+- Fedora ([Terra](https://terrapkg.com/)): Install [Terra](https://terrapkg.com/), then [`sudo dnf install topgrade`](https://github.com/terrapkg/packages/blob/frawhide/anda/tools/topgrade/rust-topgrade.spec)
+  - Ultramarine: [`sudo dnf install topgrade`](https://github.com/terrapkg/packages/blob/frawhide/anda/tools/topgrade/rust-topgrade.spec)
+  - Nobara: [`sudo dnf install topgrade`](https://github.com/terrapkg/packages/blob/frawhide/anda/tools/topgrade/rust-topgrade.spec)
 
 ### Community-maintained
 
@@ -55,7 +58,6 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 - NixOS or Nix (nixpkgs): [topgrade](https://search.nixos.org/packages?show=topgrade)
 - Alpine Linux: [`sudo apk add topgrade`](https://pkgs.alpinelinux.org/package/edge/community/x86_64/topgrade)
 - Void Linux: [`sudo xbps-install -S topgrade`](https://voidlinux.org/packages/?arch=x86_64&q=topgrade)
-- Fedora Linux ([Terra](https://terrapkg.com/)): [`sudo dnf install topgrade`](https://github.com/terrapkg/packages/blob/frawhide/anda/tools/topgrade/rust-topgrade.spec)
 
 ## Usage
 
