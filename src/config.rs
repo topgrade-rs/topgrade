@@ -177,6 +177,7 @@ pub struct Skills {
 #[serde(deny_unknown_fields)]
 pub struct Deno {
     version: Option<String>,
+    no_delta: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -2057,6 +2058,14 @@ impl Config {
 
     pub fn deno_version(&self) -> Option<&str> {
         self.config_file.deno.as_ref().and_then(|deno| deno.version.as_deref())
+    }
+
+    pub fn deno_no_delta(&self) -> bool {
+        self.config_file
+            .deno
+            .as_ref()
+            .and_then(|deno| deno.no_delta)
+            .unwrap_or(false)
     }
 
     #[cfg(target_os = "linux")]
