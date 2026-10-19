@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.14.0](https://github.com/topgrade-rs/topgrade/compare/v17.13.1...v17.14.0) - 2026-10-19
+
+### Added
+- *(step)* add pre-commit gc step ([#2437](https://github.com/topgrade-rs/topgrade/pull/2437))
+- *(step)* add GitHub CLI skills step ([#2438](https://github.com/topgrade-rs/topgrade/pull/2438))
+- *(deno)* add a no_delta option to pass --no-delta to deno upgrade ([#2440](https://github.com/topgrade-rs/topgrade/pull/2440))
+- *(os)* add aerynOS support ([#2433](https://github.com/topgrade-rs/topgrade/pull/2433))
+
+### Fixed
+- *(opencode)* support opencode v1 version format ([#2428](https://github.com/topgrade-rs/topgrade/pull/2428))
+- *(locale)* correct French plural in "Finding available software" ([#2436](https://github.com/topgrade-rs/topgrade/pull/2436))
+
 ## [17.13.1](https://github.com/topgrade-rs/topgrade/compare/v17.13.0...v17.13.1) - 2026-10-16
 
 Update dependencies to fix AUR build
