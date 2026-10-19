@@ -41,6 +41,9 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
 - macOS or Linux ([Homebrew](https://brew.sh/)): [`brew install topgrade`](https://formulae.brew.sh/formula/topgrade)
 - Fedora/RHEL/AlmaLinux/CentOS-Stream ([Copr](https://copr.fedorainfracloud.org/)): [
   `sudo dnf copr enable lilay/topgrade && sudo dnf install topgrade`](https://copr.fedorainfracloud.org/coprs/lilay/topgrade/)
+- Fedora ([Terra](https://terrapkg.com/)): Install [Terra](https://terrapkg.com/), then [`sudo dnf install topgrade`](https://github.com/terrapkg/packages/blob/frawhide/anda/tools/topgrade/rust-topgrade.spec)
+  - Ultramarine: [`sudo dnf install topgrade`](https://github.com/terrapkg/packages/blob/frawhide/anda/tools/topgrade/rust-topgrade.spec)
+  - Nobara: [`sudo dnf install topgrade`](https://github.com/terrapkg/packages/blob/frawhide/anda/tools/topgrade/rust-topgrade.spec)
 
 ### Community-maintained
 
