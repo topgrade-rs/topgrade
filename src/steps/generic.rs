@@ -2767,7 +2767,6 @@ pub fn run_opencode(ctx: &ExecutionContext) -> Result<()> {
         ctx.execute(&opencode).arg("upgrade").status_checked()?;
     }
     if can_update_plugins {
-        ctx.execute(&opencode).args(["plugin", "check"]).status_checked()?;
         ctx.execute(&opencode).args(["plugin", "update"]).status_checked()?;
     }
 
