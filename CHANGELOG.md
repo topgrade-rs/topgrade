@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.14.2](https://github.com/topgrade-rs/topgrade/compare/v17.14.1...v17.14.2) - 2026-10-23
+
+### Other
+- Revert "fix(opencode): check for plugin updates before updating" ([#2448](https://github.com/topgrade-rs/topgrade/pull/2448))
+
 ## [17.14.1](https://github.com/topgrade-rs/topgrade/compare/v17.14.0...v17.14.1) - 2026-10-20
 
 ### Security
