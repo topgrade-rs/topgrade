@@ -763,6 +763,7 @@ fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Resu
     //    This is confirmed on an install from the apt repository
     // 2. 1 line: 'bin-name 1.2.3 (commit 123abc)', example: `code-insiders 1.106.0 (commit 48cdf17f0e856e1daca2ad2747814085a2453df0)`
     //    See https://github.com/topgrade-rs/topgrade/issues/1605, confirmed from Microsoft website
+    //    The bin-name can also be `code` on `code-insiders`.
     // This should apply to VSCodium as well.
 
     let version_output = ctx.execute(&bin).always().arg("--version").output_checked_utf8()?;
@@ -776,14 +777,24 @@ fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Resu
         ))
     })?;
 
-    let version_string = if line.starts_with(bin_name) {
+    let version_string = if line.starts_with(bin_name) || line.starts_with("code") {
         // Case 2
-        line.split_whitespace().nth(1).ok_or_else(|| {
-            eyre!(output_changed_message!(
-                &format!("{bin_name} --version"),
-                format!("No version after '{bin_name}'")
-            ))
-        })?
+        let mut it = line.split_whitespace();
+        match (it.next(), it.next()) {
+            (None, None) => {
+                return Err(eyre!(output_changed_message!(
+                    &format!("{bin_name} --version"),
+                    "No output"
+                )));
+            }
+            (Some(prefix), None) => {
+                return Err(eyre!(output_changed_message!(
+                    &format!("{bin_name} --version"),
+                    format!("No version after '{prefix}'")
+                )));
+            }
+            (Some(_prefix), Some(version)) => version,
+        }
     } else {
         // Case 1
         // The whole line should be the version
