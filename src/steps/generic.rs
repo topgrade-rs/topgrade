@@ -794,6 +794,7 @@ fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Resu
                 )));
             }
             (Some(_prefix), Some(version)) => version,
+            (None, Some(_)) => unreachable!(),
         }
     } else {
         // Case 1
