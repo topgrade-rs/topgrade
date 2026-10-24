@@ -525,12 +525,28 @@ pub fn run_opam_update(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+/// Whether the `vcpkg` checkout is a system install that needs sudo.
+///
+/// A distro `vcpkg` package ships a shim outside `/home` that forwards to the checkout named by
+/// `VCPKG_ROOT`, so the decision is made on the resolved checkout directory rather than on the
+/// binary: a checkout under the home directory needs no sudo, a root-owned one (`/opt/vcpkg`)
+/// still does.
+#[cfg(unix)]
+fn is_vcpkg_root_install(vcpkg: &Path, vcpkg_root: Option<&OsStr>) -> bool {
+    let dir = vcpkg_root
+        .filter(|root| !root.is_empty())
+        .map(Path::new)
+        .or_else(|| vcpkg.parent())
+        .unwrap_or(vcpkg);
+    !dir.starts_with("/home") && !dir.starts_with(HOME_DIR.as_path())
+}
+
 pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
     let vcpkg = require("vcpkg")?;
     print_separator("vcpkg");
 
     #[cfg(unix)]
-    let is_root_install = !&vcpkg.starts_with("/home");
+    let is_root_install = is_vcpkg_root_install(&vcpkg, env::var_os("VCPKG_ROOT").as_deref());
 
     #[cfg(not(unix))]
     let is_root_install = false;
@@ -3011,4 +3027,36 @@ pub fn run_antigravity_cli(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Antigravity CLI");
 
     ctx.execute(agy).arg("update").status_checked()
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::is_vcpkg_root_install;
+    use crate::HOME_DIR;
+    use std::ffi::OsStr;
+    use std::path::Path;
+
+    #[test]
+    fn sudo_is_only_used_for_a_system_vcpkg_checkout() {
+        let shim = Path::new("/usr/bin/vcpkg");
+        assert!(is_vcpkg_root_install(shim, None));
+        assert!(is_vcpkg_root_install(shim, Some(OsStr::new(""))));
+        // A distro shim forwarding to a user checkout needs no sudo.
+        assert!(!is_vcpkg_root_install(
+            shim,
+            Some(OsStr::new("/home/me/.local/share/vcpkg"))
+        ));
+        assert!(!is_vcpkg_root_install(shim, Some(HOME_DIR.join("vcpkg").as_os_str())));
+        // A root-owned checkout keeps sudo, with or without VCPKG_ROOT.
+        assert!(is_vcpkg_root_install(
+            Path::new("/opt/vcpkg/vcpkg"),
+            Some(OsStr::new("/opt/vcpkg"))
+        ));
+        assert!(is_vcpkg_root_install(
+            Path::new("/usr/local/vcpkg/vcpkg"),
+            Some(OsStr::new("/usr/local/vcpkg"))
+        ));
+        assert!(!is_vcpkg_root_install(Path::new("/home/me/bin/vcpkg"), None));
+        assert!(!is_vcpkg_root_install(HOME_DIR.join("vcpkg/vcpkg").as_path(), None));
+    }
 }
