@@ -111,6 +111,7 @@ pub enum Step {
     Kakoune,
     Krew,
     Lensfun,
+    LucidLink,
     Lure,
     Macports,
     Mamba,
@@ -467,6 +468,7 @@ impl Step {
             Lensfun => runner.execute(*self, "Lensfun's database update", || {
                 generic::run_lensfun_update_data(ctx)
             })?,
+            LucidLink => runner.execute(*self, "LucidLink", || generic::run_lucidlink(ctx))?,
             Lure =>
             {
                 #[cfg(target_os = "linux")]
@@ -997,6 +999,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         HermesAgent,
         AntigravityCli,
         Zed,
+        LucidLink,
         Tailscale,
         // Steps that should run last
         // Runs `sudo -k` at startup, which drops cached sudo credentials for every later step

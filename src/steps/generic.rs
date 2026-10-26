@@ -3025,6 +3025,15 @@ pub fn run_antigravity_cli(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(agy).arg("update").status_checked()
 }
 
+pub fn run_lucidlink(ctx: &ExecutionContext) -> Result<()> {
+    let lucidlink = require("lucid")?;
+
+    print_separator("LucidLink");
+
+    let sudo = ctx.require_sudo()?;
+    sudo.execute(ctx, &lucidlink)?.arg("update").status_checked()
+}
+
 pub fn run_tailscale(ctx: &ExecutionContext) -> Result<()> {
     let tailscale = require("tailscale")?;
 
