@@ -467,11 +467,7 @@ impl Step {
             Lensfun => runner.execute(*self, "Lensfun's database update", || {
                 generic::run_lensfun_update_data(ctx)
             })?,
-            LucidLink =>
-            {
-                #[cfg(windows)]
-                runner.execute(*self, "LucidLink", || generic::run_lucidlink(ctx))?
-            }
+            LucidLink => runner.execute(*self, "LucidLink", || generic::run_lucidlink(ctx))?,
             Lure =>
             {
                 #[cfg(target_os = "linux")]
