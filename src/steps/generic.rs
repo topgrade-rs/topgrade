@@ -3025,7 +3025,6 @@ pub fn run_antigravity_cli(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(agy).arg("update").status_checked()
 }
 
-#[cfg(windows)]
 pub fn run_tailscale(ctx: &ExecutionContext) -> Result<()> {
     let tailscale = require("tailscale")?;
 
