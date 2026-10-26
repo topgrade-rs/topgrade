@@ -702,11 +702,7 @@ impl Step {
                 #[cfg(target_os = "openbsd")]
                 runner.execute(*self, "OpenBSD Upgrade", || openbsd::upgrade_openbsd(ctx))?
             }
-            Tailscale =>
-            {
-                #[cfg(windows)]
-                runner.execute(*self, "Tailscale", || generic::run_tailscale(ctx))?
-            }
+            Tailscale => runner.execute(*self, "Tailscale", || generic::run_tailscale(ctx))?,
             Tldr => runner.execute(*self, "tldr", || generic::run_tldr(ctx))?,
             Tlmgr => runner.execute(*self, "tlmgr", || generic::run_tlmgr_update(ctx))?,
             Tmux =>
