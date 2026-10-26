@@ -3033,3 +3033,12 @@ pub fn run_lucidlink(ctx: &ExecutionContext) -> Result<()> {
     let sudo = ctx.require_sudo()?;
     sudo.execute(ctx, &lucidlink)?.arg("update").status_checked()
 }
+
+pub fn run_tailscale(ctx: &ExecutionContext) -> Result<()> {
+    let tailscale = require("tailscale")?;
+
+    print_separator("Tailscale");
+
+    let sudo = ctx.require_sudo()?;
+    sudo.execute(ctx, &tailscale)?.arg("update").status_checked()
+}
