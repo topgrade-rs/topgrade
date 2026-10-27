@@ -2844,7 +2844,17 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
     let ollama = require("ollama")?;
 
     let mut server = OllamaServer(None);
-    let probe = ctx.execute(&ollama).always().args(["list"]).output()?.unwrap_wet();
+    let probe = ctx
+        .execute(&ollama)
+        .always()
+        .args(["list"])
+        .output_checked_with(|out| {
+            if out.status.success() || String::from_utf8_lossy(&out.stderr).contains("could not connect") {
+                Ok(())
+            } else {
+                Err(())
+            }
+        })?;
     let probe_stderr = String::from_utf8_lossy(&probe.stderr);
     let offline = probe_stderr.contains("could not connect");
     if offline && ctx.run_type().dry() {
@@ -2862,17 +2872,12 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
             }
         }
         let list = ctx.execute(&ollama).always().args(["list"]).output_checked_utf8()?;
-        parse_ollama_list(&list.stdout)?
-    } else {
-        if !probe.status.success() {
-            let stderr = probe_stderr.trim();
-            let detail = if stderr.is_empty() {
-                probe.status.to_string()
-            } else {
-                format!("{}: {stderr}", probe.status)
-            };
-            return Err(eyre!("`ollama list` failed: {detail}"));
+        let models = parse_ollama_list(&list.stdout)?;
+        if models.is_empty() {
+            return Ok(());
         }
+        models
+    } else {
         let models = parse_ollama_list(&String::from_utf8_lossy(&probe.stdout))?;
         if models.is_empty() {
             return Err(SkipStep("No Ollama models to pull".to_string()).into());
@@ -2880,9 +2885,6 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
         print_separator("Ollama");
         models
     };
-    if models.is_empty() {
-        return Err(SkipStep("No Ollama models to pull".to_string()).into());
-    }
 
     let mut pull_result = Ok(());
     for model in &models {
@@ -2901,7 +2903,7 @@ pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
             continue;
         };
         match retry_outcome(out.status.success(), &String::from_utf8_lossy(&out.stderr)) {
-            PullRetry::Succeeded => {}
+            PullRetry::Succeeded => debug!("Ollama pull for {model:?} succeeded on retry"),
             PullRetry::MissingManifest => {
                 warn!("Ollama model {model:?} is not in the registry, skipping pull");
             }
