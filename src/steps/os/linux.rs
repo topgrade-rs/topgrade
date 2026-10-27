@@ -604,21 +604,25 @@ fn upgrade_solus(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_am(ctx: &ExecutionContext) -> Result<()> {
-    let am = require("am")?;
+    let am = require_one(["am", "appman"])?;
 
-    print_separator("AM");
+    print_separator(match am.file_name().and_then(|x| x.to_str()) {
+        Some("am") => "AM",
+        Some("appman") => "AppMan",
+        _ => {
+            return Err(eyre!(
+                "Invalid return value from require_one; filename of path is not 'am' or 'appman'"
+            ));
+        }
+    });
 
-    ctx.execute(am)
+    ctx.execute(&am)
         .arg(if ctx.config().yes(Step::AM) { "-U" } else { "-u" })
-        .status_checked()
-}
+        .status_checked()?;
 
-pub fn run_appman(ctx: &ExecutionContext) -> Result<()> {
-    let appman = require("appman")?;
+    ctx.execute(&am).arg("reinstall").status_checked()?;
 
-    print_separator("appman");
-
-    ctx.execute(appman).arg("-u").status_checked()
+    Ok(())
 }
 
 pub fn run_pacdef(ctx: &ExecutionContext) -> Result<()> {
