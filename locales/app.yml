@@ -1737,3 +1737,12 @@ _version: 2
   zh_TW: "在 GitHub 上找不到 Zed preview 版本"
   de: "Keine Zed-Preview-Version auf GitHub gefunden"
   ko: "GitHub에서 Zed 프리뷰 릴리스를 찾을 수 없습니다"
+"The antigravity binary at {path} is the Antigravity 2.0 app, which has no extensions":
+  en: "The antigravity binary at %{path} is the Antigravity 2.0 app, which has no extensions"
+  lt: "„antigravity“ failas %{path} yra „Antigravity 2.0“ programa, kuri neturi plėtinių"
+  es: "El binario de antigravity en %{path} es la aplicación Antigravity 2.0, que no tiene extensiones"
+  fr: "Le binaire antigravity situé à %{path} est l'application Antigravity 2.0, qui n'a pas d'extensions"
+  zh_CN: "%{path} 处的 antigravity 二进制文件是 Antigravity 2.0 应用，它没有扩展"
+  zh_TW: "%{path} 處的 antigravity 二進位檔是 Antigravity 2.0 應用程式，它沒有擴充功能"
+  de: "Das antigravity-Binary unter %{path} ist die Antigravity 2.0-App, die keine Erweiterungen hat"
+  ko: "%{path}의 antigravity 바이너리는 확장 기능이 없는 Antigravity 2.0 앱입니다"

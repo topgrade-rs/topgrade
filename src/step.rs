@@ -25,6 +25,7 @@ pub enum Step {
     AndroidStudio,
     Antigravity,
     AntigravityCli,
+    AntigravityIde,
     AppMan,
     AppManager,
     Aqua,
@@ -228,6 +229,9 @@ impl Step {
                 generic::run_antigravity_extensions_update(ctx)
             })?,
             AntigravityCli => runner.execute(*self, "Antigravity CLI", || generic::run_antigravity_cli(ctx))?,
+            AntigravityIde => runner.execute(*self, "Antigravity IDE extensions", || {
+                generic::run_antigravity_ide_extensions_update(ctx)
+            })?,
             AppMan =>
             {
                 #[cfg(target_os = "linux")]
@@ -887,6 +891,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Choosenim,
         Cargo,
         Antigravity,
+        AntigravityIde,
         Cursor,
         CursorAgent,
         Flutter,

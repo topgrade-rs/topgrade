@@ -547,6 +547,7 @@ pub fn run_vcpkg_update(ctx: &ExecutionContext) -> Result<()> {
 
 enum VSCodeVariant {
     Antigravity,
+    AntigravityIde,
     Code,
     CodeInsiders,
     Codium,
@@ -559,6 +560,7 @@ impl VSCodeVariant {
     fn name(&self) -> &'static str {
         match self {
             VSCodeVariant::Antigravity => "Antigravity",
+            VSCodeVariant::AntigravityIde => "Antigravity IDE",
             VSCodeVariant::Code => "VSCode",
             VSCodeVariant::CodeInsiders => "VSCode Insiders",
             VSCodeVariant::Codium => "VSCodium",
@@ -571,6 +573,7 @@ impl VSCodeVariant {
     fn bin_name(&self) -> &'static str {
         match self {
             VSCodeVariant::Antigravity => "antigravity",
+            VSCodeVariant::AntigravityIde => "antigravity-ide",
             VSCodeVariant::Code => "code",
             VSCodeVariant::CodeInsiders => "code-insiders",
             VSCodeVariant::Codium => "codium",
@@ -583,6 +586,7 @@ impl VSCodeVariant {
     fn display_name(&self) -> &'static str {
         match self {
             VSCodeVariant::Antigravity => "Antigravity extensions",
+            VSCodeVariant::AntigravityIde => "Antigravity IDE extensions",
             VSCodeVariant::Code => "Visual Studio Code extensions",
             VSCodeVariant::CodeInsiders => "Visual Studio Code Insiders extensions",
             VSCodeVariant::Codium => "VSCodium extensions",
@@ -594,11 +598,17 @@ impl VSCodeVariant {
 
     fn supports_profiles(&self) -> bool {
         match self {
-            VSCodeVariant::Antigravity | VSCodeVariant::Code | VSCodeVariant::CodeInsiders | VSCodeVariant::Cursor => {
-                true
-            }
+            VSCodeVariant::Antigravity
+            | VSCodeVariant::AntigravityIde
+            | VSCodeVariant::Code
+            | VSCodeVariant::CodeInsiders
+            | VSCodeVariant::Cursor => true,
             VSCodeVariant::Codium | VSCodeVariant::CodiumInsiders | VSCodeVariant::Windsurf => false,
         }
+    }
+
+    fn requires_hub_check(&self) -> bool {
+        matches!(self, VSCodeVariant::Antigravity)
     }
 
     fn extensions_root(&self, home_dir: &Path, configured_root: Option<&OsStr>) -> PathBuf {
@@ -608,6 +618,7 @@ impl VSCodeVariant {
 
         let directory = match self {
             VSCodeVariant::Antigravity => ".antigravity",
+            VSCodeVariant::AntigravityIde => ".antigravity-ide",
             VSCodeVariant::Code => ".vscode",
             VSCodeVariant::CodeInsiders => ".vscode-insiders",
             VSCodeVariant::Codium => ".vscode-oss",
@@ -622,6 +633,7 @@ impl VSCodeVariant {
     fn process_names(&self) -> &'static [&'static str] {
         match self {
             VSCodeVariant::Antigravity => &["antigravity", "Antigravity"],
+            VSCodeVariant::AntigravityIde => &["antigravity-ide", "Antigravity IDE"],
             VSCodeVariant::Code => &["code", "Code"],
             VSCodeVariant::CodeInsiders => &["code-insiders", "Code - Insiders"],
             VSCodeVariant::Codium => &["codium", "VSCodium"],
@@ -634,6 +646,7 @@ impl VSCodeVariant {
     fn app_bundle_name(&self) -> &'static str {
         match self {
             VSCodeVariant::Antigravity => "Antigravity.app",
+            VSCodeVariant::AntigravityIde => "Antigravity IDE.app",
             VSCodeVariant::Code => "Visual Studio Code.app",
             VSCodeVariant::CodeInsiders => "Visual Studio Code - Insiders.app",
             VSCodeVariant::Codium => "VSCodium.app",
@@ -674,6 +687,27 @@ impl VSCodeVariant {
             .values()
             .any(|process| self.matches_process(process.name(), process.exe()))
     }
+}
+
+/// Whether `bin` belongs to the Antigravity 2.0 app, which ships under the same `antigravity`
+/// name as the VSCode-based IDE. Its marker sits at `<root>/resources/app.asar` (the standard
+/// Electron layout; measured on the Linux 2.26.0 tarball) and at
+/// `<App>.app/Contents/Resources/app.asar` in a macOS bundle.
+///
+/// `app.asar` positively identifies the Electron hub; VSCode-based installs
+/// (`resources/app/out/cli.js`) and anything unrecognized must keep running, so this check only
+/// ever skips on the hub marker.
+///
+/// Consequence: a hub reached through a wrapper script outside its install tree is not
+/// recognized, and its `--version` still opens the GUI. Closing that gap means resolving wrapper
+/// targets, which is what skips the wrapper-launched VSCode IDE installs this check exists to keep
+/// updating.
+fn is_antigravity_hub(bin: &Path) -> bool {
+    let bin = fs::canonicalize(bin).unwrap_or_else(|_| bin.to_path_buf());
+    bin.ancestors().any(|dir| {
+        dir.join("resources").join("app.asar").is_file()
+            || dir.join("Contents").join("Resources").join("app.asar").is_file()
+    })
 }
 
 fn is_safe_obsolete_extension_name(name: &str) -> bool {
@@ -745,7 +779,8 @@ fn cleanup_obsolete_extensions(extension_root: &Path, dry_run: bool) -> Result<(
 }
 
 /// Runs extension updates for VSCode-compatible editors (VSCode, VSCode Insiders, VSCodium,
-/// VSCodium Insiders, Cursor, Antigravity), as the process is the same for all.
+/// VSCodium Insiders, Cursor, Windsurf, Antigravity, Antigravity IDE), as the process is the same
+/// for all.
 fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Result<()> {
     // Calling VSCode/VSCodium in WSL may install a server instead of updating extensions (https://github.com/topgrade-rs/topgrade/issues/594#issuecomment-1782157367)
     if *IS_WSL {
@@ -755,6 +790,19 @@ fn run_vscode_compatible(variant: VSCodeVariant, ctx: &ExecutionContext) -> Resu
     let name = variant.name();
     let bin_name = variant.bin_name();
     let bin = require(bin_name)?;
+
+    // `--version` on the Antigravity 2.0 app opens its GUI and blocks until the window closes or
+    // the process is interrupted; with no display it exits 1 with `Missing X server or $DISPLAY`.
+    if variant.requires_hub_check() && is_antigravity_hub(&bin) {
+        return Err(SkipStep(
+            t!(
+                "The antigravity binary at {path} is the Antigravity 2.0 app, which has no extensions",
+                path = bin.display()
+            )
+            .to_string(),
+        )
+        .into());
+    }
 
     // VSCode has an update command only since version 1.86 ("January 2024" update); disable the update for prior versions
     //
@@ -898,9 +946,13 @@ pub fn run_antigravity_extensions_update(ctx: &ExecutionContext) -> Result<()> {
     run_vscode_compatible(VSCodeVariant::Antigravity, ctx)
 }
 
+pub fn run_antigravity_ide_extensions_update(ctx: &ExecutionContext) -> Result<()> {
+    run_vscode_compatible(VSCodeVariant::AntigravityIde, ctx)
+}
+
 #[cfg(test)]
 mod vscode_tests {
-    use super::{VSCodeVariant, cleanup_obsolete_extensions, is_safe_obsolete_extension_name};
+    use super::{VSCodeVariant, cleanup_obsolete_extensions, is_antigravity_hub, is_safe_obsolete_extension_name};
     use std::ffi::OsStr;
     use std::fs;
     use std::path::Path;
@@ -914,6 +966,100 @@ mod vscode_tests {
             VSCodeVariant::Code.extensions_root(Path::new("home"), Some(custom_root)),
             Path::new("custom/extensions")
         );
+    }
+
+    #[test]
+    fn antigravity_hub_detected_next_to_electron_binary() {
+        let dir = tempdir().unwrap();
+        let root = dir.path().join("Antigravity");
+        fs::create_dir_all(root.join("resources")).unwrap();
+        fs::write(root.join("resources/app.asar"), "asar").unwrap();
+        let bin = root.join("antigravity");
+        fs::write(&bin, "bin").unwrap();
+
+        assert!(is_antigravity_hub(&bin));
+    }
+
+    #[test]
+    fn antigravity_hub_detected_from_bin_wrapper() {
+        let dir = tempdir().unwrap();
+        let root = dir.path().join("Antigravity");
+        fs::create_dir_all(root.join("resources")).unwrap();
+        fs::write(root.join("resources/app.asar"), "asar").unwrap();
+        let bin = root.join("bin/antigravity");
+        fs::create_dir_all(bin.parent().unwrap()).unwrap();
+        fs::write(&bin, "#!/bin/sh\n").unwrap();
+
+        assert!(is_antigravity_hub(&bin));
+    }
+
+    #[test]
+    fn antigravity_hub_detected_in_macos_bundle() {
+        let dir = tempdir().unwrap();
+        let app = dir.path().join("Antigravity.app");
+        fs::create_dir_all(app.join("Contents/Resources")).unwrap();
+        fs::write(app.join("Contents/Resources/app.asar"), "asar").unwrap();
+        let bin = app.join("Contents/MacOS/Electron");
+        fs::create_dir_all(bin.parent().unwrap()).unwrap();
+        fs::write(&bin, "bin").unwrap();
+
+        assert!(is_antigravity_hub(&bin));
+    }
+
+    #[test]
+    fn antigravity_hub_detected_with_stale_vscode_marker() {
+        let dir = tempdir().unwrap();
+        let root = dir.path().join("Antigravity");
+        fs::create_dir_all(root.join("resources/app/out")).unwrap();
+        fs::write(root.join("resources/app.asar"), "asar").unwrap();
+        fs::write(root.join("resources/app/out/cli.js"), "stale").unwrap();
+        let bin = root.join("antigravity");
+        fs::write(&bin, "bin").unwrap();
+
+        assert!(is_antigravity_hub(&bin));
+    }
+
+    #[test]
+    fn antigravity_hub_absent_for_vscode_install() {
+        let dir = tempdir().unwrap();
+        let root = dir.path().join("antigravity");
+        fs::create_dir_all(root.join("resources/app/out")).unwrap();
+        fs::write(root.join("resources/app/out/cli.js"), "cli").unwrap();
+        let bin = root.join("antigravity");
+        fs::write(&bin, "bin").unwrap();
+
+        assert!(!is_antigravity_hub(&bin));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn antigravity_hub_detected_through_symlinked_binary() {
+        let dir = tempdir().unwrap();
+        let root = dir.path().join("opt/Antigravity");
+        fs::create_dir_all(root.join("resources")).unwrap();
+        fs::write(root.join("resources/app.asar"), "asar").unwrap();
+        let target = root.join("antigravity");
+        fs::write(&target, "bin").unwrap();
+        let link = dir.path().join("antigravity");
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+
+        assert!(is_antigravity_hub(&link));
+    }
+
+    #[test]
+    fn antigravity_hub_absent_for_out_of_tree_launcher() {
+        let dir = tempdir().unwrap();
+        let root = dir.path().join("opt/Antigravity");
+        fs::create_dir_all(root.join("resources/app/out")).unwrap();
+        fs::write(root.join("resources/app/out/cli.js"), "cli").unwrap();
+        let target = root.join("bin/antigravity");
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::write(&target, "#!/bin/sh\n").unwrap();
+        let launcher = dir.path().join("usr/bin/antigravity");
+        fs::create_dir_all(launcher.parent().unwrap()).unwrap();
+        fs::write(&launcher, format!("#!/bin/sh\nexec {} \"$@\"\n", target.display())).unwrap();
+
+        assert!(!is_antigravity_hub(&launcher));
     }
 
     #[test]
