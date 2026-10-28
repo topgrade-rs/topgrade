@@ -21,7 +21,6 @@ use std::{fs, io::Write};
 use sysinfo::{ProcessRefreshKind, RefreshKind, System, UpdateKind};
 use tempfile::tempfile_in;
 use tracing::{debug, error, warn};
-use walkdir::WalkDir;
 
 use crate::HOME_DIR;
 #[cfg(unix)]
@@ -2793,115 +2792,186 @@ fn ollama_serve(ctx: &ExecutionContext, ollama: &Path) -> Result<ExecutorChild> 
         .context("Failed to start Ollama server")
 }
 
-fn ollama_manifests_path() -> PathBuf {
-    env::var_os("OLLAMA_MODELS")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| HOME_DIR.join(".ollama/models"))
-        .join("manifests/registry.ollama.ai")
+struct OllamaServer(Option<ExecutorChild>);
+
+impl Drop for OllamaServer {
+    fn drop(&mut self) {
+        if let Some(ExecutorChild::Wet(mut child)) = self.0.take() {
+            let _ = child.kill();
+            let _ = child.wait();
+        }
+    }
 }
 
-struct OllamaModel {
-    name: String,
-    manifest_path: PathBuf,
-}
-
-fn ollama_list_models() -> impl Iterator<Item = OllamaModel> {
-    let manifests = ollama_manifests_path();
-
-    WalkDir::new(&manifests)
-        .min_depth(3)
-        .max_depth(3)
-        .into_iter()
-        .filter_map(move |entry| {
-            let entry = entry.ok()?;
-            if !entry.file_type().is_file() {
-                return None;
-            }
-
-            let path = entry.path();
-            let tag = path.file_name()?.to_string_lossy();
-            let name = path.parent()?.file_name()?.to_string_lossy();
-            let namespace = path.parent()?.parent()?.file_name()?.to_string_lossy();
-
-            Some(OllamaModel {
-                name: if namespace == "library" {
-                    format!("{name}:{tag}")
-                } else {
-                    format!("{namespace}/{name}:{tag}")
-                },
-                manifest_path: path.to_path_buf(),
-            })
-        })
-}
-
-#[derive(Deserialize)]
-struct OllamaManifest {
-    layers: Vec<OllamaLayer>,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct OllamaLayer {
-    media_type: String,
-    #[serde(default)]
-    from: Option<String>,
-}
-
-// Locally created model manifests have a `from` field on their model layers
-fn is_local_ollama_model(manifest_path: &Path) -> bool {
-    let Ok(content) = fs::read_to_string(manifest_path) else {
-        return false;
+// Accepts the `ollama list` table: a `NAME  ID  SIZE  MODIFIED` header, then one row per model.
+fn parse_ollama_list(output: &str) -> Result<Vec<String>> {
+    let mut lines = output.lines().filter(|line| !line.trim().is_empty());
+    let Some(header) = lines.next() else {
+        return Err(eyre!(output_changed_message!("ollama list", "empty output")));
     };
-    let Ok(manifest) = serde_json::from_str::<OllamaManifest>(&content) else {
-        return false;
-    };
-    manifest
-        .layers
-        .iter()
-        .any(|l| l.media_type == "application/vnd.ollama.image.model" && l.from.is_some())
+    if !header.split_whitespace().eq(["NAME", "ID", "SIZE", "MODIFIED"]) {
+        return Err(eyre!(output_changed_message!("ollama list", "unexpected table header")));
+    }
+    Ok(lines
+        .filter_map(|line| line.split_whitespace().next())
+        .map(str::to_string)
+        .collect())
+}
+
+// ollama maps any registry 404 to this message (images.go:1177, 1676-1678 at v0.40.2), so it
+// marks a name no registry can serve: a locally created model, or a tag deleted upstream.
+fn is_missing_model_error(stderr: &str) -> bool {
+    stderr.contains("pull model manifest: file does not exist")
+}
+
+enum PullRetry {
+    Succeeded,
+    MissingManifest,
+    Failed,
+}
+
+fn retry_outcome(success: bool, stderr: &str) -> PullRetry {
+    if success {
+        PullRetry::Succeeded
+    } else if is_missing_model_error(stderr) {
+        PullRetry::MissingManifest
+    } else {
+        PullRetry::Failed
+    }
 }
 
 pub fn run_ollama_pull(ctx: &ExecutionContext) -> Result<()> {
     let ollama = require("ollama")?;
 
-    let mut remote_models = ollama_list_models()
-        .filter(|m| !is_local_ollama_model(&m.manifest_path))
-        .peekable();
-    if remote_models.peek().is_none() {
-        return Err(SkipStep("No Ollama models to pull".to_string()).into());
+    let mut server = OllamaServer(None);
+    let probe = ctx
+        .execute(&ollama)
+        .always()
+        .args(["list"])
+        .output_checked_with(|out| {
+            if out.status.success() || String::from_utf8_lossy(&out.stderr).contains("could not connect") {
+                Ok(())
+            } else {
+                Err(())
+            }
+        })?;
+    let probe_stderr = String::from_utf8_lossy(&probe.stderr);
+    let offline = probe_stderr.contains("could not connect");
+    if offline && ctx.run_type().dry() {
+        return Err(SkipStep("Ollama server not running".to_string()).into());
     }
-
-    print_separator("Ollama");
-
-    let mut server: Option<ExecutorChild> = None;
-    let out = ctx.execute(&ollama).always().args(["list"]).output()?.unwrap_wet();
-    if String::from_utf8_lossy(&out.stderr).contains("could not connect") && !ctx.run_type().dry() {
+    let models = if offline {
+        print_separator("Ollama");
         debug!("Ollama server not running, starting temporary server");
-        server = Some(ollama_serve(ctx, &ollama)?);
+        server.0 = Some(ollama_serve(ctx, &ollama)?);
         // wait max 2 seconds for server to start
         for _ in 0..10 {
             std::thread::sleep(std::time::Duration::from_millis(200));
-            if ctx.execute(&ollama).args(["list"]).status_checked().is_ok() {
+            if ctx.execute(&ollama).args(["list"]).output_checked().is_ok() {
+                break;
+            }
+        }
+        let list = ctx.execute(&ollama).always().args(["list"]).output_checked_utf8()?;
+        let models = parse_ollama_list(&list.stdout)?;
+        if models.is_empty() {
+            return Ok(());
+        }
+        models
+    } else {
+        let models = parse_ollama_list(&String::from_utf8_lossy(&probe.stdout))?;
+        if models.is_empty() {
+            return Err(SkipStep("No Ollama models to pull".to_string()).into());
+        }
+        print_separator("Ollama");
+        models
+    };
+
+    let mut pull_result = Ok(());
+    for model in &models {
+        let Err(e) = ctx.execute(&ollama).args(["pull", model]).status_checked() else {
+            continue;
+        };
+        // A cancelled pull must not run again; the runner turns the error into the interrupt prompt.
+        if crate::ctrlc::interrupted() {
+            pull_result = Err(e);
+            break;
+        }
+        // A failed pull may name a model no registry has; ask once more with the output captured
+        // so every other failure keeps the error the pull already streamed.
+        let captured = ctx.execute(&ollama).args(["pull", model]).output()?;
+        let ExecutorOutput::Wet(out) = captured else {
+            continue;
+        };
+        match retry_outcome(out.status.success(), &String::from_utf8_lossy(&out.stderr)) {
+            PullRetry::Succeeded => debug!("Ollama pull for {model:?} succeeded on retry"),
+            PullRetry::MissingManifest => {
+                warn!("Ollama model {model:?} is not in the registry, skipping pull");
+            }
+            PullRetry::Failed => {
+                pull_result = Err(e);
                 break;
             }
         }
     }
 
-    let mut pull_result = Ok(());
-    for model in remote_models {
-        if let Err(e) = ctx.execute(&ollama).args(["pull", &model.name]).status_checked() {
-            pull_result = Err(e);
-            break;
-        }
-    }
-
-    // kill temporary Ollama server - must run, don't add early returns before this
-    if let Some(ExecutorChild::Wet(mut child)) = server {
-        let _ = child.kill();
-        let _ = child.wait();
-    }
-
     pull_result
+}
+
+#[cfg(test)]
+mod ollama_tests {
+    use super::{PullRetry, is_missing_model_error, parse_ollama_list, retry_outcome};
+
+    #[test]
+    fn parses_model_names_from_list_output() {
+        let output = "NAME                                     ID              SIZE      MODIFIED\nllama3.2:1b                              baf6a787fdff    1.3 GB    2 days ago\nhf.co/ggml-org/Qwen3-ASR-1.7B-GGUF:Q8_0   58e22d0532d4    2.2 GB    3 days ago\nmylocal:latest                           58bab3232685    270 MB    5 minutes ago\n";
+
+        assert_eq!(
+            parse_ollama_list(output).unwrap(),
+            vec![
+                "llama3.2:1b",
+                "hf.co/ggml-org/Qwen3-ASR-1.7B-GGUF:Q8_0",
+                "mylocal:latest"
+            ]
+        );
+    }
+
+    #[test]
+    fn list_parsing_requires_the_header() {
+        assert!(parse_ollama_list("").is_err());
+        assert!(parse_ollama_list("\n").is_err());
+        assert!(
+            parse_ollama_list("NAME    ID    SIZE    MODIFIED\n")
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn list_parsing_rejects_an_unexpected_header() {
+        assert!(parse_ollama_list("NAME    ID    UPDATED\nmylocal:latest  58bab3232685  now\n").is_err());
+    }
+
+    #[test]
+    fn recognizes_the_registry_missing_manifest_error() {
+        let stderr = "\u{1b}[?2026h\u{1b}[?25l\u{1b}[1Gpulling manifest \u{1b}[K\nError: pull model manifest: file does not exist\n";
+
+        assert!(is_missing_model_error(stderr));
+        assert!(!is_missing_model_error("Error: connection refused"));
+        assert!(!is_missing_model_error(""));
+    }
+
+    #[test]
+    fn classifies_a_retried_pull() {
+        let missing =
+            "\u{1b}[?25l\u{1b}[1Gpulling manifest \u{1b}[K\nError: pull model manifest: file does not exist\n";
+
+        assert!(matches!(retry_outcome(true, ""), PullRetry::Succeeded));
+        assert!(matches!(retry_outcome(false, missing), PullRetry::MissingManifest));
+        assert!(matches!(
+            retry_outcome(false, "Error: connection refused"),
+            PullRetry::Failed
+        ));
+    }
 }
 
 #[derive(Deserialize)]

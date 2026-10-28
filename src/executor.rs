@@ -276,6 +276,7 @@ pub enum ExecutorOutput {
 
 impl ExecutorOutput {
     /// Can be used on output returned by `.always()` executors
+    #[allow(unused)]
     pub fn unwrap_wet(self) -> Output {
         match self {
             Self::Wet(output) => output,
