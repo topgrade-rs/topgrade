@@ -264,7 +264,7 @@ impl RepoStep {
             .always()
             .stdin(Stdio::null())
             .current_dir(repo.as_ref())
-            .args(["remote", "-v"])
+            .args(["remote", "--verbose"])
             .output_checked_utf8();
 
         res.map(|output| {
