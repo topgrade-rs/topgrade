@@ -2736,7 +2736,7 @@ pub fn run_skills(ctx: &ExecutionContext) -> Result<()> {
     let runner = require(runner)?;
     print_separator("Skills");
     ctx.execute(runner)
-        .arg_if(uses_yes_flag && ctx.config().yes(Step::Skills), "--yes")
+        .arg_if(uses_yes_flag, "--yes")
         .args(runner_args)
         .args(["skills", "update", "--global"])
         .status_checked()
