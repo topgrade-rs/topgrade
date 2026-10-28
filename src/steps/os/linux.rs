@@ -620,7 +620,10 @@ pub fn run_am(ctx: &ExecutionContext) -> Result<()> {
         .arg(if ctx.config().yes(Step::AM) { "-U" } else { "-u" })
         .status_checked()?;
 
-    ctx.execute(&am).arg("reinstall").status_checked()?;
+    ctx.execute(&am)
+        .arg_if(ctx.config().yes(Step::AM), "--assume-yes")
+        .arg("reinstall")
+        .status_checked()?;
 
     Ok(())
 }
