@@ -151,6 +151,13 @@ pub struct Distrobox {
 
 #[derive(Deserialize, Default, Debug, Merge)]
 #[serde(deny_unknown_fields)]
+pub struct Colima {
+    #[merge(strategy = crate::utils::merge_strategies::vec_prepend_opt)]
+    profiles: Option<Vec<String>>,
+}
+
+#[derive(Deserialize, Default, Debug, Merge)]
+#[serde(deny_unknown_fields)]
 pub struct Yarn {
     use_sudo: Option<bool>,
 }
@@ -657,6 +664,9 @@ pub struct ConfigFile {
 
     #[merge(strategy = merge2::option::recursive)]
     uv: Option<Uv>,
+
+    #[merge(strategy = merge2::option::recursive)]
+    colima: Option<Colima>,
 }
 
 fn config_directory() -> PathBuf {
@@ -1756,6 +1766,11 @@ impl Config {
         self.config_file.distrobox.as_ref().and_then(|r| r.containers.as_ref())
     }
 
+    /// Colima profiles
+    pub fn colima_profiles(&self) -> Option<&Vec<String>> {
+        self.config_file.colima.as_ref().and_then(|c| c.profiles.as_ref())
+    }
+
     /// Concurrency limit for git
     pub fn git_concurrency_limit(&self) -> Option<usize> {
         self.config_file.git.as_ref().and_then(|git| git.max_concurrency)
@@ -2366,6 +2381,16 @@ mod test {
         }
 
         assert_eq!(config_from_toml("").skills_package_manager(), SkillsPackageManager::Npm);
+    }
+
+    #[test]
+    fn test_colima_profiles() {
+        let config = config_from_toml("[colima]\nprofiles = [\"default\", \"aarch64\"]\n");
+        assert_eq!(
+            config.colima_profiles(),
+            Some(&vec!["default".to_string(), "aarch64".to_string()])
+        );
+        assert_eq!(config_from_toml("").colima_profiles(), None);
     }
 
     /// Test the default configuration in `config.example.toml` is valid.

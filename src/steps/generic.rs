@@ -2693,12 +2693,63 @@ pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(falconf).arg("sync").status_checked()
 }
 
+fn is_colima_running(ctx: &ExecutionContext, colima: &Path, profile: Option<&str>) -> Result<bool> {
+    let mut command = ctx.execute(colima).always();
+    command.arg("status");
+    if let Some(profile) = profile {
+        command.args(["--profile", profile]);
+    }
+
+    let output = command.output_checked_with_utf8(|output| {
+        if output.status.success()
+            || output.stderr.contains("is not running")
+            || output.stdout.contains("is not running")
+        {
+            Ok(())
+        } else {
+            Err(())
+        }
+    })?;
+
+    Ok(output.status.success())
+}
+
 pub fn run_colima(ctx: &ExecutionContext) -> Result<()> {
     let colima = require("colima")?;
 
-    print_separator("Colima");
+    if let Some(profiles) = ctx.config().colima_profiles() {
+        if profiles.is_empty() {
+            return Err(SkipStep("No Colima profiles specified".to_string()).into());
+        }
 
-    ctx.execute(colima).arg("update").status_checked()
+        let mut ran_any = false;
+
+        for profile in profiles {
+            if is_colima_running(ctx, &colima, Some(profile))? {
+                print_separator(format!("Colima ({profile})"));
+                ctx.execute(&colima)
+                    .args(["update", "--profile", profile])
+                    .status_checked()?;
+                ran_any = true;
+            } else {
+                warn!("Colima profile \"{profile}\" is not running, skipping");
+            }
+        }
+
+        if !ran_any {
+            return Err(SkipStep("Colima is not running".to_string()).into());
+        }
+
+        Ok(())
+    } else {
+        if !is_colima_running(ctx, &colima, None)? {
+            return Err(SkipStep("Colima is not running".to_string()).into());
+        }
+
+        print_separator("Colima");
+
+        ctx.execute(colima).arg("update").status_checked()
+    }
 }
 
 pub fn run_cursor_agent(ctx: &ExecutionContext) -> Result<()> {
