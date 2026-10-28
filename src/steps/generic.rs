@@ -136,14 +136,21 @@ pub fn run_rubygems(ctx: &ExecutionContext) -> Result<()> {
     HOME_DIR.join(".gem").require()?;
     let gem = require("gem")?;
 
+    if is_installed_via_homebrew(&gem) {
+        return Err(SkipStep("RubyGems is managed by Homebrew".to_string()).into());
+    }
+
     let gem_path_str = gem.display().to_string();
     if gem_path_str.contains("asdf")
         || gem_path_str.contains("mise")
         || gem_path_str.contains(".rbenv")
         || gem_path_str.contains(".rvm")
+        || gem_path_str.contains(".rubies")
     {
         print_separator("RubyGems");
         ctx.execute(gem).args(["update", "--system"]).status_checked()?;
+    } else if cfg!(target_os = "macos") && (gem.starts_with("/usr/bin") || gem.starts_with("/System")) {
+        return Err(SkipStep("RubyGems is managed by the operating system".to_string()).into());
     } else if !Path::new("/usr/lib/ruby/vendor_ruby/rubygems/defaults/operating_system.rb").exists() {
         let sudo = ctx.require_sudo()?;
         print_separator("RubyGems");
