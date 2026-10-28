@@ -11,7 +11,7 @@ use crate::steps::remote::vagrant;
 use crate::steps::*;
 use crate::utils::hostname;
 
-pub const DEPRECATED_STEPS: [Step; 1] = [Step::NixHelper];
+pub const DEPRECATED_STEPS: [Step; 2] = [Step::NixHelper, Step::AppMan];
 
 #[derive(
     ValueEnum, EnumString, VariantNames, Debug, Clone, PartialEq, Eq, Hash, Deserialize, EnumIter, Copy, EnumCount,
@@ -228,11 +228,7 @@ impl Step {
                 generic::run_antigravity_extensions_update(ctx)
             })?,
             AntigravityCli => runner.execute(*self, "Antigravity CLI", || generic::run_antigravity_cli(ctx))?,
-            AppMan =>
-            {
-                #[cfg(target_os = "linux")]
-                runner.execute(*self, "appman", || linux::run_appman(ctx))?
-            }
+            AppMan => {}
             AppManager =>
             {
                 #[cfg(target_os = "linux")]
