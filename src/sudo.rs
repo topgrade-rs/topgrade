@@ -149,14 +149,13 @@ const DETECT_ORDER: [SudoKind; 2] = [SudoKind::Gsudo, SudoKind::WinSudo];
 impl Sudo {
     /// Get the `sudo` binary for this platform.
     ///
-    /// When `allow_run0` is false, `run0` is skipped. Later candidates keep
-    /// their order, and the existing not-found / Windows errors are unchanged.
-    /// Toolbx passes false because the container exposes the host system bus.
-    pub fn detect(allow_run0: bool) -> Result<Self, SudoCreateError> {
+    /// Kinds in `disallowed_kinds` are skipped. Later candidates keep their
+    /// order, and the existing not-found / Windows errors are unchanged.
+    pub fn detect(disallowed_kinds: &[SudoKind]) -> Result<Self, SudoCreateError> {
         use SudoCreateError::*;
 
         for kind in DETECT_ORDER {
-            if !allow_run0 && matches!(kind, SudoKind::Run0) {
+            if disallowed_kinds.contains(&kind) {
                 continue;
             }
             match Self::new(kind) {
@@ -670,36 +669,40 @@ mod tests {
     fn detect_order_child() {
         let root = std::path::PathBuf::from(std::env::var_os("PATH").unwrap());
 
-        let kind = |allow_run0| {
-            let sudo = Sudo::detect(allow_run0).unwrap_or_else(|err| panic!("detect({allow_run0}) failed: {err:?}"));
+        let kind = |disallowed_kinds: &[SudoKind]| {
+            let sudo = Sudo::detect(disallowed_kinds)
+                .unwrap_or_else(|err| panic!("detect({disallowed_kinds:?}) failed: {err:?}"));
             let path = sudo.path().unwrap();
             assert!(
                 path.starts_with(&root),
-                "detect({allow_run0}) escaped the fixture PATH: {}",
+                "detect({disallowed_kinds:?}) escaped the fixture PATH: {}",
                 path.display()
             );
             sudo.kind()
         };
 
-        assert_eq!(kind(true), SudoKind::Doas);
-        assert_eq!(kind(false), SudoKind::Doas);
+        assert_eq!(kind(&[]), SudoKind::Doas);
+        assert_eq!(kind(&[SudoKind::Run0]), SudoKind::Doas);
         std::fs::remove_file(root.join("doas")).unwrap();
 
-        assert_eq!(kind(true), SudoKind::Sudo);
-        assert_eq!(kind(false), SudoKind::Sudo);
+        assert_eq!(kind(&[]), SudoKind::Sudo);
+        assert_eq!(kind(&[SudoKind::Run0]), SudoKind::Sudo);
         std::fs::remove_file(root.join("sudo")).unwrap();
 
-        assert_eq!(kind(true), SudoKind::Pkexec);
-        assert_eq!(kind(false), SudoKind::Pkexec);
+        assert_eq!(kind(&[]), SudoKind::Pkexec);
+        assert_eq!(kind(&[SudoKind::Run0]), SudoKind::Pkexec);
         std::fs::remove_file(root.join("pkexec")).unwrap();
 
         // Run0 keeps its place between pkexec and please when it is eligible.
-        assert_eq!(kind(true), SudoKind::Run0);
-        assert_eq!(kind(false), SudoKind::Please);
+        assert_eq!(kind(&[]), SudoKind::Run0);
+        assert_eq!(kind(&[SudoKind::Run0]), SudoKind::Please);
         std::fs::remove_file(root.join("please")).unwrap();
 
-        assert_eq!(kind(true), SudoKind::Run0);
-        assert!(matches!(Sudo::detect(false), Err(SudoCreateError::CannotFindBinary)));
+        assert_eq!(kind(&[]), SudoKind::Run0);
+        assert!(matches!(
+            Sudo::detect(&[SudoKind::Run0]),
+            Err(SudoCreateError::CannotFindBinary)
+        ));
     }
 
     #[cfg(unix)]

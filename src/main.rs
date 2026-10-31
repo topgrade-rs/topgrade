@@ -113,7 +113,9 @@ fn select_sudo(configured: Option<SudoKind>, elevated: bool, prefix: Option<&str
     match configured {
         Some(kind) => Sudo::new(kind),
         None if elevated => Sudo::new(SudoKind::Null),
-        None => Sudo::detect(!in_toolbx),
+        // Toolbx exposes the host system bus, so `run0` would act on the host.
+        None if in_toolbx => Sudo::detect(&[SudoKind::Run0]),
+        None => Sudo::detect(&[]),
     }
 }
 
