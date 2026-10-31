@@ -82,6 +82,43 @@ impl Drop for TempCwd {
     }
 }
 
+/// Whether `TOPGRADE_PREFIX` is the Toolbx child Topgrade.
+///
+/// Toolbx shares the host home and the host system bus, so a configured `run0`
+/// would execute on the host (exit status 203 inside the container).
+/// `src/steps/toolbx.rs` passes `TOPGRADE_PREFIX=Toolbx <name>` to `env`.
+/// The name must be nonempty: SSH hosts, Distrobox, and any other prefix stay
+/// unrestricted.
+///
+/// See: https://github.com/topgrade-rs/topgrade/issues/2373
+fn is_toolbx_child(prefix: Option<&str>) -> bool {
+    matches!(prefix.and_then(|prefix| prefix.strip_prefix("Toolbx ")), Some(name) if !name.is_empty())
+}
+
+/// Choose the privilege-escalation command.
+///
+/// Explicit kinds other than `run0` are kept. Inside Toolbx, configured `run0`
+/// is treated as unset, so detection runs with `run0` removed. Elevated
+/// execution with no kind, including that rewritten `run0`, stays `Null`.
+fn select_sudo(configured: Option<SudoKind>, elevated: bool, prefix: Option<&str>) -> Result<Sudo, SudoCreateError> {
+    let in_toolbx = is_toolbx_child(prefix);
+    if in_toolbx {
+        debug!("Toolbx child: excluding run0 from privilege escalation");
+    }
+
+    let configured = match configured {
+        Some(SudoKind::Run0) if in_toolbx => None,
+        other => other,
+    };
+    match configured {
+        Some(kind) => Sudo::new(kind),
+        None if elevated => Sudo::new(SudoKind::Null),
+        // Toolbx exposes the host system bus, so `run0` would act on the host.
+        None if in_toolbx => Sudo::detect(&[SudoKind::Run0]),
+        None => Sudo::detect(&[]),
+    }
+}
+
 fn run() -> Result<()> {
     install_color_eyre()?;
     ctrlc::set_handler();
@@ -171,11 +208,10 @@ fn run() -> Result<()> {
         }
     }
 
-    let sudo = match config.sudo_command() {
-        Some(kind) => Sudo::new(kind),
-        None if elevated => Sudo::new(SudoKind::Null),
-        None => Sudo::detect(),
-    };
+    // The Toolbx child inherits the host config. Its prefix is what tells us
+    // to keep `run0` off the host bus; other prefixes stay on the normal path.
+    let prefix = env::var("TOPGRADE_PREFIX").ok();
+    let sudo = select_sudo(config.sudo_command(), elevated, prefix.as_deref());
     debug!("Sudo: {:?}", sudo);
 
     let (sudo, sudo_err) = match sudo {
@@ -403,5 +439,188 @@ fn main() {
             }
             exit(1);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{is_toolbx_child, select_sudo};
+    use crate::sudo::{SudoCreateError, SudoKind};
+
+    /// Exact value `env` stores for `TOPGRADE_PREFIX=Toolbx fedora`.
+    const GENERATED_TOOLBX_PREFIX: &str = "Toolbx fedora";
+
+    #[test]
+    fn toolbx_child_recognizes_generated_prefix_only() {
+        assert!(is_toolbx_child(Some(GENERATED_TOOLBX_PREFIX)));
+        assert!(is_toolbx_child(Some("Toolbx dev")));
+
+        assert!(!is_toolbx_child(None));
+        for prefix in [
+            "",
+            "example.com",
+            "user@example.com",
+            "Toolbx",
+            "Toolbx ",
+            "my Toolbx container",
+            "Distrobox fedora",
+        ] {
+            assert!(!is_toolbx_child(Some(prefix)), "{prefix:?}");
+        }
+    }
+
+    #[test]
+    fn elevated_without_command_or_restricted_run0_is_null() {
+        for prefix in [
+            None,
+            Some(""),
+            Some("example.com"),
+            Some(GENERATED_TOOLBX_PREFIX),
+            Some("Toolbx fedora"),
+        ] {
+            assert_eq!(
+                select_sudo(None, true, prefix).unwrap().kind(),
+                SudoKind::Null,
+                "{prefix:?}"
+            );
+        }
+
+        // Configured run0 inside Toolbx follows the same elevated fallback as an absent setting.
+        for prefix in [Some(GENERATED_TOOLBX_PREFIX), Some("Toolbx fedora")] {
+            assert_eq!(
+                select_sudo(Some(SudoKind::Run0), true, prefix).unwrap().kind(),
+                SudoKind::Null,
+                "{prefix:?}"
+            );
+        }
+    }
+
+    /// Lookup runs in a child so this process never mutates PATH. Fixtures are empty and never executed.
+    #[cfg(unix)]
+    #[test]
+    fn selection_policy_excludes_run0_inside_toolbx() {
+        if isolated_sudo_child() {
+            selection_policy_child();
+            mark_isolated_sudo_child();
+            return;
+        }
+
+        let dir = tempfile::tempdir().unwrap();
+        for name in ["doas", "sudo", "pkexec", "run0", "please"] {
+            write_executable(dir.path(), name);
+        }
+        let marker = dir.path().join("isolated-ok");
+        spawn_isolated_sudo_case(dir.path(), &marker);
+    }
+
+    #[cfg(unix)]
+    fn selection_policy_child() {
+        let root = std::path::PathBuf::from(std::env::var_os("PATH").unwrap());
+        let quoted = Some(GENERATED_TOOLBX_PREFIX);
+        let unquoted = Some("Toolbx fedora");
+
+        let assert_kind = |configured, elevated, prefix, expected: SudoKind| {
+            let sudo = select_sudo(configured, elevated, prefix)
+                .unwrap_or_else(|err| panic!("expected {expected:?}, got {err:?} for {prefix:?}"));
+            assert_eq!(sudo.kind(), expected, "{prefix:?}");
+            let path = sudo.path().unwrap();
+            assert!(
+                path.starts_with(&root),
+                "selected {expected:?} outside the fixture PATH: {}",
+                path.display()
+            );
+        };
+
+        // Explicit non-run0 kinds stay explicit inside Toolbx, elevated or not.
+        assert_kind(Some(SudoKind::Sudo), false, quoted, SudoKind::Sudo);
+        assert_kind(Some(SudoKind::Sudo), true, quoted, SudoKind::Sudo);
+        assert_kind(Some(SudoKind::Doas), false, quoted, SudoKind::Doas);
+        assert_kind(Some(SudoKind::Please), false, unquoted, SudoKind::Please);
+
+        // Outside Toolbx, configured run0 stays explicit even though doas is first on PATH.
+        for prefix in [
+            None,
+            Some(""),
+            Some("example.com"),
+            Some("user@example.com"),
+            Some("my Toolbx container"),
+        ] {
+            assert_kind(Some(SudoKind::Run0), false, prefix, SudoKind::Run0);
+            assert_kind(Some(SudoKind::Run0), true, prefix, SudoKind::Run0);
+        }
+
+        // Inside Toolbx, configured run0 and an unset command both autodetect.
+        // doas is the first eligible candidate, so this is not explicit run0.
+        for prefix in [quoted, unquoted] {
+            assert_kind(Some(SudoKind::Run0), false, prefix, SudoKind::Doas);
+            assert_kind(None, false, prefix, SudoKind::Doas);
+        }
+
+        for name in ["doas", "sudo", "pkexec", "please"] {
+            std::fs::remove_file(root.join(name)).unwrap();
+        }
+
+        // Only run0 remains. Host autodetection still accepts it; Toolbx must not escape to it.
+        for prefix in [
+            None,
+            Some(""),
+            Some("example.com"),
+            Some("user@example.com"),
+            Some("my Toolbx container"),
+        ] {
+            assert_kind(None, false, prefix, SudoKind::Run0);
+            assert_kind(Some(SudoKind::Run0), false, prefix, SudoKind::Run0);
+        }
+        for prefix in [quoted, unquoted] {
+            for configured in [Some(SudoKind::Run0), None] {
+                assert!(
+                    matches!(
+                        select_sudo(configured, false, prefix),
+                        Err(SudoCreateError::CannotFindBinary)
+                    ),
+                    "{configured:?} {prefix:?}"
+                );
+            }
+        }
+    }
+
+    #[cfg(unix)]
+    fn isolated_sudo_child() -> bool {
+        std::env::var_os("TOPGRADE_ISOLATED_SUDO_CASE").is_some()
+    }
+
+    #[cfg(unix)]
+    fn mark_isolated_sudo_child() {
+        std::fs::write(std::env::var_os("TOPGRADE_ISOLATED_SUDO_MARKER").unwrap(), "ok").unwrap();
+    }
+
+    #[cfg(unix)]
+    fn write_executable(dir: &std::path::Path, name: &str) {
+        use std::os::unix::fs::PermissionsExt;
+        let path = dir.join(name);
+        std::fs::write(&path, b"").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[expect(clippy::disallowed_methods)]
+    fn spawn_isolated_sudo_case(path_dir: &std::path::Path, marker: &std::path::Path) {
+        let current = std::thread::current();
+        let test_name = current.name().expect("libtest names the test thread");
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", test_name, "--test-threads=1"])
+            .env("PATH", path_dir)
+            .env("TOPGRADE_ISOLATED_SUDO_CASE", "1")
+            .env("TOPGRADE_ISOLATED_SUDO_MARKER", marker)
+            .stdin(std::process::Stdio::null())
+            .output()
+            .unwrap();
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(
+            output.status.success() && std::fs::read_to_string(marker).is_ok_and(|text| text == "ok"),
+            "isolated `{test_name}` exited {}\nstdout:\n{stdout}\nstderr:\n{stderr}",
+            output.status
+        );
     }
 }

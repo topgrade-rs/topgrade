@@ -148,10 +148,16 @@ const DETECT_ORDER: [SudoKind; 2] = [SudoKind::Gsudo, SudoKind::WinSudo];
 
 impl Sudo {
     /// Get the `sudo` binary for this platform.
-    pub fn detect() -> Result<Self, SudoCreateError> {
+    ///
+    /// Kinds in `disallowed_kinds` are skipped. Later candidates keep their
+    /// order, and the existing not-found / Windows errors are unchanged.
+    pub fn detect(disallowed_kinds: &[SudoKind]) -> Result<Self, SudoCreateError> {
         use SudoCreateError::*;
 
         for kind in DETECT_ORDER {
+            if disallowed_kinds.contains(&kind) {
+                continue;
+            }
             match Self::new(kind) {
                 Ok(sudo) => return Ok(sudo),
                 Err(CannotFindBinary) => continue,
@@ -272,6 +278,11 @@ impl Sudo {
     #[allow(unused)]
     pub fn path(&self) -> Option<&Path> {
         self.path.as_deref()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn kind(&self) -> SudoKind {
+        self.kind
     }
 
     /// Elevate permissions with `sudo`.
@@ -566,7 +577,7 @@ impl Sudo {
 // We always define both though, so that we don't have to put
 // #[cfg(...)] everywhere.
 
-#[derive(Clone, Copy, Debug, Display, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Display, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
 pub enum SudoKind {
@@ -625,5 +636,102 @@ impl SudoKind {
             Some(name) => which(name),
             None => Ok(None),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Sudo, SudoCreateError, SudoKind};
+
+    /// Candidate order is Doas, Sudo, Pkexec, Run0, Please. Restricted detection
+    /// drops Run0 and leaves the rest in place. A PATH containing only run0 must
+    /// fail instead of selecting it.
+    ///
+    /// The child process gets its own PATH. Fixture binaries are empty and never executed.
+    #[cfg(unix)]
+    #[test]
+    fn detect_order_skips_run0_when_ineligible() {
+        if std::env::var_os("TOPGRADE_ISOLATED_SUDO_CASE").is_some() {
+            detect_order_child();
+            std::fs::write(std::env::var_os("TOPGRADE_ISOLATED_SUDO_MARKER").unwrap(), "ok").unwrap();
+            return;
+        }
+
+        let dir = tempfile::tempdir().unwrap();
+        for name in ["doas", "sudo", "pkexec", "run0", "please"] {
+            write_executable(dir.path(), name);
+        }
+        let marker = dir.path().join("isolated-ok");
+        spawn_isolated(dir.path(), &marker);
+    }
+
+    #[cfg(unix)]
+    fn detect_order_child() {
+        let root = std::path::PathBuf::from(std::env::var_os("PATH").unwrap());
+
+        let kind = |disallowed_kinds: &[SudoKind]| {
+            let sudo = Sudo::detect(disallowed_kinds)
+                .unwrap_or_else(|err| panic!("detect({disallowed_kinds:?}) failed: {err:?}"));
+            let path = sudo.path().unwrap();
+            assert!(
+                path.starts_with(&root),
+                "detect({disallowed_kinds:?}) escaped the fixture PATH: {}",
+                path.display()
+            );
+            sudo.kind()
+        };
+
+        assert_eq!(kind(&[]), SudoKind::Doas);
+        assert_eq!(kind(&[SudoKind::Run0]), SudoKind::Doas);
+        std::fs::remove_file(root.join("doas")).unwrap();
+
+        assert_eq!(kind(&[]), SudoKind::Sudo);
+        assert_eq!(kind(&[SudoKind::Run0]), SudoKind::Sudo);
+        std::fs::remove_file(root.join("sudo")).unwrap();
+
+        assert_eq!(kind(&[]), SudoKind::Pkexec);
+        assert_eq!(kind(&[SudoKind::Run0]), SudoKind::Pkexec);
+        std::fs::remove_file(root.join("pkexec")).unwrap();
+
+        // Run0 keeps its place between pkexec and please when it is eligible.
+        assert_eq!(kind(&[]), SudoKind::Run0);
+        assert_eq!(kind(&[SudoKind::Run0]), SudoKind::Please);
+        std::fs::remove_file(root.join("please")).unwrap();
+
+        assert_eq!(kind(&[]), SudoKind::Run0);
+        assert!(matches!(
+            Sudo::detect(&[SudoKind::Run0]),
+            Err(SudoCreateError::CannotFindBinary)
+        ));
+    }
+
+    #[cfg(unix)]
+    fn write_executable(dir: &std::path::Path, name: &str) {
+        use std::os::unix::fs::PermissionsExt;
+        let path = dir.join(name);
+        std::fs::write(&path, b"").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[expect(clippy::disallowed_methods)]
+    fn spawn_isolated(path_dir: &std::path::Path, marker: &std::path::Path) {
+        let current = std::thread::current();
+        let test_name = current.name().expect("libtest names the test thread");
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", test_name, "--test-threads=1"])
+            .env("PATH", path_dir)
+            .env("TOPGRADE_ISOLATED_SUDO_CASE", "1")
+            .env("TOPGRADE_ISOLATED_SUDO_MARKER", marker)
+            .stdin(std::process::Stdio::null())
+            .output()
+            .unwrap();
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(
+            output.status.success() && std::fs::read_to_string(marker).is_ok_and(|text| text == "ok"),
+            "isolated `{test_name}` exited {}\nstdout:\n{stdout}\nstderr:\n{stderr}",
+            output.status
+        );
     }
 }
