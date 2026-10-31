@@ -86,21 +86,13 @@ impl Drop for TempCwd {
 ///
 /// Toolbx shares the host home and the host system bus, so a configured `run0`
 /// would execute on the host (exit status 203 inside the container).
-/// `src/steps/toolbx.rs` passes `TOPGRADE_PREFIX='Toolbx <name>'` to `env`,
-/// which keeps the single quotes in the value. The unquoted `Toolbx <name>`
-/// form is accepted too. The name must be nonempty: SSH hosts, Distrobox, and
-/// any other prefix stay unrestricted.
+/// `src/steps/toolbx.rs` passes `TOPGRADE_PREFIX=Toolbx <name>` to `env`.
+/// The name must be nonempty: SSH hosts, Distrobox, and any other prefix stay
+/// unrestricted.
 ///
 /// See: https://github.com/topgrade-rs/topgrade/issues/2373
 fn is_toolbx_child(prefix: Option<&str>) -> bool {
-    let Some(prefix) = prefix else {
-        return false;
-    };
-    let body = prefix
-        .strip_prefix('\'')
-        .and_then(|rest| rest.strip_suffix('\''))
-        .unwrap_or(prefix);
-    matches!(body.strip_prefix("Toolbx "), Some(name) if !name.is_empty())
+    matches!(prefix.and_then(|prefix| prefix.strip_prefix("Toolbx ")), Some(name) if !name.is_empty())
 }
 
 /// Choose the privilege-escalation command.
@@ -453,13 +445,12 @@ mod tests {
     use super::{is_toolbx_child, select_sudo};
     use crate::sudo::{SudoCreateError, SudoKind};
 
-    /// Exact value `env` stores for `TOPGRADE_PREFIX='Toolbx fedora'`.
-    const GENERATED_TOOLBX_PREFIX: &str = "'Toolbx fedora'";
+    /// Exact value `env` stores for `TOPGRADE_PREFIX=Toolbx fedora`.
+    const GENERATED_TOOLBX_PREFIX: &str = "Toolbx fedora";
 
     #[test]
     fn toolbx_child_recognizes_generated_prefix_only() {
         assert!(is_toolbx_child(Some(GENERATED_TOOLBX_PREFIX)));
-        assert!(is_toolbx_child(Some("Toolbx fedora")));
         assert!(is_toolbx_child(Some("Toolbx dev")));
 
         assert!(!is_toolbx_child(None));
@@ -469,8 +460,6 @@ mod tests {
             "user@example.com",
             "Toolbx",
             "Toolbx ",
-            "'Toolbx'",
-            "'Toolbx '",
             "my Toolbx container",
             "Distrobox fedora",
         ] {
