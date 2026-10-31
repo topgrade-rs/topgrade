@@ -18,12 +18,10 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     print_separator(t!("FreeBSD Packages"));
 
     let sudo = ctx.require_sudo()?;
-    let mut command = sudo.execute(ctx, "/usr/sbin/pkg")?;
-    command.arg("upgrade");
-    if ctx.config().yes(Step::System) {
-        command.arg("-y");
-    }
-    command.status_checked()
+    sudo.execute(ctx, "/usr/sbin/pkg")?
+        .arg("upgrade")
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .status_checked()
 }
 
 pub fn audit_packages(ctx: &ExecutionContext) -> Result<()> {

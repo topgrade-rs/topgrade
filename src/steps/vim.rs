@@ -74,9 +74,9 @@ fn upgrade(command: &mut Executor, ctx: &ExecutionContext) -> Result<()> {
     if let ExecutorOutput::Wet(output) = output {
         let status = output.status;
 
-        if !status.success() || ctx.config().verbose() {
-            io::stdout().write_all(&output.stdout).ok();
-            io::stderr().write_all(&output.stderr).ok();
+        if !status.success() {
+            io::stdout().write_all(&output.stdout)?;
+            io::stderr().write_all(&output.stderr)?;
         }
 
         if !status.success() {
@@ -122,7 +122,7 @@ pub fn upgrade_vim(ctx: &ExecutionContext) -> Result<()> {
 
     let output = ctx.execute(&vim).always().arg("--version").output_checked_utf8()?;
     if !output.stdout.starts_with("VIM") {
-        return Err(SkipStep(t!("vim binary might be actually nvim").to_string()).into());
+        return Err(SkipStep(t!("vim binary might actually be nvim").to_string()).into());
     }
 
     let vimrc = vimrc()?;

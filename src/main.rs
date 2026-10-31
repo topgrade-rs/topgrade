@@ -17,16 +17,15 @@ use etcetera::base_strategy::Windows;
 #[cfg(unix)]
 use etcetera::base_strategy::Xdg;
 use rust_i18n::{i18n, t};
-use std::sync::LazyLock;
+use std::sync::{LazyLock, OnceLock};
+use tempfile::{TempDir, tempdir};
 use tracing::debug;
 
 use self::config::{CommandLineArgs, Config};
 use self::error::StepFailed;
 use self::runner::StepResult;
-#[allow(clippy::wildcard_imports)]
 use self::steps::{remote::*, *};
 use self::sudo::{Sudo, SudoCreateError, SudoKind};
-#[allow(clippy::wildcard_imports)]
 use self::terminal::*;
 use self::utils::{install_color_eyre, install_tracing, is_elevated, set_wsl_use_windows_path, update_tracing};
 
@@ -50,17 +49,39 @@ mod terminal;
 mod tmux;
 mod utils;
 
+// Users without home directory are possible, but no-one has complained yet
 pub(crate) static HOME_DIR: LazyLock<PathBuf> = LazyLock::new(|| home_dir().expect("No home directory"));
 #[cfg(unix)]
 pub(crate) static XDG_DIRS: LazyLock<Xdg> = LazyLock::new(|| Xdg::new().expect("No home directory"));
-
 #[cfg(windows)]
 pub(crate) static WINDOWS_DIRS: LazyLock<Windows> = LazyLock::new(|| Windows::new().expect("No home directory"));
 
 // Init and load the i18n files
 i18n!("locales", fallback = "en");
 
-#[allow(clippy::too_many_lines)]
+pub(crate) static OLD_CWD: OnceLock<PathBuf> = OnceLock::new();
+
+struct TempCwd {
+    #[allow(unused)]
+    temp_dir: TempDir,
+    old_cwd: PathBuf,
+}
+
+impl TempCwd {
+    fn new() -> Result<Self> {
+        let old_cwd = env::current_dir()?;
+        let temp_dir = tempdir()?;
+        env::set_current_dir(&temp_dir)?;
+        Ok(Self { temp_dir, old_cwd })
+    }
+}
+
+impl Drop for TempCwd {
+    fn drop(&mut self) {
+        env::set_current_dir(&self.old_cwd).expect("Restoring cwd failed");
+    }
+}
+
 fn run() -> Result<()> {
     install_color_eyre()?;
     ctrlc::set_handler();
@@ -133,6 +154,11 @@ fn run() -> Result<()> {
         }
     }
 
+    // Some steps (like mise or pi) have different behavior when ran in a project directory.
+    //  Since Topgrade only handles global updates, run all commands in a temporary directory.
+    let temp_cwd = TempCwd::new()?;
+    OLD_CWD.set(temp_cwd.old_cwd.clone()).unwrap();
+
     let elevated = is_elevated();
 
     #[cfg(unix)]
@@ -183,14 +209,14 @@ fn run() -> Result<()> {
         None
     };
 
-    if config.pre_sudo()
-        && let Some(sudo) = ctx.sudo()
+    if let Some(sudo) = ctx.sudo()
+        && (config.pre_sudo() || (config.sudo_loop() && sudo.can_refresh()))
     {
         sudo.elevate(&ctx)?;
     }
 
     // Held until `run()` returns — dropping would stop the background thread.
-    let _sudo_loop_guard = spawn_sudo_loop(&ctx, &config);
+    let _sudo_loop_guard = spawn_sudo_loop(&ctx, &config)?;
 
     if let Some(commands) = config.pre_commands() {
         for (name, command) in commands {
@@ -245,7 +271,7 @@ fn run() -> Result<()> {
                         "Install one of `sudo`, `doas`, `pkexec`, `run0` or `please` to run these steps."
                     ));
 
-                    // if this windows version supported Windows Sudo, the error would have been WinSudoDisabled
+                    // If this Windows version supported Windows Sudo, the error would have been WinSudoDisabled
                     #[cfg(windows)]
                     print_warning(t!("Install gsudo to run these steps."));
                 }
@@ -325,11 +351,17 @@ fn run() -> Result<()> {
     if failed { Err(StepFailed.into()) } else { Ok(()) }
 }
 
-fn spawn_sudo_loop(ctx: &execution_context::ExecutionContext, config: &Config) -> Option<std::sync::mpsc::Sender<()>> {
+fn spawn_sudo_loop(
+    ctx: &execution_context::ExecutionContext,
+    config: &Config,
+) -> Result<Option<std::sync::mpsc::Sender<()>>> {
     if !config.sudo_loop() {
-        return None;
+        return Ok(None);
     }
-    let sudo = ctx.sudo().as_ref()?.clone();
+    let sudo = match ctx.sudo().as_ref() {
+        None => return Ok(None),
+        Some(sudo) => sudo.clone(),
+    };
     let run_type = ctx.run_type();
     let interval = Duration::from_secs(config.sudo_loop_interval().into());
     let (tx, rx) = std::sync::mpsc::channel::<()>();
@@ -347,8 +379,8 @@ fn spawn_sudo_loop(ctx: &execution_context::ExecutionContext, config: &Config) -
                 }
             }
         })
-        .expect("failed to spawn sudo-loop thread");
-    Some(tx)
+        .wrap_err("failed to spawn sudo-loop thread")?;
+    Ok(Some(tx))
 }
 
 fn main() {

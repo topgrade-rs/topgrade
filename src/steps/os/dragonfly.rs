@@ -9,12 +9,10 @@ pub fn upgrade_packages(ctx: &ExecutionContext) -> Result<()> {
     print_separator(t!("DragonFly BSD Packages"));
 
     let sudo = ctx.require_sudo()?;
-    let mut cmd = sudo.execute(ctx, "/usr/local/sbin/pkg")?;
-    cmd.arg("upgrade");
-    if ctx.config().yes(Step::System) {
-        cmd.arg("-y");
-    }
-    cmd.status_checked()
+    sudo.execute(ctx, "/usr/local/sbin/pkg")?
+        .arg("upgrade")
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .status_checked()
 }
 
 pub fn audit_packages(ctx: &ExecutionContext) -> Result<()> {

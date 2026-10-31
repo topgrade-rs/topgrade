@@ -22,14 +22,10 @@ pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
 
     let sudo = ctx.require_sudo()?;
 
-    let mut command = sudo.execute(ctx, &choco)?;
-    command.args(["upgrade", "all"]);
-
-    if yes {
-        command.arg("--yes");
-    }
-
-    command.status_checked()
+    sudo.execute(ctx, &choco)?
+        .args(["upgrade", "all"])
+        .arg_if(yes, "--yes")
+        .status_checked()
 }
 
 pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
@@ -80,33 +76,28 @@ pub fn update_wsl(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(t!("Update WSL"));
 
-    let mut wsl_command = ctx.execute(wsl);
-    wsl_command.args(["--update"]);
+    ctx.execute(wsl)
+        .args(["--update"])
+        .arg_if(ctx.config().wsl_update_pre_release(), "--pre-release")
+        .arg_if(ctx.config().wsl_update_use_web_download(), "--web-download")
+        .status_checked()?;
 
-    if ctx.config().wsl_update_pre_release() {
-        wsl_command.args(["--pre-release"]);
-    }
-
-    if ctx.config().wsl_update_use_web_download() {
-        wsl_command.args(["--web-download"]);
-    }
-    wsl_command.status_checked()?;
     Ok(())
 }
 
 /// Detect if WSL is installed or not.
 ///
 /// For WSL, we cannot simply check if command `wsl` is installed as on newer
-/// versions of Windows (since windows 10 version 2004), this command is
+/// versions of Windows (since Windows 10 version 2004), this command is
 /// installed by default.
 ///
 /// If the command is installed and the user hasn't installed any Linux distros
 /// on it, command `wsl -l` would print a help message and exit with failure, we
-/// use this to check whether WSL is install or not.
+/// use this to check whether WSL is installed or not.
 fn is_wsl_installed() -> Result<bool> {
-    if let Some(wsl) = which("wsl") {
+    if let Some(wsl) = which("wsl")? {
         // Don't use `output_checked` as an execution failure log is not wanted
-        #[allow(clippy::disallowed_methods)]
+        #[expect(clippy::disallowed_methods)]
         let output = Command::new(wsl).arg("-l").output()?;
         let status = output.status;
 
@@ -143,31 +134,30 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
         .trim_end()
         .to_owned();
 
-    let mut command = ctx.execute(wsl);
+    // WSL joins the arguments following the Linux command into a command line,
+    // so arguments appended after the `bash -lc` script are not reliably passed
+    // through as Bash positional parameters. Keep the complete script in one
+    // argument and shell-quote the values that originated outside this function.
+    let script = wsl_topgrade_script(dist, &topgrade, ctx.config().verbose(), ctx.config().yes(Step::Wsl));
 
-    // Pass the distro name, discovered topgrade path, and forwarded flags as
-    // positional parameters so the inner `bash -lc` receives them as single argv
-    // elements instead of parsing their contents. `"${@:3}"` forwards the flags
-    // to `topgrade` (not `bash`) and expands to nothing when there are none.
-    command
-        .args([
-            "-d",
-            dist,
-            "bash",
-            "-lc",
-            r#"TOPGRADE_PREFIX="$1" exec "$2" "${@:3}""#,
-            "bash",
-        ])
-        .arg(dist)
-        .arg(&topgrade);
-    if ctx.config().verbose() {
-        command.arg("-v");
-    }
-    if ctx.config().yes(Step::Wsl) {
-        command.arg("-y");
-    }
+    ctx.execute(wsl)
+        .args(["-d", dist, "bash", "-lc", &script])
+        .status_checked()
+}
 
-    command.status_checked()
+fn wsl_topgrade_script(dist: &str, topgrade: &str, verbose: bool, yes: bool) -> String {
+    let mut script = format!(
+        "TOPGRADE_PREFIX={} exec {}",
+        shell_words::quote(dist),
+        shell_words::quote(topgrade)
+    );
+    if verbose {
+        script.push_str(" -v");
+    }
+    if yes {
+        script.push_str(" -y");
+    }
+    script
 }
 
 pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
@@ -178,21 +168,27 @@ pub fn run_wsl_topgrade(ctx: &ExecutionContext) -> Result<()> {
     let wsl = require("wsl")?;
     let wsl_distributions = get_wsl_distributions(ctx, &wsl)?;
     let mut ran = false;
+    let mut first_error = None;
 
     debug!("WSL distributions: {:?}", wsl_distributions);
 
     for distribution in wsl_distributions {
         let result = upgrade_wsl_distribution(&wsl, &distribution, ctx);
         debug!("Upgrading {:?}: {:?}", distribution, result);
-        if let Err(e) = result
-            && e.is::<SkipStep>()
-        {
-            continue;
+        match result {
+            Ok(()) => ran = true,
+            Err(e) if e.is::<SkipStep>() => continue,
+            Err(e) => {
+                if first_error.is_none() {
+                    first_error = Some(e);
+                }
+            }
         }
-        ran = true
     }
 
-    if ran {
+    if let Some(error) = first_error {
+        Err(error)
+    } else if ran {
         Ok(())
     } else {
         Err(SkipStep(t!("Could not find Topgrade in any WSL distribution").to_string()).into())
@@ -280,4 +276,17 @@ pub fn insert_startup_scripts(ctx: &ExecutionContext, git_repos: &mut RepoStep) 
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::wsl_topgrade_script;
+
+    #[test]
+    fn wsl_topgrade_script_quotes_dynamic_values_and_forwards_flags() {
+        assert_eq!(
+            wsl_topgrade_script("Distro's name", "/home/user/top grade", true, true),
+            "TOPGRADE_PREFIX='Distro'\\''s name' exec '/home/user/top grade' -v -y"
+        );
+    }
 }

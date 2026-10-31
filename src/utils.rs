@@ -1,12 +1,22 @@
+#[cfg(windows)]
+use crate::WINDOWS_DIRS;
+#[cfg(unix)]
+use crate::XDG_DIRS;
+use crate::output_changed_message;
+use std::collections::HashSet;
+use std::env;
 use std::ffi::OsStr;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
+use std::process::Command;
+use std::sync::{LazyLock, OnceLock};
 
-use color_eyre::eyre::{Result, eyre};
+use color_eyre::eyre::{Context, Result, eyre};
+use etcetera::BaseStrategy;
+use itertools::Itertools;
 use rust_i18n::t;
 
-use tracing::{debug, error, warn};
+use tracing::{debug, warn};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::reload::{Handle, Layer};
 use tracing_subscriber::util::SubscriberInitExt;
@@ -18,6 +28,7 @@ use crate::config::DEFAULT_LOG_LEVEL;
 use crate::error::SkipStep;
 use crate::execution_context::ExecutionContext;
 use crate::executor::Executor;
+use crate::steps::generic::IS_WSL;
 
 pub trait PathExt
 where
@@ -76,6 +87,20 @@ where
     }
 }
 
+#[allow(unused)]
+pub trait OptionExt<T> {
+    fn or_else_fallible<F: FnOnce() -> Result<Option<T>>>(self, f: F) -> Result<Option<T>>;
+}
+
+impl<T> OptionExt<T> for Option<T> {
+    fn or_else_fallible<F: FnOnce() -> Result<Option<T>>>(self, f: F) -> Result<Option<T>> {
+        match self {
+            Some(x) => Ok(Some(x)),
+            None => f(),
+        }
+    }
+}
+
 /// `[linux] wsl_use_windows_path`, set once at startup. While unset the filter keeps its
 /// default: off outside WSL, on inside.
 static WSL_USE_WINDOWS_PATH: OnceLock<bool> = OnceLock::new();
@@ -90,138 +115,128 @@ pub fn set_wsl_use_windows_path(use_windows_path: bool) -> Result<()> {
 /// fails to run in the guest (topgrade-rs/topgrade#1243). When on, detection skips those.
 /// Off via `wsl_use_windows_path = true`.
 fn wsl_windows_path_filter_enabled() -> bool {
-    crate::steps::generic::is_wsl().unwrap_or(false) && !WSL_USE_WINDOWS_PATH.get().copied().unwrap_or(false)
+    *IS_WSL && !WSL_USE_WINDOWS_PATH.get().copied().unwrap_or(false)
 }
 
 /// Mount points backed by Windows drives (drvfs on WSL1, 9p/virtiofs on WSL2).
-fn windows_mount_prefixes() -> &'static [PathBuf] {
-    static PREFIXES: OnceLock<Vec<PathBuf>> = OnceLock::new();
-    PREFIXES.get_or_init(|| {
-        // On a read failure the list stays empty, so the filter is inert (plain lookup).
-        let mounts = std::fs::read_to_string("/proc/mounts").unwrap_or_else(|e| {
-            warn!("Could not read /proc/mounts: {e}; WSL Windows-path filter stays inert");
-            String::new()
-        });
-        mounts
-            .lines()
-            .filter_map(|line| {
-                let mut cols = line.split_whitespace();
-                let _source = cols.next()?;
-                let mount_point = cols.next()?;
-                let fstype = cols.next()?;
-                let options = cols.next().unwrap_or("");
-                // A Windows drive is WSL1 drvfs, or a WSL2 9p/virtiofs mount tagged
-                // `aname=drvfs`. Keying on that tag rather than the fstype avoids WSL's own
-                // 9p/virtiofs mounts (/usr/lib/wsl/drivers, /mnt/wslg) and still catches a
-                // drive mounted via virtiofs.
-                (fstype == "drvfs" || options.contains("aname=drvfs")).then(|| PathBuf::from(mount_point))
+static PREFIXES: LazyLock<Vec<PathBuf>> = LazyLock::new(|| {
+    // On a read failure the list stays empty, so the filter is inert (plain lookup).
+    let mounts = std::fs::read_to_string("/proc/mounts").unwrap_or_else(|e| {
+        warn!("Could not read /proc/mounts: {e}; WSL Windows-path filter stays inert");
+        String::new()
+    });
+    mounts
+        .lines()
+        .filter_map(|line| {
+            let mut cols = line.split_whitespace();
+            let _source = cols.next()?;
+            let mount_point = cols.next()?;
+            let fstype = cols.next()?;
+            let options = cols.next().unwrap_or("");
+            // A Windows drive is WSL1 drvfs, or a WSL2 9p/virtiofs mount tagged
+            // `aname=drvfs`. Keying on that tag rather than the fstype avoids WSL's own
+            // 9p/virtiofs mounts (/usr/lib/wsl/drivers, /mnt/wslg) and still catches a
+            // drive mounted via virtiofs.
+            (fstype == "drvfs" || options.contains("aname=drvfs")).then(|| PathBuf::from(mount_point))
+        })
+        .collect()
+});
+
+fn is_windows_mount_path(path: &Path) -> bool {
+    PREFIXES.iter().any(|prefix| path.starts_with(prefix))
+}
+
+/// Mise shims dir, normally ~/.local/share/mise/shims
+static MISE_SHIMS: LazyLock<PathBuf> = LazyLock::new(|| {
+    env::var("MISE_SHIMS_DIR").map(PathBuf::from).unwrap_or_else(|_| {
+        env::var("MISE_DATA_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| {
+                #[cfg(unix)]
+                let data_dir = XDG_DIRS.data_dir();
+                #[cfg(windows)]
+                let data_dir = WINDOWS_DIRS.cache_dir(); // AppData\Local
+                data_dir.join("mise")
             })
-            .collect()
+            .join("shims")
     })
+});
+
+fn mise_shim_is_nonfunctional(path: &Path) -> Result<bool> {
+    // --help is usually safe to run. A program not supporting it and erroring is okay too.
+    debug!("{path:?} is in mise shims dir ({MISE_SHIMS:?}), running `{path:?} --help` to check if it is functional");
+    // TODO: There's no easy way to do this without `which` and `require` taking `ctx`.
+    //  This loses automatic logging and damp runs.
+    #[expect(clippy::disallowed_methods)]
+    let out = Command::new(path)
+        .arg("--help")
+        .output()
+        .wrap_err_with(|| format!("Running `{} --help` failed", path.display()))?;
+    let stderr = match String::from_utf8(out.stderr) {
+        Ok(stderr) => stderr,
+        Err(_) => return Ok(false), // Non-UTF-8 output is weird, but mise's shim errors are UTF-8 so it must be working
+    };
+    Ok(stderr.contains("mise ERROR No version is set for shim:"))
 }
 
-fn is_windows_mount_path(path: &Path, prefixes: &[PathBuf]) -> bool {
-    prefixes.iter().any(|prefix| path.starts_with(prefix))
-}
-
-/// `which`, but skips executables on Windows drive mounts.
-fn which_native_in_wsl<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBuf> {
-    let mut candidates = match which_crate::which_all(&binary_name) {
+pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<Option<PathBuf>> {
+    #[expect(clippy::disallowed_methods)]
+    let candidates = match which_crate::which_all(&binary_name) {
         Ok(candidates) => candidates,
         Err(which_crate::Error::CannotFindBinaryPath) => {
             debug!("Cannot find {:?}", &binary_name);
-            return None;
+            return Ok(None);
         }
-        Err(e) => {
-            error!("Detecting {:?} failed: {}", &binary_name, e);
-            return None;
-        }
+        Err(e) => return Err(eyre!(e).wrap_err(format!("Detecting {:?} failed", binary_name))),
     };
 
-    let prefixes = windows_mount_prefixes();
-    let mut saw_candidate = false;
-    let native = candidates.find(|path| {
-        saw_candidate = true;
-        !is_windows_mount_path(path, prefixes)
-    });
-    match native {
+    let mut errors = HashSet::new();
+    let path = 'find: {
+        for path in candidates {
+            if path.starts_with(&*MISE_SHIMS) && mise_shim_is_nonfunctional(&path)? {
+                errors.insert("a Mise shim without global default version");
+                continue;
+            }
+            if wsl_windows_path_filter_enabled() && is_windows_mount_path(&path) {
+                errors.insert("a Windows binary via WSL interop");
+                continue;
+            }
+            break 'find Some(path);
+        }
+        None
+    };
+
+    match path {
         Some(path) => {
             debug!("Detected {:?} as {:?}", &path, &binary_name);
-            Some(path)
-        }
-        // Every PATH match was a Windows binary on a drive mount.
-        None if saw_candidate => {
-            debug!(
-                "Cannot find native {:?} in PATH (only Windows binaries via WSL interop)",
-                &binary_name
-            );
-            None
+            Ok(Some(path))
         }
         None => {
-            debug!("Cannot find {:?}", &binary_name);
-            None
-        }
-    }
-}
-
-pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Option<PathBuf> {
-    if wsl_windows_path_filter_enabled() {
-        return which_native_in_wsl(&binary_name);
-    }
-
-    match which_crate::which(&binary_name) {
-        Ok(path) => {
-            debug!("Detected {:?} as {:?}", &path, &binary_name);
-            Some(path)
-        }
-        Err(e) => {
-            match e {
-                which_crate::Error::CannotFindBinaryPath => {
-                    debug!("Cannot find {:?}", &binary_name);
-                }
-                _ => {
-                    error!("Detecting {:?} failed: {}", &binary_name, e);
-                }
+            if !errors.is_empty() {
+                debug!(
+                    "Cannot find usable {:?} in PATH (only {})",
+                    &binary_name,
+                    errors.into_iter().sorted().join(", and ")
+                );
+            } else {
+                debug!("Cannot find {:?}", &binary_name);
             }
-
-            None
+            Ok(None)
         }
     }
 }
 
 pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
-    if wsl_windows_path_filter_enabled() {
-        return which_native_in_wsl(&binary_name).ok_or_else(|| {
-            SkipStep(format!(
-                "{}",
-                t!(
-                    "Cannot find {binary_name} in PATH",
-                    binary_name = format!("{:?}", &binary_name)
-                )
-            ))
-            .into()
-        });
-    }
-
-    match which_crate::which(&binary_name) {
-        Ok(path) => {
-            debug!("Detected {:?} as {:?}", &path, &binary_name);
-            Ok(path)
-        }
-        Err(e) => match e {
-            which_crate::Error::CannotFindBinaryPath => Err(SkipStep(format!(
-                "{}",
-                t!(
-                    "Cannot find {binary_name} in PATH",
-                    binary_name = format!("{:?}", &binary_name)
-                )
-            ))
-            .into()),
-            _ => {
-                panic!("Detecting {:?} failed: {}", binary_name, e);
-            }
-        },
-    }
+    which(&binary_name)?.ok_or_else(|| {
+        SkipStep(format!(
+            "{}",
+            t!(
+                "Cannot find {binary_name} in PATH",
+                binary_name = format!("{:?}", &binary_name)
+            )
+        ))
+        .into()
+    })
 }
 
 #[allow(unused)]
@@ -241,12 +256,22 @@ pub fn require_flatpak(ctx: &ExecutionContext, name: &str) -> Result<Executor> {
     }
 }
 
+#[allow(unused)]
+pub fn which_one<T: AsRef<OsStr> + Debug>(binary_names: impl IntoIterator<Item = T>) -> Result<Option<PathBuf>> {
+    for bin in binary_names {
+        if let Some(path) = which(&bin)? {
+            return Ok(Some(path));
+        }
+    }
+    Ok(None)
+}
+
 pub fn require_one<T: AsRef<OsStr> + Debug>(binary_names: impl IntoIterator<Item = T>) -> Result<PathBuf> {
     let mut failed_bins = Vec::new();
     for bin in binary_names {
-        match require(&bin) {
-            Ok(path) => return Ok(path),
-            Err(_) => failed_bins.push(bin),
+        match which(&bin)? {
+            Some(path) => return Ok(path),
+            None => failed_bins.push(bin),
         }
     }
 
@@ -256,9 +281,38 @@ pub fn require_one<T: AsRef<OsStr> + Debug>(binary_names: impl IntoIterator<Item
             "Cannot find any of {binary_names} in PATH",
             binary_names = failed_bins
                 .iter()
-                .map(|bin| format!("{:?}", bin))
-                .collect::<Vec<_>>()
-                .join(", ")
+                .format_with(", ", |bin, f| f(&format_args!("{:?}", bin)))
+        )
+    ))
+    .into())
+}
+
+pub fn is_installed_via_homebrew(binary: &Path) -> bool {
+    binary
+        .canonicalize()
+        .is_ok_and(|p| p.to_string_lossy().contains("/Cellar/"))
+}
+
+#[allow(dead_code)]
+pub fn require_one_path<T: AsRef<Path> + Debug>(paths: impl IntoIterator<Item = T>) -> Result<PathBuf> {
+    let mut failed_paths = Vec::new();
+    for path_s in paths {
+        let path = path_s.as_ref();
+        if path.exists() {
+            debug!("Found required path at {:?}", path);
+            return Ok(path.to_path_buf());
+        } else {
+            failed_paths.push(path_s);
+        }
+    }
+
+    Err(SkipStep(format!(
+        "{}",
+        t!(
+            "None of {paths} exist",
+            paths = failed_paths
+                .iter()
+                .format_with(", ", |path, f| f(&format_args!("{:?}", path)))
         )
     ))
     .into())
@@ -313,54 +367,40 @@ pub fn is_elevated() -> bool {
 }
 
 pub mod merge_strategies {
-    use merge::Merge;
-
-    use crate::config::Commands;
+    use indexmap::IndexMap;
+    use std::hash::Hash;
+    use std::mem;
 
     /// Prepends right to left (both Option<Vec<T>>)
-    pub fn vec_prepend_opt<T>(left: &mut Option<Vec<T>>, right: Option<Vec<T>>) {
+    pub fn vec_prepend_opt<T>(left: &mut Option<Vec<T>>, right: &mut Option<Vec<T>>) {
         if let Some(left_vec) = left {
-            if let Some(mut right_vec) = right {
-                right_vec.append(left_vec);
-                let _ = left.replace(right_vec);
+            if let Some(right_vec) = right {
+                merge2::vec::prepend(left_vec, right_vec);
             }
         } else {
-            *left = right;
+            mem::swap(left, right);
         }
     }
 
     /// Appends an Option<String> to another Option<String>
-    pub fn string_append_opt(left: &mut Option<String>, right: Option<String>) {
+    pub fn string_append_opt(left: &mut Option<String>, right: &mut Option<String>) {
         if let Some(left_str) = left {
             if let Some(right_str) = right {
                 left_str.push(' ');
-                left_str.push_str(&right_str);
+                left_str.push_str(right_str);
             }
         } else {
-            *left = right;
+            mem::swap(left, right);
         }
     }
 
-    pub fn inner_merge_opt<T>(left: &mut Option<T>, right: Option<T>)
-    where
-        T: Merge,
-    {
+    pub fn indexmap_merge_opt<T: Hash + Eq, U>(left: &mut Option<IndexMap<T, U>>, right: &mut Option<IndexMap<T, U>>) {
         if let Some(left_inner) = left {
             if let Some(right_inner) = right {
-                left_inner.merge(right_inner);
+                left_inner.extend(mem::take(right_inner));
             }
         } else {
-            *left = right;
-        }
-    }
-
-    pub fn commands_merge_opt(left: &mut Option<Commands>, right: Option<Commands>) {
-        if let Some(left_inner) = left {
-            if let Some(right_inner) = right {
-                left_inner.extend(right_inner);
-            }
-        } else {
-            *left = right;
+            mem::swap(left, right);
         }
     }
 }
@@ -370,7 +410,7 @@ pub mod merge_strategies {
 /// # Shim
 /// On Windows, if you install `python` through `winget`, an actual `python`
 /// is installed as well as a `python3` shim. Shim is invocable, but when you
-/// execute it, the Microsoft App Store will be launched instead of a Python
+/// execute it, the Microsoft Store will be launched instead of a Python
 /// shell.
 ///
 /// We do this check through `python -V`, a shim will just give `Python` with
@@ -386,9 +426,14 @@ pub fn check_is_python_2_or_shim(ctx: &ExecutionContext, python: PathBuf) -> Res
         let major_version = version
             .split('.')
             .next()
-            .expect("Should have a major version number")
+            .ok_or_else(|| {
+                eyre!(output_changed_message!(
+                    "python -V",
+                    "Should have a major version number"
+                ))
+            })?
             .parse::<u32>()
-            .expect("Major version should be a valid number");
+            .wrap_err_with(|| output_changed_message!("python -V", "Major version should be a valid number"))?;
         if major_version == 2 {
             return Err(SkipStep(t!("{python} is a Python 2, skip.", python = python.display()).to_string()).into());
         }
@@ -448,9 +493,10 @@ pub fn install_color_eyre() -> Result<()> {
 macro_rules! output_changed_message {
     ($command:expr, $message:expr) => {
         format!(
-            "The output of `{}` changed: {}. This is not your fault, this is an issue in Topgrade. Please open an issue at: https://github.com/topgrade-rs/topgrade/issues/new?template=bug_report.md",
+            "The output of `{}` changed: {}. This is not your fault, this is an issue in Topgrade. Please open an issue at: https://github.com/topgrade-rs/topgrade/issues/new?template=bug-report.yml&version=topgrade%20{}",
             $command,
             $message,
+            env!("CARGO_PKG_VERSION"),
         )
     };
 }

@@ -5,7 +5,7 @@ repos:
   - id: gitleaks
 
 - repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: v0.11.0.1
+  rev: v0.11.0.1-1
   hooks:
   - id: shellcheck
     args: [--external-sources]
@@ -17,7 +17,7 @@ repos:
   - id: trailing-whitespace
 
 - repo: https://github.com/adhtruong/mirrors-typos
-  rev: v1.48.0
+  rev: v1.51.1
   hooks:
   - id: typos
     args:

@@ -23,14 +23,15 @@ pub fn run_go_gup(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("gup");
 
-    let mut command = ctx.execute(gup);
-    command.arg("update");
-
-    for exclude in ctx.config().gup_exclude() {
-        command.args(["--exclude", exclude]);
-    }
-
-    command.status_checked()
+    ctx.execute(gup)
+        .arg("update")
+        .args(
+            ctx.config()
+                .gup_exclude()
+                .iter()
+                .flat_map(|exclude| ["--exclude", exclude]),
+        )
+        .status_checked()
 }
 
 /// Get the path of a Go binary.
@@ -42,7 +43,7 @@ fn require_go_bin(ctx: &ExecutionContext, name: &str) -> Result<PathBuf> {
         // > On Unix, the value is a colon-separated string.
         // > On Windows, the value is a semicolon-separated string.
         // > On Plan 9, the value is a list.
-        // Should we also fallback to the env variable?
+        // Should we also fall back to the env variable?
         let gopath_output = ctx.execute(go).always().args(["env", "GOPATH"]).output_checked_utf8()?;
         let gopath = gopath_output.stdout.trim();
 

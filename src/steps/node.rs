@@ -40,13 +40,12 @@ impl Display for NPMVariant {
     }
 }
 
-#[allow(clippy::upper_case_acronyms)]
-struct NPM {
+struct Npm {
     command: PathBuf,
     variant: NPMVariant,
 }
 
-impl NPM {
+impl Npm {
     fn new(command: PathBuf, variant: NPMVariant) -> Self {
         Self { command, variant }
     }
@@ -126,7 +125,7 @@ impl Yarn {
         // Get the version of Yarn. After Yarn 2.x (berry),
         // "yarn global" has been replaced with "yarn dlx".
         //
-        // As "yarn dlx" don't need to "upgrade", we
+        // As "yarn dlx" doesn't need to "upgrade", we
         // ignore the whole task if Yarn is 2.x or above.
         let version = ctx
             .execute(&self.command)
@@ -214,7 +213,7 @@ impl Deno {
             } else if bin_version >= Version::new(1, 0, 0) {
                 match version {
                     "stable" | "rc" | "canary" => {
-                        // Prior to v1.6.0, `deno upgrade` is not able fetch the latest tag version.
+                        // Prior to v1.6.0, `deno upgrade` is not able to fetch the latest tag version.
                         return Err(
                             SkipStep("Deno (1.0.0-1.6.0) cannot be upgraded to a named channel".to_string()).into(),
                         );
@@ -233,6 +232,10 @@ impl Deno {
                 // nor can be upgraded to a specific version.
                 return Err(SkipStep("Unsupported Deno version".to_string()).into());
             }
+        }
+
+        if ctx.config().deno_no_delta() {
+            args.push("--no-delta");
         }
 
         ctx.execute(&self.command).arg("upgrade").args(args).status_checked()?;
@@ -313,12 +316,12 @@ impl VitePlus {
 }
 
 #[cfg(target_os = "linux")]
-fn should_use_sudo(npm: &NPM, ctx: &ExecutionContext) -> Result<bool> {
+fn should_use_sudo(npm: &Npm, ctx: &ExecutionContext) -> Result<bool> {
     if npm.should_use_sudo(ctx)? {
         if ctx.config().npm_use_sudo() {
             Ok(true)
         } else {
-            Err(SkipStep(format!("{} root is owned by another user which is not the current user. Set use_sudo = true under the [npm] section in your configuration to run {} as sudo", npm.variant, npm.variant))
+            Err(SkipStep(format!("{} root is owned by another user who is not the current user. Set use_sudo = true under the [npm] section in your configuration to run {} as sudo", npm.variant, npm.variant))
                 .into())
         }
     } else {
@@ -332,7 +335,7 @@ fn should_use_sudo_viteplus(viteplus: &VitePlus, ctx: &ExecutionContext) -> Resu
         if ctx.config().viteplus_use_sudo() {
             Ok(true)
         } else {
-            Err(SkipStep("Vite+ root is owned by another user which is not the current user. Set use_sudo = true under the [viteplus] section in your configuration to run Vite+ as sudo".to_string())
+            Err(SkipStep("Vite+ root is owned by another user who is not the current user. Set use_sudo = true under the [viteplus] section in your configuration to run Vite+ as sudo".to_string())
                 .into())
         }
     } else {
@@ -346,7 +349,7 @@ fn should_use_sudo_yarn(yarn: &Yarn, ctx: &ExecutionContext) -> Result<bool> {
         if ctx.config().yarn_use_sudo() {
             Ok(true)
         } else {
-            Err(SkipStep("Yarn root is owned by another user which is not the current user. Set use_sudo = true under the [yarn] section in your configuration to run Yarn as sudo".to_string())
+            Err(SkipStep("Yarn root is owned by another user who is not the current user. Set use_sudo = true under the [yarn] section in your configuration to run Yarn as sudo".to_string())
                 .into())
         }
     } else {
@@ -355,7 +358,7 @@ fn should_use_sudo_yarn(yarn: &Yarn, ctx: &ExecutionContext) -> Result<bool> {
 }
 
 pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let npm = require("npm").map(|b| NPM::new(b, NPMVariant::Npm))?;
+    let npm = require("npm").map(|b| Npm::new(b, NPMVariant::Npm))?;
 
     print_separator(t!("Node Package Manager"));
 
@@ -371,7 +374,7 @@ pub fn run_npm_upgrade(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn run_pnpm_upgrade(ctx: &ExecutionContext) -> Result<()> {
-    let pnpm = require("pnpm").map(|b| NPM::new(b, NPMVariant::Pnpm))?;
+    let pnpm = require("pnpm").map(|b| Npm::new(b, NPMVariant::Pnpm))?;
 
     print_separator(t!("Performant Node Package Manager"));
 

@@ -6,6 +6,7 @@ use std::path::Path;
 use std::process::{Child, Command, ExitStatus, Output, Stdio};
 
 use color_eyre::eyre::Result;
+use itertools::Itertools;
 use rust_i18n::t;
 use tracing::{Level, debug, enabled};
 
@@ -79,6 +80,49 @@ impl Executor {
     }
 
     #[allow(dead_code)]
+    /// See `std::process::Command::arg`
+    pub fn arg_if<S: AsRef<OsStr>>(&mut self, cond: bool, arg: S) -> &mut Executor {
+        if cond { self.arg(arg) } else { self }
+    }
+
+    #[allow(dead_code)]
+    /// See `std::process::Command::args`
+    pub fn args_if<I, S>(&mut self, cond: bool, args: I) -> &mut Executor
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        if cond { self.args(args) } else { self }
+    }
+
+    #[allow(dead_code)]
+    /// See `std::process::Command::arg`
+    pub fn arg_if_some<T, F, S>(&mut self, opt: Option<T>, f: F) -> &mut Executor
+    where
+        F: FnOnce(T) -> S,
+        S: AsRef<OsStr>,
+    {
+        if let Some(val) = opt {
+            self.arg(f(val));
+        }
+        self
+    }
+
+    #[allow(dead_code)]
+    /// See `std::process::Command::args`
+    pub fn args_if_some<T, F, I, S>(&mut self, opt: Option<T>, f: F) -> &mut Executor
+    where
+        F: FnOnce(T) -> I,
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        if let Some(val) = opt {
+            self.args(f(val));
+        }
+        self
+    }
+
+    #[allow(dead_code)]
     /// See `std::process::Command::current_dir`
     pub fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut Executor {
         match self {
@@ -144,6 +188,16 @@ impl Executor {
         self
     }
 
+    #[allow(dead_code)]
+    /// See `std::process::Command::env`
+    pub fn env_if<K, V>(&mut self, cond: bool, key: K, val: V) -> &mut Executor
+    where
+        K: AsRef<OsStr>,
+        V: AsRef<OsStr>,
+    {
+        if cond { self.env(key, val) } else { self }
+    }
+
     /// See `std::process::Command::spawn`
     pub fn spawn(&mut self) -> Result<ExecutorChild> {
         self.log_command();
@@ -152,7 +206,7 @@ impl Executor {
                 debug!("Running {:?}", c);
                 // We should use `spawn()` here rather than `spawn_checked()` since
                 // their semantics and behaviors are different.
-                #[allow(clippy::disallowed_methods)]
+                #[expect(clippy::disallowed_methods)]
                 c.spawn().map(ExecutorChild::Wet)?
             }
             Executor::Dry(_) => ExecutorChild::Dry,
@@ -168,7 +222,7 @@ impl Executor {
             Executor::Wet(c) | Executor::Damp(c) => {
                 // We should use `output()` here rather than `output_checked()` since
                 // their semantics and behaviors are different.
-                #[allow(clippy::disallowed_methods)]
+                #[expect(clippy::disallowed_methods)]
                 Ok(ExecutorOutput::Wet(c.output()?))
             }
             Executor::Dry(_) => Ok(ExecutorOutput::Dry),
@@ -220,6 +274,17 @@ pub enum ExecutorOutput {
     Dry,
 }
 
+impl ExecutorOutput {
+    /// Can be used on output returned by `.always()` executors
+    #[allow(unused)]
+    pub fn unwrap_wet(self) -> Output {
+        match self {
+            Self::Wet(output) => output,
+            Self::Dry => panic!("Called `unwrap_wet` on dry output. Improper use of `unwrap_wet`."),
+        }
+    }
+}
+
 /// A struct representing a command. Trying to execute it will just print its arguments.
 pub struct DryCommand {
     program: OsString,
@@ -243,7 +308,7 @@ impl DryCommand {
     }
 
     /// Convert this dry command into a real Command that will execute.
-    #[allow(clippy::disallowed_methods)]
+    #[expect(clippy::disallowed_methods)]
     fn into_command(self) -> Command {
         let mut cmd = Command::new(&self.program);
         cmd.args(&self.args);
@@ -266,7 +331,6 @@ impl DryCommand {
 /// The Result of spawn. Contains an actual `std::process::Child` if executed by a wet command.
 pub enum ExecutorChild {
     // Both RunType::Wet and RunType::Damp use this variant
-    #[allow(unused)] // this type has not been used
     Wet(Child),
     Dry,
 }
@@ -324,9 +388,8 @@ fn log_command<
             t!(
                 "with env: {env}",
                 env = env_iter
-                    .filter(|(_, val)| val.is_some())
-                    .map(|(key, val)| format!("{:?}={:?}", key, val.unwrap()))
-                    .collect::<Vec<_>>()
+                    .filter_map(|(key, val)| val.map(|val| (key, val))) // Remove None values
+                    .map(|(key, val)| format!("{:?}={:?}", key, val))
                     .join(" ")
             )
         )

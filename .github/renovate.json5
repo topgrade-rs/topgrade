@@ -5,7 +5,9 @@
         ":semanticCommits",
         ":semanticCommitTypeAll(chore)",
         ":disableRateLimiting",
+        "schedule:weekly",
     ],
+    maxMajorIncrement: 0,
     customManagers: [
         {
             customType: "regex",

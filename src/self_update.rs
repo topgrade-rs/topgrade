@@ -59,7 +59,7 @@ pub fn self_update(ctx: &ExecutionContext) -> Result<()> {
         {
             if result.updated() {
                 print_info(t!("Respawning..."));
-                #[allow(clippy::disallowed_methods)]
+                #[expect(clippy::disallowed_methods)]
                 let mut command = Command::new(current_exe?);
                 command.args(env::args().skip(1)).env("TOPGRADE_NO_SELF_UPGRADE", "");
 
@@ -71,7 +71,7 @@ pub fn self_update(ctx: &ExecutionContext) -> Result<()> {
 
                 #[cfg(windows)]
                 {
-                    #[allow(clippy::disallowed_methods)]
+                    #[expect(clippy::disallowed_methods)]
                     let status = command.status()?;
                     exit(status.code().expect("This cannot return None on Windows"));
                 }

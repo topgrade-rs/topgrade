@@ -6,8 +6,8 @@ keywords = ["upgrade", "update"]
 license = "GPL-3.0-or-later"
 repository = "https://github.com/topgrade-rs/topgrade"
 rust-version = "1.88.0"
-version = "17.8.0"
-exclude = ["doc/screenshot.gif", "BREAKINGCHANGES_dev.md"]
+version = "17.14.1"
+exclude = ["doc/screenshot.gif"]
 edition = "2024"
 
 readme = "README.md"
@@ -37,18 +37,22 @@ shell-words = "1.1"
 color-eyre = "0.6"
 tracing = { version = "0.1", features = ["attributes", "log"] }
 tracing-subscriber = { version = "0.3.20", features = ["env-filter", "time"] }
-merge = "0.2"
+merge2 = "0.3.2"
 regex-split = "0.1"
 notify-rust = "4.12.0"
 wildmatch = "2.3.0"
 rust-i18n = "4.0.0"
 sys-locale = "0.3.1"
+sysinfo = "0.38.4"
 jetbrains-toolbox-updater = "6.0.0"
 indexmap = { version = "2.9.0", features = ["serde"] }
 serde_json = "1.0.145"
 itertools = "0.15.0"
-clap-cargo = "0.18.0"
+clap-cargo = "0.19.0"
 edit = "0.1.5"
+
+# Temporary transitive dependency pins
+rust-i18n-support = "=4.2.1"
 
 [build-dependencies]
 parse-changelog = { version = "0.6.15", default-features = false }
@@ -85,6 +89,9 @@ system_shutdown = "4.1.0"
 nix = { version = "0.31", features = ["hostname", "signal", "user"] }
 rust-ini = "0.21"
 self_update_crate = { version = "0.44", default-features = false, optional = true, package = "self_update", features = ["archive-tar", "compression-flate2", "rustls", "reqwest"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+reqwest = { version = "0.13.5", features = ["blocking", "json"] }
 
 [target.'cfg(windows)'.dependencies]
 is_elevated = "0.1"

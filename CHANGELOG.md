@@ -7,6 +7,141 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.14.1](https://github.com/topgrade-rs/topgrade/compare/v17.14.0...v17.14.1) - 2026-10-20
+
+### Security
+- Includes updated versions of `rustls-webpki` and `webpki-roots`/`webpki-root-certs`, which revoke the recently compromised eMudhra CA certificates
+
+### Fixed
+- *(opencode)* check for plugin updates before updating ([#2447](https://github.com/topgrade-rs/topgrade/pull/2447))
+
+## [17.14.0](https://github.com/topgrade-rs/topgrade/compare/v17.13.1...v17.14.0) - 2026-10-19
+
+### Added
+- *(step)* add pre-commit gc step ([#2437](https://github.com/topgrade-rs/topgrade/pull/2437))
+- *(step)* add GitHub CLI skills step ([#2438](https://github.com/topgrade-rs/topgrade/pull/2438))
+- *(deno)* add a no_delta option to pass --no-delta to deno upgrade ([#2440](https://github.com/topgrade-rs/topgrade/pull/2440))
+- *(os)* add aerynOS support ([#2433](https://github.com/topgrade-rs/topgrade/pull/2433))
+
+### Fixed
+- *(opencode)* support opencode v1 version format ([#2428](https://github.com/topgrade-rs/topgrade/pull/2428))
+- *(locale)* correct French plural in "Finding available software" ([#2436](https://github.com/topgrade-rs/topgrade/pull/2436))
+
+## [17.13.1](https://github.com/topgrade-rs/topgrade/compare/v17.13.0...v17.13.1) - 2026-10-16
+
+Update dependencies to fix AUR build
+
+## [17.13.0](https://github.com/topgrade-rs/topgrade/compare/v17.12.3...v17.13.0) - 2026-10-16
+
+### Added
+- *(linux)* allow bootc on unrecognised distros ([#2416](https://github.com/topgrade-rs/topgrade/pull/2416))
+- *(locale)* add Korean translations ([#2412](https://github.com/topgrade-rs/topgrade/pull/2412))
+- *(opencode)* perform v2 plugin updates ([#2398](https://github.com/topgrade-rs/topgrade/pull/2398))
+
+### Fixed
+- *(bin)* forward --yes to bin update ([#2423](https://github.com/topgrade-rs/topgrade/pull/2423))
+- create the config directory before writing the example config ([#2413](https://github.com/topgrade-rs/topgrade/pull/2413))
+- move falconf to end in step order ([#2406](https://github.com/topgrade-rs/topgrade/pull/2406))
+- *(shell)* quote sourced command paths ([#2141](https://github.com/topgrade-rs/topgrade/pull/2141))
+- *(which)* ignore mise shims without global default version ([#2343](https://github.com/topgrade-rs/topgrade/pull/2343))
+- *(locales)* correct mistranslations and command names
+- align summary names with step separators
+- *(flatpak)* translate the user packages separator
+- *(locales)* fix stray zh_CH key on PATH lookup message
+- *(containers)* close unclosed backtick in error messages
+- *(steps)* fix grammar and casing in step messages
+
+## [17.12.3](https://github.com/topgrade-rs/topgrade/compare/v17.12.2...v17.12.3) - 2026-10-02
+
+### Fixed
+- restore old working directory when opening a shell ([#2391](https://github.com/topgrade-rs/topgrade/pull/2391))
+- *(mise)* skip self-update when disabled by the package manager ([#2374](https://github.com/topgrade-rs/topgrade/pull/2374))
+
+## [17.12.2](https://github.com/topgrade-rs/topgrade/compare/v17.12.1...v17.12.2) - 2026-09-26
+
+### Fixed
+- *(hyprpm)* run hyprpm at the end to avoid dropping cached sudo credentials for other steps
+- *(brew)* run brew at the end to avoid dropping cached sudo credentials for other steps
+- *(zed)* support preview channel ([#2372](https://github.com/topgrade-rs/topgrade/pull/2372))
+
+## [17.12.1](https://github.com/topgrade-rs/topgrade/compare/v17.12.0...v17.12.1) - 2026-09-21
+
+### Fixed
+- don't set cwd when respawning in tmux to fix crash ([#2367](https://github.com/topgrade-rs/topgrade/pull/2367))
+- *(mise)* skip self-update when managed by Homebrew ([#2363](https://github.com/topgrade-rs/topgrade/pull/2363))
+
+## [17.12.0](https://github.com/topgrade-rs/topgrade/compare/v17.11.0...v17.12.0) - 2026-09-20
+
+### Changed
+- The current working directory is now set to a temporary directory for all steps, including custom commands ([#2358](https://github.com/topgrade-rs/topgrade/pull/2358))
+
+### Added
+- *(uv)* add `cache_force` option to force cache pruning ([#2359](https://github.com/topgrade-rs/topgrade/pull/2359))
+- *(step)* add Zed ([#2353](https://github.com/topgrade-rs/topgrade/pull/2353))
+- *(skills)* support `yarn dlx` and adjust configuration options ([#2346](https://github.com/topgrade-rs/topgrade/pull/2346))
+
+### Fixed
+- *(mise)* fix errors from mise self-update confirmation ([#2357](https://github.com/topgrade-rs/topgrade/pull/2357))
+- *(microsoft_office)* remove unnecessary 10 minute wait ([#2360](https://github.com/topgrade-rs/topgrade/pull/2360))
+- crash when `dnf --version` fails
+
+## [17.11.0](https://github.com/topgrade-rs/topgrade/compare/v17.10.1...v17.11.0) - 2026-09-13
+
+### Added
+- *(pkg)* make non-interactive when `assume_yes` ([#2322](https://github.com/topgrade-rs/topgrade/pull/2322))
+
+### Fixed
+- ignore .DS_Store files when parsing configuration files ([#2326](https://github.com/topgrade-rs/topgrade/pull/2326))
+- *(sheldon)* move generic options before `lock --update` ([#2329](https://github.com/topgrade-rs/topgrade/pull/2329))
+
+## [17.10.1](https://github.com/topgrade-rs/topgrade/compare/v17.10.0...v17.10.1) - 2026-09-11
+
+Re-release of v17.10.1 because of release mishap
+
+## [17.10.0](https://github.com/topgrade-rs/topgrade/compare/v17.9.0...v17.10.0) - 2026-09-10
+
+### Added
+- *(sheldon)* add `assume_yes` support and quiet/verbose config options ([#2315](https://github.com/topgrade-rs/topgrade/pull/2315))
+- *(mise)* add `assume_yes` support for `mise self-update` ([#2312](https://github.com/topgrade-rs/topgrade/pull/2312))
+- *(step)* add Antigravity CLI ([#2262](https://github.com/topgrade-rs/topgrade/pull/2262))
+- *(step)* add Adless ([#2271](https://github.com/topgrade-rs/topgrade/pull/2271))
+- *(step)* add AppManager ([#2289](https://github.com/topgrade-rs/topgrade/pull/2289))
+- *(step)* add Hermes Agent ([#2257](https://github.com/topgrade-rs/topgrade/pull/2257))
+- *(vscode)* clean obsolete extension directories ([#2228](https://github.com/topgrade-rs/topgrade/pull/2228))
+- *(skills)* prefer local skills binary and add package manager config ([#2243](https://github.com/topgrade-rs/topgrade/pull/2243))
+
+### Fixed
+- *(android-studio)* skip when `studio` is WordPress Studio CLI ([#2263](https://github.com/topgrade-rs/topgrade/pull/2263))
+- *(claude)* skip plugins without a configured marketplace ([#2304](https://github.com/topgrade-rs/topgrade/pull/2304))
+- *(wsl)* report distribution update failures
+- *(wsl)* preserve bash command arguments
+- *(shelly)* fix upgrade command ([#2301](https://github.com/topgrade-rs/topgrade/pull/2301))
+- *(codex)* detect standalone installation symlink ([#2296](https://github.com/topgrade-rs/topgrade/pull/2296))
+- *(zr)* use new update command ([#2290](https://github.com/topgrade-rs/topgrade/pull/2290))
+- *(nobara)* use `nobara-sync` instead of `dnf` ([#2248](https://github.com/topgrade-rs/topgrade/pull/2248))
+- *(rubygems)* correctly skip step instead of doing nothing
+
+## [17.9.0](https://github.com/topgrade-rs/topgrade/compare/v17.8.0...v17.9.0) - 2026-07-28
+
+### Added
+
+- link new issue form and prefill Topgrade version ([#2232](https://github.com/topgrade-rs/topgrade/pull/2232))
+- *(step)* add OpenAI Codex ([#2220](https://github.com/topgrade-rs/topgrade/pull/2220))
+- *(claude)* split plugin updates into a separate claude_code_plugins step ([#2215](https://github.com/topgrade-rs/topgrade/pull/2215))
+- *(step)* add Soar package manager ([#2212](https://github.com/topgrade-rs/topgrade/pull/2212))
+- *(flutter)* add config for force option ([#2203](https://github.com/topgrade-rs/topgrade/pull/2203))
+- *(mise)* run `mise prune` if `cleanup = true` ([#2196](https://github.com/topgrade-rs/topgrade/pull/2196))
+
+### Fixed
+
+- do not pass verbose through to steps ([#2236](https://github.com/topgrade-rs/topgrade/pull/2236))
+- *(macports)* fix passing of -N for assume_yes ([#2216](https://github.com/topgrade-rs/topgrade/pull/2216))
+- *(atom)* fix conflict with Agent Package Manager ([#2221](https://github.com/topgrade-rs/topgrade/pull/2221))
+- *(zsh)* drop redundant .zshrc source ([#2182](https://github.com/topgrade-rs/topgrade/pull/2182))
+- *(sudo)* make the sudo loop refresh non-interactive
+- *(sudo)* cache credentials at start when sudo_loop is enabled
+- *(nix)* avoid symlink resolution when determining sudo user ([#2194](https://github.com/topgrade-rs/topgrade/pull/2194))
+
 ## [17.8.0](https://github.com/topgrade-rs/topgrade/compare/v17.7.0...v17.8.0) - 2026-07-15
 
 ### Added
@@ -258,7 +393,7 @@ Rerelease of 17.2.0 because of CD mishap
 - *(deps)* lock file maintenance ([#1666](https://github.com/topgrade-rs/topgrade/pull/1666))
 - *(deps)* update rust crate tokio to ~1.49.0 ([#1663](https://github.com/topgrade-rs/topgrade/pull/1663))
 - *(renovate)* change semantic commit type to always be 'chore' ([#1665](https://github.com/topgrade-rs/topgrade/pull/1665))
-- fix category (os -> command-line-utlilities) in Cargo.toml ([#1664](https://github.com/topgrade-rs/topgrade/pull/1664))
+- fix category (os -> command-line-utilities) in Cargo.toml ([#1664](https://github.com/topgrade-rs/topgrade/pull/1664))
 - remove deprecated authors field from Cargo.toml ([#1661](https://github.com/topgrade-rs/topgrade/pull/1661))
 - add authors and maintainers to pyproject.toml ([#1662](https://github.com/topgrade-rs/topgrade/pull/1662))
 - *(deps)* update rust crate clap_complete to v4.5.64 ([#1654](https://github.com/topgrade-rs/topgrade/pull/1654))

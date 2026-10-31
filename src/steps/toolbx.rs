@@ -1,4 +1,4 @@
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{OptionExt, Result};
 
 use crate::command::CommandExt;
 use crate::step::Step;
@@ -41,7 +41,7 @@ pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
     // Path of the running Topgrade executable
     // Skip 1 to eliminate the path root, otherwise push overwrites the path
     topgrade_path.push(std::env::current_exe()?.components().skip(1).collect::<PathBuf>());
-    let topgrade_path = topgrade_path.to_str().unwrap();
+    let topgrade_path = topgrade_path.to_str().ok_or_eyre("Non-UTF-8 path")?;
 
     for tb in toolboxes.iter() {
         let topgrade_prefix = format!("TOPGRADE_PREFIX='Toolbx {tb}'");

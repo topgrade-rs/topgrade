@@ -58,7 +58,7 @@ pub fn run_git_pull_or_fetch(ctx: &ExecutionContext) -> Result<()> {
                 repos.insert_if_repo(ctx, HOME_DIR.join(".dotfiles"));
             }
 
-            if let Ok(powershell) = ctx.powershell()
+            if let Some(powershell) = ctx.opt_powershell()?
                 && let Some(profile) = powershell.profile()
             {
                 repos.insert_if_repo(ctx, profile);
@@ -259,12 +259,13 @@ impl RepoStep {
 
     /// Check if `repo` has a remote.
     fn has_remotes<P: AsRef<Path>>(&self, ctx: &ExecutionContext, repo: P) -> Option<bool> {
-        let mut cmd = ctx.execute(&self.git).always();
-        cmd.stdin(Stdio::null())
+        let res = ctx
+            .execute(&self.git)
+            .always()
+            .stdin(Stdio::null())
             .current_dir(repo.as_ref())
-            .args(["remote", "-v"]);
-
-        let res = cmd.output_checked_utf8();
+            .args(["remote", "-v"])
+            .output_checked_utf8();
 
         res.map(|output| {
             output

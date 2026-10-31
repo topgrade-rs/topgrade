@@ -115,9 +115,6 @@ pub trait CommandExt {
     ///
     /// Returns an `Err` if the command failed to execute, if `succeeded` returns an `Err`, or if
     /// the output contains invalid UTF-8.
-    // This function is currently unused, but is useful and makes sense with `output_checked_with`
-    //  and `output_checked_utf8` existing.
-    #[allow(dead_code)]
     #[track_caller]
     fn output_checked_with_utf8(
         &mut self,
@@ -164,7 +161,7 @@ impl CommandExt for Command {
 
         // This is where we implement `output_checked`, which is what we prefer to use instead of
         // `output`, so we allow `Command::output` here.
-        #[allow(clippy::disallowed_methods)]
+        #[expect(clippy::disallowed_methods)]
         let output = self
             .output()
             .with_context(|| format!("Failed to execute `{command}`"))?;
@@ -200,7 +197,7 @@ impl CommandExt for Command {
 
         // This is where we implement `status_checked`, which is what we prefer to use instead of
         // `status`, so we allow `Command::status` here.
-        #[allow(clippy::disallowed_methods)]
+        #[expect(clippy::disallowed_methods)]
         let status = self.status().with_context(|| message.clone())?;
 
         if succeeded(status).is_ok() {
@@ -220,7 +217,7 @@ impl CommandExt for Command {
 
         // This is where we implement `spawn_checked`, which is what we prefer to use instead of
         // `spawn`, so we allow `Command::spawn` here.
-        #[allow(clippy::disallowed_methods)]
+        #[expect(clippy::disallowed_methods)]
         {
             self.spawn().with_context(|| message.clone())
         }
@@ -228,7 +225,7 @@ impl CommandExt for Command {
 }
 
 fn get_program_and_args(cmd: &Command) -> (String, String) {
-    // We're not doing anything weird with commands that are invalid UTF-8 so this is fine.
+    // We're not doing anything weird with commands that are invalid UTF-8, so this is fine.
     let program = cmd.get_program().to_string_lossy().into_owned();
     let args = shell_words::join(cmd.get_args().map(|arg| arg.to_string_lossy()));
     (program, args)
