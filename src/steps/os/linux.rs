@@ -3,7 +3,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
-use color_eyre::eyre::{OptionExt, Result, WrapErr, eyre};
+use color_eyre::eyre::{Result, WrapErr, eyre};
 use ini::Ini;
 use rust_i18n::t;
 use semver::Version;
@@ -1279,34 +1279,24 @@ pub fn run_zed(ctx: &ExecutionContext) -> Result<()> {
 
     #[derive(Deserialize)]
     struct Response {
-        tag_name: String,
-        prerelease: bool,
+        version: String,
     }
 
-    let release = if channel == "stable" {
-        client
-            .get("https://api.github.com/repos/zed-industries/zed/releases/latest")
-            .send()
-            .wrap_err("Failed to get latest version")?
-            .json::<Response>()?
-    } else {
-        // Preview releases are GitHub prereleases tagged `vx.y.z-pre`; the list is sorted newest first
-        client
-            .get("https://api.github.com/repos/zed-industries/zed/releases")
-            .send()
-            .wrap_err("Failed to fetch releases")?
-            .json::<Vec<Response>>()?
-            .into_iter()
-            .find(|release| release.prerelease && release.tag_name.ends_with("-pre"))
-            .ok_or_else(|| eyre!(t!("No Zed preview release found on GitHub")))?
-    };
+    let arch = std::env::consts::ARCH;
+    if !["x86_64", "aarch64"].contains(&arch) {
+        return Err(SkipStep(format!("No Zed build for the {arch} architecture")).into());
+    }
 
-    let tag = release
-        .tag_name
-        .strip_prefix('v')
-        .ok_or_eyre("Tag on GitHub doesn't start with 'v'")?;
-    // The installed preview reports `x.y.z` without the `-pre` suffix
-    let latest = Version::parse(tag.strip_suffix("-pre").unwrap_or(tag))?;
+    let release = client
+        .get(format!(
+            "https://cloud.zed.dev/releases/{channel}/latest/asset?asset=zed&os=linux&arch={arch}"
+        ))
+        .send()
+        .and_then(|response| response.error_for_status())
+        .wrap_err("Failed to fetch the latest Zed release")?
+        .json::<Response>()?;
+
+    let latest = Version::parse(&release.version)?;
 
     if version < latest {
         let mut response = client
