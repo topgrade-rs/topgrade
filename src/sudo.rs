@@ -148,10 +148,16 @@ const DETECT_ORDER: [SudoKind; 2] = [SudoKind::Gsudo, SudoKind::WinSudo];
 
 impl Sudo {
     /// Get the `sudo` binary for this platform.
-    pub fn detect() -> Result<Self, SudoCreateError> {
+    ///
+    /// Kinds in `disallowed_kinds` are skipped. Later candidates keep their
+    /// order, and the existing not-found / Windows errors are unchanged.
+    pub fn detect(disallowed_kinds: &[SudoKind]) -> Result<Self, SudoCreateError> {
         use SudoCreateError::*;
 
         for kind in DETECT_ORDER {
+            if disallowed_kinds.contains(&kind) {
+                continue;
+            }
             match Self::new(kind) {
                 Ok(sudo) => return Ok(sudo),
                 Err(CannotFindBinary) => continue,
@@ -566,7 +572,7 @@ impl Sudo {
 // We always define both though, so that we don't have to put
 // #[cfg(...)] everywhere.
 
-#[derive(Clone, Copy, Debug, Display, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Display, Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
 pub enum SudoKind {
