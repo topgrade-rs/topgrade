@@ -3461,14 +3461,16 @@ checksum = "06bdbd8cfc056b8d2e2e85f29b56a3bdbecb527cef81eb39e3e7b98af4652770"
 name = "topgrade"
 version = "17.15.0"
 dependencies = [
+ "anstream",
+ "anstyle",
  "chrono",
  "clap",
  "clap-cargo",
  "clap_complete",
  "clap_mangen",
  "color-eyre",
- "console",
  "crossterm",
+ "crossterm_winapi",
  "edit",
  "etcetera",
  "futures",
@@ -3488,6 +3490,7 @@ dependencies = [
  "rust-i18n",
  "rust-i18n-support",
  "rust-ini",
+ "rustix 1.1.6",
  "self_update",
  "semver",
  "serde",
@@ -3504,6 +3507,7 @@ dependencies = [
  "toml 1.1.8+spec-1.1.0",
  "tracing",
  "tracing-subscriber",
+ "unicode-width",
  "walkdir",
  "which 8.0.6",
  "wildmatch",
