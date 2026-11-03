@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.15.0](https://github.com/topgrade-rs/topgrade/compare/v17.14.1...v17.15.0) - 2026-11-03
+
+### Added
+- *(am)* merge appman with am, and run am/appman reinstall ([#2463](https://github.com/topgrade-rs/topgrade/pull/2463))
+- *(step)* add LucidLink ([#2460](https://github.com/topgrade-rs/topgrade/pull/2460))
+- *(step)* add Tailscale ([#2459](https://github.com/topgrade-rs/topgrade/pull/2459))
+
+### Fixed
+- *(antigravity)* skip the 2.0 app, add the ide extensions step ([#2465](https://github.com/topgrade-rs/topgrade/pull/2465))
+- *(zed)* query Zed's release endpoint to avoid GitHub rate limits ([#2473](https://github.com/topgrade-rs/topgrade/pull/2473))
+- exclude run0 from Toolbx privilege escalation ([#2453](https://github.com/topgrade-rs/topgrade/pull/2453))
+- *(rubygems)* skip --system update when gem is managed by Homebrew or macOS ([#2468](https://github.com/topgrade-rs/topgrade/pull/2468))
+- *(ollama)* list models from the server, skip unknown pulls ([#2464](https://github.com/topgrade-rs/topgrade/pull/2464))
+- *(vscode)* support new version format for vscode-insiders ([#2455](https://github.com/topgrade-rs/topgrade/pull/2455))
+
+### Other
+- Revert "fix(opencode): check for plugin updates before updating" ([#2448](https://github.com/topgrade-rs/topgrade/pull/2448))
+
 ## [17.14.1](https://github.com/topgrade-rs/topgrade/compare/v17.14.0...v17.14.1) - 2026-10-20
 
 ### Security
