@@ -82,6 +82,43 @@ impl Drop for TempCwd {
     }
 }
 
+/// Whether `TOPGRADE_PREFIX` is the Toolbx child Topgrade.
+///
+/// Toolbx shares the host home and the host system bus, so a configured `run0`
+/// would execute on the host (exit status 203 inside the container).
+/// `src/steps/toolbx.rs` passes `TOPGRADE_PREFIX=Toolbx <name>` to `env`.
+/// The name must be nonempty: SSH hosts, Distrobox, and any other prefix stay
+/// unrestricted.
+///
+/// See: https://github.com/topgrade-rs/topgrade/issues/2373
+fn is_toolbx_child(prefix: Option<&str>) -> bool {
+    matches!(prefix.and_then(|prefix| prefix.strip_prefix("Toolbx ")), Some(name) if !name.is_empty())
+}
+
+/// Choose the privilege-escalation command.
+///
+/// Explicit kinds other than `run0` are kept. Inside Toolbx, configured `run0`
+/// is treated as unset, so detection runs with `run0` removed. Elevated
+/// execution with no kind, including that rewritten `run0`, stays `Null`.
+fn select_sudo(configured: Option<SudoKind>, elevated: bool, prefix: Option<&str>) -> Result<Sudo, SudoCreateError> {
+    let in_toolbx = is_toolbx_child(prefix);
+    if in_toolbx {
+        debug!("Toolbx child: excluding run0 from privilege escalation");
+    }
+
+    let configured = match configured {
+        Some(SudoKind::Run0) if in_toolbx => None,
+        other => other,
+    };
+    match configured {
+        Some(kind) => Sudo::new(kind),
+        None if elevated => Sudo::new(SudoKind::Null),
+        // Toolbx exposes the host system bus, so `run0` would act on the host.
+        None if in_toolbx => Sudo::detect(&[SudoKind::Run0]),
+        None => Sudo::detect(&[]),
+    }
+}
+
 fn run() -> Result<()> {
     install_color_eyre()?;
     ctrlc::set_handler();
@@ -171,11 +208,10 @@ fn run() -> Result<()> {
         }
     }
 
-    let sudo = match config.sudo_command() {
-        Some(kind) => Sudo::new(kind),
-        None if elevated => Sudo::new(SudoKind::Null),
-        None => Sudo::detect(),
-    };
+    // The Toolbx child inherits the host config. Its prefix is what tells us
+    // to keep `run0` off the host bus; other prefixes stay on the normal path.
+    let prefix = env::var("TOPGRADE_PREFIX").ok();
+    let sudo = select_sudo(config.sudo_command(), elevated, prefix.as_deref());
     debug!("Sudo: {:?}", sudo);
 
     let (sudo, sudo_err) = match sudo {

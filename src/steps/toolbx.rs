@@ -44,7 +44,7 @@ pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
     let topgrade_path = topgrade_path.to_str().ok_or_eyre("Non-UTF-8 path")?;
 
     for tb in toolboxes.iter() {
-        let topgrade_prefix = format!("TOPGRADE_PREFIX='Toolbx {tb}'");
+        let topgrade_prefix = format!("TOPGRADE_PREFIX=Toolbx {tb}");
         let mut args = vec![
             "run",
             "-c",
