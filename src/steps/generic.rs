@@ -3269,6 +3269,10 @@ pub fn run_tailscale(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_dprint_self_update(ctx: &ExecutionContext) -> Result<()> {
     let dprint = require("dprint")?;
 
+    if is_installed_via_homebrew(&dprint) {
+        return Err(SkipStep("dprint is managed by Homebrew".to_string()).into());
+    }
+
     print_separator("dprint");
 
     ctx.execute(&dprint).arg("upgrade").status_checked()?;
@@ -3279,31 +3283,24 @@ pub fn run_dprint_self_update(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_dprint_plugins(ctx: &ExecutionContext) -> Result<()> {
     let dprint = require("dprint")?;
 
-    let mut cmd = ctx.execute(&dprint);
-    cmd.args(["config", "update", "--global"]);
-
-    if ctx.config().yes(Step::DprintPlugins) {
-        cmd.arg("--yes");
-    }
-
-    let output = cmd.output()?;
-    if let ExecutorOutput::Wet(output) = output {
-        let status_code = output
-            .status
-            .code()
-            .ok_or_eyre("Couldn't get status code (terminated by signal)")?;
-        if status_code == 11 {
-            std::io::stderr().lock().write_all(&output.stderr)?;
-            return Err(SkipStep(t!("dprint global config update not available").to_string()).into());
-        }
-
-        print_separator("dprint plugins");
-
-        std::io::stdout().lock().write_all(&output.stdout)?;
-        std::io::stderr().lock().write_all(&output.stderr)?;
-        if status_code != 0 {
-            return Err(StepFailed.into());
-        }
+    print_separator("dprint plugins");
+    // dprint exits 11 on a configuration resolution error, the common case being no global config.
+    let config_unresolved = std::cell::Cell::new(false);
+    ctx.execute(&dprint)
+        .args(["config", "update", "--global"])
+        .arg_if(ctx.config().yes(Step::DprintPlugins), "--yes")
+        .status_checked_with(|status| {
+            if status.success() {
+                Ok(())
+            } else if status.code() == Some(11) {
+                config_unresolved.set(true);
+                Ok(())
+            } else {
+                Err(())
+            }
+        })?;
+    if config_unresolved.get() {
+        return Err(SkipStep(t!("dprint global plugins update not available").to_string()).into());
     }
     Ok(())
 }
