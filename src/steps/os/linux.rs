@@ -1113,9 +1113,13 @@ pub fn run_waydroid(ctx: &ExecutionContext) -> Result<()> {
     // Session:        STOPPED
     // Vendor type:    MAINLINE
     // ```
-    let session = status
-        .stdout
-        .lines()
+    let mut lines = status.stdout.lines().peekable();
+    if let Some(line) = lines.peek()
+        && line.starts_with("Waydroid is not initialized")
+    {
+        return Err(SkipStep(line.to_string()).into());
+    }
+    let session = lines
         .find(|line| line.contains("Session:"))
         .ok_or_else(|| eyre!(output_changed_message!("waydroid status", "should contain `Session:`")))?;
     let is_container_running = session.contains("RUNNING");
