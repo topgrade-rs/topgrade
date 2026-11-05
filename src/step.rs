@@ -768,7 +768,7 @@ impl Step {
             Winget =>
             {
                 #[cfg(windows)]
-                runner.execute(*self, "Winget", || windows::run_winget(ctx))?
+                runner.execute(*self, "WinGet", || windows::run_winget(ctx))?
             }
             Wsl =>
             {

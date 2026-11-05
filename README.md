@@ -36,7 +36,7 @@ To remedy this, **Topgrade** detects which tools you use and runs the appropriat
   or [topgrade-bin](https://aur.archlinux.org/packages/topgrade-bin)
 - [PyPI](https://pypi.org/): `pip`, `pipx`, or `uv tool` [
   `install topgrade`](https://pypi.org/project/topgrade/)
-- Windows ([Winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/)): [
+- Windows ([WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget/)): [
   `winget install --id=topgrade-rs.topgrade  -e`](https://winstall.app/apps/topgrade-rs.topgrade)
 - macOS or Linux ([Homebrew](https://brew.sh/)): [`brew install topgrade`](https://formulae.brew.sh/formula/topgrade)
 - Fedora/RHEL/AlmaLinux/CentOS-Stream ([Copr](https://copr.fedorainfracloud.org/)): [

@@ -31,7 +31,7 @@ pub fn run_chocolatey(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_winget(ctx: &ExecutionContext) -> Result<()> {
     let winget = require("winget")?;
 
-    print_separator("winget");
+    print_separator("WinGet");
 
     ctx.execute(&winget).args(["source", "update"]).status_checked()?;
 
