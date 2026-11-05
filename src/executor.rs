@@ -151,6 +151,21 @@ impl Executor {
         self
     }
 
+    /// See `std::process::Command::stdout`
+    pub fn stdout<T: Into<Stdio>>(&mut self, cfg: T) -> &mut Executor {
+        let stdio = cfg.into();
+        match self {
+            Executor::Wet(c) | Executor::Damp(c) => {
+                c.stdout(stdio);
+            }
+            Executor::Dry(c) => {
+                c.stdout = Some(stdio);
+            }
+        }
+
+        self
+    }
+
     #[allow(dead_code)]
     /// See `std::process::Command::remove_env`
     pub fn env_remove<K>(&mut self, key: K) -> &mut Executor
@@ -293,6 +308,7 @@ pub struct DryCommand {
     envs: Vec<(OsString, OsString)>,
     env_removals: Vec<OsString>,
     stdin: Option<Stdio>,
+    stdout: Option<Stdio>,
 }
 
 impl DryCommand {
@@ -304,6 +320,7 @@ impl DryCommand {
             envs: Vec::new(),
             env_removals: Vec::new(),
             stdin: None,
+            stdout: None,
         }
     }
 
@@ -323,6 +340,9 @@ impl DryCommand {
         }
         if let Some(stdin) = self.stdin {
             cmd.stdin(stdin);
+        }
+        if let Some(stdout) = self.stdout {
+            cmd.stdout(stdout);
         }
         cmd
     }
@@ -468,6 +488,43 @@ mod test {
             }
             ExecutorOutput::Dry => panic!("Expected Wet output after .always()"),
         }
+    }
+
+    #[test]
+    fn test_dry_stdout_persistence() {
+        use std::io::{Read, Seek};
+
+        let (program, args): (&str, Vec<&str>) = if cfg!(windows) {
+            ("cmd", vec!["/C", "echo stdout_test_value"])
+        } else {
+            ("sh", vec!["-c", "echo stdout_test_value"])
+        };
+
+        let mut dry = DryCommand::new(program);
+        for arg in args {
+            dry.args.push(arg.into());
+        }
+
+        let mut tmpfile = tempfile::tempfile().expect("Failed to create temp file");
+        let child_stdout = tmpfile.try_clone().expect("Failed to clone temp file");
+
+        let mut executor = Executor::Dry(dry);
+        executor.stdout(Stdio::from(child_stdout));
+        let mut executor = executor.always();
+
+        let output = executor.output().expect("Failed to execute");
+        match output {
+            ExecutorOutput::Wet(o) => {
+                assert!(o.status.success());
+                assert!(o.stdout.is_empty(), "Stdout reached the pipe instead of the file");
+            }
+            ExecutorOutput::Dry => panic!("Expected Wet output after .always()"),
+        }
+
+        let mut written = String::new();
+        tmpfile.seek(std::io::SeekFrom::Start(0)).expect("Failed to seek");
+        tmpfile.read_to_string(&mut written).expect("Failed to read temp file");
+        assert_eq!(written.trim(), "stdout_test_value");
     }
 
     /// Test that env vars set on a Dry executor are preserved when converted with .always().

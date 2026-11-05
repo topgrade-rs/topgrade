@@ -19,7 +19,7 @@ use std::path::{Component, Path, PathBuf};
 use std::sync::LazyLock;
 use std::{fs, io::Write};
 use sysinfo::{ProcessRefreshKind, RefreshKind, System, UpdateKind};
-use tempfile::tempfile_in;
+use tempfile::{tempdir, tempfile_in};
 use tracing::{debug, error, warn};
 
 use crate::HOME_DIR;
@@ -2777,11 +2777,21 @@ pub fn run_claude_code_plugins(ctx: &ExecutionContext) -> Result<()> {
     })?;
     let marketplaces: HashSet<String> = marketplaces.into_iter().map(|m| m.name).collect();
 
-    let output = ctx
-        .execute(&claude)
+    // The list was reported cut at 64 KiB when read from a pipe, so it goes through a file:
+    // https://github.com/topgrade-rs/topgrade/pull/2062#issuecomment-4703754240
+    let temp_dir = tempdir().context("Failed to create temp dir for `claude plugin list`")?;
+    let json_path = temp_dir.path().join("plugins.json");
+    let json_file = fs::File::create(&json_path).context("Failed to create temp file for `claude plugin list`")?;
+
+    ctx.execute(&claude)
         .args(["plugin", "list", "--json"])
-        .output_checked_utf8()?;
-    let plugins: Vec<ClaudePlugin> = serde_json::from_str(&output.stdout).wrap_err_with(|| {
+        .stdout(json_file)
+        .output_checked()?;
+
+    let plugins: Vec<ClaudePlugin> = serde_json::from_reader(std::io::BufReader::new(
+        fs::File::open(&json_path).context("Failed to read `claude plugin list --json` output")?,
+    ))
+    .wrap_err_with(|| {
         output_changed_message!(
             "claude plugin list --json",
             "json output is invalid or does not match expected structure"
