@@ -1517,7 +1517,7 @@ pub fn run_stack_update(ctx: &ExecutionContext) -> Result<()> {
     }
 
     let stack = require("stack")?;
-    print_separator("stack");
+    print_separator("Stack");
 
     ctx.execute(stack).arg("upgrade").status_checked()
 }
