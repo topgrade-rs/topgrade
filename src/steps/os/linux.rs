@@ -977,7 +977,7 @@ pub fn run_snap(ctx: &ExecutionContext) -> Result<()> {
     if !PathBuf::from("/var/snapd.socket").exists() && !PathBuf::from("/run/snapd.socket").exists() {
         return Err(SkipStep(t!("Snapd socket does not exist").to_string()).into());
     }
-    print_separator("snap");
+    print_separator("Snap");
 
     let sudo = ctx.require_sudo()?;
     sudo.execute(ctx, &snap)?.arg("refresh").status_checked()

@@ -669,7 +669,7 @@ impl Step {
             Snap =>
             {
                 #[cfg(target_os = "linux")]
-                runner.execute(*self, "snap", || linux::run_snap(ctx))?
+                runner.execute(*self, "Snap", || linux::run_snap(ctx))?
             }
             Soar =>
             {
