@@ -682,7 +682,7 @@ impl Step {
                 runner.execute(*self, "Sparkle", || macos::run_sparkle(ctx))?
             }
             Spicetify => runner.execute(*self, "spicetify", || generic::spicetify_upgrade(ctx))?,
-            Stack => runner.execute(*self, "stack", || generic::run_stack_update(ctx))?,
+            Stack => runner.execute(*self, "Stack", || generic::run_stack_update(ctx))?,
             Stew => runner.execute(*self, "stew", || generic::run_stew(ctx))?,
             System => {
                 #[cfg(target_os = "linux")]
