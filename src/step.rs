@@ -195,7 +195,7 @@ pub enum Step {
     VscodiumInsiders,
     Waydroid,
     Windsurf,
-    Winget,
+    WinGet,
     Wsl,
     WslUpdate,
     Xcodes,
@@ -765,10 +765,10 @@ impl Step {
             Windsurf => runner.execute(*self, "Windsurf extensions", || {
                 generic::run_windsurf_extensions_update(ctx)
             })?,
-            Winget =>
+            WinGet =>
             {
                 #[cfg(windows)]
-                runner.execute(*self, "Winget", || windows::run_winget(ctx))?
+                runner.execute(*self, "WinGet", || windows::run_winget(ctx))?
             }
             Wsl =>
             {
@@ -822,7 +822,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         WslUpdate,
         Chocolatey,
         Scoop,
-        Winget,
+        WinGet,
         System,
         MicrosoftStore,
         Zerobrew,
