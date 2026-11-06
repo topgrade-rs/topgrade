@@ -3273,5 +3273,8 @@ pub fn run_tailscale(ctx: &ExecutionContext) -> Result<()> {
     print_separator("Tailscale");
 
     let sudo = ctx.require_sudo()?;
-    sudo.execute(ctx, &tailscale)?.arg("update").status_checked()
+    sudo.execute(ctx, &tailscale)?
+        .arg("update")
+        .arg_if(ctx.config().yes(Step::Tailscale), "--yes")
+        .status_checked()
 }
