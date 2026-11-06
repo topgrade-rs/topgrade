@@ -1,7 +1,7 @@
 name: 'Lint PR'
 
 on:
-  pull_request_target: # zizmor: ignore[dangerous-triggers] this is the only way, and we're not running user code
+  pull_request:
     types:
       - opened
       - edited
