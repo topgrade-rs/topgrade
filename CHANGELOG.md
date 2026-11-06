@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.16.0](https://github.com/topgrade-rs/topgrade/compare/v17.15.0...v17.16.0) - 2026-11-06
+
+### Added
+- *(tailscale)* pass --yes when assume_yes is set ([#2489](https://github.com/topgrade-rs/topgrade/pull/2489))
+
+### Fixed
+- *(claude-code)* don't fail with EOF on long output ([#2062](https://github.com/topgrade-rs/topgrade/pull/2062))
+
 ## [17.15.0](https://github.com/topgrade-rs/topgrade/compare/v17.14.1...v17.15.0) - 2026-11-03
 
 ### Added
