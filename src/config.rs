@@ -239,6 +239,7 @@ pub enum ArchPackageManager {
     Autodetect,
     Aura,
     GarudaUpdate,
+    Omarchy,
     Pacman,
     Pamac,
     Paru,
@@ -301,6 +302,9 @@ pub struct Linux {
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     garuda_update_arguments: Option<String>,
+
+    #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
+    omarchy_update_arguments: Option<String>,
 
     #[merge(strategy = crate::utils::merge_strategies::string_append_opt)]
     trizen_arguments: Option<String>,
@@ -1602,6 +1606,15 @@ impl Config {
             .linux
             .as_ref()
             .and_then(|s| s.garuda_update_arguments.as_deref())
+            .unwrap_or("")
+    }
+
+    /// Extra omarchy-update arguments
+    pub fn omarchy_update_arguments(&self) -> &str {
+        self.config_file
+            .linux
+            .as_ref()
+            .and_then(|s| s.omarchy_update_arguments.as_deref())
             .unwrap_or("")
     }
 

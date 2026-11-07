@@ -119,7 +119,9 @@ impl Distribution {
             Some("nobara") => Distribution::Nobara,
             Some("void") => Distribution::Void,
             Some("debian") | Some("pureos") | Some("Deepin") | Some("linuxmint") => Distribution::Debian,
-            Some("arch") | Some("manjaro-arm") | Some("garuda") | Some("artix") | Some("cachyos") => Distribution::Arch,
+            Some("arch") | Some("manjaro-arm") | Some("garuda") | Some("omarchy") | Some("artix") | Some("cachyos") => {
+                Distribution::Arch
+            }
             Some("solus") => Distribution::Solus,
             Some("gentoo") | Some("funtoo") => Distribution::Gentoo,
             Some("exherbo") => Distribution::Exherbo,
@@ -1472,6 +1474,11 @@ mod tests {
     #[test]
     fn test_garuda() {
         test_template(include_str!("os_release/garuda"), Distribution::Arch);
+    }
+
+    #[test]
+    fn test_omarchy() {
+        test_template(include_str!("os_release/omarchy"), Distribution::Arch);
     }
 
     #[test]

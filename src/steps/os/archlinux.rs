@@ -86,6 +86,41 @@ impl GarudaUpdate {
     }
 }
 
+pub struct OmarchyUpdate {
+    executable: PathBuf,
+    use_update_subcommand: bool,
+}
+
+impl ArchPackageManager for OmarchyUpdate {
+    fn upgrade(&self, ctx: &ExecutionContext) -> Result<()> {
+        ctx.execute(&self.executable)
+            .arg_if(self.use_update_subcommand, "update")
+            .args(ctx.config().omarchy_update_arguments().split_whitespace())
+            .arg_if(ctx.config().yes(Step::System), "-y")
+            .status_checked()?;
+
+        Ok(())
+    }
+}
+
+impl OmarchyUpdate {
+    fn get() -> Result<Option<Self>> {
+        if let Some(executable) = which("omarchy")? {
+            Ok(Some(Self {
+                executable,
+                use_update_subcommand: true,
+            }))
+        } else if let Some(executable) = which("omarchy-update")? {
+            Ok(Some(Self {
+                executable,
+                use_update_subcommand: false,
+            }))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
 pub struct Trizen {
     executable: PathBuf,
 }
@@ -306,8 +341,9 @@ pub fn get_arch_package_manager(ctx: &ExecutionContext) -> Result<Option<Box<dyn
     let pacman = which_one(["powerpill", "pacman"])?;
 
     Ok(match ctx.config().arch_package_manager() {
-        config::ArchPackageManager::Autodetect => GarudaUpdate::get()?
+        config::ArchPackageManager::Autodetect => OmarchyUpdate::get()?
             .map(box_package_manager)
+            .or_else_fallible(|| Ok(GarudaUpdate::get()?.map(box_package_manager)))?
             .or_else_fallible(|| Ok(YayParu::get("paru", &pacman)?.map(box_package_manager)))?
             .or_else_fallible(|| Ok(YayParu::get("yay", &pacman)?.map(box_package_manager)))?
             .or_else_fallible(|| Ok(Trizen::get()?.map(box_package_manager)))?
@@ -316,6 +352,7 @@ pub fn get_arch_package_manager(ctx: &ExecutionContext) -> Result<Option<Box<dyn
             .or_else_fallible(|| Ok(Pacman::get()?.map(box_package_manager)))?
             .or_else_fallible(|| Ok(Aura::get()?.map(box_package_manager)))?,
         config::ArchPackageManager::GarudaUpdate => GarudaUpdate::get()?.map(box_package_manager),
+        config::ArchPackageManager::Omarchy => OmarchyUpdate::get()?.map(box_package_manager),
         config::ArchPackageManager::Trizen => Trizen::get()?.map(box_package_manager),
         config::ArchPackageManager::Paru => YayParu::get("paru", &pacman)?.map(box_package_manager),
         config::ArchPackageManager::Yay => YayParu::get("yay", &pacman)?.map(box_package_manager),
