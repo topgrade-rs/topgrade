@@ -225,7 +225,7 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
 
 pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
     if let Some(store) = which("store")? {
-        print_separator(t!("Microsoft Store (`store` CLI)"));
+        print_separator("Microsoft Store (`store` CLI)");
 
         return ctx
             .execute(store)
@@ -238,7 +238,7 @@ pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
 
     let powershell = ctx.require_powershell()?;
 
-    print_separator(t!("Microsoft Store (UpdateScanMethod)"));
+    print_separator("Microsoft Store (UpdateScanMethod)");
 
     println!("{}", t!("Scanning for updates..."));
 
