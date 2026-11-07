@@ -224,9 +224,21 @@ pub fn windows_update(ctx: &ExecutionContext) -> Result<()> {
 }
 
 pub fn microsoft_store(ctx: &ExecutionContext) -> Result<()> {
+    if let Some(store) = which("store")? {
+        print_separator("Microsoft Store (`store` CLI)");
+
+        return ctx
+            .execute(store)
+            .arg("updates")
+            .arg_if(ctx.config().yes(Step::MicrosoftStore), "--apply")
+            .status_checked();
+    }
+
+    debug!("`store` not available, falling back to powershell/UpdateScanMethod-based updates");
+
     let powershell = ctx.require_powershell()?;
 
-    print_separator(t!("Microsoft Store"));
+    print_separator("Microsoft Store (UpdateScanMethod)");
 
     println!("{}", t!("Scanning for updates..."));
 
