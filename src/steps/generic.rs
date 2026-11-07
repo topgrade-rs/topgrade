@@ -3267,6 +3267,7 @@ pub fn run_lucidlink(ctx: &ExecutionContext) -> Result<()> {
     sudo.execute(ctx, &lucidlink)?.arg("update").status_checked()
 }
 
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 pub fn run_tailscale(ctx: &ExecutionContext) -> Result<()> {
     let tailscale = require("tailscale")?;
 
