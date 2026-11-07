@@ -91,8 +91,8 @@ it when updated to a major release.
 1. `CONFIG_DIR/topgrade.toml`
 2. `CONFIG_DIR/topgrade/topgrade.toml`
 
-If the file with higher priority is present, no matter if it is valid or not, the other configuration files will be
-ignored.
+If the file with higher priority is present, the other configuration files will be ignored. A configuration file that
+cannot be read or parsed stops `topgrade` before any step runs.
 
 On the first run (provided that no configuration file exists), `topgrade` will create a configuration file at
 `CONFIG_DIR/topgrade.toml` for you. Any files in `CONFIG_DIR/topgrade.d/` are also loaded and merged before the main

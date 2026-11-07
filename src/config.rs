@@ -19,7 +19,7 @@ use regex_split::RegexSplit;
 use rust_i18n::t;
 use serde::Deserialize;
 use strum::IntoEnumIterator;
-use tracing::{debug, error};
+use tracing::{debug, warn};
 
 use crate::execution_context::RunType;
 use crate::step::{DEPRECATED_STEPS, Step};
@@ -707,14 +707,14 @@ impl ConfigFile {
             if let Some(parent) = res.0.parent() {
                 fs::create_dir_all(parent).wrap_err_with(|| format!("Unable to create {}", parent.display()))?;
             }
-            write(&res.0, EXAMPLE_CONFIG).map_err(|e| {
-                debug!(
+            if let Err(e) = write(&res.0, EXAMPLE_CONFIG) {
+                warn!(
                     "Unable to write the example configuration file to {}: {}. Using blank config.",
                     &res.0.display(),
                     e
                 );
-                e
-            })?;
+                res.0 = PathBuf::new();
+            }
         }
 
         Ok(res)
@@ -758,9 +758,18 @@ impl ConfigFile {
         Ok(res)
     }
 
+    fn merge_config_file(&mut self, path: &Path) -> Result<()> {
+        let contents = fs::read_to_string(path).wrap_err_with(|| format!("Unable to read {}", path.display()))?;
+        let mut parsed: Self =
+            toml::from_str(&contents).wrap_err_with(|| format!("Failed to deserialize {}", path.display()))?;
+        self.merge(&mut parsed);
+        Ok(())
+    }
+
     /// Read the configuration file.
     ///
-    /// If the configuration file does not exist, the function returns the default ConfigFile.
+    /// A `config_path` that does not exist is an error. Without one, if no main configuration file
+    /// exists or can be created, the function returns the configuration merged from `topgrade.d`, if any.
     fn read(config_path: Option<PathBuf>) -> Result<ConfigFile> {
         let mut result = Self::default();
 
@@ -774,28 +783,19 @@ impl ConfigFile {
             to read the include directory before returning the main config path
             */
             for include in dir_include {
-                let include_contents = fs::read_to_string(&include).inspect_err(|_| {
-                    error!("Unable to read {}", include.display());
-                })?;
-                let mut include_contents_parsed = toml::from_str(include_contents.as_str()).inspect_err(|_| {
-                    error!("Failed to deserialize {}", include.display());
-                })?;
-
-                result.merge(&mut include_contents_parsed);
+                result.merge_config_file(&include)?;
             }
 
             path
         };
 
         if config_path == PathBuf::default() {
-            // Here we expect topgrade.d and consequently result is not empty.
-            // If empty, Self:: ensure() would have created the default config.
+            // Either only topgrade.d exists, or Self::ensure() could not create the default config.
             return Ok(result);
         }
 
-        let mut contents_non_split = fs::read_to_string(&config_path).inspect_err(|_| {
-            error!("Unable to read {}", config_path.display());
-        })?;
+        let mut contents_non_split =
+            fs::read_to_string(&config_path).wrap_err_with(|| format!("Unable to read {}", config_path.display()))?;
 
         Self::ensure_misc_is_present(&mut contents_non_split, &config_path)?;
 
@@ -805,9 +805,8 @@ impl ConfigFile {
         let contents_split = REGEX_MATCH_INCLUDE.split_inclusive_left(contents_non_split.as_str());
 
         for contents in contents_split {
-            let config_file_include_only: ConfigFileIncludeOnly = toml::from_str(contents).inspect_err(|_| {
-                error!("Failed to deserialize an include section of {}", config_path.display());
-            })?;
+            let config_file_include_only: ConfigFileIncludeOnly = toml::from_str(contents)
+                .wrap_err_with(|| format!("Failed to deserialize an include section of {}", config_path.display()))?;
 
             if let Some(includes) = &config_file_include_only.include {
                 // Parses the [include] section present in the slice
@@ -815,28 +814,14 @@ impl ConfigFile {
                     for include in paths.iter().rev() {
                         let include_path = shellexpand::tilde::<&str>(&include.as_ref()).into_owned();
                         let include_path = PathBuf::from(include_path);
-                        let include_contents = match fs::read_to_string(&include_path) {
-                            Ok(c) => c,
-                            Err(e) => {
-                                error!("Unable to read {}: {e}", include_path.display(),);
-                                continue;
-                            }
-                        };
-                        match toml::from_str::<Self>(&include_contents) {
-                            Ok(mut include_parsed) => result.merge(&mut include_parsed),
-                            Err(e) => {
-                                error!("Failed to deserialize {}: {e}", include_path.display(),);
-                                continue;
-                            }
-                        };
+                        result.merge_config_file(&include_path)?;
                     }
                 }
             }
 
-            match toml::from_str::<Self>(contents) {
-                Ok(mut contents) => result.merge(&mut contents),
-                Err(e) => error!("Failed to deserialize {}: {e}", config_path.display(),),
-            }
+            let mut parsed: Self = toml::from_str(contents)
+                .wrap_err_with(|| format!("Failed to deserialize {}", config_path.display()))?;
+            result.merge(&mut parsed);
         }
 
         debug!("Loaded configuration: {:?}", result);
@@ -845,6 +830,12 @@ impl ConfigFile {
 
     fn edit() -> Result<()> {
         let config_path = Self::ensure()?.0;
+        if config_path == PathBuf::default() {
+            color_eyre::eyre::bail!(
+                "Unable to edit {}: no configuration file exists there",
+                config_directory().join("topgrade.toml").display()
+            );
+        }
         debug!("Editing config file: {:?}", config_path);
 
         edit::edit_file(&config_path).context("Failed to open configuration file editor")
@@ -858,7 +849,7 @@ impl ConfigFile {
 
             File::create(path)
                 .and_then(|mut f| f.write_all(contents.as_bytes()))
-                .wrap_err("Tried to auto-migrate the config file, unable to write to config file.\nPlease add \"[misc]\" section manually to the first line of the file.\nError")?;
+                .wrap_err_with(|| format!("Tried to auto-migrate the config file, unable to write to {}.\nPlease add the \"[misc]\" section manually to the first line of the file.\nError", path.display()))?;
         }
         Ok(())
     }
@@ -1062,12 +1053,7 @@ impl Config {
     pub fn load(opt: CommandLineArgs) -> Result<Self> {
         let config_directory = config_directory();
         let config_file = if config_directory.is_dir() {
-            ConfigFile::read(opt.config.clone()).unwrap_or_else(|e| {
-                // Inform the user about errors when loading the configuration,
-                // but fallback to the default config to at least attempt to do something
-                error!("failed to load configuration: {e}");
-                ConfigFile::default()
-            })
+            ConfigFile::read(opt.config.clone()).wrap_err("failed to load configuration")?
         } else {
             debug!("Configuration directory {} does not exist", config_directory.display());
             ConfigFile::default()
@@ -2411,6 +2397,100 @@ mod test {
         std::fs::write(d.join("a.toml"), "[misc]\n").unwrap();
         let extra = ConfigFile::find_topgrade_d_configs(dir.path()).unwrap();
         assert_eq!(extra, vec![d.join("a.toml"), d.join("b.toml")]);
+    }
+
+    /// An unknown key must stop the run instead of dropping the whole file.
+    #[test]
+    fn test_read_rejects_unknown_key_in_main_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("topgrade.toml");
+        std::fs::write(&path, "[misc]\nno_such_key = true\n").unwrap();
+
+        let error = ConfigFile::read(Some(path.clone())).unwrap_err();
+
+        assert_eq!(error.to_string(), format!("Failed to deserialize {}", path.display()));
+    }
+
+    #[test]
+    fn test_read_rejects_missing_include_target() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("topgrade.toml");
+        let include = dir.path().join("missing.toml");
+        std::fs::write(
+            &path,
+            format!("[include]\npaths = ['{}']\n\n[misc]\n", include.display()),
+        )
+        .unwrap();
+
+        let error = ConfigFile::read(Some(path)).unwrap_err();
+
+        assert_eq!(error.to_string(), format!("Unable to read {}", include.display()));
+    }
+
+    #[test]
+    fn test_read_rejects_unknown_key_in_include_target() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("topgrade.toml");
+        let include = dir.path().join("include.toml");
+        std::fs::write(&include, "[misc]\nno_such_key = true\n").unwrap();
+        std::fs::write(
+            &path,
+            format!("[include]\npaths = ['{}']\n\n[misc]\n", include.display()),
+        )
+        .unwrap();
+
+        let error = ConfigFile::read(Some(path)).unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            format!("Failed to deserialize {}", include.display())
+        );
+    }
+
+    /// With no config file to read, failing to write the example must leave a blank config
+    /// (the empty path `read` returns early on), not stop the run.
+    #[cfg(unix)]
+    #[test]
+    fn test_ensure_in_unwritable_directory_uses_blank_config() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o555)).unwrap();
+        if std::fs::write(dir.path().join("probe"), "").is_ok() {
+            eprintln!("skipped: permission bits are not enforced for this user");
+            return;
+        }
+
+        let (path, extra) = ConfigFile::ensure_in(dir.path()).unwrap();
+
+        assert_eq!(path, PathBuf::new());
+        assert!(extra.is_empty());
+    }
+
+    /// A valid file that cannot take its `[misc]` section stops the run, and the error names it.
+    #[cfg(unix)]
+    #[test]
+    fn test_read_names_file_when_misc_migration_fails() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("topgrade.toml");
+        std::fs::write(&path, "[git]\n").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o444)).unwrap();
+        if std::fs::OpenOptions::new().write(true).open(&path).is_ok() {
+            eprintln!("skipped: permission bits are not enforced for this user");
+            return;
+        }
+
+        let error = ConfigFile::read(Some(path.clone())).unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "Tried to auto-migrate the config file, unable to write to {}.\nPlease add the \"[misc]\" section manually to the first line of the file.\nError",
+                path.display()
+            )
+        );
     }
 
     fn config() -> Config {
