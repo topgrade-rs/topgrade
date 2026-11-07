@@ -813,7 +813,7 @@ impl Step {
 #[expect(clippy::too_many_lines)]
 pub(crate) fn default_steps() -> Vec<Step> {
     use Step::*;
-    // For now, SelfUpdate isn't included as it's run before the other non-steps (pre-commands, sudo, etc)
+    // For now, SelfUpdate isn't included as it's run before the other non-steps (pre-commands, etc)
     vec![
         // Steps that should run first
         // Steps that don't have to run in a particular order

@@ -232,6 +232,12 @@ fn run() -> Result<()> {
     );
     let mut runner = runner::Runner::new(&ctx);
 
+    if let Some(sudo) = ctx.sudo()
+        && (config.pre_sudo() || (config.sudo_loop() && sudo.can_refresh()))
+    {
+        sudo.elevate(&ctx)?;
+    }
+
     if !breaking_changes::should_skip() {
         breaking_changes::run()?;
     }
@@ -244,12 +250,6 @@ fn run() -> Result<()> {
     } else {
         None
     };
-
-    if let Some(sudo) = ctx.sudo()
-        && (config.pre_sudo() || (config.sudo_loop() && sudo.can_refresh()))
-    {
-        sudo.elevate(&ctx)?;
-    }
 
     // Held until `run()` returns — dropping would stop the background thread.
     let _sudo_loop_guard = spawn_sudo_loop(&ctx, &config)?;
