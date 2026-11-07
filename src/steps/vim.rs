@@ -74,7 +74,7 @@ fn upgrade(command: &mut Executor, ctx: &ExecutionContext) -> Result<()> {
     if let ExecutorOutput::Wet(output) = output {
         let status = output.status;
 
-        if !status.success() {
+        if !status.success() || ctx.config().vim_show_output() {
             io::stdout().write_all(&output.stdout)?;
             io::stderr().write_all(&output.stderr)?;
         }
