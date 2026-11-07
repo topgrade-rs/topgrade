@@ -84,6 +84,7 @@ pub enum Distribution {
     Gentoo,
     NILRT,
     OpenMandriva,
+    Omarchy,
     OpenSuseTumbleweed,
     PCLinuxOS,
     Suse,
@@ -120,6 +121,7 @@ impl Distribution {
             Some("void") => Distribution::Void,
             Some("debian") | Some("pureos") | Some("Deepin") | Some("linuxmint") => Distribution::Debian,
             Some("arch") | Some("manjaro-arm") | Some("garuda") | Some("artix") | Some("cachyos") => Distribution::Arch,
+            Some("omarchy") => Distribution::Omarchy,
             Some("solus") => Distribution::Solus,
             Some("gentoo") | Some("funtoo") => Distribution::Gentoo,
             Some("exherbo") => Distribution::Exherbo,
@@ -195,6 +197,7 @@ impl Distribution {
             Distribution::Chimera => upgrade_chimera_linux(ctx),
             Distribution::Wolfi => upgrade_wolfi_linux(ctx),
             Distribution::Arch => archlinux::upgrade_arch_linux(ctx),
+            Distribution::Omarchy => upgrade_omarchy(ctx),
             Distribution::CentOS | Distribution::Fedora => upgrade_redhat(ctx),
             Distribution::FedoraImmutable => upgrade_fedora_immutable(ctx),
             Distribution::ClearLinux => upgrade_clearlinux(ctx),
@@ -321,6 +324,15 @@ fn upgrade_nobara(ctx: &ExecutionContext) -> Result<()> {
 
     // See https://wiki.nobaraproject.org/general-usage/troubleshooting/update-system
     ctx.execute(&nobara_sync).status_checked()
+}
+
+fn upgrade_omarchy(ctx: &ExecutionContext) -> Result<()> {
+    let omarchy = require("omarchy")?;
+
+    ctx.execute(&omarchy)
+        .arg("update")
+        .arg_if(ctx.config().yes(Step::System), "-y")
+        .status_checked()
 }
 
 fn upgrade_nilrt(ctx: &ExecutionContext) -> Result<()> {
@@ -1472,6 +1484,11 @@ mod tests {
     #[test]
     fn test_garuda() {
         test_template(include_str!("os_release/garuda"), Distribution::Arch);
+    }
+
+    #[test]
+    fn test_omarchy() {
+        test_template(include_str!("os_release/omarchy"), Distribution::Omarchy);
     }
 
     #[test]
