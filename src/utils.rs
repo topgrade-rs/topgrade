@@ -226,6 +226,80 @@ pub fn which<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<Option<PathBuf>>
     }
 }
 
+/// First inode that resolving `path` touches which is unsafe to run as root: not
+/// root-owned, or group/other-writable. `Ok(None)` means every inode is
+/// root-trusted; `Err` means `path` does not resolve.
+///
+/// Visits every ancestor directory, the path itself, and the target of every
+/// symlink met on the way, whether it is the final component or a directory
+/// component, the way the kernel resolves it. The owner/mode-bit check is
+/// best-effort and cannot model ACLs; off Unix it is always `Ok(None)`.
+#[cfg(unix)]
+pub fn first_root_untrusted_component(path: &Path) -> std::io::Result<Option<PathBuf>> {
+    use std::os::unix::fs::MetadataExt;
+    use std::path::Component;
+
+    // Linux's `MAXSYMLINKS`, the hop count past which it fails with `ELOOP`
+    const MAX_SYMLINK_HOPS: u32 = 40;
+
+    let mut current = PathBuf::new();
+    let mut rest = std::path::absolute(path)?;
+    let mut hops = 0;
+    loop {
+        let mut components = rest.components();
+        let Some(component) = components.next() else {
+            return Ok(None);
+        };
+        let tail = components.as_path().to_path_buf();
+        match component {
+            Component::RootDir => current = PathBuf::from("/"),
+            Component::Normal(name) => current.push(name),
+            // `.` and `..` land on a directory the walk already visited
+            Component::CurDir => {
+                rest = tail;
+                continue;
+            }
+            Component::ParentDir => {
+                current.pop();
+                rest = tail;
+                continue;
+            }
+            // Windows-only
+            Component::Prefix(_) => return Ok(None),
+        }
+        rest = tail;
+
+        let meta = current.symlink_metadata()?;
+        let is_symlink = meta.file_type().is_symlink();
+        // the sticky bit already stops other users renaming or deleting what a root-owned
+        // directory holds (the multi-user Nix store is `root:nixbld 01775`)
+        let sticky_dir = meta.is_dir() && meta.mode() & 0o1000 != 0;
+        // group/other-writable (`0o022`) means a non-root user could swap what runs as root;
+        // a symlink's own mode bits are not permissions (Linux reports `0o777`)
+        if meta.uid() != 0 || (!is_symlink && !sticky_dir && meta.mode() & 0o022 != 0) {
+            return Ok(Some(current));
+        }
+        if is_symlink {
+            hops += 1;
+            if hops > MAX_SYMLINK_HOPS {
+                return Err(nix::errno::Errno::ELOOP.into());
+            }
+            let target = current.read_link()?;
+            current.pop();
+            // an absolute target restarts at `/`, a relative one resolves from the link's directory
+            rest = target.join(&rest);
+        } else if !meta.is_dir() && rest.components().next().is_some() {
+            // the kernel fails a path that descends through a non-directory
+            return Err(nix::errno::Errno::ENOTDIR.into());
+        }
+    }
+}
+
+#[cfg(not(unix))]
+pub fn first_root_untrusted_component(_path: &Path) -> std::io::Result<Option<PathBuf>> {
+    Ok(None)
+}
+
 pub fn require<T: AsRef<OsStr> + Debug>(binary_name: T) -> Result<PathBuf> {
     which(&binary_name)?.ok_or_else(|| {
         SkipStep(format!(
