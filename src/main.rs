@@ -219,12 +219,6 @@ fn run() -> Result<()> {
         Err(e) => (None, Some(e)),
     };
 
-    if let Some(sudo) = ctx.sudo()
-        && (config.pre_sudo() || (config.sudo_loop() && sudo.can_refresh()))
-    {
-        sudo.elevate(&ctx)?;
-    }
-
     #[cfg(target_os = "linux")]
     let distribution = linux::Distribution::detect();
 
@@ -237,6 +231,12 @@ fn run() -> Result<()> {
         &distribution,
     );
     let mut runner = runner::Runner::new(&ctx);
+
+    if let Some(sudo) = ctx.sudo()
+        && (config.pre_sudo() || (config.sudo_loop() && sudo.can_refresh()))
+    {
+        sudo.elevate(&ctx)?;
+    }
 
     if !breaking_changes::should_skip() {
         breaking_changes::run()?;
