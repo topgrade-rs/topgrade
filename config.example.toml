@@ -431,6 +431,10 @@
 # use_root = false
 
 # containers = ["archlinux-latest"]
+
+[colima]
+# Specify custom profiles to update
+# profiles = ["default", "aarch64"]
 [containers]
 # Specify the containers to ignore while updating (Wildcard supported)
 # ignored_containers = ["ghcr.io/rancher-sandbox/rancher-desktop/rdx-proxy:latest", "docker.io*"]
