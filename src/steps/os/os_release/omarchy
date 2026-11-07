@@ -1,0 +1,11 @@
+NAME="Omarchy"
+PRETTY_NAME="Omarchy"
+ID=omarchy
+ID_LIKE=arch
+BUILD_ID=rolling
+ANSI_COLOR="38;2;23;147;209"
+HOME_URL="https://omarchy.org/"
+DOCUMENTATION_URL="https://learn.omacom.io/2/the-omarchy-manual"
+SUPPORT_URL="https://omarchy.org/discord"
+BUG_REPORT_URL="https://github.com/basecamp/omarchy/issues"
+LOGO=archlinux-logo
