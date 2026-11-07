@@ -3278,3 +3278,42 @@ pub fn run_tailscale(ctx: &ExecutionContext) -> Result<()> {
         .arg_if(ctx.config().yes(Step::Tailscale), "--yes")
         .status_checked()
 }
+
+pub fn run_dprint_self_update(ctx: &ExecutionContext) -> Result<()> {
+    let dprint = require("dprint")?;
+
+    if is_installed_via_homebrew(&dprint) {
+        return Err(SkipStep("dprint is managed by Homebrew".to_string()).into());
+    }
+
+    print_separator("dprint");
+
+    ctx.execute(&dprint).arg("upgrade").status_checked()?;
+
+    Ok(())
+}
+
+pub fn run_dprint_plugins(ctx: &ExecutionContext) -> Result<()> {
+    let dprint = require("dprint")?;
+
+    print_separator("dprint plugins");
+    // dprint exits 11 on a configuration resolution error, the common case being no global config.
+    let config_unresolved = std::cell::Cell::new(false);
+    ctx.execute(&dprint)
+        .args(["config", "update", "--global"])
+        .arg_if(ctx.config().yes(Step::DprintPlugins), "--yes")
+        .status_checked_with(|status| {
+            if status.success() {
+                Ok(())
+            } else if status.code() == Some(11) {
+                config_unresolved.set(true);
+                Ok(())
+            } else {
+                Err(())
+            }
+        })?;
+    if config_unresolved.get() {
+        return Err(SkipStep(t!("dprint global plugins update not available").to_string()).into());
+    }
+    Ok(())
+}
