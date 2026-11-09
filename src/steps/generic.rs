@@ -3272,7 +3272,7 @@ pub fn run_tailscale(ctx: &ExecutionContext) -> Result<()> {
     let tailscale = require("tailscale")?;
 
     if tailscale.starts_with("/opt/homebrew/") {
-        return Err(SkipStep("Tailscale is installed via homebrew"));
+        return Err(SkipStep("Tailscale is installed via homebrew").into());
     }
 
     print_separator("Tailscale");
