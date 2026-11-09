@@ -86,6 +86,7 @@
 # tmux_session_mode = "attach_if_not_in_session"
 
 # Run inside zellij (default: false)
+# Requires zellij>=0.45.1
 # run_in_zellij = true
 
 # Changes the way topgrade interacts with
