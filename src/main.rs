@@ -24,6 +24,7 @@ use tracing::debug;
 use self::config::{CommandLineArgs, Config};
 use self::error::StepFailed;
 use self::runner::StepResult;
+use self::step::Step;
 use self::steps::{remote::*, *};
 use self::sudo::{Sudo, SudoCreateError, SudoKind};
 use self::terminal::*;
@@ -260,7 +261,26 @@ fn run() -> Result<()> {
         }
     }
 
-    for step in config.steps()? {
+    let mut total = 0;
+    let steps: Vec<(Step, Option<usize>)> = config
+        .steps()?
+        .map(|step| {
+            if config.should_run(step) {
+                total += 1;
+                (step, Some(total - 1))
+            } else {
+                (step, None)
+            }
+        })
+        .collect();
+    for (step, idx) in steps.iter() {
+        if let Some(i) = idx {
+            set_progress((100 * i / total).try_into().ok());
+            report_status(
+                Status::Working,
+                Some(t!("Running step {step_name}", step_name = format!("{step:?}"))),
+            );
+        }
         match step.run(&mut runner, &ctx) {
             Ok(()) => (),
             Err(error)
@@ -345,6 +365,7 @@ fn run() -> Result<()> {
 
     if config.keep_at_end() {
         print_info(t!("\n(R)eboot\n(P)oweroff\n(S)hell\n(Q)uit"));
+        report_status(Status::Blocked(BlockKind::Question), Some(t!("Choose an action")));
         loop {
             match get_key() {
                 Ok(KeyCode::Char('s' | 'S')) => {
@@ -382,6 +403,11 @@ fn run() -> Result<()> {
             },
             Some(Duration::from_secs(10)),
         );
+    }
+    if failed {
+        report_status(Status::Error, Some(t!("Topgrade finished with errors")));
+    } else {
+        report_status(Status::Done, Some(t!("Topgrade finished successfully")));
     }
 
     if failed { Err(StepFailed.into()) } else { Ok(()) }
@@ -432,6 +458,7 @@ fn main() {
                     .is_some());
 
             if !skip_print {
+                report_status(Status::Error, Some(t!("See terminal for detailed error report")));
                 // The `Debug` implementation of `eyre::Result` prints a multi-line
                 // error message that includes all the 'causes' added with
                 // `.with_context(...)` calls.

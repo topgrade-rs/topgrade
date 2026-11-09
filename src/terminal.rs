@@ -57,6 +57,31 @@ struct Terminal {
     set_title: bool,
     display_time: bool,
     desktop_notification: bool,
+    progress: Option<u8>,
+}
+
+pub enum Status {
+    Working,
+    Done,
+    Blocked(BlockKind),
+    Error,
+}
+
+impl Status {
+    fn pairs(self) -> &'static str {
+        match self {
+            Status::Working => "state=working",
+            Status::Done => "state=done",
+            Status::Blocked(BlockKind::Question) => "state=blocked:kind=question",
+            Status::Blocked(BlockKind::Auth) => "state=blocked:kind=auth",
+            Status::Error => "state=error",
+        }
+    }
+}
+
+pub enum BlockKind {
+    Question,
+    Auth,
 }
 
 struct RawTerminalMode;
@@ -87,6 +112,7 @@ impl Terminal {
             set_title: true,
             display_time: true,
             desktop_notification: false,
+            progress: None,
         }
     }
 
@@ -167,6 +193,26 @@ impl Terminal {
         }
     }
 
+    fn report_status<P: AsRef<str> + Default>(&mut self, status: Status, message: Option<P>) {
+        if self.width.is_none() {
+            return;
+        }
+        let message = message
+            .unwrap_or_default()
+            .as_ref()
+            .replace(|c: char| c.is_control(), " ");
+
+        use base64::{Engine, engine::general_purpose::STANDARD};
+        self.term
+            .write_fmt(format_args!(
+                "\x1b]7501;{}{}:msg={}:app=topgrade\x1b\\",
+                status.pairs(),
+                self.progress.map(|p| format!(":progress={p}")).unwrap_or_default(),
+                STANDARD.encode(message)
+            ))
+            .ok();
+    }
+
     #[allow(dead_code)]
     fn print_error<P: AsRef<str>, Q: AsRef<str>>(&mut self, key: Q, message: P) {
         let key = key.as_ref();
@@ -227,13 +273,17 @@ impl Terminal {
             ))
             .ok();
 
-        loop {
+        self.report_status(Status::Blocked(BlockKind::Question), Some(question));
+
+        let answer = loop {
             match self.get_char()? {
                 KeyCode::Char('y' | 'Y') => break Ok(true),
                 KeyCode::Char('n' | 'N') | KeyCode::Enter => break Ok(false),
                 _ => (),
             }
-        }
+        };
+        self.report_status::<&str>(Status::Working, None);
+        answer
     }
 
     fn should_retry(&mut self, step_name: &str) -> eyre::Result<ShouldRetry> {
@@ -248,6 +298,11 @@ impl Terminal {
         if self.desktop_notification {
             self.notify_desktop(format!("{}", t!("{step_name} failed", step_name = step_name)), None);
         }
+
+        self.report_status(
+            Status::Blocked(BlockKind::Question),
+            Some(t!("Retry step {step_name}?", step_name = step_name)),
+        );
 
         let prompt_inner = style(format!("{}{}", self.prefix, t!("Retry? (y)es/(N)o/(s)hell/(q)uit")))
             .yellow()
@@ -287,6 +342,8 @@ impl Terminal {
 
         self.term.write_str("\n").ok();
 
+        self.report_status::<&str>(Status::Working, None);
+
         answer
     }
 
@@ -321,6 +378,14 @@ pub fn should_retry(step_name: &str) -> eyre::Result<ShouldRetry> {
 
 pub fn print_separator<P: AsRef<str>>(message: P) {
     TERMINAL.lock().unwrap().print_separator(message);
+}
+
+pub fn report_status<P: AsRef<str> + Default>(status: Status, message: Option<P>) {
+    TERMINAL.lock().unwrap().report_status(status, message);
+}
+
+pub fn set_progress(progress: Option<u8>) {
+    TERMINAL.lock().unwrap().progress = progress;
 }
 
 #[allow(dead_code)]
