@@ -7,7 +7,7 @@ use ini::Ini;
 use regex::Regex;
 use rust_i18n::t;
 use semver::Version;
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::os::unix::fs::MetadataExt;
 use std::path::Component;
@@ -1043,50 +1043,51 @@ pub fn run_pyenv(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(pyenv).arg("update").status_checked()
 }
 
+// SDKMAN's installer puts its init snippet in different rc files per OS (.bash_profile/.zshrc on
+// macOS, .bashrc elsewhere), so no shell rc is guaranteed to define `sdk`.
+// The init path goes in as `$1` so no path can break the script's quoting.
+fn sdk_args(init_path: &Path, sdk_command: &str) -> Vec<OsString> {
+    vec![
+        "-c".into(),
+        format!(r#"source "$1" && sdk {sdk_command}"#).into(),
+        "bash".into(),
+        init_path.into(),
+    ]
+}
+
 pub fn run_sdkman(ctx: &ExecutionContext) -> Result<()> {
     let bash = require("bash")?;
 
-    // The SDKMAN installer sources sdkman-init.sh from the user's .bashrc, which
-    // only interactive bash reads; the commands below run `-i`, so this file
-    // only gates the step.
-    var("SDKMAN_DIR")
-        .map_or_else(|_| HOME_DIR.join(".sdkman"), PathBuf::from)
-        .join("bin")
-        .join("sdkman-init.sh")
-        .require()?;
+    // sdkman-init.sh treats an empty SDKMAN_DIR as unset, so this does too.
+    let sdkman_dir = std::env::var_os("SDKMAN_DIR")
+        .filter(|dir| !dir.is_empty())
+        .map_or_else(|| HOME_DIR.join(".sdkman"), PathBuf::from);
+    let init_path = sdkman_dir.join("bin").join("sdkman-init.sh").require()?;
 
     print_separator("SDKMAN!");
 
-    let sdkman_config_path = var("SDKMAN_DIR")
-        .map_or_else(|_| HOME_DIR.join(".sdkman"), PathBuf::from)
-        .join("etc")
-        .join("config")
-        .require()?;
-
-    let sdkman_config = Ini::load_from_file(sdkman_config_path)?;
+    let sdkman_config = Ini::load_from_file(sdkman_dir.join("etc").join("config").require()?)?;
     let selfupdate_enabled = sdkman_config
         .general_section()
         .get("sdkman_selfupdate_feature")
         .unwrap_or("false");
 
+    let sdk = |sdk_command: &str| {
+        ctx.execute(&bash)
+            // sdkman-init.sh would fall back to $HOME/.sdkman; use the tree checked above.
+            .env("SDKMAN_DIR", &sdkman_dir)
+            .args(sdk_args(&init_path, sdk_command))
+            .status_checked()
+    };
+
     if selfupdate_enabled == "true" {
-        ctx.execute(&bash)
-            .args(["-i", "-c", "sdk selfupdate"])
-            .status_checked()?;
+        sdk("selfupdate")?;
     }
-
-    ctx.execute(&bash).args(["-i", "-c", "sdk update"]).status_checked()?;
-
-    ctx.execute(&bash).args(["-i", "-c", "sdk upgrade"]).status_checked()?;
-
+    sdk("update")?;
+    sdk("upgrade")?;
     if ctx.config().cleanup() {
-        ctx.execute(&bash)
-            .args(["-i", "-c", "sdk flush archives"])
-            .status_checked()?;
-
-        ctx.execute(&bash)
-            .args(["-i", "-c", "sdk flush temp"])
-            .status_checked()?;
+        sdk("flush archives")?;
+        sdk("flush temp")?;
     }
 
     Ok(())
@@ -1198,4 +1199,37 @@ pub fn run_install_release(ctx: &ExecutionContext) -> Result<()> {
         .status_checked()?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::process::{Command, Stdio};
+
+    #[test]
+    #[expect(clippy::disallowed_methods, reason = "runs a real bash outside any ExecutionContext")]
+    fn sdk_args_run_sdk_without_shell_rc_files() {
+        let home = tempfile::tempdir().unwrap();
+        let sdkman_bin = home.path().join("sdk man's \"dir\"").join("bin");
+        fs::create_dir_all(&sdkman_bin).unwrap();
+        let init_path = sdkman_bin.join("sdkman-init.sh");
+        fs::write(&init_path, "sdk() { printf 'sdk:%s\\n' \"$*\"; }\n").unwrap();
+
+        let output = Command::new("bash")
+            .args(sdk_args(&init_path, "flush archives"))
+            .env("HOME", home.path())
+            .env_remove("BASH_ENV")
+            .env_remove("ENV")
+            .stdin(Stdio::null())
+            .output()
+            .unwrap();
+
+        assert!(
+            output.status.success(),
+            "bash exited {}: {}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(String::from_utf8(output.stdout).unwrap(), "sdk:flush archives\n");
+    }
 }
