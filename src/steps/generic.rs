@@ -3271,6 +3271,10 @@ pub fn run_lucidlink(ctx: &ExecutionContext) -> Result<()> {
 pub fn run_tailscale(ctx: &ExecutionContext) -> Result<()> {
     let tailscale = require("tailscale")?;
 
+    if tailscale.starts_with("/opt/homebrew/") {
+        return Err(SkipStep("Tailscale is installed via homebrew".to_string()).into());
+    }
+
     print_separator("Tailscale");
 
     let sudo = ctx.require_sudo()?;
