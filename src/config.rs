@@ -422,6 +422,8 @@ pub struct Misc {
 
     run_in_zellij: Option<bool>,
 
+    zellij_session_mode: Option<ZellijSessionMode>,
+
     cleanup: Option<bool>,
 
     notify_each_step: Option<bool>,
@@ -454,13 +456,12 @@ pub enum TmuxSessionMode {
     AttachAlways,
 }
 
-#[derive(Clone, Copy, Debug)]
-// #[derive(Clone, Copy, Debug, Deserialize, ValueEnum, Default)]
-// #[clap(rename_all = "snake_case")]
-// #[serde(rename_all = "snake_case")]
+#[derive(Clone, Copy, Debug, Deserialize, ValueEnum, Default)]
+#[clap(rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 pub enum ZellijSessionMode {
-    // #[default]
-    // AttachIfNotInSession,
+    #[default]
+    AttachIfNotInSession,
     AttachAlways,
 }
 
@@ -1290,6 +1291,15 @@ impl Config {
             .unwrap_or_default()
     }
 
+    /// The preferred way to run the new zellij session.
+    fn zellij_session_mode(&self) -> ZellijSessionMode {
+        self.config_file
+            .misc
+            .as_ref()
+            .and_then(|misc| misc.zellij_session_mode)
+            .unwrap_or_default()
+    }
+
     /// Tell whether we should perform cleanup steps.
     pub fn cleanup(&self) -> bool {
         self.opt.cleanup
@@ -1409,9 +1419,7 @@ impl Config {
         let args = self.zellij_arguments()?;
         Ok(ZellijConfig {
             args,
-            // TODO: zellij session mode
-            // session_mode: self.zellij_session_mode(),
-            session_mode: ZellijSessionMode::AttachAlways,
+            session_mode: self.zellij_session_mode(),
         })
     }
 
