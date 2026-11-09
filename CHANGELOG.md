@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.16.0](https://github.com/topgrade-rs/topgrade/compare/v17.15.0...v17.16.0) - 2026-11-09
+
+### Added
+- *(linux)* add Omarchy support ([#2494](https://github.com/topgrade-rs/topgrade/pull/2494))
+- *(microsoft_store)* add support for the `store` CLI ([#2497](https://github.com/topgrade-rs/topgrade/pull/2497))
+- *(pre_sudo)* run pre_sudo before self-update ([#2492](https://github.com/topgrade-rs/topgrade/pull/2492))
+- *(tailscale)* pass --yes when assume_yes is set ([#2489](https://github.com/topgrade-rs/topgrade/pull/2489))
+
+### Fixed
+- *(sdkman)* source the init script instead of relying on .bashrc ([#2482](https://github.com/topgrade-rs/topgrade/pull/2482))
+- *(tailscale)* don't update when installed via homebrew ([#2504](https://github.com/topgrade-rs/topgrade/pull/2504))
+- *(tailscale)* gate Tailscale step to Windows and macOS ([#2500](https://github.com/topgrade-rs/topgrade/pull/2500))
+- *(waydroid)* skip when Waydroid is not initialized ([#2484](https://github.com/topgrade-rs/topgrade/pull/2484))
+- *(claude-code)* don't fail with EOF on long output ([#2062](https://github.com/topgrade-rs/topgrade/pull/2062))
+
 ## [17.15.0](https://github.com/topgrade-rs/topgrade/compare/v17.14.1...v17.15.0) - 2026-11-03
 
 ### Added
