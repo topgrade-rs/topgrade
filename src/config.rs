@@ -356,6 +356,8 @@ pub struct Vim {
     force_plug_update: Option<bool>,
 
     vim_pack_prune: Option<bool>,
+
+    show_output: Option<bool>,
 }
 
 #[derive(Deserialize, Default, Debug, Merge)]
@@ -1575,6 +1577,15 @@ impl Config {
             .vim
             .as_ref()
             .and_then(|c| c.vim_pack_prune)
+            .unwrap_or(false)
+    }
+
+    /// Whether to show the full Vim/Neovim plugin upgrade output
+    pub fn vim_show_output(&self) -> bool {
+        self.config_file
+            .vim
+            .as_ref()
+            .and_then(|c| c.show_output)
             .unwrap_or(false)
     }
 
