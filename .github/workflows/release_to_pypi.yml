@@ -98,7 +98,7 @@ jobs:
     environment:
       name: pypi
     permissions:
-      # Used to sign the release artifacts, and for trusted publishing
+      # Used to sign the release artifacts, for trusted publishing, and for PyPI attestations
       id-token: write
       # Used to upload release artifacts
       contents: write
@@ -112,8 +112,15 @@ jobs:
         with:
           subject-path: 'wheels-*/*'
 
-      - name: Publish to PyPI
-        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
-          command: upload
-          args: --non-interactive --skip-existing wheels-*/*
+          enable-cache: false # disable cache in releases for security
+
+      - name: Generate PyPI attestations
+        uses: astral-sh/attest-action@39b6ce43875c196a579e31635b11aa2a2036384a # v0.0.7
+        with:
+          paths: 'wheels-*/*'
+
+      - name: Publish to PyPI
+        run: uv publish 'wheels-*/*'
