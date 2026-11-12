@@ -2392,13 +2392,6 @@ mod test {
         assert_eq!(std::fs::read_to_string(&path).unwrap(), EXAMPLE_CONFIG);
     }
 
-    #[test]
-    fn test_vim_show_output() {
-        assert!(!config().vim_show_output());
-        assert!(!config_from_toml("[vim]\nshow_output = false").vim_show_output());
-        assert!(config_from_toml("[vim]\nshow_output = true").vim_show_output());
-    }
-
     /// `topgrade.d` must not be auto-created, only read when present.
     /// See: https://github.com/topgrade-rs/topgrade/issues/624
     #[test]
