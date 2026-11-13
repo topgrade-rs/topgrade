@@ -98,7 +98,7 @@ fn is_wsl_installed() -> Result<bool> {
     if let Some(wsl) = which("wsl")? {
         // Don't use `output_checked` as an execution failure log is not wanted
         #[expect(clippy::disallowed_methods)]
-        let output = Command::new(wsl).arg("-l").output()?;
+        let output = Command::new(wsl).arg("--list").output()?;
         let status = output.status;
 
         if status.success() {
@@ -113,7 +113,7 @@ fn get_wsl_distributions(ctx: &ExecutionContext, wsl: &Path) -> Result<Vec<Strin
     let output = ctx
         .execute(wsl)
         .always()
-        .args(["--list", "-q"])
+        .args(["--list", "--quiet"])
         .output_checked_utf8()?
         .stdout;
     Ok(output
@@ -127,7 +127,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     let topgrade = ctx
         .execute(wsl)
         .always()
-        .args(["-d", dist, "bash", "-lc", "which topgrade"])
+        .args(["--distribution", dist, "bash", "-lc", "which topgrade"])
         .output_checked_utf8()
         .map_err(|_| SkipStep(t!("Could not find Topgrade installed in WSL").to_string()))?
         .stdout // The normal output from `which topgrade` appends a newline, so we trim it here.
@@ -141,7 +141,7 @@ fn upgrade_wsl_distribution(wsl: &Path, dist: &str, ctx: &ExecutionContext) -> R
     let script = wsl_topgrade_script(dist, &topgrade, ctx.config().verbose(), ctx.config().yes(Step::Wsl));
 
     ctx.execute(wsl)
-        .args(["-d", dist, "bash", "-lc", &script])
+        .args(["--distribution", dist, "bash", "-lc", &script])
         .status_checked()
 }
 
