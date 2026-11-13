@@ -63,6 +63,8 @@ pub enum Step {
     Distrobox,
     DkpPacman,
     Dotnet,
+    Dprint,
+    DprintPlugins,
     Elan,
     Emacs,
     Falconf,
@@ -362,6 +364,8 @@ impl Step {
                 runner.execute(*self, "dkp-pacman", || linux::run_dkp_pacman_update(ctx))?
             }
             Dotnet => runner.execute(*self, ".NET", || generic::run_dotnet_upgrade(ctx))?,
+            Dprint => runner.execute(*self, "dprint", || generic::run_dprint_self_update(ctx))?,
+            DprintPlugins => runner.execute(*self, "dprint plugins", || generic::run_dprint_plugins(ctx))?,
             Elan => runner.execute(*self, "elan", || generic::run_elan(ctx))?,
             Emacs => runner.execute(*self, "Emacs", || emacs::Emacs::new().upgrade(ctx))?,
             Falconf => runner.execute(*self, "falconf sync", || generic::run_falconf(ctx))?,
@@ -1006,6 +1010,8 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Zed,
         LucidLink,
         Tailscale,
+        Dprint,
+        DprintPlugins,
         // Steps that should run last
         // Runs `sudo -k` at startup, which drops cached sudo credentials for every later step
         BrewFormula,
