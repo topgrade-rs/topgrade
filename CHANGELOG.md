@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.17.0](https://github.com/topgrade-rs/topgrade/compare/v17.16.0...v17.17.0) - 2026-11-14
+
+### Added
+- *(vim)* add opt-in plugin upgrade output ([#2415](https://github.com/topgrade-rs/topgrade/pull/2415))
+
 ## [17.16.0](https://github.com/topgrade-rs/topgrade/compare/v17.15.0...v17.16.0) - 2026-11-09
 
 ### Added
