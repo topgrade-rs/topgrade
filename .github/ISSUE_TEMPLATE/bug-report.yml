@@ -116,7 +116,7 @@ body:
   - type: textarea
     attributes:
       label: Verbose output
-      description: Output of `topgrade -v`. Paste it **inside the codeblock (triple backticks)**.
+      description: Output of `topgrade -v`. Paste it **inside the codeblock (triple backticks)**. Make sure the problem is visible in this output.
       value: |
         <details>
         <summary>Verbose output</summary>
