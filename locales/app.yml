@@ -1728,3 +1728,12 @@ _version: 2
   zh_TW: "%{path} 處的 antigravity 二進位檔是 Antigravity 2.0 應用程式，它沒有擴充功能"
   de: "Das antigravity-Binary unter %{path} ist die Antigravity 2.0-App, die keine Erweiterungen hat"
   ko: "%{path}의 antigravity 바이너리는 확장 기능이 없는 Antigravity 2.0 앱입니다"
+"dprint global config update not available":
+  en: "dprint global config update not available"
+  lt: "dprint visuotinės konfigūracijos atnaujinimas nepasiekiamas"
+  es: "actualización de configuración global de dprint no disponible"
+  fr: "mise à jour de la configuration globale de dprint non disponible"
+  zh_CN: "dprint 全局配置更新不可用"
+  zh_TW: "dprint 全域設定更新不可用"
+  de: "dprint globale Konfigurationsaktualisierung nicht verfügbar"
+  ko: "dprint 전역 구성 업데이트를 사용할 수 없습니다"
