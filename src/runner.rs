@@ -6,7 +6,7 @@ use std::io;
 use tracing::debug;
 
 use crate::ctrlc;
-use crate::error::{DryRun, MissingSudo, SkipStep};
+use crate::error::{DryRun, MissingSudo, SkipStep, UntrustedRootPath};
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
 use crate::terminal::{ShouldRetry, print_error, print_warning, should_retry};
@@ -159,6 +159,10 @@ impl<'a> Runner<'a> {
                             }
                         }
                     } else {
+                        // this path prints no step error, but a refusal to run as root must still say why
+                        if let Some(refusal) = e.downcast_ref::<UntrustedRootPath>() {
+                            print_error(&key, format!("{refusal}\n"));
+                        }
                         self.push_result(
                             key,
                             if ignore_failure {

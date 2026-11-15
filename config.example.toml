@@ -124,6 +124,23 @@
 #   autodetect, nh, vanilla
 # nix_handler = "autodetect"
 
+# Topgrade resolves tools from your PATH and then runs them as root. A binary
+# placed in a user-writable directory ahead of the real tool (e.g. a shim in
+# ~/.local/bin) would therefore execute as root. This controls what happens when
+# the resolved binary or the sudo binary itself, or any directory or symlink
+# either resolves through, is not owned by root or is group/other-writable (a
+# root-owned sticky directory, such as the Nix store, passes). A command run by
+# name (e.g. reboot) runs as the first PATH match that passes, so a shim ahead of
+# it is skipped:
+#   "off"   - don't check
+#   "warn"  - run anyway, but print a warning naming the untrusted path (default)
+#   "error" - fail the step instead of running it as root; with pre_sudo (or
+#             sudo_loop on sudo/please), an untrusted sudo binary or its no-op
+#             command stops the run at startup
+# Tools living in a user-owned prefix (e.g. Homebrew on macOS) will trigger this.
+# Unix only.
+# sudo_path_check = "warn"
+
 
 # Commands to run before anything
 [pre_commands]
