@@ -355,7 +355,6 @@ impl Sudo {
             })
             .status_checked()
             .wrap_err("Failed to elevate permissions")
-            .inspect(|()| report_status::<&str>(Status::Working, None))
     }
 
     /// Refresh arguments for the sudo kinds that can cache credentials.

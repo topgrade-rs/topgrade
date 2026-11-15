@@ -58,6 +58,7 @@ struct Terminal {
     display_time: bool,
     desktop_notification: bool,
     progress: Option<u8>,
+    working_msg: Option<String>,
 }
 
 pub enum Status {
@@ -113,6 +114,7 @@ impl Terminal {
             display_time: true,
             desktop_notification: false,
             progress: None,
+            working_msg: None,
         }
     }
 
@@ -193,15 +195,20 @@ impl Terminal {
         }
     }
 
-    fn report_status<P: AsRef<str> + Default>(&mut self, status: Status, message: Option<P>) {
+    fn report_status<P: AsRef<str>>(&mut self, status: Status, message: Option<P>) {
         if self.width.is_none() {
             return;
         }
-        let message = message
-            .unwrap_or_default()
-            .as_ref()
-            .replace(|c: char| c.is_control(), " ");
-
+        let message = match message {
+            Some(m) => {
+                let m = m.as_ref().replace(|c: char| c.is_control(), " ");
+                if let Status::Working = status {
+                    self.working_msg = Some(m.clone());
+                }
+                m
+            }
+            None => self.working_msg.clone().unwrap_or_default(),
+        };
         use base64::{Engine, engine::general_purpose::STANDARD};
         self.term
             .write_fmt(format_args!(
@@ -380,7 +387,7 @@ pub fn print_separator<P: AsRef<str>>(message: P) {
     TERMINAL.lock().unwrap().print_separator(message);
 }
 
-pub fn report_status<P: AsRef<str> + Default>(status: Status, message: Option<P>) {
+pub fn report_status<P: AsRef<str>>(status: Status, message: Option<P>) {
     TERMINAL.lock().unwrap().report_status(status, message);
 }
 

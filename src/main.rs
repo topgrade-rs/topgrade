@@ -257,6 +257,7 @@ fn run() -> Result<()> {
 
     if let Some(commands) = config.pre_commands() {
         for (name, command) in commands {
+            report_status(Status::Working, Some(t!("Running step {step_name}", step_name = name)));
             generic::run_custom_command(name, command, &ctx)?;
         }
     }
@@ -273,13 +274,9 @@ fn run() -> Result<()> {
             }
         })
         .collect();
-    for (step, idx) in steps.iter() {
+    for (step, idx) in steps {
         if let Some(i) = idx {
             set_progress((100 * i / total).try_into().ok());
-            report_status(
-                Status::Working,
-                Some(t!("Running step {step_name}", step_name = format!("{step:?}"))),
-            );
         }
         match step.run(&mut runner, &ctx) {
             Ok(()) => (),
@@ -356,6 +353,7 @@ fn run() -> Result<()> {
 
     if let Some(commands) = config.post_commands() {
         for (name, command) in commands {
+            report_status(Status::Working, Some(t!("Running step {step_name}", step_name = name)));
             let result = generic::run_custom_command(name, command, &ctx);
             if !failed && result.is_err() {
                 failed = true;
