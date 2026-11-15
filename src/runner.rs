@@ -9,7 +9,7 @@ use crate::ctrlc;
 use crate::error::{DryRun, MissingSudo, SkipStep};
 use crate::execution_context::ExecutionContext;
 use crate::step::Step;
-use crate::terminal::{ShouldRetry, print_error, print_warning, should_retry};
+use crate::terminal::{ShouldRetry, Status, print_error, print_warning, report_status, should_retry};
 
 pub enum StepResult {
     Success,
@@ -85,6 +85,7 @@ impl<'a> Runner<'a> {
 
         let key: Cow<'a, str> = key.into();
         debug!("Step {:?}", key);
+        report_status(Status::Working, Some(t!("Running step {step_name}", step_name = key)));
 
         // alter the `func` to put it in a span
         let func = || {
