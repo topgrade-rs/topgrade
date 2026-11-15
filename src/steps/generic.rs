@@ -1949,6 +1949,15 @@ pub fn spicetify_upgrade(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(spicetify).arg("upgrade").status_checked()
 }
 
+pub fn run_crowdsec_hub_upgrade(ctx: &ExecutionContext) -> Result<()> {
+    let cscli = require("cscli")?;
+
+    print_separator("CrowdSec Hub");
+    let sudo = ctx.require_sudo()?;
+    sudo.execute(ctx, &cscli)?.args(["hub", "update"]).status_checked()?;
+    sudo.execute(ctx, &cscli)?.args(["hub", "upgrade"]).status_checked()
+}
+
 pub fn run_ghcli_extensions_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let gh = require("gh")?;
     let result = ctx

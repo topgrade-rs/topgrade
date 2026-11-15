@@ -55,6 +55,9 @@ pub enum Step {
     Conda,
     ConfigUpdate,
     Containers,
+    // This name is miscapitalized on purpose, so the CLI name is
+    //  `crowdsec_hub` instead of `crowd_sec_hub`.
+    CrowdsecHub,
     Cursor,
     CursorAgent,
     CustomCommands,
@@ -331,6 +334,7 @@ impl Step {
                 runner.execute(*self, "config-update", || linux::run_config_update(ctx))?
             }
             Containers => runner.execute(*self, "Containers", || containers::run_containers(ctx))?,
+            CrowdsecHub => runner.execute(*self, "CrowdSec Hub", || generic::run_crowdsec_hub_upgrade(ctx))?,
             Cursor => runner.execute(*self, "Cursor extensions", || {
                 generic::run_cursor_extensions_update(ctx)
             })?,
@@ -950,6 +954,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Micro,
         Raco,
         Spicetify,
+        CrowdsecHub,
         GithubCliExtensions,
         GithubCliSkills,
         Bob,
