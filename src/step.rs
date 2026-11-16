@@ -65,6 +65,7 @@ pub enum Step {
     Deno,
     Distrobox,
     DkpPacman,
+    DmsPlugins,
     Dotnet,
     Elan,
     Emacs,
@@ -364,6 +365,11 @@ impl Step {
             {
                 #[cfg(target_os = "linux")]
                 runner.execute(*self, "dkp-pacman", || linux::run_dkp_pacman_update(ctx))?
+            }
+            DmsPlugins =>
+            {
+                #[cfg(target_os = "linux")]
+                runner.execute(*self, "DMS Plugins", || linux::run_dms_plugins(ctx))?
             }
             Dotnet => runner.execute(*self, ".NET", || generic::run_dotnet_upgrade(ctx))?,
             Elan => runner.execute(*self, "elan", || generic::run_elan(ctx))?,
@@ -879,6 +885,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         Tpack,
         Pearl,
         GnomeShellExtensions,
+        DmsPlugins,
         Pyenv,
         Sdkman,
         Rcm,
