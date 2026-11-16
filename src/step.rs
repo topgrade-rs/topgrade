@@ -116,6 +116,7 @@ pub enum Step {
     Kakoune,
     Krew,
     Lensfun,
+    Lerd,
     LucidLink,
     Lure,
     Macports,
@@ -478,6 +479,7 @@ impl Step {
             Lensfun => runner.execute(*self, "Lensfun's database update", || {
                 generic::run_lensfun_update_data(ctx)
             })?,
+            Lerd => runner.execute(*self, "Lerd", || generic::run_lerd(ctx))?,
             LucidLink => runner.execute(*self, "LucidLink", || generic::run_lucidlink(ctx))?,
             Lure =>
             {
@@ -971,6 +973,7 @@ pub(crate) fn default_steps() -> Vec<Step> {
         ClaudeCode,
         ClaudeCodePlugins,
         Codex,
+        Lerd,
         Opencode,
         Colima,
         Skills,

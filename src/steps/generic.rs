@@ -2850,6 +2850,25 @@ pub fn run_codex(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(codex).arg("update").status_checked()
 }
 
+pub fn run_lerd(ctx: &ExecutionContext) -> Result<()> {
+    let lerd = require("lerd")?;
+
+    // `lerd update` performs a self-update and only works for script/source
+    // installs, which live under `~/.local/bin`; packaged installs (apt, dnf,
+    // Homebrew) defer updates to the package manager.
+    let local_bin = HOME_DIR.join(".local/bin");
+    if !lerd.starts_with(&local_bin) {
+        return Err(SkipStep(format!(
+            "lerd is not installed under {}; update it via its package manager",
+            local_bin.display()
+        ))
+        .into());
+    }
+
+    print_separator("Lerd");
+    ctx.execute(lerd).arg("update").status_checked()
+}
+
 pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {
     let falconf = require("falconf")?;
 
