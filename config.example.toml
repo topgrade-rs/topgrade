@@ -13,12 +13,13 @@
 # (default: false)
 # allow_root = false
 
-# Run `sudo -v` to cache credentials at the start of the run
+# Run `sudo --validate` to cache credentials at the start of the run
 # This avoids a blocking password prompt in the middle of an unattended run
 # (default: false)
 # pre_sudo = false
 
-# Periodically runs `sudo -n -v` or `please -w` to avoid password re-prompts during updates (default: false)
+# Periodically runs `sudo --non-interactive --validate` or `please --warm`
+# to avoid password re-prompts during updates (default: false)
 # WARNING: This is a potential security risk; if you walk away from the computer while topgrade is running,
 # another person can come by, CTRL+C, and gain access to a sudo session.
 # sudo_loop = true
