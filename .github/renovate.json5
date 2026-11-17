@@ -5,7 +5,9 @@
         ":semanticCommits",
         ":semanticCommitTypeAll(chore)",
         ":disableRateLimiting",
-        "schedule:weekly",
+    ],
+    schedule: [
+        "* * * * 1",
     ],
     maxMajorIncrement: 0,
     customManagers: [
