@@ -2822,6 +2822,15 @@ pub fn run_claude_code_plugins(ctx: &ExecutionContext) -> Result<()> {
         cmd.args(["plugin", "update", &plugin.id, "--scope", &plugin.scope]);
 
         if let Some(path) = &plugin.project_path {
+            // Claude Code keeps project installs of deleted projects (e.g. removed worktrees) in its list
+            if !path.is_dir() {
+                debug!(
+                    "Skipping plugin {}: project {} no longer exists",
+                    plugin.id,
+                    path.display()
+                );
+                continue;
+            }
             cmd.current_dir(path);
         }
         if let Err(e) = cmd.status_checked() {
