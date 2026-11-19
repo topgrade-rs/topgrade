@@ -4,10 +4,9 @@ use crate::command::CommandExt;
 use crate::error::SkipStep;
 use crate::step::Step;
 use crate::terminal::print_separator;
+use crate::utils::PathExt;
 use crate::{execution_context::ExecutionContext, utils::require};
 use rust_i18n::t;
-use std::fs::File;
-use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
 use tracing::debug;
@@ -26,23 +25,17 @@ impl Toolbox {
             }
         }
     }
-}
 
-fn is_shell_script(path: &Path) -> Result<bool> {
-    let mut magic = [0u8; 2];
-    let read = File::open(path)?.read(&mut magic)?;
-    Ok(read == 2 && &magic == b"#!")
-}
+    fn get() -> Result<Self> {
+        let toolbox = require("toolbox")?;
 
-fn get_toolbox() -> Result<Toolbox> {
-    let toolbox = require("toolbox")?;
-
-    if is_shell_script(&toolbox)? {
-        debug!("Detected `toolbox` as openSUSE's toolbox");
-        Ok(Toolbox::OpenSuseToolbox)
-    } else {
-        debug!("Detected `toolbox` as Toolbx");
-        Ok(Toolbox::Toolbx(toolbox))
+        if toolbox.has_shebang() {
+            debug!("Detected `toolbox` as openSUSE's toolbox");
+            Ok(Toolbox::OpenSuseToolbox)
+        } else {
+            debug!("Detected `toolbox` as Toolbx");
+            Ok(Toolbox::Toolbx(toolbox))
+        }
     }
 }
 
@@ -69,7 +62,7 @@ fn list_toolboxes(ctx: &ExecutionContext, toolbx: &Path) -> Result<Vec<String>> 
 }
 
 pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
-    let toolbx = get_toolbox()?.toolbx()?;
+    let toolbx = Toolbox::get()?.toolbx()?;
 
     print_separator("Toolbx");
     let toolboxes = list_toolboxes(ctx, &toolbx)?;
@@ -104,26 +97,4 @@ pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
     }
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::is_shell_script;
-    use std::fs;
-    use tempfile::tempdir;
-
-    #[test]
-    fn detects_shell_script() {
-        let dir = tempdir().unwrap();
-        let script = dir.path().join("script");
-        let binary = dir.path().join("binary");
-        let empty = dir.path().join("empty");
-        fs::write(&script, "#!/bin/bash\necho hi\n").unwrap();
-        fs::write(&binary, b"\x7fELF\x02\x01\x01").unwrap();
-        fs::write(&empty, "").unwrap();
-
-        assert!(is_shell_script(&script).unwrap());
-        assert!(!is_shell_script(&binary).unwrap());
-        assert!(!is_shell_script(&empty).unwrap());
-    }
 }
