@@ -1068,6 +1068,25 @@ pub fn run_dkp_pacman_update(ctx: &ExecutionContext) -> Result<()> {
     Ok(())
 }
 
+pub fn run_dms_plugins(ctx: &ExecutionContext) -> Result<()> {
+    let dms = require("dms")?;
+
+    let help = ctx
+        .execute(&dms)
+        .always()
+        .args(["plugins", "update", "--help"])
+        .output_checked_utf8();
+
+    if !help.as_ref().is_ok_and(|help| help.stdout.contains("--all")) {
+        debug!("DMS plugins update result {help:?}");
+        return Err(SkipStep(t!("DMS cannot update all plugins").to_string()).into());
+    }
+
+    print_separator("DMS Plugins");
+
+    ctx.execute(dms).args(["plugins", "update", "--all"]).status_checked()
+}
+
 pub fn run_config_update(ctx: &ExecutionContext) -> Result<()> {
     // The `config_update` step always requests user input, so when running with `--yes` we need to skip the step entirely
     if ctx.config().yes(Step::ConfigUpdate) {

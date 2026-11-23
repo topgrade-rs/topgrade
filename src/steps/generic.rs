@@ -1949,6 +1949,15 @@ pub fn spicetify_upgrade(ctx: &ExecutionContext) -> Result<()> {
     ctx.execute(spicetify).arg("upgrade").status_checked()
 }
 
+pub fn run_crowdsec_hub_upgrade(ctx: &ExecutionContext) -> Result<()> {
+    let cscli = require("cscli")?;
+
+    print_separator("CrowdSec Hub");
+    let sudo = ctx.require_sudo()?;
+    sudo.execute(ctx, &cscli)?.args(["hub", "update"]).status_checked()?;
+    sudo.execute(ctx, &cscli)?.args(["hub", "upgrade"]).status_checked()
+}
+
 pub fn run_ghcli_extensions_upgrade(ctx: &ExecutionContext) -> Result<()> {
     let gh = require("gh")?;
     let result = ctx
@@ -2813,6 +2822,15 @@ pub fn run_claude_code_plugins(ctx: &ExecutionContext) -> Result<()> {
         cmd.args(["plugin", "update", &plugin.id, "--scope", &plugin.scope]);
 
         if let Some(path) = &plugin.project_path {
+            // Claude Code keeps project installs of deleted projects (e.g. removed worktrees) in its list
+            if !path.is_dir() {
+                debug!(
+                    "Skipping plugin {}: project {} no longer exists",
+                    plugin.id,
+                    path.display()
+                );
+                continue;
+            }
             cmd.current_dir(path);
         }
         if let Err(e) = cmd.status_checked() {
@@ -2839,6 +2857,25 @@ pub fn run_codex(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator("Codex");
     ctx.execute(codex).arg("update").status_checked()
+}
+
+pub fn run_lerd(ctx: &ExecutionContext) -> Result<()> {
+    let lerd = require("lerd")?;
+
+    // `lerd update` performs a self-update and only works for script/source
+    // installs, which live under `~/.local/bin`; packaged installs (apt, dnf,
+    // Homebrew) defer updates to the package manager.
+    let local_bin = HOME_DIR.join(".local/bin");
+    if !lerd.starts_with(&local_bin) {
+        return Err(SkipStep(format!(
+            "lerd is not installed under {}; update it via its package manager",
+            local_bin.display()
+        ))
+        .into());
+    }
+
+    print_separator("Lerd");
+    ctx.execute(lerd).arg("update").status_checked()
 }
 
 pub fn run_falconf(ctx: &ExecutionContext) -> Result<()> {

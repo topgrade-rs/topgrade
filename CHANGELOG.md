@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.17.0](https://github.com/topgrade-rs/topgrade/compare/v17.16.0...v17.17.0) - 2026-11-17
+
+### Added
+- *(step)* add Lerd ([#2523](https://github.com/topgrade-rs/topgrade/pull/2523))
+- *(step)* add DMS plugins ([#2520](https://github.com/topgrade-rs/topgrade/pull/2520))
+- *(step)* add CrowdSec hub update step ([#2515](https://github.com/topgrade-rs/topgrade/pull/2515))
+- *(vim)* add opt-in plugin upgrade output ([#2415](https://github.com/topgrade-rs/topgrade/pull/2415))
+
+### Fixed
+- *(claude-code)* skip plugins installed in projects that no longer exists ([#2525](https://github.com/topgrade-rs/topgrade/pull/2525))
+
 ## [17.16.0](https://github.com/topgrade-rs/topgrade/compare/v17.15.0...v17.16.0) - 2026-11-09
 
 ### Added

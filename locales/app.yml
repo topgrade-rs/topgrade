@@ -1728,6 +1728,15 @@ _version: 2
   zh_TW: "%{path} 處的 antigravity 二進位檔是 Antigravity 2.0 應用程式，它沒有擴充功能"
   de: "Das antigravity-Binary unter %{path} ist die Antigravity 2.0-App, die keine Erweiterungen hat"
   ko: "%{path}의 antigravity 바이너리는 확장 기능이 없는 Antigravity 2.0 앱입니다"
+"DMS cannot update all plugins":
+  en: "DMS cannot update all plugins"
+  lt: "DMS negali atnaujinti visų papildinių"
+  es: "DMS no puede actualizar todos los complementos"
+  fr: "DMS ne peut pas mettre à jour tous les plugins"
+  zh_CN: "DMS 无法更新所有插件"
+  zh_TW: "DMS 無法更新所有外掛"
+  de: "DMS kann nicht alle Plugins aktualisieren"
+  ko: "DMS가 모든 플러그인을 업데이트할 수 없습니다"||||||| dfd12bd
 "Authenticate sudo":
   en: "Authenticate sudo"
   lt: "Autentifikuokite sudo"
