@@ -24,7 +24,7 @@ use crate::command::CommandExt;
 use crate::error::UnsupportedSudo;
 use crate::execution_context::{ExecutionContext, RunType};
 use crate::executor::Executor;
-use crate::terminal::print_separator;
+use crate::terminal::{BlockKind, Status, print_separator, report_status};
 use crate::utils::which;
 
 #[derive(Clone, Debug)]
@@ -293,6 +293,7 @@ impl Sudo {
         }
 
         print_separator("Sudo");
+        report_status(Status::Blocked(BlockKind::Auth), Some(t!("Authenticate sudo")));
 
         // self.path is only None for null sudo, which we've handled above
         ctx.execute(self.path.as_deref().unwrap())
