@@ -1230,6 +1230,15 @@ _version: 2
   zh_TW: "vim 執行檔可能為 nvim"
   de: "vim-Binärdatei könnte tatsächlich nvim sein"
   ko: "vim 실행 파일이 실제로는 nvim일 수 있습니다"
+"Command `toolbox` probably points to openSUSE's toolbox":
+  en: "Command `toolbox` probably points to openSUSE's toolbox"
+  lt: "Komanda `toolbox` greičiausiai nurodo į openSUSE toolbox"
+  es: "El comando `toolbox` probablemente apunta al toolbox de openSUSE"
+  fr: "La commande `toolbox` pointe probablement vers le toolbox d'openSUSE"
+  zh_CN: "命令 `toolbox` 可能指向 openSUSE 的 toolbox"
+  zh_TW: "命令 `toolbox` 可能指向 openSUSE 的 toolbox"
+  de: "Der Befehl `toolbox` verweist wahrscheinlich auf die openSUSE-toolbox"
+  ko: "`toolbox` 명령은 openSUSE의 toolbox를 가리키는 것 같습니다"
 "`{process}` failed: {exit_status}":
   en: "`%{process}` failed: %{exit_status}"
   lt: "`%{process}` nepavyko: %{exit_status}"
