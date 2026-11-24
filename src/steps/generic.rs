@@ -2109,8 +2109,10 @@ pub fn run_freshclam(ctx: &ExecutionContext) -> Result<()> {
 
 /// Involve `pio upgrade` to update PlatformIO core.
 pub fn run_platform_io(ctx: &ExecutionContext) -> Result<()> {
-    // We use the full path because by default the binary is not in `PATH`:
+    // We check the full path, because by default the binary is not in `PATH`:
     // https://github.com/topgrade-rs/topgrade/issues/754#issuecomment-2020537559
+    // We still use the PATH version if available, because the python executable used can differ
+    //  based on which is used.
     #[cfg(unix)]
     fn bin_path() -> PathBuf {
         HOME_DIR.join(".platformio/penv/bin/pio")
@@ -2120,7 +2122,7 @@ pub fn run_platform_io(ctx: &ExecutionContext) -> Result<()> {
         HOME_DIR.join(".platformio/penv/Scripts/pio.exe")
     }
 
-    let bin_path = require(bin_path())?;
+    let bin_path = require("pio").or_else(|_| require(bin_path()))?;
 
     print_separator("PlatformIO Core");
 
