@@ -355,12 +355,9 @@ impl Sudo {
             }
             SudoKind::Null => unreachable!(),
         };
-        let mut args: Vec<Cow<'static, OsStr>> = args.into_iter().map(|arg| Cow::Borrowed(OsStr::new(arg))).collect();
         // the dummy command (`true`, `cmd.exe`) runs as root too
-        if let Some(command) = args.iter_mut().find(|arg| !arg.as_encoded_bytes().starts_with(b"-"))
-            && let Some(trusted) = verify_root_trusted(ctx, command)?
-        {
-            *command = Cow::Owned(trusted.into_os_string());
+        if let Some(command) = args.iter().find(|arg| !arg.starts_with('-')) {
+            verify_root_trusted(ctx, OsStr::new(command))?;
         }
         ctx.execute(sudo_path)
             .args(args)
@@ -577,15 +574,12 @@ impl Sudo {
         // the elevator gets the credentials whichever user it runs the command as
         verify_root_trusted(ctx, sudo_path.as_os_str())?;
         // de-escalation to another user crosses no root boundary
-        let trusted = if opts.user.is_none_or(is_root_user) {
-            verify_root_trusted(ctx, command.as_ref())?
-        } else {
-            None
-        };
+        if opts.user.is_none_or(is_root_user) {
+            verify_root_trusted(ctx, command.as_ref())?;
+        }
 
         let mut cmd = ctx.execute(sudo_path);
-        cmd.args(args)
-            .arg(trusted.as_deref().map_or(command.as_ref(), Path::as_os_str));
+        cmd.args(args).arg(command);
 
         Ok(cmd)
     }
@@ -618,51 +612,37 @@ fn is_root_user(_user: &str) -> bool {
     false
 }
 
-/// Vets `command` before it runs as root. For a bare name, returns the first
-/// PATH match whose whole chain is root-trusted; the caller runs that path in
-/// place of the name, so the elevator cannot pick a different binary than the
-/// one vetted.
+/// Vets `command` before it runs as root: a path as given, a bare name at its
+/// first PATH match. The elevator still gets the bare name and does its own
+/// lookup, which can pick another binary (sudoers' `secure_path`).
 ///
 /// Best-effort: the elevator re-resolves the path at exec time, so a path
 /// swapped after this check is not caught.
-fn verify_root_trusted(ctx: &ExecutionContext, command: &OsStr) -> Result<Option<PathBuf>> {
+fn verify_root_trusted(ctx: &ExecutionContext<'_>, command: &OsStr) -> Result<()> {
     let refuse = match ctx.config().sudo_path_check() {
-        SudoPathCheck::Off => return Ok(None),
+        SudoPathCheck::Off => return Ok(()),
         SudoPathCheck::Warn => false,
         SudoPathCheck::Error => true,
     };
-    // the ownership walk vets nothing off Unix, so a bare name stays as given there
+    // the ownership walk vets nothing off Unix, so skip the PATH lookup there
     if cfg!(not(unix)) {
-        return Ok(None);
+        return Ok(());
     }
 
     let path = Path::new(command);
     // a path that does not resolve can't be vetted; let the real exec fail/skip as usual
-    let untrusted = if path.parent().is_some_and(|parent| parent.as_os_str().is_empty()) {
+    let resolved = if path.parent().is_some_and(|parent| parent.as_os_str().is_empty()) {
         // `utils::which` skips past a broken mise shim, which the elevator would still run
         #[expect(clippy::disallowed_methods)]
-        let Ok(matches) = which_crate::which_all(command) else {
-            return Ok(None);
+        let Ok(found) = which_crate::which(command) else {
+            return Ok(());
         };
-        let mut first_untrusted = None;
-        for found in matches {
-            match first_root_untrusted_component(&found) {
-                Ok(None) => return Ok(Some(found)),
-                Ok(Some(component)) => {
-                    first_untrusted.get_or_insert((found, component));
-                }
-                Err(_) => {}
-            }
-        }
-        first_untrusted
+        Cow::Owned(found)
     } else {
-        first_root_untrusted_component(path)
-            .ok()
-            .flatten()
-            .map(|component| (path.to_path_buf(), component))
+        Cow::Borrowed(path)
     };
-    let Some((resolved, component)) = untrusted else {
-        return Ok(None);
+    let Ok(Some(component)) = first_root_untrusted_component(&resolved) else {
+        return Ok(());
     };
 
     let detail = t!(
@@ -674,10 +654,10 @@ fn verify_root_trusted(ctx: &ExecutionContext, command: &OsStr) -> Result<Option
         return Err(UntrustedRootPath(detail.into_owned()).into());
     }
     print_warning(t!(
-        "Running as root from an untrusted path: {detail}. Disable this check by setting `sudo_path_check = \"off\"`.",
+        "WARNING: Running as root from an untrusted path: {detail}. If this setup is intentional, please tell us why at https://github.com/topgrade-rs/topgrade/issues/2498. Disable this check by setting `sudo_path_check = \"off\"`.",
         detail = detail
     ));
-    Ok(None)
+    Ok(())
 }
 
 // On unix we use `SudoKind::Sudo`, and on windows `SudoKind::WinSudo`.
