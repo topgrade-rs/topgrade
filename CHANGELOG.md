@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [17.18.0](https://github.com/topgrade-rs/topgrade/compare/v17.17.0...v17.18.0) - 2026-11-26
+
+### Added
+- support OSC 7501 Program Status Protocol ([#2509](https://github.com/topgrade-rs/topgrade/pull/2509))
+
+### Fixed
+- *(platformio_core)* check PATH for pio executable before using full path ([#2541](https://github.com/topgrade-rs/topgrade/pull/2541))
+- *(toolbx)* skip openSUSE's toolbox ([#2528](https://github.com/topgrade-rs/topgrade/pull/2528))
+
 ## [17.17.0](https://github.com/topgrade-rs/topgrade/compare/v17.16.0...v17.17.0) - 2026-11-17
 
 ### Added
