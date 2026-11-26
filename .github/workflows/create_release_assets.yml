@@ -369,7 +369,7 @@ jobs:
           subject-path: assets/*
 
   publish:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     needs: [native_build, cross_build, openbsd_build]
     env:
       tag: ${{ github.event.client_payload.tag }}
@@ -385,7 +385,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   triggers:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     needs: [publish]
     env:
       tag: ${{ github.event.client_payload.tag }}
