@@ -9,7 +9,7 @@ permissions: {}
 jobs:
   main:
     name: Validate PR description
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     permissions:
       contents: read
       issues: write # gh pr comment
