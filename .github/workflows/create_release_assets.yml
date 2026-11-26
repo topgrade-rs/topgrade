@@ -28,7 +28,7 @@ jobs:
         # Use the Ubuntu 22.04 image to link with a low version of glibc
         #
         # https://github.com/topgrade-rs/topgrade/issues/1095
-        platform: [ubuntu-22.04, macos-latest, macos-15-intel, windows-latest]
+        platform: [ubuntu-22.04, ubuntu-22.04-arm, macos-latest, macos-15-intel, windows-latest]
     runs-on: ${{ matrix.platform }}
     env:
       tag: ${{ github.event.client_payload.tag }}
@@ -156,7 +156,6 @@ jobs:
       matrix:
         target:
           [
-            "aarch64-unknown-linux-gnu",
             "armv7-unknown-linux-gnueabihf",
             "x86_64-unknown-linux-musl",
             "aarch64-unknown-linux-musl",
@@ -179,11 +178,6 @@ jobs:
           rustup component add rustfmt
           rustup component add clippy
 
-      - name: Install cargo-deb cross compilation dependencies
-        run: sudo apt-get install libc6-arm64-cross libgcc-s1-arm64-cross
-        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' }}
-        shell: bash
-
       - name: Install cargo-deb cross compilation dependencies for armv7
         run: sudo apt-get install libc6-armhf-cross libgcc-s1-armhf-cross
         if: ${{ matrix.target == 'armv7-unknown-linux-gnueabihf' }}
@@ -191,7 +185,7 @@ jobs:
 
       - name: Install cargo-deb
         run: cargo install cargo-deb
-        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'armv7-unknown-linux-gnueabihf' }}
+        if: ${{ matrix.target == 'armv7-unknown-linux-gnueabihf' }}
         shell: bash
 
       - name: install targets
@@ -267,14 +261,14 @@ jobs:
           rm -rf "target/${matrix_target}"
           cross build --release --target "${matrix_target}"
           cargo deb --target="${matrix_target}" --no-build --no-strip
-        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'armv7-unknown-linux-gnueabihf' }}
+        if: ${{ matrix.target == 'armv7-unknown-linux-gnueabihf' }}
         shell: bash
 
       - name: Move Debian-based system package
         run: |
           mkdir -p assets
           mv target/"${matrix_target}"/debian/*.deb assets
-        if: ${{ matrix.target == 'aarch64-unknown-linux-gnu' || matrix.target == 'armv7-unknown-linux-gnueabihf' }}
+        if: ${{ matrix.target == 'armv7-unknown-linux-gnueabihf' }}
         shell: bash
 
       - name: Upload assets
