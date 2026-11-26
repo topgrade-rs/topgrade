@@ -17,7 +17,7 @@ concurrency:
 jobs:
   main:
     name: Validate PR title # zizmor: ignore[concurrency-limits] see above
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     permissions:
       pull-requests: read # amannn/action-semantic-pull-request
     steps:
