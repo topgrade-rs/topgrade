@@ -2794,15 +2794,9 @@ pub fn run_android_sdk(ctx: &ExecutionContext) -> Result<()> {
             .status_checked();
     }
 
-    #[cfg(not(windows))]
-    {
-        ctx.execute(&command_path).args(args).status_checked()
-    }
-    #[cfg(windows)]
-    {
-        ctx.execute(&command_path).args(args).status_checked()
-    }
+    ctx.execute(&command_path).args(args).status_checked()
 }
+
 pub fn run_android_studio(ctx: &ExecutionContext) -> Result<()> {
     let studio = Studio::get(ctx)
         .and_then(|x| x.android_studio())
