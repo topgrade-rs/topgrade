@@ -2609,6 +2609,256 @@ impl Studio {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum AndroidSdkTool {
+    Android,
+    SdkManager,
+}
+
+fn android_sdk_roots() -> Vec<PathBuf> {
+    // Only Linux, macOS and Windows have a default SDK location to append below.
+    #[cfg_attr(not(any(target_os = "linux", target_os = "macos", windows)), allow(unused_mut))]
+    let mut roots = ["ANDROID_HOME", "ANDROID_SDK_ROOT"]
+        .into_iter()
+        .filter_map(env::var_os)
+        .filter(|path| !path.is_empty())
+        .map(PathBuf::from)
+        .collect::<Vec<_>>();
+
+    #[cfg(target_os = "linux")]
+    roots.push(HOME_DIR.join("Android/Sdk"));
+
+    #[cfg(target_os = "macos")]
+    roots.push(HOME_DIR.join("Library/Android/sdk"));
+
+    #[cfg(windows)]
+    {
+        let local_app_data = env::var_os("LOCALAPPDATA")
+            .filter(|path| !path.is_empty())
+            .map(PathBuf::from)
+            .unwrap_or_else(|| HOME_DIR.join("AppData/Local"));
+
+        roots.push(local_app_data.join("Android").join("Sdk"));
+    }
+
+    roots
+}
+
+fn find_android_sdk_command(
+    roots: &[PathBuf],
+    is_writable: impl Fn(&Path) -> bool,
+) -> Result<(PathBuf, PathBuf, AndroidSdkTool), Option<PathBuf>> {
+    let mut not_writable = None;
+
+    for root in roots {
+        let Some((path, tool)) = find_android_sdk_tool_in_root(root) else {
+            continue;
+        };
+
+        if is_writable(root) {
+            return Ok((root.clone(), path, tool));
+        }
+
+        debug!("Skipping Android SDK at {} because it is not writable", root.display());
+        not_writable.get_or_insert_with(|| root.clone());
+    }
+
+    Err(not_writable)
+}
+
+fn find_android_sdk_tool_in_root(root: &Path) -> Option<(PathBuf, AndroidSdkTool)> {
+    // `cmdline-tools/latest/bin` is the layout Android Studio installs; `cmdline-tools/bin` is what
+    // you get when the command-line tools zip is extracted directly into the SDK root.
+    let cmdline_tools = root.join("cmdline-tools");
+
+    for bin in [cmdline_tools.join("latest").join("bin"), cmdline_tools.join("bin")] {
+        let android_names: &[&str] = if cfg!(windows) {
+            &["android.bat", "android.cmd", "android.exe"]
+        } else {
+            &["android"]
+        };
+
+        if let Some(path) = android_names
+            .iter()
+            .copied()
+            .map(|name| bin.join(name))
+            .find(|path| path.is_file())
+        {
+            return Some((path, AndroidSdkTool::Android));
+        }
+
+        let sdkmanager_names: &[&str] = if cfg!(windows) {
+            &["sdkmanager.bat", "sdkmanager.cmd", "sdkmanager.exe"]
+        } else {
+            &["sdkmanager"]
+        };
+
+        if let Some(path) = sdkmanager_names
+            .iter()
+            .copied()
+            .map(|name| bin.join(name))
+            .find(|path| path.is_file())
+        {
+            return Some((path, AndroidSdkTool::SdkManager));
+        }
+    }
+
+    None
+}
+
+#[cfg(test)]
+mod android_sdk_tests {
+    use super::*;
+
+    fn create_tool(root: &Path, name: &str) {
+        let name = if cfg!(windows) {
+            format!("{name}.bat")
+        } else {
+            name.to_string()
+        };
+        let path = root.join("cmdline-tools/latest/bin").join(name);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, "").unwrap();
+    }
+
+    #[test]
+    fn prefers_android_cli_over_sdkmanager() {
+        let root = tempdir().unwrap();
+        create_tool(root.path(), "android");
+        create_tool(root.path(), "sdkmanager");
+
+        let (_, _, tool) = find_android_sdk_command(&[root.path().to_path_buf()], |_| true).unwrap();
+        assert_eq!(tool, AndroidSdkTool::Android);
+    }
+
+    #[test]
+    fn falls_back_to_sdkmanager_when_android_cli_is_missing() {
+        let root = tempdir().unwrap();
+        create_tool(root.path(), "sdkmanager");
+
+        let (_, _, tool) = find_android_sdk_command(&[root.path().to_path_buf()], |_| true).unwrap();
+
+        assert_eq!(tool, AndroidSdkTool::SdkManager);
+    }
+
+    #[test]
+    fn finds_sdkmanager_in_unversioned_cmdline_tools() {
+        let root = tempdir().unwrap();
+        let name = if cfg!(windows) { "sdkmanager.bat" } else { "sdkmanager" };
+        let path = root.path().join("cmdline-tools/bin").join(name);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(&path, "").unwrap();
+
+        let (_, found, tool) = find_android_sdk_command(&[root.path().to_path_buf()], |_| true).unwrap();
+
+        assert_eq!(tool, AndroidSdkTool::SdkManager);
+        assert_eq!(found, path);
+    }
+    #[test]
+    fn skips_non_writable_root_for_later_writable_root() {
+        let read_only = tempdir().unwrap();
+        let writable = tempdir().unwrap();
+        create_tool(read_only.path(), "android");
+        create_tool(writable.path(), "android");
+
+        let (sdk_root, _, _) = find_android_sdk_command(
+            &[read_only.path().to_path_buf(), writable.path().to_path_buf()],
+            |root| root != read_only.path(),
+        )
+        .unwrap();
+
+        assert_eq!(sdk_root, writable.path());
+    }
+
+    #[test]
+    fn reports_non_writable_root_when_no_writable_root_has_tools() {
+        let read_only = tempdir().unwrap();
+        let no_tools = tempdir().unwrap();
+        create_tool(read_only.path(), "sdkmanager");
+
+        let result = find_android_sdk_command(
+            &[read_only.path().to_path_buf(), no_tools.path().to_path_buf()],
+            |root| root != read_only.path(),
+        );
+
+        assert_eq!(result.unwrap_err(), Some(read_only.path().to_path_buf()));
+    }
+
+    #[test]
+    fn reports_not_found_when_no_root_has_tools() {
+        let empty = tempdir().unwrap();
+
+        let result = find_android_sdk_command(&[empty.path().to_path_buf()], |_| true);
+
+        assert_eq!(result.unwrap_err(), None);
+    }
+}
+
+pub fn run_android_sdk(ctx: &ExecutionContext) -> Result<()> {
+    let (sdk_root, command_path, tool) =
+        match find_android_sdk_command(&android_sdk_roots(), |root| tempfile_in(root).is_ok()) {
+            Ok(found) => found,
+            Err(Some(not_writable)) => {
+                return Err(SkipStep(
+                    t!(
+                        "Android SDK installation at {path} is not writable",
+                        path = not_writable.display()
+                    )
+                    .to_string(),
+                )
+                .into());
+            }
+            Err(None) => {
+                return Err(SkipStep(t!("Android SDK command-line tools were not found").to_string()).into());
+            }
+        };
+    let mut args = Vec::<OsString>::new();
+
+    match tool {
+        AndroidSdkTool::Android => {
+            let mut sdk_arg = OsString::from("--sdk=");
+            sdk_arg.push(sdk_root.as_os_str());
+
+            args.extend([
+                OsString::from("--no-metrics"),
+                sdk_arg,
+                OsString::from("sdk"),
+                OsString::from("update"),
+            ]);
+        }
+        AndroidSdkTool::SdkManager => {
+            let mut sdk_root_arg = OsString::from("--sdk_root=");
+            sdk_root_arg.push(sdk_root.as_os_str());
+
+            args.extend([sdk_root_arg, OsString::from("--update")]);
+        }
+    }
+    print_separator("Android SDK");
+
+    #[cfg(windows)]
+    if command_path
+        .extension()
+        .and_then(OsStr::to_str)
+        .is_some_and(|extension| matches!(extension.to_ascii_lowercase().as_str(), "bat" | "cmd"))
+    {
+        let powershell = ctx.require_powershell()?;
+        let script = match tool {
+            AndroidSdkTool::Android => {
+                r#"& { param($cli, $sdk); & $cli --no-metrics "--sdk=$sdk" sdk update; exit $LASTEXITCODE }"#
+            }
+            AndroidSdkTool::SdkManager => {
+                r#"& { param($cli, $sdk); & $cli "--sdk_root=$sdk" --update; exit $LASTEXITCODE }"#
+            }
+        };
+
+        return powershell
+            .build_command_with_args(ctx, script, [command_path.as_os_str(), sdk_root.as_os_str()], false)?
+            .status_checked();
+    }
+
+    ctx.execute(&command_path).args(args).status_checked()
+}
+
 pub fn run_android_studio(ctx: &ExecutionContext) -> Result<()> {
     let studio = Studio::get(ctx)
         .and_then(|x| x.android_studio())
