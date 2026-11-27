@@ -2644,15 +2644,34 @@ fn android_sdk_roots() -> Vec<PathBuf> {
     roots
 }
 
-fn find_android_sdk_command(roots: &[PathBuf]) -> Option<(PathBuf, PathBuf, AndroidSdkTool)> {
+fn find_android_sdk_command(
+    roots: &[PathBuf],
+    is_writable: impl Fn(&Path) -> bool,
+) -> Result<(PathBuf, PathBuf, AndroidSdkTool), Option<PathBuf>> {
+    let mut not_writable = None;
+
+    for root in roots {
+        let Some((path, tool)) = find_android_sdk_tool_in_root(root) else {
+            continue;
+        };
+
+        if is_writable(root) {
+            return Ok((root.clone(), path, tool));
+        }
+
+        debug!("Skipping Android SDK at {} because it is not writable", root.display());
+        not_writable.get_or_insert_with(|| root.clone());
+    }
+
+    Err(not_writable)
+}
+
+fn find_android_sdk_tool_in_root(root: &Path) -> Option<(PathBuf, AndroidSdkTool)> {
     // `cmdline-tools/latest/bin` is the layout Android Studio installs; `cmdline-tools/bin` is what
     // you get when the command-line tools zip is extracted directly into the SDK root.
-    let bins = roots.iter().flat_map(|root| {
-        let cmdline_tools = root.join("cmdline-tools");
-        [cmdline_tools.join("latest").join("bin"), cmdline_tools.join("bin")].map(|bin| (root, bin))
-    });
+    let cmdline_tools = root.join("cmdline-tools");
 
-    for (root, bin) in bins {
+    for bin in [cmdline_tools.join("latest").join("bin"), cmdline_tools.join("bin")] {
         let android_names: &[&str] = if cfg!(windows) {
             &["android.bat", "android.cmd", "android.exe"]
         } else {
@@ -2665,7 +2684,7 @@ fn find_android_sdk_command(roots: &[PathBuf]) -> Option<(PathBuf, PathBuf, Andr
             .map(|name| bin.join(name))
             .find(|path| path.is_file())
         {
-            return Some((root.clone(), path, AndroidSdkTool::Android));
+            return Some((path, AndroidSdkTool::Android));
         }
 
         let sdkmanager_names: &[&str] = if cfg!(windows) {
@@ -2680,7 +2699,7 @@ fn find_android_sdk_command(roots: &[PathBuf]) -> Option<(PathBuf, PathBuf, Andr
             .map(|name| bin.join(name))
             .find(|path| path.is_file())
         {
-            return Some((root.clone(), path, AndroidSdkTool::SdkManager));
+            return Some((path, AndroidSdkTool::SdkManager));
         }
     }
 
@@ -2708,8 +2727,7 @@ mod android_sdk_tests {
         create_tool(root.path(), "android");
         create_tool(root.path(), "sdkmanager");
 
-        let (_, _, tool) = find_android_sdk_command(&[root.path().to_path_buf()]).unwrap();
-
+        let (_, _, tool) = find_android_sdk_command(&[root.path().to_path_buf()], |_| true).unwrap();
         assert_eq!(tool, AndroidSdkTool::Android);
     }
 
@@ -2718,7 +2736,7 @@ mod android_sdk_tests {
         let root = tempdir().unwrap();
         create_tool(root.path(), "sdkmanager");
 
-        let (_, _, tool) = find_android_sdk_command(&[root.path().to_path_buf()]).unwrap();
+        let (_, _, tool) = find_android_sdk_command(&[root.path().to_path_buf()], |_| true).unwrap();
 
         assert_eq!(tool, AndroidSdkTool::SdkManager);
     }
@@ -2731,27 +2749,69 @@ mod android_sdk_tests {
         fs::create_dir_all(path.parent().unwrap()).unwrap();
         fs::write(&path, "").unwrap();
 
-        let (_, found, tool) = find_android_sdk_command(&[root.path().to_path_buf()]).unwrap();
+        let (_, found, tool) = find_android_sdk_command(&[root.path().to_path_buf()], |_| true).unwrap();
 
         assert_eq!(tool, AndroidSdkTool::SdkManager);
         assert_eq!(found, path);
     }
+    #[test]
+    fn skips_non_writable_root_for_later_writable_root() {
+        let read_only = tempdir().unwrap();
+        let writable = tempdir().unwrap();
+        create_tool(read_only.path(), "android");
+        create_tool(writable.path(), "android");
+
+        let (sdk_root, _, _) = find_android_sdk_command(
+            &[read_only.path().to_path_buf(), writable.path().to_path_buf()],
+            |root| root != read_only.path(),
+        )
+        .unwrap();
+
+        assert_eq!(sdk_root, writable.path());
+    }
+
+    #[test]
+    fn reports_non_writable_root_when_no_writable_root_has_tools() {
+        let read_only = tempdir().unwrap();
+        let no_tools = tempdir().unwrap();
+        create_tool(read_only.path(), "sdkmanager");
+
+        let result = find_android_sdk_command(
+            &[read_only.path().to_path_buf(), no_tools.path().to_path_buf()],
+            |root| root != read_only.path(),
+        );
+
+        assert_eq!(result.unwrap_err(), Some(read_only.path().to_path_buf()));
+    }
+
+    #[test]
+    fn reports_not_found_when_no_root_has_tools() {
+        let empty = tempdir().unwrap();
+
+        let result = find_android_sdk_command(&[empty.path().to_path_buf()], |_| true);
+
+        assert_eq!(result.unwrap_err(), None);
+    }
 }
 
 pub fn run_android_sdk(ctx: &ExecutionContext) -> Result<()> {
-    let Some((sdk_root, command_path, tool)) = find_android_sdk_command(&android_sdk_roots()) else {
-        return Err(SkipStep(t!("Android SDK command-line tools were not found").to_string()).into());
-    };
-    if tempfile_in(&sdk_root).is_err() {
-        return Err(SkipStep(
-            t!(
-                "Android SDK installation at {path} is not writable",
-                path = sdk_root.display()
-            )
-            .to_string(),
-        )
-        .into());
-    }
+    let (sdk_root, command_path, tool) =
+        match find_android_sdk_command(&android_sdk_roots(), |root| tempfile_in(root).is_ok()) {
+            Ok(found) => found,
+            Err(Some(not_writable)) => {
+                return Err(SkipStep(
+                    t!(
+                        "Android SDK installation at {path} is not writable",
+                        path = not_writable.display()
+                    )
+                    .to_string(),
+                )
+                .into());
+            }
+            Err(None) => {
+                return Err(SkipStep(t!("Android SDK command-line tools were not found").to_string()).into());
+            }
+        };
     let mut args = Vec::<OsString>::new();
 
     match tool {
