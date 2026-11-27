@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashSet;
 use std::ffi::OsStr;
 use std::path::Path;
@@ -21,11 +22,11 @@ use tracing::{debug, warn};
 use windows::Win32::Foundation::ERROR_FILE_NOT_FOUND;
 
 use crate::command::CommandExt;
-use crate::error::UnsupportedSudo;
+use crate::error::{UnsupportedSudo, UntrustedRootPath};
 use crate::execution_context::{ExecutionContext, RunType};
 use crate::executor::Executor;
-use crate::terminal::{BlockKind, Status, print_separator, report_status};
-use crate::utils::which;
+use crate::terminal::{BlockKind, Status, print_separator, print_warning, report_status};
+use crate::utils::{first_root_untrusted_component, which};
 
 #[derive(Clone, Debug)]
 pub struct Sudo {
@@ -296,63 +297,70 @@ impl Sudo {
         report_status(Status::Blocked(BlockKind::Auth), Some(t!("Authenticate sudo")));
 
         // self.path is only None for null sudo, which we've handled above
-        ctx.execute(self.path.as_deref().unwrap())
-            .args(match self.kind {
-                SudoKind::Doas => {
-                    // `doas` doesn't have anything like `sudo -v` to cache credentials,
-                    // so we just execute a no-op dummy command, `true`.
-                    // See: https://man.openbsd.org/doas
-                    vec!["true"]
-                }
-                SudoKind::Sudo => {
-                    // From `man sudo` on macOS:
-                    //   -v, --validate
-                    //   Update the user's cached credentials, authenticating the user
-                    //   if necessary.  For the sudoers plugin, this extends the sudo
-                    //   timeout for another 5 minutes by default, but does not run a
-                    //   command.  Not all security policies support cached credentials.
-                    vec!["-v"]
-                }
-                SudoKind::WinSudo => {
-                    // Windows `sudo` doesn't cache credentials, so we just execute a
-                    // dummy command - the easiest on Windows is `rem` in cmd.
-                    // See: https://learn.microsoft.com/en-us/windows/advanced-settings/sudo/
-                    vec!["cmd.exe", "/c", "rem"]
-                }
-                SudoKind::Gsudo => {
-                    // `gsudo` doesn't have anything like `sudo -v` to cache credentials,
-                    // so we just execute a dummy command - the easiest on Windows is
-                    // `rem` in cmd. `-d` tells it to run the command directly, without
-                    // going through a shell (which could be powershell) first.
-                    // See: https://gerardog.github.io/gsudo/docs/usage
-                    vec!["-d", "cmd.exe", "/c", "rem"]
-                    // TODO: `gsudo cache on` starts a session with cached credentials and could replace the dummy `rem` invocation here when sudo_loop is enabled...
-                }
-                SudoKind::Pkexec => {
-                    // I don't think this does anything; `pkexec` usually asks for
-                    // authentication every time, although it can be configured
-                    // differently.
-                    //
-                    // See the note for `doas` above.
-                    //
-                    // See: https://linux.die.net/man/1/pkexec
-                    vec!["true"]
-                }
-                SudoKind::Run0 => {
-                    // `run0` uses polkit for authentication
-                    // and thus has the same issues as `pkexec`.
-                    //
-                    // See: https://www.freedesktop.org/software/systemd/man/devel/run0.html
-                    vec!["true"]
-                }
-                SudoKind::Please => {
-                    // From `man please`
-                    //   -w, --warm
-                    //   Warm the access token and exit.
-                    vec!["-w"]
-                }
-                SudoKind::Null => unreachable!(),
-            })
+        let sudo_path = self.path.as_deref().unwrap();
+        verify_root_trusted(ctx, sudo_path.as_os_str())?;
+        let args = match self.kind {
+            SudoKind::Doas => {
+                // `doas` doesn't have anything like `sudo -v` to cache credentials,
+                // so we just execute a no-op dummy command, `true`.
+                // See: https://man.openbsd.org/doas
+                vec!["true"]
+            }
+            SudoKind::Sudo => {
+                // From `man sudo` on macOS:
+                //   -v, --validate
+                //   Update the user's cached credentials, authenticating the user
+                //   if necessary.  For the sudoers plugin, this extends the sudo
+                //   timeout for another 5 minutes by default, but does not run a
+                //   command.  Not all security policies support cached credentials.
+                vec!["-v"]
+            }
+            SudoKind::WinSudo => {
+                // Windows `sudo` doesn't cache credentials, so we just execute a
+                // dummy command - the easiest on Windows is `rem` in cmd.
+                // See: https://learn.microsoft.com/en-us/windows/advanced-settings/sudo/
+                vec!["cmd.exe", "/c", "rem"]
+            }
+            SudoKind::Gsudo => {
+                // `gsudo` doesn't have anything like `sudo -v` to cache credentials,
+                // so we just execute a dummy command - the easiest on Windows is
+                // `rem` in cmd. `-d` tells it to run the command directly, without
+                // going through a shell (which could be powershell) first.
+                // See: https://gerardog.github.io/gsudo/docs/usage
+                vec!["-d", "cmd.exe", "/c", "rem"]
+                // TODO: `gsudo cache on` starts a session with cached credentials and could replace the dummy `rem` invocation here when sudo_loop is enabled...
+            }
+            SudoKind::Pkexec => {
+                // I don't think this does anything; `pkexec` usually asks for
+                // authentication every time, although it can be configured
+                // differently.
+                //
+                // See the note for `doas` above.
+                //
+                // See: https://linux.die.net/man/1/pkexec
+                vec!["true"]
+            }
+            SudoKind::Run0 => {
+                // `run0` uses polkit for authentication
+                // and thus has the same issues as `pkexec`.
+                //
+                // See: https://www.freedesktop.org/software/systemd/man/devel/run0.html
+                vec!["true"]
+            }
+            SudoKind::Please => {
+                // From `man please`
+                //   -w, --warm
+                //   Warm the access token and exit.
+                vec!["-w"]
+            }
+            SudoKind::Null => unreachable!(),
+        };
+        // the dummy command (`true`, `cmd.exe`) runs as root too
+        if let Some(command) = args.iter().find(|arg| !arg.starts_with('-')) {
+            verify_root_trusted(ctx, OsStr::new(command))?;
+        }
+        ctx.execute(sudo_path)
+            .args(args)
             .status_checked()
             .wrap_err("Failed to elevate permissions")
     }
@@ -562,11 +570,94 @@ impl Sudo {
         }
 
         // self.path is only None for null sudo, which we've handled above
-        let mut cmd = ctx.execute(self.path.as_ref().unwrap());
+        let sudo_path = self.path.as_deref().unwrap();
+        // the elevator gets the credentials whichever user it runs the command as
+        verify_root_trusted(ctx, sudo_path.as_os_str())?;
+        // de-escalation to another user crosses no root boundary
+        if opts.user.is_none_or(is_root_user) {
+            verify_root_trusted(ctx, command.as_ref())?;
+        }
+
+        let mut cmd = ctx.execute(sudo_path);
         cmd.args(args).arg(command);
 
         Ok(cmd)
     }
+}
+
+/// What to do when a binary about to run under `sudo` resolves to a path a
+/// non-root user could control.
+///
+/// See: https://github.com/topgrade-rs/topgrade/issues/2116
+#[derive(Clone, Copy, Debug, Default, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SudoPathCheck {
+    Off,
+    #[default]
+    Warn,
+    Error,
+}
+
+/// `root` or any uid-0 alias.
+#[cfg(unix)]
+fn is_root_user(user: &str) -> bool {
+    nix::unistd::User::from_name(user)
+        .ok()
+        .flatten()
+        .is_some_and(|u| u.uid.is_root())
+}
+
+#[cfg(not(unix))]
+fn is_root_user(_user: &str) -> bool {
+    false
+}
+
+/// Vets `command` before it runs as root: a path as given, a bare name at its
+/// first PATH match. The elevator still gets the bare name and does its own
+/// lookup, which can pick another binary (sudoers' `secure_path`).
+///
+/// Best-effort: the elevator re-resolves the path at exec time, so a path
+/// swapped after this check is not caught.
+fn verify_root_trusted(ctx: &ExecutionContext<'_>, command: &OsStr) -> Result<()> {
+    let refuse = match ctx.config().sudo_path_check() {
+        SudoPathCheck::Off => return Ok(()),
+        SudoPathCheck::Warn => false,
+        SudoPathCheck::Error => true,
+    };
+    // the ownership walk vets nothing off Unix, so skip the PATH lookup there
+    if cfg!(not(unix)) {
+        return Ok(());
+    }
+
+    let path = Path::new(command);
+    // a path that does not resolve can't be vetted; let the real exec fail/skip as usual
+    let resolved = if path.parent().is_some_and(|parent| parent.as_os_str().is_empty()) {
+        // `utils::which` skips past a broken mise shim, which the elevator would still run
+        #[expect(clippy::disallowed_methods)]
+        let Ok(found) = which_crate::which(command) else {
+            return Ok(());
+        };
+        Cow::Owned(found)
+    } else {
+        Cow::Borrowed(path)
+    };
+    let Ok(Some(component)) = first_root_untrusted_component(&resolved) else {
+        return Ok(());
+    };
+
+    let detail = t!(
+        "{binary} resolves through {path}, which is not owned by root or is writable by non-root users",
+        binary = resolved.display().to_string(),
+        path = component.display().to_string(),
+    );
+    if refuse {
+        return Err(UntrustedRootPath(detail.into_owned()).into());
+    }
+    print_warning(t!(
+        "WARNING: Running as root from an untrusted path: {detail}. If this setup is intentional, please tell us why at https://github.com/topgrade-rs/topgrade/issues/2498. Disable this check by setting `sudo_path_check = \"off\"`.",
+        detail = detail
+    ));
+    Ok(())
 }
 
 // On unix we use `SudoKind::Sudo`, and on windows `SudoKind::WinSudo`.
