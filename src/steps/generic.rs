@@ -2616,6 +2616,8 @@ enum AndroidSdkTool {
 }
 
 fn android_sdk_roots() -> Vec<PathBuf> {
+    // Only Linux, macOS and Windows have a default SDK location to append below.
+    #[cfg_attr(not(any(target_os = "linux", target_os = "macos", windows)), allow(unused_mut))]
     let mut roots = ["ANDROID_HOME", "ANDROID_SDK_ROOT"]
         .into_iter()
         .filter_map(env::var_os)
