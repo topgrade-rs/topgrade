@@ -78,7 +78,7 @@ pub fn run_toolbx(ctx: &ExecutionContext) -> Result<()> {
         let topgrade_prefix = format!("TOPGRADE_PREFIX=Toolbx {tb}");
         let mut args = vec![
             "run",
-            "-c",
+            "--container",
             tb,
             "env",
             &topgrade_prefix,
