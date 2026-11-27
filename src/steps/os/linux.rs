@@ -1201,21 +1201,26 @@ pub fn run_gearlever(ctx: &ExecutionContext) -> Result<()> {
 
     print_separator(if native { "Gear Lever" } else { "Gear Lever (Flatpak)" });
 
-    let mut list_updates = if native {
-        ctx.execute(require("gearlever")?).always()
-    } else {
-        let flatpak = require("flatpak")?;
-        let mut cmd = ctx.execute(&flatpak).always();
-        cmd.args(["run", "it.mijorus.gearlever"]);
-        cmd
-    };
-    list_updates.arg("--list-updates");
+    // Checking for updates first avoids Gear Lever's update prompt when there is nothing to
+    // update. In a dry run, skip the check so that the update command is printed instead of
+    // running Gear Lever.
+    if !ctx.run_type().dry() {
+        let mut list_updates = if native {
+            ctx.execute(require("gearlever")?)
+        } else {
+            let flatpak = require("flatpak")?;
+            let mut cmd = ctx.execute(&flatpak);
+            cmd.args(["run", "it.mijorus.gearlever"]);
+            cmd
+        };
+        list_updates.arg("--list-updates");
 
-    let list_output = list_updates.output_checked_utf8()?;
-    if list_output.stdout.trim() == "No updates available" {
-        std::io::stdout().write_all(list_output.stdout.as_bytes())?;
-        std::io::stderr().write_all(list_output.stderr.as_bytes())?;
-        return Ok(());
+        let list_output = list_updates.output_checked_utf8()?;
+        if list_output.stdout.trim() == "No updates available" {
+            std::io::stdout().write_all(list_output.stdout.as_bytes())?;
+            std::io::stderr().write_all(list_output.stderr.as_bytes())?;
+            return Ok(());
+        }
     }
 
     let mut cmd = if native {
